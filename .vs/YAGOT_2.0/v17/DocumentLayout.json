@@ -1,12 +1,7 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\WinDows\\Downloads\\YAGOT_3\\YAGOT_3\\YAGOT_2.0\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{36330D35-E8AB-4120-1D25-9CFBD63303D3}|YAGOT_2.0.csproj|c:\\users\\windows\\downloads\\yagot_3\\yagot_3\\yagot_2.0\\dockerfile.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{36330D35-E8AB-4120-1D25-9CFBD63303D3}|YAGOT_2.0.csproj|solutionrelative:dockerfile.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -14,7 +9,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": -1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -23,19 +18,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Dockerfile.txt",
-              "DocumentMoniker": "C:\\Users\\WinDows\\Downloads\\YAGOT_3\\YAGOT_3\\YAGOT_2.0\\Dockerfile.txt",
-              "RelativeDocumentMoniker": "Dockerfile.txt",
-              "ToolTip": "C:\\Users\\WinDows\\Downloads\\YAGOT_3\\YAGOT_3\\YAGOT_2.0\\Dockerfile.txt",
-              "RelativeToolTip": "Dockerfile.txt",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAIwA4AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2026-06-30T21:16:11.341Z",
-              "EditorCaption": ""
             }
           ]
         }
