@@ -1,0 +1,125 @@
+@model IEnumerable<YAGOT_2._0.Models.Product>
+@{
+    ViewData["Title"] = ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور";
+    var categories = ViewBag.Categories as List<YAGOT_2._0.Models.Category>;
+    int? currentCategoryId = ViewBag.CategoryId as int?;
+    var searchTerm = Context.Request.Query["search"].ToString();
+    var productList = Model.ToList();
+
+    if (!string.IsNullOrWhiteSpace(searchTerm))
+    {
+        productList = productList
+            .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                     || (p.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+    }
+
+    var familyNames = categories?.Select(c => c.Name).Distinct().ToList() ?? new List<string>();
+}
+
+<div class="yaqut-page-header">
+    <div>
+        <h1>
+            @if (ViewBag.CategoryName != null)
+            {
+                <span>عطور: @ViewBag.CategoryName</span>
+            }
+            else if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <span>نتائج البحث: "@searchTerm"</span>
+            }
+            else
+            {
+                <span>المجموعة الكاملة</span>
+            }
+        </h1>
+        @if (ViewBag.CategoryName != null)
+        {
+            <a asp-action="Index" class="btn-yaqut-outline btn-sm mt-2">
+                <i class="bi bi-arrow-right"></i> عرض الكل
+            </a>
+        }
+    </div>
+</div>
+
+@if (categories != null && categories.Any())
+{
+    <div class="yaqut-filter-pills">
+        <a asp-action="Index"
+           asp-route-search="@searchTerm"
+           class="yaqut-pill @(currentCategoryId == null ? "yaqut-pill--active" : "")">الكل</a>
+        @foreach (var cat in categories)
+        {
+            <a asp-action="Index"
+               asp-route-categoryId="@cat.Id"
+               asp-route-search="@searchTerm"
+               class="yaqut-pill @(currentCategoryId == cat.Id ? "yaqut-pill--active" : "")">@cat.Name</a>
+        }
+    </div>
+}
+
+<button type="button" id="yaqutFilterToggle" class="btn-yaqut-outline yaqut-mobile-filter-toggle">
+    <i class="bi bi-funnel"></i> الفلاتر
+</button>
+
+<div class="yaqut-shop-layout">
+    <aside id="yaqutFilters" class="yaqut-filters glass-effect">
+        <h3 class="yaqut-filters__title"><i class="bi bi-sliders"></i> تصفية العطور</h3>
+
+        <div class="yaqut-filter-group">
+            <span class="yaqut-filter-group__label">الحجم</span>
+            <div class="yaqut-filter-options">
+                <label class="yaqut-filter-option"><input type="checkbox" name="size" value="50" /> 50 مل</label>
+                <label class="yaqut-filter-option"><input type="checkbox" name="size" value="100" /> 100 مل</label>
+            </div>
+        </div>
+
+        <div class="yaqut-filter-group">
+            <span class="yaqut-filter-group__label">التركيز</span>
+            <div class="yaqut-filter-options">
+                <label class="yaqut-filter-option"><input type="checkbox" name="concentration" value="edt" /> Eau de Toilette</label>
+                <label class="yaqut-filter-option"><input type="checkbox" name="concentration" value="edp" /> Eau de Parfum</label>
+                <label class="yaqut-filter-option"><input type="checkbox" name="concentration" value="parfum" /> Parfum</label>
+            </div>
+        </div>
+
+        @if (familyNames.Any())
+        {
+            <div class="yaqut-filter-group">
+                <span class="yaqut-filter-group__label">العائلة العطرية</span>
+                <div class="yaqut-filter-options">
+                    @foreach (var family in familyNames)
+                    {
+                        <label class="yaqut-filter-option">
+                            <input type="checkbox" name="family" value="@family" /> @family
+                        </label>
+                    }
+                </div>
+            </div>
+        }
+    </aside>
+
+    <div>
+        <p id="yaqutResultsCount" class="yaqut-results-count">@productList.Count عطر</p>
+
+        @if (productList.Any())
+        {
+            <div id="yaqutProductsGrid" class="row g-4">
+                @foreach (var item in productList)
+                {
+                    <div class="col-sm-6 col-lg-4">
+                        <partial name="_ProductCard" model="item" />
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="yaqut-empty glass-effect">
+                <i class="bi bi-search yaqut-empty__icon"></i>
+                <p class="yaqut-empty__text">لا توجد عطور تطابق معايير البحث.</p>
+                <a asp-action="Index" class="btn-yaqut-gold mt-3">عرض جميع العطور</a>
+            </div>
+        }
+    </div>
+</div>

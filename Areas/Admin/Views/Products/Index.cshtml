@@ -1,0 +1,45 @@
+@model YAGOT_2._0.Services.ViewModels
+@{
+    ViewData["Title"] = "إدارة المنتجات";
+}
+
+<div class="yaqut-admin-header">
+    <h1><i class="bi bi-box-seam"></i> إدارة المنتجات</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="trash" class="btn-yaqut-outline btn-sm"><i class="bi bi-trash"></i> سلة المحذوفات</a>
+        <a asp-action="Create" class="btn-yaqut-gold btn-sm"><i class="bi bi-plus-lg"></i> إضافة منتج</a>
+    </div>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="yaqut-alert yaqut-alert--danger">@TempData["Error"]</div>
+}
+
+<div class="yaqut-admin-grid">
+    @foreach (var p in Model.Products)
+    {
+        if (!(p.Stockquantity == 0 && p.Imageurl == "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png"))
+        {
+            var cat = Model.Categories.FirstOrDefault(c => c.Id == p.Categoryid);
+            var stockClass = p.Stockquantity < 5 ? "yaqut-stock-badge--low" : "yaqut-stock-badge--ok";
+
+            <article class="yaqut-admin-card glass-effect">
+                <img src="@p.Imageurl" alt="@p.Name" class="yaqut-admin-card__img yaqut-card-img" data-yaqut-fallback="/images/placeholder-product.svg" />
+                <div class="yaqut-admin-card__body">
+                    <h3 class="yaqut-admin-card__title">@p.Name</h3>
+                    <p class="text-muted small mb-2">@(cat?.Name ?? "-")</p>
+                    <div class="yaqut-product-card__price mb-2">@p.Price.ToString("N0") <small>ر.س</small></div>
+                    <span class="yaqut-stock-badge @stockClass">@p.Stockquantity وحدة</span>
+                    <div class="d-flex gap-2 mt-3">
+                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn-yaqut-outline btn-sm flex-fill text-center">تعديل</a>
+                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="flex-fill"
+                              data-yaqut-confirm="هل أنت متأكد من حذف المنتج @p.Name؟">
+                            <button type="submit" class="btn-yaqut-danger btn-sm w-100">حذف</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        }
+    }
+</div>

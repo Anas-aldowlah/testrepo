@@ -1,0 +1,35 @@
+@model CategoryVW
+@{
+    ViewData["Title"] = "إضافة تصنيف جديد";
+}
+
+<div class="yaqut-admin-form glass-effect">
+    <h1 class="yaqut-admin-form__title"><i class="bi bi-plus-circle"></i> إضافة تصنيف جديد</h1>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        <div class="yaqut-form-group">
+            <label asp-for="Name" class="yaqut-form-label">اسم التصنيف</label>
+            <input asp-for="Name" type="text" required class="yaqut-form-input" />
+        </div>
+        <div class="yaqut-form-group">
+            <label asp-for="Description" class="yaqut-form-label">الوصف</label>
+            <textarea asp-for="Description" rows="3" class="yaqut-form-input"></textarea>
+        </div>
+        <div class="yaqut-image-upload">
+            <label class="yaqut-form-label">صورة التصنيف</label>
+            <div class="yaqut-image-upload__row">
+                <div class="yaqut-image-preview">
+                    <img id="imagePreview" src="/images/placeholder-product.svg" alt="معاينة" />
+                </div>
+                <div class="flex-grow-1">
+                    <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" required />
+                </div>
+            </div>
+            <span asp-validation-for="ImageFile" class="text-danger small"></span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-yaqut-gold">حفظ التصنيف</button>
+            <a asp-action="Index" class="btn-yaqut-outline">إلغاء</a>
+        </div>
+    </form>
+</div>

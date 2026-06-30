@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ياقوت للعطور الفاخرة - اكتشف مجموعة من أرقى العطور الشرقية والغربية في المملكة." />
+    <title>@ViewData["Title"] - ياقوت</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/yaqut-theme.css" asp-append-version="true" />
+    <script src="~/js/yaqut-main.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <!-- Announcement Bar -->
+    <div class="yaqut-announce">
+        <i class="bi bi-gem"></i>
+        شحن مجاني للطلبات فوق 500 ر.س — ياقوت للعطور الفاخرة
+    </div>
+
+    <!-- Header -->
+    <header class="yaqut-header">
+        <div class="yaqut-header__inner">
+            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" onclick="toggleNav()">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <!-- Logo points to Home -->
+            <a class="yaqut-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
+                    <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
+                </span>
+            </a>
+
+            <form asp-controller="Products" asp-action="Index" method="get" class="yaqut-search" role="search">
+                <input type="search" name="search" id="yaqutSearchInput" class="yaqut-search__input"
+                       placeholder="ابحث عن عطرك المفضل..." value="@Context.Request.Query["search"]" autocomplete="off" />
+                <button type="submit" class="yaqut-search__btn" aria-label="بحث">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+
+            <ul class="yaqut-nav">
+                <li><a asp-controller="Home" asp-action="Index">الرئيسية</a></li>
+                <li><a asp-controller="Products" asp-action="Index">المجموعة</a></li>
+                <li><a asp-controller="Cart" asp-action="Index">السلة</a></li>
+                <li><a asp-controller="Orders" asp-action="Index">طلباتي</a></li>
+            </ul>
+
+            <div class="yaqut-header__actions">
+                <!-- Theme Toggle Pill (Modern UI) -->
+                <div class="yaqut-theme-pill" role="group" aria-label="تبديل وضع الألوان">
+                    <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="light" aria-label="الوضع الصباحي" title="وضع النهار">
+                        <i class="bi bi-sun"></i>
+                    </button>
+                    <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="dark" aria-label="الوضع المسائي" title="وضع الليل">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+                </div>
+
+                <a asp-controller="Cart" asp-action="Index" class="yaqut-icon-btn" aria-label="السلة">
+                    <i class="bi bi-bag"></i>
+                </a>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-yaqut-gold btn-sm d-none d-lg-inline-flex">الإدارة</a>
+                    }
+                    <span class="yaqut-user-chip d-none d-md-inline-flex">
+                        <i class="bi bi-person-circle"></i> @User.Identity.Name
+                    </span>
+                    <a asp-controller="Account" asp-action="Logout" class="btn btn-yaqut-outline btn-sm yaqut-logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-md-inline">خروج</span>
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Auth" class="btn btn-yaqut-outline btn-sm">دخول</a>
+                }
+            </div>
+        </div>
+    </header>
+
+    <div class="yaqut-container">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="yaqut-footer">
+        <div class="yaqut-footer__brand">ياقوت — YAQUT</div>
+        <p class="yaqut-footer__tagline">حيث تولد الروائح كقطع فنية خالدة</p>
+        <p class="yaqut-footer__copy">&copy; @DateTime.Now.Year ياقوت للعطور الفاخرة. جميع الحقوق محفوظة.</p>
+    </footer>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

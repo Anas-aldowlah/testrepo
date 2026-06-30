@@ -1,0 +1,15 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "خطأ";
+}
+
+<div class="yaqut-empty glass-effect mt-4">
+    <i class="bi bi-exclamation-triangle yaqut-empty__icon"></i>
+    <h1 class="h3 text-danger">حدث خطأ</h1>
+    <p class="yaqut-empty__text">نعتذر، حدث خطأ أثناء معالجة طلبك.</p>
+    @if (Model.ShowRequestId)
+    {
+        <p class="text-muted small">معرّف الطلب: <code>@Model.RequestId</code></p>
+    }
+    <a asp-controller="Home" asp-action="Index" class="btn-yaqut-gold mt-3">العودة للرئيسية</a>
+</div>

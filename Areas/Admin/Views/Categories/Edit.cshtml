@@ -1,0 +1,42 @@
+@model CategoryVW
+@{
+    ViewData["Title"] = "تعديل التصنيف";
+    var previewSrc = !string.IsNullOrEmpty(Model.Existingimage)
+        ? Url.Content("~/" + Model.Existingimage)
+        : "/images/placeholder-product.svg";
+}
+
+<div class="yaqut-admin-form glass-effect">
+    <h1 class="yaqut-admin-form__title"><i class="bi bi-pencil"></i> تعديل: @Model.Name</h1>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="Existingimage" type="hidden" />
+
+        <div class="yaqut-form-group">
+            <label asp-for="Name" class="yaqut-form-label">اسم التصنيف</label>
+            <input asp-for="Name" type="text" required class="yaqut-form-input" />
+        </div>
+        <div class="yaqut-form-group">
+            <label asp-for="Description" class="yaqut-form-label">الوصف</label>
+            <textarea asp-for="Description" rows="3" class="yaqut-form-input"></textarea>
+        </div>
+        <div class="yaqut-image-upload">
+            <label class="yaqut-form-label">صورة التصنيف</label>
+            <div class="yaqut-image-upload__row">
+                <div class="yaqut-image-preview">
+                    <img id="imagePreview" src="@previewSrc" alt="معاينة" />
+                </div>
+                <div class="flex-grow-1">
+                    <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" />
+                    <p class="text-muted small mt-2 mb-0">JPG, PNG, WebP — الحد الأقصى 10MB</p>
+                </div>
+            </div>
+            <span asp-validation-for="ImageFile" class="text-danger small"></span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-yaqut-gold">حفظ التعديل</button>
+            <a asp-action="Index" class="btn-yaqut-outline">إلغاء</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,145 @@
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "بوابة الدخول";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? "/Home/Index";
+    var showRegisterPanel = (TempData["ShowRegister"] as bool?) == true;
+}
+
+<div class="yaqut-auth-page">
+    <article class="yaqut-auth-card">
+        <div class="yaqut-auth-card__shine" aria-hidden="true"></div>
+        <div class="yaqut-auth-card__body">
+
+            <div class="yaqut-auth-logo">
+                <div class="yaqut-logo-wrap yaqut-logo-wrap--auth">
+                    <img src="~/images/yaqut-logo.png" alt="ياقوت" class="yaqut-logo" />
+                </div>
+            </div>
+
+            <h1 class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
+            <p class="yaqut-auth-subtitle">سجّل دخولك أو أنشئ حساباً للوصول إلى عالم العطور الفاخرة</p>
+
+            <div class="yaqut-auth-tabs" role="tablist">
+                <button type="button"
+                        class="yaqut-auth-tab @(showRegisterPanel ? "" : "is-active")"
+                        id="loginToggle"
+                        role="tab"
+                        aria-selected="@(!showRegisterPanel)">
+                    <i class="bi bi-box-arrow-in-left"></i> دخول
+                </button>
+                <button type="button"
+                        class="yaqut-auth-tab @(showRegisterPanel ? "is-active" : "")"
+                        id="registerToggle"
+                        role="tab"
+                        aria-selected="@showRegisterPanel">
+                    <i class="bi bi-person-plus"></i> حساب جديد
+                </button>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="yaqut-alert yaqut-alert--danger" role="alert">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <div>@error.ErrorMessage</div>
+                    }
+                </div>
+            }
+
+            <!-- LOGIN PANEL -->
+            <div id="loginPanel"
+                 class="auth-panel @(showRegisterPanel ? "d-none" : "")"
+                 role="tabpanel"
+                 aria-hidden="@showRegisterPanel">
+                <form asp-controller="Account" asp-action="Login" method="post" data-yq-validate novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="loginPhone">رقم الجوال</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-phone"></i>
+                            <input id="loginPhone" name="Phone" type="tel" class="yaqut-form-input"
+                                   placeholder="أدخل 9 أرقام" required autocomplete="tel" minlength="9" maxlength="9" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="loginPhone"></div>
+                    </div>
+
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="loginPassword">كلمة المرور</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-lock"></i>
+                            <input id="loginPassword" name="Password" type="password" class="yaqut-form-input"
+                                   placeholder="أدخل كلمة المرور" required autocomplete="current-password" minlength="6" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="loginPassword"></div>
+                    </div>
+
+                    <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
+                        <i class="bi bi-unlock"></i> تسجيل الدخول
+                    </button>
+                </form>
+            </div>
+
+            <!-- REGISTER PANEL -->
+            <div id="registerPanel"
+                 class="auth-panel @(showRegisterPanel ? "" : "d-none")"
+                 role="tabpanel"
+                 aria-hidden="@(!showRegisterPanel)">
+                <form asp-controller="Account" asp-action="Register" method="post" data-yq-validate novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="regName">الاسم الكامل</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-person"></i>
+                            <input id="regName" name="Name" type="text" class="yaqut-form-input"
+                                   placeholder="اسمك الكامل" required autocomplete="name" minlength="2" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="regName"></div>
+                    </div>
+
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="regPhone">رقم الجوال</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-phone"></i>
+                            <input id="regPhone" name="Phone" type="tel" class="yaqut-form-input"
+                                   placeholder="أدخل 9 أرقام" required autocomplete="tel" minlength="9" maxlength="9" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="regPhone"></div>
+                    </div>
+
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="regPassword">كلمة المرور</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-shield-lock"></i>
+                            <input id="regPassword" name="Password" type="password" class="yaqut-form-input"
+                                   placeholder="6 أحرف على الأقل" required autocomplete="new-password" minlength="6" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="regPassword"></div>
+                    </div>
+
+                    <div class="yaqut-form-group">
+                        <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور</label>
+                        <div class="yaqut-input-wrap">
+                            <i class="bi bi-shield-check"></i>
+                            <input id="regConfirm" name="ConfirmPassword" type="password" class="yaqut-form-input"
+                                   placeholder="أعد كتابة كلمة المرور" required autocomplete="new-password" minlength="6" />
+                        </div>
+                        <div class="yq-field-error" data-yq-error-for="regConfirm"></div>
+                    </div>
+
+                    <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
+                        <i class="bi bi-stars"></i> إنشاء حساب
+                    </button>
+                </form>
+            </div>
+
+            <p class="yaqut-auth-footnote">
+                <i class="bi bi-shield-lock"></i>
+                جلستك محمية وتتجدد تلقائياً لمدة 7 أيام
+            </p>
+        </div>
+    </article>
+</div>

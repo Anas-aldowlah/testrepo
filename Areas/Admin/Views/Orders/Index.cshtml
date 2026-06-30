@@ -1,0 +1,96 @@
+@model IEnumerable<YAGOT_2._0.Models.Order>
+@{
+    ViewData["Title"] = "إدارة الطلبات";
+}
+
+<div class="yaqut-admin-header">
+    <h1><i class="bi bi-receipt"></i> إدارة الطلبات</h1>
+</div>
+
+@if (Model.Any())
+{
+    <div class="yaqut-order-admin-grid">
+        @foreach (var order in Model)
+        {
+            string stateAr = order.Status switch
+            {
+                "Pending" => "قيد الانتظار",
+                "Processed" => "قيد المعالجة",
+                "Shipped" => "تم الشحن",
+                "Delivered" => "تم التوصيل",
+                _ => "ملغي"
+            };
+
+            <article class="yaqut-order-admin-card glass-effect">
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label"># المعرف</span>
+                    <span class="yaqut-data-value">@order.Id</span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">رقم التتبع</span>
+                    <span class="yaqut-data-value text-warning">@order.Trackingnumber</span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">العميل</span>
+                    <span class="yaqut-data-value">@(order.User?.Name ?? "غير معروف")</span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">الإجمالي</span>
+                    <span class="yaqut-data-value">@order.Totalamount.ToString("N0") ر.س</span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">الحالة</span>
+                    <span class="yaqut-data-value"><span class="badge badge-@order.Status.ToLower()">@stateAr</span></span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">التاريخ</span>
+                    <span class="yaqut-data-value">@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</span>
+                </div>
+                <div class="yaqut-data-row">
+                    <span class="yaqut-data-label">تاريخ الحالة</span>
+                    <span class="yaqut-data-value">@(order.TimeState.HasValue ? order.TimeState.Value.ToString("dd/MM/yyyy") : "-")</span>
+                </div>
+
+                <div class="mt-2">
+                    <span class="yaqut-data-label d-block mb-1">المنتجات المطلوبة</span>
+                    <table class="yaqut-admin-items-table">
+                        <thead>
+                            <tr>
+                                <th>اسم المنتج</th>
+                                <th>الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var orderItem in order.Orderitems)
+                            {
+                                <tr>
+                                    <td>@orderItem.Product.Name</td>
+                                    <td>@orderItem.Quantity</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="UpdateStatus" method="post" class="yaqut-status-form">
+                    <input type="hidden" name="Id" value="@order.Id" />
+                    <label class="yaqut-data-label">تحديث الحالة</label>
+                    <div class="d-flex gap-2 mt-1">
+                        <select name="Status" class="yaqut-status-select">
+                            <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
+                            <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
+                            <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
+                            <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
+                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
+                        </select>
+                        <button type="submit" class="btn-yaqut-gold btn-sm">تحديث</button>
+                    </div>
+                </form>
+            </article>
+        }
+    </div>
+}
+else
+{
+    <p class="text-muted">لا توجد طلبات بعد.</p>
+}

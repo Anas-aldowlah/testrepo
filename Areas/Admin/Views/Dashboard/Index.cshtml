@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+@model List<YAGOT_2._0.Models.Order>
+
+<div class="yaqut-admin-header">
+    <h1><i class="bi bi-speedometer2"></i> لوحة التحكم</h1>
+</div>
+
+<div class="yaqut-stat-cards">
+    <div class="yaqut-stat-card glass-effect">
+        <div class="yaqut-stat-card__number">@ViewBag.TotalProducts</div>
+        <div class="yaqut-stat-card__label">المنتجات</div>
+    </div>
+    <div class="yaqut-stat-card glass-effect">
+        <div class="yaqut-stat-card__number">@ViewBag.TotalOrders</div>
+        <div class="yaqut-stat-card__label">الطلبات</div>
+    </div>
+    <div class="yaqut-stat-card glass-effect">
+        <div class="yaqut-stat-card__number">@ViewBag.TotalUsers</div>
+        <div class="yaqut-stat-card__label">المستخدمين</div>
+    </div>
+    <div class="yaqut-stat-card glass-effect">
+        <div class="yaqut-stat-card__number">@(((decimal)ViewBag.TotalRevenue).ToString("N0"))</div>
+        <div class="yaqut-stat-card__label">الإيرادات (ر.س)</div>
+    </div>
+</div>
+
+<h2 class="h5 mb-3 text-muted">آخر الطلبات</h2>
+
+@if (Model.Any())
+{
+    <table class="yaqut-admin-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>رقم التتبع</th>
+                <th>الإجمالي</th>
+                <th>الحالة</th>
+                <th>التاريخ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in Model.OrderByDescending(o => o.Orderdate).Take(5))
+            {
+                string stateAr = order.Status switch
+                {
+                    "Pending" => "قيد الانتظار",
+                    "Processed" => "قيد المعالجة",
+                    "Shipped" => "تم الشحن",
+                    "Delivered" => "تم التوصيل",
+                    _ => "ملغي"
+                };
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@order.Trackingnumber</td>
+                    <td class="text-warning">@order.Totalamount.ToString("N0") ر.س</td>
+                    <td><span class="badge badge-@order.Status.ToLower()">@stateAr</span></td>
+                    <td>@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted">لا توجد طلبات بعد.</p>
+}

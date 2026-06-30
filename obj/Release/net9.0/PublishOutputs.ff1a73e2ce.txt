@@ -1,0 +1,12 @@
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\YAGOT_2.0.exe
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\appsettings.Development.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\appsettings.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\YAGOT_2.0.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\YAGOT_2.0.runtimeconfig.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\YAGOT_2.0.pdb
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\Microsoft.EntityFrameworkCore.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\Microsoft.EntityFrameworkCore.Abstractions.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\Microsoft.EntityFrameworkCore.Relational.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\Npgsql.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\PubTmp\Out\YAGOT_2.0.deps.json

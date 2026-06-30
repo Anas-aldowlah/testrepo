@@ -1,0 +1,376 @@
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\appsettings.Development.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\appsettings.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.staticwebassets.runtime.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.staticwebassets.endpoints.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.exe
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.deps.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.runtimeconfig.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.pdb
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Humanizer.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Bcl.AsyncInterfaces.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Build.Locator.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.CSharp.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Abstractions.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Design.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Relational.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Extensions.DependencyModel.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Mono.TextTemplating.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Npgsql.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.CodeDom.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.AttributedModel.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Convention.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Hosting.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Runtime.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.TypedParts.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.AssemblyReference.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rpswa.dswa.cache.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.GeneratedMSBuildEditorConfig.editorconfig
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.AssemblyInfoInputs.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.AssemblyInfo.cs
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.CoreCompileInputs.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.MvcApplicationPartsAssemblyInfo.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.RazorAssemblyInfo.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.RazorAssemblyInfo.cs
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjimswa.dswa.cache.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjsmrazor.dswa.cache.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjsmcshtml.dswa.cache.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\bundle\YAGOT_2.0.styles.css
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\projectbundle\YAGOT_2.0.bundle.scp.css
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\uzlsmmuvlk-frklvmslyq.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\9p4j0yx7y7-61n19gt1b8.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\tapowu2fwb-4gdiz50fkl.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r5zghgmr8a-xtxxf3hu2r.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\3fe1i1lmdk-bqjiyaj88i.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\y7avgprbtz-c2jlpeoesf.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\m2i2u9asqr-erw9l3u2r3.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\n50z3z62m0-aexeepp0ev.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\4bud1oukoi-d7shbmvgxk.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\8pmfj44y5n-ausgxo2sd3.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\2b3apqkkth-k8d9w2qqmf.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\lqtvd757g6-cosvhxvwiu.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\yp0exw9uot-ub07r2b239.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\qrl7nmtzha-fvhpjtyr6v.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\mkdmudvnb3-b7pk76d08c.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ptihjje27n-fsbi9cje9m.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\raddl36sc3-rzd6atqjts.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\rjpzxftb10-ee0r1s7dh0.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\dksxgdhuq3-dxx9fxp4il.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\f29n3l5g8l-jd9uben2k1.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\pdoa08s9kt-khv3u5hwcm.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ildm9eocuh-r4e9w2rdcm.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\h3o45ky3hj-lcd1t2u6c8.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\cvfwarainy-c2oey78nd0.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\j9biet9c9l-tdbxkamptv.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\74z4lm9h64-j5mq2jizvt.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\p8js5odwsb-06098lyss8.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\pv4farxjuf-nvvlpmu67g.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ra19ktb727-s35ty4nyc5.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\9hott82gon-pj5nd1wqec.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\t9h6qdjhx7-46ein0sx1k.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\mxwlkg4tj3-v0zj4ognzu.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\21mrtkifpi-37tfw0ft22.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5f1wmbz6te-hrwsygsryq.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r1rlphin7z-pk9g2wxc8p.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\fmx0luczgk-ft3s53vfgj.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\w27ztebri7-6cfz1n2cew.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\l27fto317n-6pdc2jztkx.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\1ps2oofe3z-493y06b0oq.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5shaacrbzb-iovd86k7lj.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r0xlvy5fw0-vr1egmr9el.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\v9we4gclhu-kbrnm935zg.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\231pz7052x-jj8uyg4cgr.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\t8sj9lpxal-y7v9cxd14o.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\h9p1hzbio3-notf2xhcfb.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\d1bqsrjf9e-h1s4sie4z3.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\nn7p6q7j49-63fj8s7r0e.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\vqin2ml1of-0j3bgjxly4.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\w9meyb6bcc-47otxtyo56.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\qdi24g7vyu-4v8eqarkd7.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\1fu1bysews-356vix0kms.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\l6x0qkaae8-83jwlth58m.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ot95nvakp6-mrlpezrjn3.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\fmeddii565-lzl9nlhx6b.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\bokpek386d-ag7o75518u.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\8yshg0pyz5-x0q3zqp4vz.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\lw7vwm5q0l-0i3buxo5is.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\v970yr6x5b-o1o13a6vjx.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\a12uxffcrw-ttgo8qnofa.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\n5hep3skgy-2z0ns9nrw6.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\7pd016irh9-muycvpuwrr.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5a0paa4h0x-87fc7y1x7t.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\exxb52ruy0-mlv21k5csn.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\iwtan8fnen-0cf9z01xh0.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ln3h8rb68q-0cf9z01xh0.gz
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.json.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.development.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.endpoints.json
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.upToDateCheck.txt
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.Up2Date
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\refint\YAGOT_2.0.dll
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.pdb
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.genruntimeconfig.cache
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\ref\YAGOT_2.0.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.AssemblyReference.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rpswa.dswa.cache.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.AssemblyInfoInputs.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.AssemblyInfo.cs
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.CoreCompileInputs.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.RazorAssemblyInfo.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.RazorAssemblyInfo.cs
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\refint\YAGOT_2.0.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.pdb
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\appsettings.Development.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.staticwebassets.endpoints.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\appsettings.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.staticwebassets.runtime.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.exe
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.deps.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.runtimeconfig.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\YAGOT_2.0.pdb
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Humanizer.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Build.Locator.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.CSharp.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Abstractions.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Design.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Relational.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Microsoft.Extensions.DependencyModel.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Mono.TextTemplating.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Npgsql.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.CodeDom.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.AttributedModel.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Convention.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Hosting.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.Runtime.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\System.Composition.TypedParts.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\de\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\es\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\fr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\it\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ja\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ko\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pl\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\ru\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\bin\Release\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjimswa.dswa.cache.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjsmrazor.dswa.cache.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\rjsmcshtml.dswa.cache.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\bundle\YAGOT_2.0.styles.css
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\scopedcss\projectbundle\YAGOT_2.0.bundle.scp.css
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\uzlsmmuvlk-frklvmslyq.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\9p4j0yx7y7-61n19gt1b8.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\tapowu2fwb-4gdiz50fkl.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r5zghgmr8a-xtxxf3hu2r.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\3fe1i1lmdk-bqjiyaj88i.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\y7avgprbtz-c2jlpeoesf.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\m2i2u9asqr-erw9l3u2r3.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\n50z3z62m0-aexeepp0ev.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\4bud1oukoi-d7shbmvgxk.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\8pmfj44y5n-ausgxo2sd3.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\2b3apqkkth-k8d9w2qqmf.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\lqtvd757g6-cosvhxvwiu.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\yp0exw9uot-ub07r2b239.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\qrl7nmtzha-fvhpjtyr6v.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\mkdmudvnb3-b7pk76d08c.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ptihjje27n-fsbi9cje9m.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\raddl36sc3-rzd6atqjts.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\rjpzxftb10-ee0r1s7dh0.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\dksxgdhuq3-dxx9fxp4il.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\f29n3l5g8l-jd9uben2k1.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\pdoa08s9kt-khv3u5hwcm.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ildm9eocuh-r4e9w2rdcm.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\h3o45ky3hj-lcd1t2u6c8.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\cvfwarainy-c2oey78nd0.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\j9biet9c9l-tdbxkamptv.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\74z4lm9h64-j5mq2jizvt.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\p8js5odwsb-06098lyss8.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\pv4farxjuf-nvvlpmu67g.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ra19ktb727-s35ty4nyc5.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\9hott82gon-pj5nd1wqec.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\t9h6qdjhx7-46ein0sx1k.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\mxwlkg4tj3-v0zj4ognzu.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\21mrtkifpi-37tfw0ft22.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5f1wmbz6te-hrwsygsryq.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r1rlphin7z-pk9g2wxc8p.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\fmx0luczgk-ft3s53vfgj.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\w27ztebri7-6cfz1n2cew.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\l27fto317n-6pdc2jztkx.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\1ps2oofe3z-493y06b0oq.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5shaacrbzb-iovd86k7lj.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\r0xlvy5fw0-vr1egmr9el.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\v9we4gclhu-kbrnm935zg.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\231pz7052x-jj8uyg4cgr.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\t8sj9lpxal-y7v9cxd14o.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\h9p1hzbio3-notf2xhcfb.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\d1bqsrjf9e-h1s4sie4z3.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\nn7p6q7j49-63fj8s7r0e.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\vqin2ml1of-0j3bgjxly4.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\w9meyb6bcc-47otxtyo56.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\qdi24g7vyu-4v8eqarkd7.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\1fu1bysews-356vix0kms.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\l6x0qkaae8-83jwlth58m.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ot95nvakp6-mrlpezrjn3.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\fmeddii565-lzl9nlhx6b.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\bokpek386d-ag7o75518u.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\8yshg0pyz5-x0q3zqp4vz.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\lw7vwm5q0l-0i3buxo5is.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\v970yr6x5b-o1o13a6vjx.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\a12uxffcrw-ttgo8qnofa.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\n5hep3skgy-2z0ns9nrw6.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\7pd016irh9-muycvpuwrr.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\5a0paa4h0x-87fc7y1x7t.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\exxb52ruy0-mlv21k5csn.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\iwtan8fnen-0cf9z01xh0.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\compressed\ln3h8rb68q-0cf9z01xh0.gz
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.json.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.development.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.build.endpoints.json
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\staticwebassets.upToDateCheck.txt
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.csproj.Up2Date
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\YAGOT_2.0.genruntimeconfig.cache
+C:\Users\WinDows\Downloads\YAGOT_3\YAGOT_3\YAGOT_2.0\obj\Release\net9.0\ref\YAGOT_2.0.dll

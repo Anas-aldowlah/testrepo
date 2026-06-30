@@ -1,0 +1,111 @@
+
+@startuml
+scale 1.2
+skinparam backgroundColor #FEFEFE
+skinparam packageStyle rect
+skinparam shadowing false
+skinparam roundcorner 15
+skinparam ArrowColor #1F4E79
+skinparam ActorBorderColor #1F4E79
+skinparam ActorFontColor #1F4E79
+skinparam ComponentBorderColor #005A9C
+skinparam ComponentFontColor #003865
+skinparam NoteBackgroundColor #F3F6FB
+skinparam NoteBorderColor #A4B8D8
+left to right direction
+
+entity "Users" as Users {
+  * Id : int
+    Name : string
+    Email : string
+    PasswordHash : string
+    Role : string
+    CreatedAt : DateTime
+}
+
+entity "Categories" as Categories {
+  * Id : int
+    Name : string
+    Description : string
+    ImageUrl : string?
+}
+
+entity "Products" as Products {
+  * Id : int
+    CategoryId : int
+    Name : string
+    Description : string
+    Price : decimal
+    StockQuantity : int
+    ImageUrl : string?
+    Rating : double
+    CreatedAt : DateTime
+}
+
+entity "Orders" as Orders {
+  * Id : int
+    UserId : int
+    OrderDate : DateTime
+    TotalAmount : decimal
+    Status : string
+    TrackingNumber : string?
+}
+
+entity "OrderItems" as OrderItems {
+  * Id : int
+    OrderId : int
+    ProductId : int
+    Quantity : int
+    UnitPrice : decimal
+}
+
+entity "Carts" as Carts {
+  * Id : int
+    UserId : int
+    CreatedAt : DateTime
+}
+
+entity "CartItems" as CartItems {
+  * Id : int
+    CartId : int
+    ProductId : int
+    Quantity : int
+}
+
+entity "SecurityLogs" as SecurityLogs {
+  * Id : int
+    UserId : int?
+    Action : string
+    IpAddress : string
+    DeviceInfo : string?
+    RiskScore : int
+    CreatedAt : DateTime
+}
+
+Users ||--o{ Carts : "has"
+Users ||--o{ Orders : "places"
+Categories ||--o{ Products : "contains"
+Products ||--o{ CartItems : "used in"
+Products ||--o{ OrderItems : "used in"
+Carts ||--o{ CartItems : "contains"
+Orders ||--o{ OrderItems : "contains"
+Users ||--o{ SecurityLogs : "may record"
+
+note right of Products
+  كل منتج مرتبط بتصنيف واحد.
+end note
+
+note right of CartItems
+  CartItem يمثل منتجاً في سلة مشتريات.
+end note
+
+note right of OrderItems
+  OrderItem يمثل منتجاً في طلب.
+end note
+
+note bottom
+  FakeDb يستخدم static Lists كمخزن بيانات مؤقت.
+  هذا يعنِي أن البيانات تُخزَّن في الذاكرة أثناء التشغيل فقط.
+end note
+
+@enduml

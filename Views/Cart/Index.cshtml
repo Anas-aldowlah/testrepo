@@ -1,0 +1,59 @@
+@model YAGOT_2._0.Models.Cart
+@{
+    ViewData["Title"] = "سلة المشتريات";
+    decimal total = Model?.Cartitems?.Sum(i => i.Quantity * (i.Product?.Price ?? 0)) ?? 0;
+}
+
+<div class="yaqut-page-header">
+    <h1><i class="bi bi-bag"></i> سلة المشتريات</h1>
+    <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline">
+        <i class="bi bi-arrow-right"></i> متابعة التسوق
+    </a>
+</div>
+
+@if (Model?.Cartitems != null && Model.Cartitems.Any())
+{
+    @foreach (var item in Model.Cartitems)
+    {
+        <div class="yaqut-cart-item glass-effect">
+            <div class="yaqut-cart-item__info">
+                <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
+                     alt="@item.Product?.Name"
+                     class="yaqut-cart-item__thumb yaqut-card-img"
+                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                <div>
+                    <h3 class="yaqut-cart-item__name">@item.Product?.Name</h3>
+                    <span class="yaqut-cart-item__qty">الكمية: @item.Quantity</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="yaqut-product-card__price">
+                    @((item.Quantity * (item.Product?.Price ?? 0)).ToString("N0")) <small>ر.س</small>
+                </span>
+                <form asp-action="Remove" method="post">
+                    <input type="hidden" name="cartItemId" value="@item.Id" />
+                    <button type="submit" class="btn-yaqut-danger btn-sm">
+                        <i class="bi bi-trash"></i> إزالة
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="yaqut-cart-summary glass-effect">
+        <div class="yaqut-cart-summary__total">الإجمالي: @total.ToString("N0") ر.س</div>
+        <form asp-controller="Orders" asp-action="Checkout" method="post">
+            <button type="submit" class="btn-yaqut-gold">
+                <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
+            </button>
+        </form>
+    </div>
+}
+else
+{
+    <div class="yaqut-empty glass-effect">
+        <i class="bi bi-bag-x yaqut-empty__icon"></i>
+        <p class="yaqut-empty__text">سلتك فارغة حالياً.</p>
+        <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold mt-3">تصفح العطور</a>
+    </div>
+}

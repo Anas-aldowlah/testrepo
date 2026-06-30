@@ -1,0 +1,30 @@
+@model YAGOT_2._0.Models.Order
+@{
+    ViewData["Title"] = "تأكيد الطلب";
+}
+
+<div class="yaqut-confirm">
+    <i class="bi bi-check-circle yaqut-confirm__icon"></i>
+    <h1 class="yaqut-confirm__title">تم تأكيد طلبك بنجاح!</h1>
+    <p class="text-muted">شكراً لثقتك في ياقوت.</p>
+    <p>رقم التتبع: <strong class="yaqut-order-card__tracking">@Model.Trackingnumber</strong></p>
+
+    <div class="yaqut-confirm__box glass-effect">
+        <h2 class="h5 mb-3">ملخص الطلب</h2>
+        @foreach (var item in Model.Orderitems)
+        {
+            <div class="yaqut-confirm__item">
+                <span>@item.Product?.Name &times; @item.Quantity</span>
+                <span>@((item.Quantity * item.Unitprice).ToString("N0")) ر.س</span>
+            </div>
+        }
+        <div class="yaqut-order-card__footer mt-3">
+            <span>الإجمالي</span>
+            <span class="yaqut-order-card__tracking">@Model.Totalamount.ToString("N0") ر.س</span>
+        </div>
+    </div>
+
+    <a asp-controller="Home" asp-action="Index" class="btn-yaqut-outline">
+        <i class="bi bi-house"></i> العودة للرئيسية
+    </a>
+</div>

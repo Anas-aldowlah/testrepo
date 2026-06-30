@@ -1,0 +1,109 @@
+@model YAGOT_2._0.Models.Product
+@{
+    ViewData["Title"] = $"{Model?.Name} | ياقوت للعطور";
+    var desc = Model?.Description ?? "";
+    var parts = desc.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+    var topNote = parts.Length > 0 ? parts[0] : "حمضيات منعشة وتوابل خفيفة";
+    var heartNote = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "زهور شرقية ومسك راقٍ");
+    var baseNote = parts.Length > 2 ? parts[2] : "عود وعنبر وخشب أرز دافئ";
+    var rating = Model != null ? 4.0 + (Model.Id % 10) * 0.1 : 0;
+    var fullStars = (int)Math.Floor(rating);
+}
+
+@if (Model != null)
+{
+    <nav class="yaqut-breadcrumb">
+        <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+        <span class="yaqut-breadcrumb__sep">/</span>
+        <a asp-controller="Products" asp-action="Index">المنتجات</a>
+        <span class="yaqut-breadcrumb__sep">/</span>
+        <span>@Model.Name</span>
+    </nav>
+
+    <div class="yaqut-detail">
+        <div class="yaqut-detail__gallery glass-effect">
+            <img src="@Model.Imageurl"
+                 alt="@Model.Name"
+                 class="yaqut-card-img"
+                 data-yaqut-fallback="/images/placeholder-product.svg" />
+        </div>
+
+        <div class="yaqut-detail__info">
+            <h1 class="yaqut-detail__title">@Model.Name</h1>
+
+            <div class="yaqut-rating mb-3" aria-label="التقييم @rating من 5">
+                @for (var i = 1; i <= 5; i++)
+                {
+                    <i class="bi @(i <= fullStars ? "bi-star-fill" : "bi-star")"></i>
+                }
+                <span class="yaqut-rating__value">@rating.ToString("0.0") / 5</span>
+            </div>
+
+            <div class="yaqut-detail__price">@Model.Price.ToString("N0") <small>ر.س</small></div>
+
+            <section class="yaqut-pyramid">
+                <h2 class="yaqut-pyramid__title"><i class="bi bi-layers"></i> الهرم العطري</h2>
+                <div class="yaqut-pyramid__grid">
+                    <div class="yaqut-pyramid__item glass-effect">
+                        <i class="bi bi-sunrise yaqut-pyramid__icon"></i>
+                        <div class="yaqut-pyramid__label">الإفتتاحية</div>
+                        <p class="yaqut-pyramid__text">@topNote</p>
+                    </div>
+                    <div class="yaqut-pyramid__item glass-effect">
+                        <i class="bi bi-heart yaqut-pyramid__icon"></i>
+                        <div class="yaqut-pyramid__label">قلب العطر</div>
+                        <p class="yaqut-pyramid__text">@heartNote</p>
+                    </div>
+                    <div class="yaqut-pyramid__item glass-effect">
+                        <i class="bi bi-moon-stars yaqut-pyramid__icon"></i>
+                        <div class="yaqut-pyramid__label">القاعدة</div>
+                        <p class="yaqut-pyramid__text">@baseNote</p>
+                    </div>
+                </div>
+                @if (parts.Length < 2)
+                {
+                    <p class="yaqut-pyramid__note">
+                        <i class="bi bi-info-circle"></i>
+                        يمكن للمسؤول تنسيق الهرم العطري في الوصف بفاصل | بين الإفتتاحية والقلب والقاعدة.
+                    </p>
+                }
+            </section>
+
+            <div class="yaqut-detail__meta glass-effect">
+                <div>
+                    <span class="yaqut-detail__meta-label">الحالة</span>
+                    <div>@(Model.Stockquantity > 0 ? "متوفر في المخزون" : "غير متوفر حالياً")</div>
+                </div>
+                <div>
+                    <span class="yaqut-detail__meta-label">الكمية المتاحة</span>
+                    <div>@Model.Stockquantity قطعة</div>
+                </div>
+            </div>
+
+            @if (Model.Stockquantity > 0)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post" class="yaqut-add-form">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <input type="number" name="quantity" value="1" min="1" max="@Model.Stockquantity" class="yaqut-qty-input" aria-label="الكمية" />
+                    <button type="submit" class="btn-yaqut-gold flex-grow-1">
+                        <i class="bi bi-bag-plus"></i> إضافة إلى السلة
+                    </button>
+                </form>
+            }
+
+            <div class="yaqut-trust-badges">
+                <span><i class="bi bi-shield-check"></i> ضمان أصالة المنتج</span>
+                <span><i class="bi bi-truck"></i> شحن مؤمّن بالكامل</span>
+                <span><i class="bi bi-gift"></i> تغليف فاخر مجاني</span>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="yaqut-empty glass-effect">
+        <i class="bi bi-exclamation-circle yaqut-empty__icon"></i>
+        <p class="yaqut-empty__text">نعتذر، لم يتم العثور على المنتج المطلوب.</p>
+        <a asp-action="Index" class="btn-yaqut-gold mt-3">العودة للمنتجات</a>
+    </div>
+}

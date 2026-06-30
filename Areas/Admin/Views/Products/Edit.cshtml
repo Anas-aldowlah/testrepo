@@ -1,0 +1,69 @@
+@model ProductVW
+@{
+    ViewData["Title"] = "تعديل المنتج";
+    var previewSrc = !string.IsNullOrEmpty(Model.Existingimage)
+        ? Url.Content("~/" + Model.Existingimage)
+        : "/images/placeholder-product.svg";
+}
+
+<div class="yaqut-admin-form glass-effect">
+    <h1 class="yaqut-admin-form__title"><i class="bi bi-pencil"></i> تعديل: @Model.Name</h1>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger"></div>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="Existingimage" />
+
+        <div class="yaqut-form-group">
+            <label asp-for="Name" class="yaqut-form-label">اسم المنتج</label>
+            <input asp-for="Name" class="yaqut-form-input" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+
+        <div class="yaqut-form-group">
+            <label asp-for="Description" class="yaqut-form-label">الوصف (الهرم العطري: إفتتاحية | قلب | قاعدة)</label>
+            <textarea asp-for="Description" rows="4" class="yaqut-form-input"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <div class="yaqut-form-row">
+            <div class="yaqut-form-group">
+                <label asp-for="Price" class="yaqut-form-label">السعر (ر.س)</label>
+                <input asp-for="Price" type="number" step="0.01" class="yaqut-form-input" />
+                <span asp-validation-for="Price" class="text-danger small"></span>
+            </div>
+            <div class="yaqut-form-group">
+                <label asp-for="Stockquantity" class="yaqut-form-label">الكمية</label>
+                <input asp-for="Stockquantity" type="number" class="yaqut-form-input" />
+                <span asp-validation-for="Stockquantity" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="yaqut-form-group">
+            <label asp-for="Categoryid" class="yaqut-form-label">التصنيف</label>
+            <select asp-for="Categoryid" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name"))" class="yaqut-form-input">
+                <option value="">-- اختر التصنيف --</option>
+            </select>
+            <span asp-validation-for="Categoryid" class="text-danger small"></span>
+        </div>
+
+        <div class="yaqut-image-upload">
+            <label class="yaqut-form-label">صورة المنتج</label>
+            <div class="yaqut-image-upload__row">
+                <div class="yaqut-image-preview">
+                    <img id="imagePreview" src="@previewSrc" alt="معاينة" />
+                </div>
+                <div class="flex-grow-1">
+                    <label class="text-muted small">تغيير الصورة (اختياري)</label>
+                    <input name="Imagefile" type="file" id="imageInput" accept="image/*" data-yaqut-image-input="imagePreview" />
+                    <p class="text-muted small mt-2 mb-0">JPG, PNG, WebP — الحد الأقصى 10MB</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 pt-3 border-top border-secondary">
+            <button type="submit" class="btn-yaqut-gold">حفظ التعديلات</button>
+            <a asp-action="Index" class="btn-yaqut-outline">إلغاء</a>
+        </div>
+    </form>
+</div>
