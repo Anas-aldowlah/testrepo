@@ -11,9 +11,10 @@ public class CartController : Controller
 {
     private readonly NeondbContext _context;
     private readonly CartService _cartService;
-
+     
     public CartController(NeondbContext context, CartService cartService)
     {
+        // ADD CHANGE
         _context = context;
         _cartService = cartService;
     }
@@ -21,6 +22,7 @@ public class CartController : Controller
     public int nextCartId()
     {
         return _context.Carts.Any() ? _context.Carts.Max(c => c.Id) + 1 : 1;
+
     }
 
     public async Task<IActionResult> Index()
