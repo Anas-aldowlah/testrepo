@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\WinDows\\Downloads\\YAGOT_3\\YAGOT_3\\YAGOT_2.0\\",
+  "WorkspaceRootPath": "C:\\ASPNET project\\YAGOT_RAP\\",
   "Documents": [],
   "DocumentGroupContainers": [
     {
@@ -11,6 +11,14 @@
           "DockedWidth": 200,
           "SelectedChildIndex": -1,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            },
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
