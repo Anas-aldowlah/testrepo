@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
         /* ===== RESET & BASE ===== */
@@ -393,6 +394,36 @@
         }
 
         }
+        /* هذا الجزء يقوم بتوسيط الرابط بالكامل في منتصف الشاشة */
+        .logout-container {
+            display: flex;
+            justify-content: center; /* التوسيط الأفقي */
+            align-items: center; /* التوسيط العمودي */
+            text-decoration: none; /* إلغاء الخط السفلي الموروث */
+            width: 100%; /* يضمن أن الحاوية تأخذ عرض الشاشة بالكامل للتوسيط */
+            margin: 20px 0; /* مسافة إضافية من الأعلى والأسفل */
+        }
+
+        /* تنسيق الزر الداخلي وجعله جذاباً ومنظماً */
+        .logout-btn {
+            border: 3px Gold solid;
+            color: white;
+            font-size: 1.3rem;
+            padding: 10px 25px; /* مساحات داخلية متناسقة للزر بدل تحديد عرض ثابت */
+            display: flex;
+            align-items: center;
+            gap: 10px; /* مسافة مناسبة بين الأيقونة والنص */
+            border-radius: 8px; /* حواف دائرية خفيفة لجمالية التصميم */
+            background-color: #333; /* خلفية داكنة اختيارية ليظهر النص الأبيض والذهبي بوضوح */
+            transition: all 0.3s ease; /* تأثير ناعم عند مرور الماوس */
+            cursor: pointer;
+        }
+
+            /* تأثير عند تمرير الماوس فوق الزر (Hover Effect) */
+            .logout-btn:hover {
+                background-color: Gold;
+                color: black;
+            }
     </style>
 </head>
 <body>
@@ -491,7 +522,14 @@
                     </div>
                 </div>
             </div>
-
+            <center>
+                <a asp-controller="Account" asp-action="Logout" class="logout-container">
+                    <div class="logout-btn">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>الرجوع إلى القائمة السابقة</span>
+                    </div>
+                </a>
+            </center>
         </div>
     </div>
 
