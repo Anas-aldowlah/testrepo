@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class CategoriesController : Controller
 {
     private readonly NeondbContext _context;

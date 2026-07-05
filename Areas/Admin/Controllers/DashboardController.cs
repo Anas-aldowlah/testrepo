@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class DashboardController : Controller
 {
     private readonly NeondbContext _context;
