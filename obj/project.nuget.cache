@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "WE6UlOTYSxc=",
+  "dgSpecHash": "ppClKOh1GSI=",
   "success": true,
-  "projectFilePath": "C:\\Users\\WinDows\\Downloads\\YAGOT_3\\YAGOT_3\\YAGOT_2.0\\YAGOT_2.0.csproj",
+  "projectFilePath": "C:\\Users\\WinDows\\source\\repos\\YAGOT\\YAGOT_2.0.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\WinDows\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\WinDows\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\7.0.0\\microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
