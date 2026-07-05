@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace Yagot.Controllers;
 
 [Authorize]
+[ServiceFilter(typeof(SiteStatusFilter))]
+
 public class CartController : Controller
 {
     private readonly NeondbContext _context;

@@ -1,0 +1,372 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المنصة الإلكترونية | قيد التطوير</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* خلفية عصرية بتدرج أزرق غامق إلى بنفسجي */
+            background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%);
+            padding: 1.5rem;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ===== الحاوية الرئيسية ===== */
+        .main-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* ===== البطاقة الرئيسية (تصميم زجاجي عصري) ===== */
+        .main-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 48px;
+            padding: 3.5rem 3rem;
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* تأثير خلفية متموجة بألوان نيون خفيفة */
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: -30%;
+            width: 150%;
+            height: 150%;
+            background: radial-gradient(circle at 30% 40%, rgba(139, 92, 246, 0.15) 0%, transparent 60%),
+                        radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%);
+            animation: pulseBg 12s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @@keyframes pulseBg {
+            0% { transform: translate(-5%, -5%) scale(1) rotate(0deg); }
+            100% { transform: translate(5%, 5%) scale(1.1) rotate(3deg); }
+        }
+
+        @@media (max-width: 576px) {
+            .main-card {
+                padding: 2.5rem 1.5rem;
+                border-radius: 32px;
+            }
+        }
+
+        /* ===== أنميشن التروس (ألوان عصرية) ===== */
+        .development-animation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 1.5rem;
+            height: 80px;
+        }
+
+        .gear-large {
+            font-size: 3.8rem;
+            color: #fbbf24; /* ذهبي عصري */
+            filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.3));
+            animation: rotateClockwise 5s linear infinite;
+        }
+
+        .gear-small {
+            font-size: 2rem;
+            color: #60a5fa; /* أزرق نيون */
+            margin-top: -18px;
+            margin-right: -12px;
+            filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.4));
+            animation: rotateCounterClockwise 3.5s linear infinite;
+        }
+
+        @@keyframes rotateClockwise {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @@keyframes rotateCounterClockwise {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        /* ===== العناوين ===== */
+        .title-wrapper {
+            margin-bottom: 2rem;
+        }
+
+        .title-small {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #c7d2fe; /* بنفسجي فاتح */
+            margin-bottom: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 0.3rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .title-main {
+            font-size: 3.2rem;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            margin-top: 0.5rem;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        @@media (max-width: 576px) {
+            .title-main {
+                font-size: 2.2rem;
+            }
+        }
+
+        /* ===== الرسالة ===== */
+        .message-box {
+            background: rgba(15, 23, 42, 0.40);
+            padding: 1.6rem 2rem;
+            border-radius: 28px;
+            margin-bottom: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(4px);
+        }
+
+        .message {
+            font-size: 1.1rem;
+            line-height: 1.9;
+            color: #e2e8f0;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        .message .highlight {
+            font-weight: 700;
+            color: #a78bfa; /* بنفسجي نيون */
+            text-shadow: 0 0 30px rgba(167, 139, 250, 0.2);
+        }
+
+        /* ===== بطاقات الميزات (تصميم عصري) ===== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 24px;
+            padding: 1.5rem 0.8rem;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(4px);
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.10);
+            transform: translateY(-6px);
+            border-color: rgba(167, 139, 250, 0.3);
+            box-shadow: 0 15px 40px rgba(139, 92, 246, 0.15);
+        }
+
+        .feature-card .icon-circle {
+            width: 52px;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.8rem auto;
+            color: #c7d2fe;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .feature-card:hover .icon-circle {
+            background: rgba(167, 139, 250, 0.20);
+            color: #a78bfa;
+            border-color: rgba(167, 139, 250, 0.2);
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.1);
+        }
+
+        .feature-card .feature-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 0.2rem;
+        }
+
+        .feature-card .feature-desc {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        /* ===== حالة المنصة (عصري) ===== */
+        .status-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 0.6rem 1.8rem;
+            background: rgba(15, 23, 42, 0.50);
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            width: fit-content;
+            margin: 0 auto;
+            backdrop-filter: blur(4px);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #34d399; /* أخضر نيون */
+            border-radius: 50%;
+            animation: pulseDot 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .status-label span {
+            font-weight: 400;
+            color: #94a3b8;
+        }
+
+        @@keyframes pulseDot {
+            0%, 100% { opacity: 0.5; transform: scale(0.85); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        @@media (max-width: 576px) {
+            .features-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.8rem;
+            }
+        }
+
+        /* ===== دخول الصفحة ===== */
+        .main-wrapper {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @@keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+
+        <div class="main-card">
+
+            <!-- التروس المتحركة -->
+            <div class="development-animation">
+                <i class="fas fa-cog gear-large"></i>
+                <i class="fas fa-cog gear-small"></i>
+            </div>
+
+            <div class="title-wrapper">
+                <div class="title-small">
+                    <i class="fas fa-tools"></i> أعمال صيانة وتحديث
+                </div>
+                <h1 class="title-main">الموقع قيد التطوير</h1>
+            </div>
+
+            <div class="message-box">
+                <p class="message">
+                    <span class="highlight">نعمل حالياً</span> على تطوير وتحسين المنصة الإلكترونية لتقديم تجربة أكثر كفاءة واستقراراً، مع الالتزام بأعلى معايير الجودة والأمان.
+                </p>
+            </div>
+
+            <!-- بطاقات الميزات -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-circle"><i class="fas fa-gauge-high"></i></div>
+                    <div class="feature-title">الأداء</div>
+                    <div class="feature-desc">تحسين سرعة النظام</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-circle"><i class="fas fa-shield-halved"></i></div>
+                    <div class="feature-title">الأمان</div>
+                    <div class="feature-desc">تعزيز حماية البيانات</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-circle"><i class="fas fa-layer-group"></i></div>
+                    <div class="feature-title">الخدمات</div>
+                    <div class="feature-desc">إضافة خدمات جديدة</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-circle"><i class="fas fa-check-double"></i></div>
+                    <div class="feature-title">الجودة</div>
+                    <div class="feature-desc">اختبارات دقيقة</div>
+                </div>
+            </div>
+
+            <!-- حالة العمل -->
+            <div class="status-wrapper">
+                <span class="status-dot"></span>
+                <span class="status-label">حالة العمل <span>· جاري تنفيذ التحديثات الآن</span></span>
+                
+            </div>
+            <hr />
+            <a asp-controller="Account" asp-action="Logout" >
+                <div class="title-small" style="border:3px Gold solid">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    الرجوع إلى القائمة السابقة
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

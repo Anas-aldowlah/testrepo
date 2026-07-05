@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Filters;
+using YAGOT_2._0.Models;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace Yagot.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class ProductsController : Controller
 {
     // DI

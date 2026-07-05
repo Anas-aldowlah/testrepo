@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
-using YAGOT_2._0.Services;
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +30,7 @@ builder.Services.AddControllersWithViews()
     {
         options.MaxModelBindingCollectionSize = 1000;
     });
-
+builder.Services.AddHttpClient<DealingAPI>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -75,6 +76,11 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
+builder.Services.AddScoped<SiteStatusFilter>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<SiteStatusFilterAdmin>();
+builder.Services.AddHttpClient<SiteStatusFilterAdmin>();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -125,7 +131,7 @@ app.Use(async (context, next) =>
             context.Response.Redirect($"/Account/Auth?returnUrl={Uri.EscapeDataString(path + context.Request.QueryString)}");
             return;
         }
-        if (!context.User.IsInRole("Admin"))
+        if (!context.User.IsInRole("Admin") && !context.User.IsInRole("Developer"))
         {
             context.Response.Redirect("/Account/Auth");
             return;
@@ -135,6 +141,22 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer") || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close") || context.Request.Path.StartsWithSegments("/Account/Auth"))
+    {
+        await next();
+        return;
+    }
+
+    var dealingApi = context.RequestServices.GetRequiredService<DealingAPI>();
+
+    var status = await dealingApi.checkDeveloperMode(1);
+
+    context.Items["SiteStatus"] = status;
+
+    await next();
+});
 app.UseAuthorization();
 
 app.MapStaticAssets();
