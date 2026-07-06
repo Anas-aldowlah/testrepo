@@ -1,3 +1,4 @@
+wwwroot\css\home\index.css
 wwwroot\css\site.css
 wwwroot\css\yaqut-theme.css
 wwwroot\favicon.ico
@@ -18,6 +19,7 @@ wwwroot\images\products\bbc50c50-af0a-42a0-9b69-7819dad294a3_خشب العود �
 wwwroot\images\products\c33101d8-5858-4d57-9571-57d08b8c8a16_مرش لافندر ومنت.jfif
 wwwroot\images\yagot.png
 wwwroot\images\yaqut-logo.png
+wwwroot\js\home\index.js
 wwwroot\js\site.js
 wwwroot\js\yaqut-main.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
@@ -145,3 +147,5 @@ C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.min.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.min.map
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\LICENSE.txt
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\home\index.css
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\home\index.js
