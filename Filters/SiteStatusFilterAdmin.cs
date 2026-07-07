@@ -58,25 +58,26 @@ namespace YAGOT_2._0.Filters
                         return;
                     }
                 }
-
-                context.Result = new RedirectToActionResult(
-                    "Developer",
-                    "DirectiveDevClose",
-                    new { area = "" });
-
+                if (status == StatueSite.Developer)
+                {
+                    if (isAdmin)
+                    {
+                        await next();
+                        return;
+                    }
+                    else
+                    {
+                        context.Result = new RedirectToActionResult(
+                   "Developer",
+                   "DirectiveDevClose",
+                   new { area = "" });
+                    }
+                }
+                   
                 return;
             }
 
-            // الموقع في وضع المطور
-            if (status == StatueSite.Developer)
-            {
-                context.Result = new RedirectToActionResult(
-                    "Developer",
-                    "DirectiveDevClose",
-                    new { area = "" });
-
-                return;
-            }
+           
 
             // السماح بتنفيذ الـ Action
             await next();
