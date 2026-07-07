@@ -38,7 +38,7 @@ namespace YAGOT_2._0.Services
                 }
                 else
                 {
-                    return StatueSite.Developer;
+                    return StatueSite.NotFound;
                 }
               
                     
