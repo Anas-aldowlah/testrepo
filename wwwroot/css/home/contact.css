@@ -1,0 +1,235 @@
+﻿/* ═══ Home / Contact — Contact Page ═══ */
+
+.yq-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+/* ── Header ── */
+.yq-contact-header {
+    text-align: center;
+    max-width: 620px;
+    margin: 0 auto;
+    padding-top: 1rem;
+}
+
+.yq-contact-header__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--yq-gold);
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 1.1rem;
+    border: 1px solid var(--yq-border);
+    border-radius: 50px;
+}
+
+.yq-contact-header__title {
+    font-family: var(--yq-font-display);
+    font-size: clamp(2rem, 4vw, 2.6rem);
+    font-weight: 700;
+    color: var(--yq-gold);
+    margin: 0 0 0.9rem;
+}
+
+.yq-contact-header__sub {
+    color: var(--yq-text-soft);
+    font-size: 0.98rem;
+    line-height: 1.8;
+    margin: 0;
+}
+
+/* ── Layout ── */
+.yq-contact-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* ── Info Sidebar ── */
+.yq-contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.yq-contact-info__card {
+    padding: 1.75rem;
+}
+
+.yq-contact-info__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--yq-font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--yq-gold);
+    margin: 0 0 0.9rem;
+}
+
+.yq-contact-info__note {
+    font-size: 0.85rem;
+    color: var(--yq-text-soft);
+    line-height: 1.7;
+    margin: 0;
+}
+
+.yq-contact-social {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--yq-border-sub);
+}
+
+.yq-contact-social__label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--yq-text-soft);
+    margin-bottom: 0.75rem;
+}
+
+.yq-contact-social__links {
+    display: flex;
+    gap: 0.6rem;
+}
+
+    .yq-contact-social__links a {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 1px solid var(--yq-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--yq-gold);
+        transition: all var(--yq-ease);
+    }
+
+        .yq-contact-social__links a:hover {
+            background: var(--yq-gold-grad);
+            color: #111;
+            border-color: transparent;
+            transform: translateY(-3px);
+            box-shadow: var(--yq-shadow-gold);
+        }
+
+/* ── Form ── */
+.yq-contact-form-wrap {
+    padding: 2.25rem;
+}
+
+.yq-contact-form__title {
+    font-family: var(--yq-font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--yq-gold);
+    margin: 0 0 1.75rem;
+}
+
+.yq-contact-form__row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+.yq-contact-optional {
+    color: var(--yq-text-soft);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.yq-contact-submit-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 1rem;
+    font-size: 1rem;
+}
+
+/* ── Success State ── */
+.yq-contact-success {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.yq-contact-success__icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--yq-gold-grad);
+    color: #111;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: var(--yq-shadow-gold);
+    animation: yqContactPop 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.yq-contact-success h2 {
+    font-family: var(--yq-font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--yq-text);
+    margin: 0 0 0.75rem;
+}
+
+.yq-contact-success p {
+    color: var(--yq-text-soft);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+@keyframes yqContactPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ── Responsive ── */
+@media (max-width: 992px) {
+    .yq-contact-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .yq-contact-info {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .yq-contact-info__card {
+        flex: 1;
+        min-width: 260px;
+    }
+}
+
+@media (max-width: 576px) {
+    .yq-contact-form-wrap {
+        padding: 1.5rem;
+    }
+
+    .yq-contact-form__row {
+        grid-template-columns: 1fr;
+    }
+
+    .yq-contact-info {
+        flex-direction: column;
+    }
+}
