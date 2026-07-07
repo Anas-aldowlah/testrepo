@@ -30,8 +30,6 @@ public class HomeController : Controller
         {
             var selectedCategory = model.Categories.FirstOrDefault(c => c.Id == categoryId.Value);
             ViewBag.SelectedCategoryName = selectedCategory?.Name;
-
-          
         }
         else
         {
@@ -39,6 +37,11 @@ public class HomeController : Controller
         }
 
         return View(model);
+    }
+
+    public IActionResult About()
+    {
+        return View();
     }
 
     public IActionResult Privacy()

@@ -5,6 +5,7 @@ wwwroot\css\layout.css
 wwwroot\css\orders\checkout.css
 wwwroot\css\orders\confirmation.css
 wwwroot\css\products\details.css
+wwwroot\css\products\index.css
 wwwroot\css\yaqut-theme.css
 wwwroot\favicon.ico
 wwwroot\images\categories\111a3f30-6839-475c-95bf-4c95877e0364_البخور.jfif
@@ -31,6 +32,7 @@ wwwroot\js\layout.js
 wwwroot\js\orders\checkout.js
 wwwroot\js\orders\confirmation.js
 wwwroot\js\products\details.js
+wwwroot\js\products\index.js
 wwwroot\js\yaqut-main.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
@@ -92,8 +94,8 @@ wwwroot\lib\jquery\dist\jquery.slim.js
 wwwroot\lib\jquery\dist\jquery.slim.min.js
 wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
-wwwroot\css\products\index.css
-wwwroot\js\products\index.js
+wwwroot\css\home\about.css
+wwwroot\js\home\about.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\cart\index.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\categories\index.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\home\index.css
@@ -101,6 +103,7 @@ C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\layout.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\orders\checkout.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\orders\confirmation.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\products\details.css
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\products\index.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\yaqut-theme.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\favicon.ico
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\images\placeholder-product.svg
@@ -111,6 +114,7 @@ C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\layout.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\orders\checkout.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\orders\confirmation.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\products\details.js
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\products\index.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\yaqut-main.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
@@ -171,5 +175,5 @@ C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.min.js
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\dist\jquery.slim.min.map
 C:\Users\WinDows\source\repos\YAGOT\wwwroot\lib\jquery\LICENSE.txt
-C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\products\index.css
-C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\products\index.js
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\css\home\about.css
+C:\Users\WinDows\source\repos\YAGOT\wwwroot\js\home\about.js

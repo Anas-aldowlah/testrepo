@@ -1144,3 +1144,5 @@ C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\YAGOT_2.0.genruntimeconfig.
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\ref\YAGOT_2.0.dll
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\igkgulkfkj-xoit6sqq3w.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\7cff5xlx0q-j54156stjs.gz
+C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\6n5j6wmfom-5t8bkeq4yx.gz
+C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\7jqlqf55nn-n46kyxigg3.gz
