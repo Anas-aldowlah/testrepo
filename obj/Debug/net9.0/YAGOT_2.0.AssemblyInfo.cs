@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("YAGOT_2.0")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09049ce7cff675f6bfc5c8d43c32658f1e4df0f8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5fb38c5ed34563d287875d06adcf73beefe68d5e")]
 [assembly: System.Reflection.AssemblyProductAttribute("YAGOT_2.0")]
 [assembly: System.Reflection.AssemblyTitleAttribute("YAGOT_2.0")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
