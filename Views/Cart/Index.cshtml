@@ -133,11 +133,9 @@
                     <span>@subtotal.ToString("N0") <small>ر.س</small></span>
                 </div>
 
-                <form asp-controller="Orders" asp-action="Checkout" method="post">
-                    <button type="submit" class="btn-yaqut-gold yq-cart-checkout-btn">
-                        <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
-                    </button>
-                </form>
+                <a asp-controller="Orders" asp-action="CheckoutPost" class="btn-yaqut-gold yq-cart-checkout-btn">
+                    <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
+                </a>
 
                 <a asp-controller="Products" asp-action="Index" class="yq-cart-summary__continue">
                     <i class="bi bi-arrow-left"></i> متابعة التسوق

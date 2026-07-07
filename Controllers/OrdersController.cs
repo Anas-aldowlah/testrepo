@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Services;
@@ -10,12 +10,14 @@ namespace YAGOT_2._0.Controllers;
 public class OrdersController : Controller
 {
     private readonly OrderService _orderService;
+    private readonly CartService _cartService;
     private readonly NeondbContext _context;
 
-    public OrdersController(OrderService orderService, NeondbContext context)
+    public OrdersController(OrderService orderService, CartService cartService, NeondbContext context)
     {
         _context = context;
         _orderService = orderService;
+        _cartService = cartService;
     }
 
     public async Task<IActionResult> Index()
@@ -25,8 +27,24 @@ public class OrdersController : Controller
         return View(orders);
     }
 
-    [HttpPost]
+    [HttpGet]
     public async Task<IActionResult> Checkout()
+    {
+        var userId = await ResolveUserIdAsync();
+        var cart = await _cartService.GetCartAsync(userId);
+
+        if (cart.Cartitems == null || !cart.Cartitems.Any())
+        {
+            TempData["Error"] = "السلة فارغة - لا يمكن إتمام الطلب بدون منتجات";
+            return RedirectToAction("Index", "Cart");
+        }
+
+        return View(cart);
+    }
+
+    [HttpPost]
+    [ActionName("Checkout")]
+    public async Task<IActionResult> CheckoutPost()
     {
         try
         {
