@@ -1059,7 +1059,6 @@ C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\oa4f5c1t9f-hbkdt
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\t2y103am7z-g5srq3zeo3.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\x7jr5vt82b-cx65ca44lw.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\zmpf1jit69-kb6rbs3bzn.gz
-C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\igkgulkfkj-5wwrbevn6k.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\qdry0mllfa-kxmny00bkc.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\9p4j0yx7y7-61n19gt1b8.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\tapowu2fwb-k160fmpzhy.gz
@@ -1070,7 +1069,6 @@ C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\r4jk62ptvc-sdf83
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\w24k39v1jj-otqrxdpf6i.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\a7a79qaq7q-z2w7hd9a75.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\7tb302329p-m2167xvatg.gz
-C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\7cff5xlx0q-cg1buv9x1g.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\emnew1fjfb-l5p0g2w1yf.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\3fe1i1lmdk-t1cqhe9u97.gz
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\y7avgprbtz-c2jlpeoesf.gz
@@ -1144,3 +1142,5 @@ C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\refint\YAGOT_2.0.dll
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\YAGOT_2.0.pdb
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\YAGOT_2.0.genruntimeconfig.cache
 C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\ref\YAGOT_2.0.dll
+C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\igkgulkfkj-xoit6sqq3w.gz
+C:\Users\WinDows\source\repos\YAGOT\obj\Debug\net9.0\compressed\7cff5xlx0q-j54156stjs.gz

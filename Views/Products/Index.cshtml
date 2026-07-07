@@ -1,12 +1,12 @@
 @model IEnumerable<YAGOT_2._0.Models.Product>
 @{
-    ViewData["Title"] = ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور";
     var categories = ViewBag.Categories as List<YAGOT_2._0.Models.Category>;
     int? currentCategoryId = ViewBag.CategoryId as int?;
     var searchTerm = Context.Request.Query["search"].ToString();
+    var isSearchMode = !string.IsNullOrWhiteSpace(searchTerm);
     var productList = Model.ToList();
 
-    if (!string.IsNullOrWhiteSpace(searchTerm))
+    if (isSearchMode)
     {
         productList = productList
             .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
@@ -14,64 +14,80 @@
             .ToList();
     }
 
+    ViewData["Title"] = isSearchMode
+        ? $"نتائج البحث: {searchTerm}"
+        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور");
+
     var familyNames = categories?.Select(c => c.Name).Distinct().ToList() ?? new List<string>();
-    var hasActiveFilter = ViewBag.CategoryName != null || !string.IsNullOrWhiteSpace(searchTerm);
+    var hasActiveFilter = ViewBag.CategoryName != null || isSearchMode;
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/products/index.css" asp-append-version="true" />
 }
 
-<div class="yq-shop">
+<div class="yq-shop" data-yq-search-term="@searchTerm">
 
     <!-- PAGE HEADER -->
     <header class="yq-shop-header yq-reveal">
         <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
             <a asp-controller="Home" asp-action="Index">الرئيسية</a>
             <i class="bi bi-chevron-left"></i>
-            <span>
-                @if (ViewBag.CategoryName != null)
-                {
-                    @ViewBag.CategoryName
-                }
-                else if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    <text>نتائج البحث</text>
-                }
-                else
-                {
-                    <text>المجموعة الكاملة</text>
-                }
-            </span>
+            @if (isSearchMode)
+            {
+                <a asp-action="Index">المجموعة</a>
+                <i class="bi bi-chevron-left"></i>
+                <span>نتائج البحث</span>
+            }
+            else
+            {
+                <span>
+                    @(ViewBag.CategoryName != null ? ViewBag.CategoryName : "المجموعة الكاملة")
+                </span>
+            }
         </nav>
 
-        <div class="yq-shop-header__row">
-            <div>
-                <h1 class="yq-shop-header__title">
-                    @if (ViewBag.CategoryName != null)
-                    {
-                        <span>عطور: @ViewBag.CategoryName</span>
-                    }
-                    else if (!string.IsNullOrWhiteSpace(searchTerm))
-                    {
-                        <span>نتائج البحث عن "@searchTerm"</span>
-                    }
-                    else
-                    {
-                        <span>المجموعة الكاملة</span>
-                    }
-                </h1>
-                <p class="yq-shop-header__sub">تصفّح تشكيلتنا الفاخرة من العطور الأصيلة</p>
-            </div>
-
-            @if (hasActiveFilter)
-            {
-                <a asp-action="Index" class="yq-shop-clear-link">
-                    <i class="bi bi-x-circle"></i> إزالة الفلاتر
+        @if (isSearchMode)
+        {
+            <div class="yq-search-banner">
+                <div class="yq-search-banner__icon"><i class="bi bi-search"></i></div>
+                <div class="yq-search-banner__text">
+                    <span class="yq-search-banner__label">نتائج البحث عن</span>
+                    <h1 class="yq-search-banner__query">"@searchTerm"</h1>
+                    <p class="yq-search-banner__count">
+                        تم العثور على <strong>@productList.Count</strong> @(productList.Count == 1 ? "منتج" : "منتجات")
+                    </p>
+                </div>
+                <a asp-action="Index" class="yq-search-banner__clear">
+                    <i class="bi bi-x-circle"></i> إزالة البحث
                 </a>
-            }
-        </div>
+            </div>
+        }
+        else
+        {
+            <div class="yq-shop-header__row">
+                <div>
+                    <h1 class="yq-shop-header__title">
+                        <span>@(ViewBag.CategoryName != null ? $"عطور: {ViewBag.CategoryName}" : "المجموعة الكاملة")</span>
+                    </h1>
+                    <p class="yq-shop-header__sub">تصفّح تشكيلتنا الفاخرة من العطور الأصيلة</p>
+                </div>
+
+                @if (hasActiveFilter)
+                {
+                    <a asp-action="Index" class="yq-shop-clear-link">
+                        <i class="bi bi-x-circle"></i> إزالة الفلاتر
+                    </a>
+                }
+            </div>
+        }
     </header>
+
+    <!-- RECENT SEARCHES -->
+    <div class="yq-recent-searches" id="yqRecentSearches" hidden>
+        <span class="yq-recent-searches__label"><i class="bi bi-clock-history"></i> عمليات بحث سابقة</span>
+        <div class="yq-recent-searches__list" id="yqRecentSearchesList"></div>
+    </div>
 
     <!-- CATEGORY PILLS -->
     @if (categories != null && categories.Any())
@@ -180,6 +196,33 @@
                         <i class="bi bi-arrow-down-circle"></i>
                         عرض المزيد (<span data-yq-remaining>0</span>)
                     </button>
+                </div>
+            }
+            else if (isSearchMode)
+            {
+                <div class="yaqut-empty yq-glass yq-search-empty">
+                    <i class="bi bi-search yaqut-empty__icon"></i>
+                    <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@searchTerm"</h2>
+                    <p class="yaqut-empty__text">
+                        تأكد من كتابة الاسم بشكل صحيح، أو جرّب كلمات بحث أخرى أو أكثر عمومية.
+                    </p>
+
+                    @if (categories != null && categories.Any())
+                    {
+                        <div class="yq-search-empty__categories">
+                            <span>أو تصفّح حسب العائلة العطرية</span>
+                            <div class="yq-search-empty__pills">
+                                @foreach (var cat in categories.Take(6))
+                                {
+                                    <a asp-action="Index" asp-route-categoryId="@cat.Id" class="yaqut-pill">@cat.Name</a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <a asp-action="Index" class="btn-yaqut-gold mt-3">
+                        <i class="bi bi-stars"></i> عرض جميع العطور
+                    </a>
                 </div>
             }
             else

@@ -32,7 +32,65 @@
             if (counter) counter.textContent = remaining;
         }
     }
+    /* ── Recent Searches (client-side, storefront-wide within this page) ── */
+    (function () {
+        var STORAGE_KEY = 'yaqut-recent-searches';
+        var MAX_RECENT = 5;
 
+        var root = document.querySelector('[data-yq-search-term]');
+        if (!root) return;
+
+        var currentTerm = root.getAttribute('data-yq-search-term');
+
+        function getRecent() {
+            try {
+                var raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveRecent(list) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+            } catch (e) { /* storage unavailable, ignore silently */ }
+        }
+
+        function trackSearch(term) {
+            if (!term) return;
+            var list = getRecent().filter(function (t) {
+                return t.toLowerCase() !== term.toLowerCase();
+            });
+            list.unshift(term);
+            saveRecent(list.slice(0, MAX_RECENT));
+        }
+
+        function renderRecent() {
+            var wrapper = document.getElementById('yqRecentSearches');
+            var list = document.getElementById('yqRecentSearchesList');
+            if (!wrapper || !list) return;
+
+            var recent = getRecent().filter(function (t) {
+                return t.toLowerCase() !== (currentTerm || '').toLowerCase();
+            });
+            if (!recent.length) return;
+
+            list.innerHTML = '';
+            recent.forEach(function (term) {
+                var chip = document.createElement('a');
+                chip.className = 'yq-recent-search-chip';
+                chip.href = '/Products?search=' + encodeURIComponent(term);
+                chip.innerHTML = '<i class="bi bi-clock-history"></i>' + term;
+                list.appendChild(chip);
+            });
+
+            wrapper.hidden = false;
+        }
+
+        if (currentTerm) trackSearch(currentTerm);
+        renderRecent();
+    })();
     function applyPagination() {
         var items = getItems();
 
