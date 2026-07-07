@@ -15,36 +15,71 @@ namespace YAGOT_2._0.Filters
             _httpContextAccessor = httpContextAccessor;
         }
         public async Task OnActionExecutionAsync(
-        ActionExecutingContext context,
-        ActionExecutionDelegate next)
+     ActionExecutingContext context,
+     ActionExecutionDelegate next)
         {
-            bool IsDeveloper = _httpContextAccessor.HttpContext?.User.IsInRole("Developer") ?? false;
-            bool IsAdmin = _httpContextAccessor.HttpContext?.User.IsInRole("Admin") ?? false;
+            bool isDeveloper = context.HttpContext.User.IsInRole("Developer");
+            bool isAdmin = context.HttpContext.User.IsInRole("Admin");
+
             var status = (StatueSite?)context.HttpContext.Items["SiteStatus"];
 
-            if ((status == StatueSite.Developer ||
-                status == StatueSite.ColsePlane) && !IsDeveloper)
+            // المطور يدخل دائماً
+            if (isDeveloper)
             {
-                if (status == StatueSite.ColsePlane && IsAdmin)
-                {
-                    var data = await _httpClient.GetFromJsonAsync<List<SiteDtoAdmin>>("https://controlpanelsite-assil.onrender.com/SiteAPI/GetSitesAdmin");
-                    var statueAdmin = data.Where(s => s.Siteid == 1).FirstOrDefault();
-                    context.Result = new RedirectToActionResult(
-                       "close",
-                       "DirectiveDevClose", new { area = "", Url = statueAdmin.Url, SiteName = statueAdmin.Sitename, StartDate = statueAdmin.StartDate, EndDate = statueAdmin.EndDate, OriginalDuration = statueAdmin.DurationDay });
-
-
-                }
-                else
-                {
-                   context.Result = new RedirectToActionResult(
-                   "Developer",
-                   "DirectiveDevClose",
-   new { area = "" },
-                   null);
-                }
+                await next();
+                return;
             }
 
+            // الموقع مغلق للصيانة
+            if (status == StatueSite.ColsePlane)
+            {
+                if (isAdmin)
+                {
+                    var data = await _httpClient.GetFromJsonAsync<List<SiteDtoAdmin>>(
+                        "https://controlpanelsite-assil.onrender.com/SiteAPI/GetSitesAdmin");
+
+                    var site = data?.FirstOrDefault(s => s.Siteid == 1);
+
+                    if (site != null)
+                    {
+                        context.Result = new RedirectToActionResult(
+                            "close",
+                            "DirectiveDevClose",
+                            new
+                            {
+                                area = "",
+                                Url = site.Url,
+                                SiteName = site.Sitename,
+                                StartDate = site.StartDate,
+                                EndDate = site.EndDate,
+                                OriginalDuration = site.DurationDay
+                            });
+
+                        return;
+                    }
+                }
+
+                context.Result = new RedirectToActionResult(
+                    "Developer",
+                    "DirectiveDevClose",
+                    new { area = "" });
+
+                return;
+            }
+
+            // الموقع في وضع المطور
+            if (status == StatueSite.Developer)
+            {
+                context.Result = new RedirectToActionResult(
+                    "Developer",
+                    "DirectiveDevClose",
+                    new { area = "" });
+
+                return;
+            }
+
+            // السماح بتنفيذ الـ Action
+            await next();
         }
 
 

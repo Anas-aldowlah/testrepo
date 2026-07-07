@@ -82,6 +82,8 @@ wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\css\site.css
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\css\yaqut-theme.css
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\favicon.ico
+F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\images\placeholder-product.svg
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\js\site.js
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\js\yaqut-main.js
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
@@ -143,5 +145,3 @@ F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\lib\jquery\dist\jquery.slim.min.js
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\lib\jquery\dist\jquery.slim.min.map
 F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\lib\jquery\LICENSE.txt
-F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\favicon.ico
-F:\(⊙–الكنز–⊙)🏆\university\الاساس\المشاريع\progect 💥💯\ASP.net\YAGOT_PR\YAGOT_5\YAGOT_RAP\wwwroot\images\placeholder-product.svg
