@@ -68,27 +68,17 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <div class="yaqut-account" data-yq-dropdown>
-                        <button type="button" class="yaqut-account__trigger" aria-haspopup="true" aria-expanded="false">
-                            <span class="yaqut-account__avatar">@(User.Identity.Name?.Trim().FirstOrDefault().ToString().ToUpper())</span>
-                            <span class="yaqut-account__name d-none d-lg-inline">@User.Identity.Name</span>
-                            <i class="bi bi-chevron-down yaqut-account__chevron"></i>
-                        </button>
-                        <div class="yaqut-account__menu" role="menu">
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" role="menuitem">
-                                    <i class="bi bi-speedometer2"></i> لوحة الإدارة
-                                </a>
-                            }
-                            <a asp-controller="Orders" asp-action="Index" role="menuitem">
-                                <i class="bi bi-receipt"></i> طلباتي
-                            </a>
-                            <a asp-controller="Account" asp-action="Logout" class="yaqut-account__logout" role="menuitem">
-                                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                            </a>
-                        </div>
-                    </div>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-yaqut-gold btn-sm d-none d-lg-inline-flex">الإدارة</a>
+                    }
+                    <span class="yaqut-user-chip d-none d-md-inline-flex">
+                        <i class="bi bi-person-circle"></i> @User.Identity.Name
+                    </span>
+                    <a asp-controller="Account" asp-action="Logout" class="btn btn-yaqut-outline btn-sm yaqut-logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-md-inline">خروج</span>
+                    </a>
                 }
                 else
                 {
