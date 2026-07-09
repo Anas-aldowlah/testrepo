@@ -16,6 +16,17 @@
     var heroSlides = newArrivals.Take(5).ToList();
     var storyImageUrl = categories.FirstOrDefault(c => !string.IsNullOrEmpty(c.Imageurl))?.Imageurl;
 }
+@if (TempData["Success"] != null)
+{
+    <script>
+        localStorage.removeItem("regName");
+        localStorage.removeItem("regPhone");
+        localStorage.removeItem("regConfirmPhone");
+        localStorage.removeItem("regPassword");
+        localStorage.removeItem("regConfirm");
+        localStorage.removeItem("AuthPanel");
+    </script>
+}
 
 @section Styles {
     <link rel="stylesheet" href="~/css/home/index.css" asp-append-version="true" />

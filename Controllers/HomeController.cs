@@ -42,8 +42,14 @@ public class HomeController : Controller
         {
             var allProducts = model.Products;
         }
-
+        var name = TempData["UserName"];
+        bool exists = _context.Users.Any(s => s.Name == name);
+        if (!exists)
+        {
+                return RedirectToAction("AuthR", "Account");
+        }
         return View(model);
+
     }
 
     public IActionResult About()
@@ -81,5 +87,7 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+
+
     }
 }

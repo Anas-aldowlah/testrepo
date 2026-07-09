@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
 
-public partial class User
+public partial class  User
 {
     public int Id { get; set; }
 
@@ -16,6 +16,8 @@ public partial class User
     public string Role { get; set; } = null!;
 
     public DateTime? Createdat { get; set; }
+
+    public string? Email { get; set; }
 
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
