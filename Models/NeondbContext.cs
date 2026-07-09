@@ -21,6 +21,8 @@ public partial class NeondbContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
+    public virtual DbSet<Deliveryorder> Deliveryorders { get; set; }
+
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<Orderitem> Orderitems { get; set; }
@@ -89,6 +91,33 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<Deliveryorder>(entity =>
+        {
+            entity.HasKey(e => e.Orderid).HasName("deliveryorders_pkey");
+
+            entity.ToTable("deliveryorders");
+
+            entity.Property(e => e.Orderid).HasColumnName("orderid");
+            entity.Property(e => e.City)
+                .HasMaxLength(100)
+                .HasColumnName("city");
+            entity.Property(e => e.District)
+                .HasMaxLength(100)
+                .HasColumnName("district");
+            entity.Property(e => e.Fullname)
+                .HasMaxLength(150)
+                .HasColumnName("fullname");
+            entity.Property(e => e.Governorate)
+                .HasMaxLength(100)
+                .HasColumnName("governorate");
+            entity.Property(e => e.Phonenumber)
+                .HasMaxLength(20)
+                .HasColumnName("phonenumber");
+            entity.Property(e => e.Secondphonenumber)
+                .HasMaxLength(20)
+                .HasColumnName("secondphonenumber");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -212,13 +241,14 @@ public partial class NeondbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
+            entity.Property(e => e.Email)
+                .HasMaxLength(260)
+                .HasColumnName("email");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.Passwordhash).HasColumnName("passwordhash");
-            entity.Property(e => e.Phone)
-                .HasMaxLength(50)
-                .HasColumnName("phone");
+            entity.Property(e => e.Phone).HasColumnName("phone");
             entity.Property(e => e.Role)
                 .HasMaxLength(50)
                 .HasDefaultValueSql("'Customer'::character varying")

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -6,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +34,7 @@ builder.Services.AddControllersWithViews()
         options.MaxModelBindingCollectionSize = 1000;
     });
 builder.Services.AddHttpClient<DealingAPI>();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -43,6 +47,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.SlidingExpiration = true;
         options.ReturnUrlParameter = "ReturnUrl";
+
         options.Events.OnRedirectToLogin = context =>
         {
             if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
@@ -54,6 +59,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
         };
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        
     });
 
 builder.Services.AddCors(options =>
@@ -122,7 +135,30 @@ app.Use(async (context, next) =>
         context.Response.Redirect("/Account/Auth");
         return;
     }
+    //if (context.User.Identity?.IsAuthenticated == true)
+    //{
+    //    // الحصول على اسم المستخدم من الـ Cookie
+    //    var userName = context.User.Identity?.Name;
 
+    //    if (!string.IsNullOrEmpty(userName))
+    //    {
+    //        using var scope = app.Services.CreateScope();
+    //        var db = scope.ServiceProvider.GetRequiredService<NeondbContext>();
+
+    //        // التحقق من وجود المستخدم في قاعدة البيانات
+    //        bool exists = await db.Users.AnyAsync(u => u.Name == userName);
+
+    //        if (!exists)
+    //        {
+    //            // حذف الـ Cookie
+    //            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+    //            // إعادة التوجيه إلى صفحة تسجيل الدخول
+    //            context.Response.Redirect("/Account/Auth");
+    //            return;
+    //        }
+    //    }
+    //    }
     // حماية لوحة الإدارة
     if (path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase))
     {

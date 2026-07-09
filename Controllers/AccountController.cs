@@ -1,10 +1,14 @@
-using System.Security.Claims;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+ using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using YAGOT_2._0.Models;
+
 
 namespace YAGOT_2._0.Controllers;
 
@@ -20,13 +24,22 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Auth(string? returnUrl = null)
     {
-        if (User.Identity?.IsAuthenticated == true)
+        if (User.Identity?.IsAuthenticated == true )
         {
             return LocalRedirect(GetRedirectUrl(returnUrl));
         }
+      
+        ;
 
         ViewData["ReturnUrl"] = returnUrl;
         return View();
+    }
+    public IActionResult AuthR(string? returnUrl = null,string? email=null)
+    {
+
+        ViewData["ReturnUrl"] = returnUrl;
+        TempData["Email"] = email;
+        return View("Auth");
     }
 
     [HttpPost]
@@ -45,7 +58,7 @@ public class AccountController : Controller
             return View("Auth");
 
         var phone = model.Phone.Trim();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == phone);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == HashPhone(phone));
 
         if (user == null || !VerifyHashedPassword(model.Password, user.Passwordhash))
         {
@@ -83,6 +96,9 @@ public class AccountController : Controller
         if (string.IsNullOrWhiteSpace(model.ConfirmPassword))
             ModelState.AddModelError(nameof(model.ConfirmPassword), "تأكيد كلمة المرور مطلوب.");
 
+        if (string.IsNullOrWhiteSpace(model.Email))
+            ModelState.AddModelError(nameof(model.Email), "الايميل مطلوب");
+
         if (!ModelState.IsValid)
             return View("Auth");
 
@@ -93,7 +109,7 @@ public class AccountController : Controller
         }
 
         var phone = model.Phone.Trim();
-        if (await _db.Users.AnyAsync(u => u.Phone == phone))
+        if (await _db.Users.AnyAsync(u => u.Phone == HashPhone(phone)))
         {
             ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مستخدم بالفعل. سجّل الدخول أو استخدم رقماً آخر.");
             return View("Auth");
@@ -102,9 +118,10 @@ public class AccountController : Controller
         var user = new User
         {
             Name = model.Name.Trim(),
-            Phone = phone,
+            Phone = HashPhone(phone),
             Passwordhash = HashPassword(model.Password),
-            Role = "Customer"
+            Role = "Customer",
+            Email=model.Email?.Trim()
         };
 
         _db.Users.Add(user);
@@ -113,6 +130,8 @@ public class AccountController : Controller
 
         TempData["UserName"] = user.Name;
         TempData.Remove("ShowRegister");
+        TempData["Success"] = true;
+        TempData["Email"] = model.Email;
         return LocalRedirect(GetRedirectUrl(returnUrl));
     }
 
@@ -129,7 +148,29 @@ public class AccountController : Controller
             ? "/Home/Index"
             : returnUrl!;
     }
+    [HttpGet]
+    public IActionResult GoogleLogin(string? returnUrl = "/Account/AuthR")
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action(nameof(GoogleResponse), new { returnUrl })
+        };
 
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult GoogleResponse(string? returnUrl = null)
+    {
+        if (!(User.Identity?.IsAuthenticated ?? false))
+        {
+            return RedirectToAction("AuthR", "Account");
+        }
+
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        return RedirectToAction("AuthR", "Account", new { email=email });
+    }
     private async Task SignInUserAsync(User user)
     {
         var claims = new List<Claim>
@@ -161,6 +202,12 @@ public class AccountController : Controller
         var hash = algorithm.GetBytes(32);
         return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
     }
+    private static string HashPhone(string phone)
+    {
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(phone));
+        return Convert.ToHexString(bytes);
+    }
 
     private static bool VerifyHashedPassword(string password, string storedHash)
     {
@@ -188,5 +235,6 @@ public class AccountController : Controller
         public string Phone { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;   
     }
 }

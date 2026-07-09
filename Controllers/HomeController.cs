@@ -44,7 +44,12 @@ public class HomeController : Controller
         {
             var allProducts = model.Products;
         }
-
+        var name = TempData["UserName"];
+        bool exists = _context.Users.Any(s => s.Name == name);
+        if (!exists)
+        {
+                return RedirectToAction("AuthR", "Account");
+        }
         return View(model);
     }
 

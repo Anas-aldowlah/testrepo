@@ -277,6 +277,14 @@
                 }
             }
 
+            if (input.id === 'regConfirmPhone') {
+                var passwordInput = document.getElementById('regPhone');
+                if (passwordInput && val !== passwordInput.value) {
+                    showError(input, 'رقم الجوال وتأكيدها غير متطابقين.');
+                    return false;
+                }
+            }
+
             // إذا مرّ الحقل بسلام
             clearError(input);
             return true;
@@ -472,3 +480,79 @@
         init();
     }
 })(window, document);
+document.addEventListener("DOMContentLoaded", function () {
+
+    const fields = [
+        "regName",
+        "regPhone",
+        "regConfirmPhone"
+    ];
+
+    // استرجاع البيانات
+    fields.forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            const savedValue = localStorage.getItem(id);
+
+            if (savedValue !== null) {
+                element.value = savedValue;
+            }
+
+            // حفظ البيانات عند الكتابة
+            element.addEventListener("input", function () {
+                localStorage.setItem(id, this.value);
+            });
+        }
+    });
+
+});
+document.addEventListener("DOMContentLoaded", function () {
+
+    const loginBtn = document.getElementById("loginToggle");
+    const registerBtn = document.getElementById("registerToggle");
+
+    const loginPanel = document.getElementById("loginPanel");
+    const registerPanel = document.getElementById("registerPanel");
+
+    function showLogin() {
+
+        loginPanel.classList.remove("d-none");
+        registerPanel.classList.add("d-none");
+
+        loginBtn.classList.add("is-active");
+        registerBtn.classList.remove("is-active");
+
+        loginBtn.setAttribute("aria-selected", "true");
+        registerBtn.setAttribute("aria-selected", "false");
+
+        localStorage.setItem("AuthPanel", "login");
+    }
+
+    function showRegister() {
+
+        registerPanel.classList.remove("d-none");
+        loginPanel.classList.add("d-none");
+
+        registerBtn.classList.add("is-active");
+        loginBtn.classList.remove("is-active");
+
+        registerBtn.setAttribute("aria-selected", "true");
+        loginBtn.setAttribute("aria-selected", "false");
+
+        localStorage.setItem("AuthPanel", "register");
+    }
+
+    loginBtn.addEventListener("click", showLogin);
+    registerBtn.addEventListener("click", showRegister);
+
+    // استرجاع آخر تبويب
+    const panel = localStorage.getItem("AuthPanel");
+
+    if (panel === "register") {
+        showRegister();
+    } else {
+        showLogin();
+    }
+
+});

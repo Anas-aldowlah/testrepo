@@ -5,6 +5,17 @@
     int? selectedCategoryId = ViewBag.SelectedCategoryId as int?;
     string? selectedCategoryName = ViewBag.SelectedCategoryName as string;
 }
+@if (TempData["Success"] != null)
+{
+    <script>
+        localStorage.removeItem("regName");
+        localStorage.removeItem("regPhone");
+        localStorage.removeItem("regConfirmPhone");
+        localStorage.removeItem("regPassword");
+        localStorage.removeItem("regConfirm");
+        localStorage.removeItem("AuthPanel");
+    </script>
+}
 
 <div class="yq-home">
 
