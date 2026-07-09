@@ -1,0 +1,127 @@
+﻿@model YAGOT_2._0.Models.ContactMessageVM
+@{
+    ViewData["Title"] = "تواصل معنا | ياقوت";
+    var isSuccess = TempData["ContactSuccess"] != null;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/home/contact.css" asp-append-version="true" />
+}
+
+<div class="yq-contact">
+
+    <!-- HEADER -->
+    <header class="yq-contact-header yq-reveal">
+        <span class="yq-contact-header__eyebrow"><i class="bi bi-headset"></i> نحن هنا لمساعدتك</span>
+        <h1 class="yq-contact-header__title">تواصل معنا</h1>
+        <p class="yq-contact-header__sub">
+            لديك استفسار عن منتج، طلب، أو أي شيء آخر؟ فريق ياقوت جاهز للرد عليك.
+        </p>
+    </header>
+
+    <div class="yq-contact-layout">
+
+        <!-- CONTACT INFO -->
+        <aside class="yq-contact-info yq-reveal">
+            <div class="yq-contact-info__card yq-glass">
+                <h2 class="yq-contact-info__title">طرق التواصل</h2>
+                <p class="yq-contact-info__note">
+                    قنوات التواصل المباشرة (الهاتف والبريد الإلكتروني وموقع المتجر) قيد الإضافة قريباً.
+                </p>
+
+                <div class="yq-contact-social">
+                    <span class="yq-contact-social__label">تابعنا</span>
+                    <div class="yq-contact-social__links">
+                        <a href="#" aria-label="إنستغرام"><i class="bi bi-instagram"></i></a>
+                        <a href="#" aria-label="تويتر"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" aria-label="تيك توك"><i class="bi bi-tiktok"></i></a>
+                        <a href="#" aria-label="سناب شات"><i class="bi bi-snapchat"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="yq-contact-info__card yq-glass">
+                <h2 class="yq-contact-info__title"><i class="bi bi-clock"></i> زمن الرد</h2>
+                <p class="yq-contact-info__note">
+                    نسعى للرد على جميع الرسائل في أقرب وقت ممكن خلال أيام العمل.
+                </p>
+            </div>
+        </aside>
+
+        <!-- CONTACT FORM -->
+        <section class="yq-contact-form-wrap yq-glass yq-reveal">
+            @if (isSuccess)
+            {
+                <div class="yq-contact-success" id="yqContactSuccess">
+                    <div class="yq-contact-success__icon"><i class="bi bi-check-lg"></i></div>
+                    <h2>تم إرسال رسالتك بنجاح</h2>
+                    <p>شكراً لتواصلك مع ياقوت. سنقوم بالرد عليك في أقرب وقت ممكن.</p>
+                </div>
+            }
+            else
+            {
+                <h2 class="yq-contact-form__title">أرسل لنا رسالة</h2>
+
+                <form asp-controller="Home" asp-action="Contact" method="post" data-yq-validate novalidate>
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger"></div>
+
+                    <div class="yq-contact-form__row">
+                        <div class="yaqut-form-group">
+                            <label asp-for="Name" class="yaqut-form-label">الاسم الكامل</label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-person"></i>
+                                <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" />
+                            </div>
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="yaqut-form-group">
+                            <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-envelope"></i>
+                                <input asp-for="Email" type="email" class="yaqut-form-input" placeholder="example@email.com" required />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="yq-contact-form__row">
+                        <div class="yaqut-form-group">
+                            <label asp-for="Phone" class="yaqut-form-label">رقم الجوال <span class="yq-contact-optional">(اختياري)</span></label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-phone"></i>
+                                <input asp-for="Phone" type="tel" class="yaqut-form-input" placeholder="05XXXXXXXX" />
+                            </div>
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+
+                        <div class="yaqut-form-group">
+                            <label asp-for="Subject" class="yaqut-form-label">الموضوع</label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-chat-text"></i>
+                                <input asp-for="Subject" class="yaqut-form-input" placeholder="موضوع رسالتك" required />
+                            </div>
+                            <span asp-validation-for="Subject" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="yaqut-form-group">
+                        <label asp-for="Message" class="yaqut-form-label">الرسالة</label>
+                        <textarea asp-for="Message" rows="5" class="yaqut-form-input" placeholder="اكتب رسالتك هنا..." required minlength="10"></textarea>
+                        <span asp-validation-for="Message" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn-yaqut-gold yq-contact-submit-btn">
+                        <i class="bi bi-send"></i> إرسال الرسالة
+                    </button>
+                </form>
+            }
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/home/contact.js" asp-append-version="true"></script>
+}
