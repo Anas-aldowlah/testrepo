@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Controllers;
 
+[ServiceFilter(typeof(SiteStatusFilter))]
 public class ProductsController : Controller
 {
     private readonly NeondbContext _context;
