@@ -42,6 +42,14 @@ public class AccountController : Controller
         return View("Auth");
     }
 
+    public IActionResult RecoveryAccountTem(string? returnUrl = null, string? email = null)
+    {
+
+        ViewData["ReturnUrl"] = returnUrl;
+        TempData["Email"] = email;
+        return View("RecoveryAccount");
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
@@ -142,6 +150,27 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Auth));
     }
 
+    [HttpGet]
+    public IActionResult RecoveryAccount()
+    {
+      return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
+    {
+        var accountUser = await _db.Users.FirstOrDefaultAsync(u =>
+            u.Email == model.Email || u.Phone == HashPhone(model.Phone));
+        if (accountUser == null)
+        {
+            ModelState.AddModelError(string.Empty, "لم يتم العثور على حساب بهذا البريد الإلكتروني أو رقم الجوال.");
+            return View("RecoveryAccount");
+        }
+        accountUser.Passwordhash= HashPassword(model.Password);
+        await _db.SaveChangesAsync();
+        return View("Auth");
+    }
+
     private static string GetRedirectUrl(string? returnUrl)
     {
         return string.IsNullOrWhiteSpace(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
@@ -170,6 +199,29 @@ public class AccountController : Controller
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
 
         return RedirectToAction("AuthR", "Account", new { email=email });
+    }
+
+    public IActionResult GoogleLoginRecovery()
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action(nameof(GoogleResponseRecovery))
+        };
+
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult GoogleResponseRecovery()
+    {
+        if (!(User.Identity?.IsAuthenticated ?? false))
+        {
+            return RedirectToAction("RecoveryAccountTem", "Account");
+        }
+
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        return RedirectToAction("RecoveryAccountTem", "Account", new { email = email });
     }
     private async Task SignInUserAsync(User user)
     {
