@@ -6,97 +6,201 @@
     var topNote = parts.Length > 0 ? parts[0] : "حمضيات منعشة وتوابل خفيفة";
     var heartNote = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "زهور شرقية ومسك راقٍ");
     var baseNote = parts.Length > 2 ? parts[2] : "عود وعنبر وخشب أرز دافئ";
-    var rating = Model != null ? 4.0 + (Model.Id % 10) * 0.1 : 0;
-    var fullStars = (int)Math.Floor(rating);
+    var inStock = Model != null && Model.Stockquantity > 0;
+    var lowStock = Model != null && Model.Stockquantity > 0 && Model.Stockquantity <= 5;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/products/details.css" asp-append-version="true" />
 }
 
 @if (Model != null)
 {
-    <nav class="yaqut-breadcrumb">
-        <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-        <span class="yaqut-breadcrumb__sep">/</span>
-        <a asp-controller="Products" asp-action="Index">المنتجات</a>
-        <span class="yaqut-breadcrumb__sep">/</span>
-        <span>@Model.Name</span>
-    </nav>
+    <div class="yq-pdp"
+         data-yq-recent-item
+         data-id="@Model.Id"
+         data-name="@Model.Name"
+         data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+         data-image="@Model.Imageurl">
 
-    <div class="yaqut-detail">
-        <div class="yaqut-detail__gallery glass-effect">
-            <img src="@Model.Imageurl"
-                 alt="@Model.Name"
-                 class="yaqut-card-img"
-                 data-yaqut-fallback="/images/placeholder-product.svg" />
-        </div>
+        <!-- BREADCRUMB -->
+        <nav class="yq-pdp-breadcrumb" aria-label="مسار التصفح">
+            <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+            <i class="bi bi-chevron-left"></i>
+            <a asp-controller="Products" asp-action="Index">المجموعة</a>
+            @if (Model.Category != null)
+            {
+                <i class="bi bi-chevron-left"></i>
+                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id">@Model.Category.Name</a>
+            }
+            <i class="bi bi-chevron-left"></i>
+            <span>@Model.Name</span>
+        </nav>
 
-        <div class="yaqut-detail__info">
-            <h1 class="yaqut-detail__title">@Model.Name</h1>
+        <!-- MAIN PRODUCT AREA -->
+        <div class="yq-pdp-main">
 
-            <div class="yaqut-rating mb-3" aria-label="التقييم @rating من 5">
-                @for (var i = 1; i <= 5; i++)
-                {
-                    <i class="bi @(i <= fullStars ? "bi-star-fill" : "bi-star")"></i>
-                }
-                <span class="yaqut-rating__value">@rating.ToString("0.0") / 5</span>
+            <!-- GALLERY -->
+            <div class="yq-pdp-gallery yq-reveal">
+                <div class="yq-pdp-gallery__frame yq-glass">
+                    @if (inStock)
+                    {
+                        <span class="yq-pdp-gallery__badge">متوفر</span>
+                    }
+                    <img src="@Model.Imageurl"
+                         alt="@Model.Name"
+                         class="yq-pdp-gallery__img"
+                         data-yaqut-fallback="/images/placeholder-product.svg" />
+                </div>
             </div>
 
-            <div class="yaqut-detail__price">@Model.Price.ToString("N0") <small>ر.س</small></div>
+            <!-- INFO -->
+            <div class="yq-pdp-info yq-reveal">
+                <div class="yq-pdp-info__sticky">
 
-            <section class="yaqut-pyramid">
-                <h2 class="yaqut-pyramid__title"><i class="bi bi-layers"></i> الهرم العطري</h2>
-                <div class="yaqut-pyramid__grid">
-                    <div class="yaqut-pyramid__item glass-effect">
-                        <i class="bi bi-sunrise yaqut-pyramid__icon"></i>
-                        <div class="yaqut-pyramid__label">الإفتتاحية</div>
-                        <p class="yaqut-pyramid__text">@topNote</p>
+                    @if (Model.Category != null)
+                    {
+                        <span class="yq-pdp-category">@Model.Category.Name</span>
+                    }
+
+                    <h1 class="yq-pdp-title">@Model.Name</h1>
+
+                    <div class="yq-pdp-price">
+                        @Model.Price.ToString("N0") <small>ر.س</small>
                     </div>
-                    <div class="yaqut-pyramid__item glass-effect">
-                        <i class="bi bi-heart yaqut-pyramid__icon"></i>
-                        <div class="yaqut-pyramid__label">قلب العطر</div>
-                        <p class="yaqut-pyramid__text">@heartNote</p>
+
+                    <div class="yq-pdp-stock">
+                        @if (inStock)
+                        {
+                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in">
+                                <i class="bi bi-check-circle"></i> متوفر في المخزون
+                            </span>
+                            @if (lowStock)
+                            {
+                                <span class="yq-pdp-stock__note">
+                                    <i class="bi bi-exclamation-circle"></i> الكمية المتبقية محدودة: @Model.Stockquantity قطعة فقط
+                                </span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--out">
+                                <i class="bi bi-x-circle"></i> غير متوفر حالياً
+                            </span>
+                        }
                     </div>
-                    <div class="yaqut-pyramid__item glass-effect">
-                        <i class="bi bi-moon-stars yaqut-pyramid__icon"></i>
-                        <div class="yaqut-pyramid__label">القاعدة</div>
-                        <p class="yaqut-pyramid__text">@baseNote</p>
+
+                    <p class="yq-pdp-summary">
+                        عطر فاخر يجمع بين الأصالة والفخامة، مصنوع من أجود المكونات ليمنحك تجربة حسية استثنائية تدوم طويلاً.
+                    </p>
+
+                    @if (inStock)
+                    {
+                        <form asp-controller="Cart" asp-action="Add" method="post" class="yq-pdp-purchase">
+                            <input type="hidden" name="productId" value="@Model.Id" />
+
+                            <div class="yq-pdp-qty">
+                                <span class="yq-pdp-qty__label">الكمية</span>
+                                <div class="yq-pdp-qty__stepper">
+                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-decrease aria-label="تقليل الكمية">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number" name="quantity" id="yqQtyInput" value="1"
+                                           min="1" max="@Model.Stockquantity"
+                                           class="yq-pdp-qty__input" aria-label="الكمية المطلوبة" />
+                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn">
+                                <i class="bi bi-bag-plus"></i> إضافة إلى السلة
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn-yaqut-outline yq-pdp-add-btn" disabled>
+                            <i class="bi bi-bell"></i> غير متوفر حالياً
+                        </button>
+                    }
+
+                    <div class="yq-pdp-trust">
+                        <span><i class="bi bi-shield-check"></i> ضمان أصالة المنتج</span>
+                        <span><i class="bi bi-truck"></i> شحن مؤمّن بالكامل</span>
+                        <span><i class="bi bi-gift"></i> تغليف فاخر مجاني</span>
+                        <span><i class="bi bi-arrow-counterclockwise"></i> استرجاع خلال 14 يوماً</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILS TABS -->
+        <div class="yq-pdp-details yq-reveal">
+            <div class="yq-pdp-tabs" role="tablist" aria-label="تفاصيل المنتج">
+                <button type="button" class="yq-pdp-tab is-active" data-yq-tab="pyramid" role="tab" aria-selected="true">
+                    <i class="bi bi-layers"></i> الهرم العطري
+                </button>
+                <button type="button" class="yq-pdp-tab" data-yq-tab="description" role="tab" aria-selected="false">
+                    <i class="bi bi-file-text"></i> الوصف
+                </button>
+                <button type="button" class="yq-pdp-tab" data-yq-tab="specs" role="tab" aria-selected="false">
+                    <i class="bi bi-info-circle"></i> المواصفات
+                </button>
+            </div>
+
+            <div class="yq-pdp-tab-panel is-active" data-yq-panel="pyramid" role="tabpanel">
+                <div class="yq-pdp-pyramid">
+                    <div class="yq-pdp-pyramid__item yq-glass">
+                        <i class="bi bi-sunrise"></i>
+                        <span class="yq-pdp-pyramid__label">الإفتتاحية</span>
+                        <p>@topNote</p>
+                    </div>
+                    <div class="yq-pdp-pyramid__item yq-glass">
+                        <i class="bi bi-heart"></i>
+                        <span class="yq-pdp-pyramid__label">قلب العطر</span>
+                        <p>@heartNote</p>
+                    </div>
+                    <div class="yq-pdp-pyramid__item yq-glass">
+                        <i class="bi bi-moon-stars"></i>
+                        <span class="yq-pdp-pyramid__label">القاعدة</span>
+                        <p>@baseNote</p>
                     </div>
                 </div>
                 @if (parts.Length < 2)
                 {
-                    <p class="yaqut-pyramid__note">
+                    <p class="yq-pdp-hint">
                         <i class="bi bi-info-circle"></i>
                         يمكن للمسؤول تنسيق الهرم العطري في الوصف بفاصل | بين الإفتتاحية والقلب والقاعدة.
                     </p>
                 }
-            </section>
-
-            <div class="yaqut-detail__meta glass-effect">
-                <div>
-                    <span class="yaqut-detail__meta-label">الحالة</span>
-                    <div>@(Model.Stockquantity > 0 ? "متوفر في المخزون" : "غير متوفر حالياً")</div>
-                </div>
-                <div>
-                    <span class="yaqut-detail__meta-label">الكمية المتاحة</span>
-                    <div>@Model.Stockquantity قطعة</div>
-                </div>
             </div>
 
-            @if (Model.Stockquantity > 0)
-            {
-                <form asp-controller="Cart" asp-action="Add" method="post" class="yaqut-add-form">
-                    <input type="hidden" name="productId" value="@Model.Id" />
-                    <input type="number" name="quantity" value="1" min="1" max="@Model.Stockquantity" class="yaqut-qty-input" aria-label="الكمية" />
-                    <button type="submit" class="btn-yaqut-gold flex-grow-1">
-                        <i class="bi bi-bag-plus"></i> إضافة إلى السلة
-                    </button>
-                </form>
-            }
+            <div class="yq-pdp-tab-panel" data-yq-panel="description" role="tabpanel" hidden>
+                <p class="yq-pdp-description">@(string.IsNullOrWhiteSpace(desc) ? "لا يوجد وصف تفصيلي لهذا المنتج حالياً." : desc)</p>
+            </div>
 
-            <div class="yaqut-trust-badges">
-                <span><i class="bi bi-shield-check"></i> ضمان أصالة المنتج</span>
-                <span><i class="bi bi-truck"></i> شحن مؤمّن بالكامل</span>
-                <span><i class="bi bi-gift"></i> تغليف فاخر مجاني</span>
+            <div class="yq-pdp-tab-panel" data-yq-panel="specs" role="tabpanel" hidden>
+                <dl class="yq-pdp-specs">
+                    @if (Model.Category != null)
+                    {
+                        <div><dt>التصنيف</dt><dd>@Model.Category.Name</dd></div>
+                    }
+                    <div><dt>الحالة</dt><dd>@(inStock ? "متوفر في المخزون" : "غير متوفر حالياً")</dd></div>
+                    <div><dt>الكمية المتاحة</dt><dd>@Model.Stockquantity قطعة</dd></div>
+                    <div><dt>السعر</dt><dd>@Model.Price.ToString("N0") ر.س</dd></div>
+                </dl>
             </div>
         </div>
+
+        <!-- RECENTLY VIEWED -->
+        <section class="yq-pdp-recent yq-reveal" id="yqRecentlyViewed" hidden>
+            <header class="yq-pdp-recent__head">
+                <h2><i class="bi bi-clock-history"></i> شاهدته مؤخراً</h2>
+            </header>
+            <div class="yq-pdp-recent__grid" id="yqRecentlyViewedGrid"></div>
+        </section>
     </div>
 }
 else
@@ -106,4 +210,8 @@ else
         <p class="yaqut-empty__text">نعتذر، لم يتم العثور على المنتج المطلوب.</p>
         <a asp-action="Index" class="btn-yaqut-gold mt-3">العودة للمنتجات</a>
     </div>
+}
+
+@section Scripts {
+    <script src="~/js/products/details.js" asp-append-version="true"></script>
 }

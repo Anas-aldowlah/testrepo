@@ -1,0 +1,190 @@
+@model YAGOT_2._0.Models.Cart
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "إتمام الطلب";
+    var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
+    decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
+    const decimal freeShippingThreshold = 500;
+    var qualifiesForFreeShipping = subtotal >= freeShippingThreshold;
+    var remainingForFreeShipping = freeShippingThreshold - subtotal;
+
+    var customerName = User.Identity?.Name;
+    var customerPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/orders/checkout.css" asp-append-version="true" />
+}
+
+<div class="yq-checkout">
+
+    <!-- PROGRESS STEPS -->
+    <nav class="yq-checkout-steps yq-reveal" aria-label="مراحل إتمام الطلب">
+        <div class="yq-checkout-step is-done">
+            <span class="yq-checkout-step__icon"><i class="bi bi-check-lg"></i></span>
+            <span class="yq-checkout-step__label">السلة</span>
+        </div>
+        <div class="yq-checkout-step__connector is-done"></div>
+        <div class="yq-checkout-step is-active">
+            <span class="yq-checkout-step__icon">2</span>
+            <span class="yq-checkout-step__label">الدفع</span>
+        </div>
+        <div class="yq-checkout-step__connector"></div>
+        <div class="yq-checkout-step">
+            <span class="yq-checkout-step__icon">3</span>
+            <span class="yq-checkout-step__label">التأكيد</span>
+        </div>
+    </nav>
+
+    <header class="yq-checkout-header yq-reveal">
+        <h1><i class="bi bi-credit-card"></i> إتمام الطلب</h1>
+        <a asp-controller="Cart" asp-action="Index" class="yq-checkout-back-link">
+            <i class="bi bi-arrow-right"></i> العودة للسلة
+        </a>
+    </header>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--danger yq-reveal">
+            <i class="bi bi-exclamation-circle"></i> @TempData["Error"]
+        </div>
+    }
+
+    <div class="yq-checkout-layout">
+
+        <!-- LEFT: DETAILS -->
+        <div class="yq-checkout-details yq-reveal">
+
+            <!-- CUSTOMER INFO -->
+            <section class="yq-checkout-card yq-glass">
+                <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
+                <div class="yq-checkout-info-grid">
+                    <div>
+                        <span class="yq-checkout-info-label">الاسم</span>
+                        <span class="yq-checkout-info-value">@customerName</span>
+                    </div>
+                    <div>
+                        <span class="yq-checkout-info-label">رقم الجوال</span>
+                        <span class="yq-checkout-info-value">@(customerPhone ?? "-")</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DELIVERY INFO -->
+            <section class="yq-checkout-card yq-glass">
+                <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
+                <div class="yq-checkout-delivery">
+                    <div class="yq-checkout-delivery__item">
+                        <i class="bi bi-clock-history"></i>
+                        <div>
+                            <strong>مدة التوصيل المتوقعة</strong>
+                            <p>2-3 أيام عمل داخل المملكة</p>
+                        </div>
+                    </div>
+                    <div class="yq-checkout-delivery__item">
+                        <i class="bi bi-telephone"></i>
+                        <div>
+                            <strong>التواصل للتوصيل</strong>
+                            <p>سيتم التواصل معك عبر رقم الجوال المسجل لتأكيد وتنسيق التسليم</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAYMENT METHOD -->
+            <section class="yq-checkout-card yq-glass">
+                <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                <div class="yq-checkout-payment">
+                    <label class="yq-checkout-payment__option is-selected">
+                        <input type="radio" name="paymentMethod" value="cod" checked />
+                        <span class="yq-checkout-payment__icon"><i class="bi bi-cash-coin"></i></span>
+                        <span class="yq-checkout-payment__text">
+                            <strong>الدفع عند الاستلام</strong>
+                            <small>ادفع نقداً عند استلام طلبك</small>
+                        </span>
+                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
+                    </label>
+
+                    <label class="yq-checkout-payment__option is-disabled">
+                        <input type="radio" name="paymentMethod" value="card" disabled />
+                        <span class="yq-checkout-payment__icon"><i class="bi bi-credit-card-2-front"></i></span>
+                        <span class="yq-checkout-payment__text">
+                            <strong>بطاقة ائتمانية</strong>
+                            <small>قريباً</small>
+                        </span>
+                    </label>
+                </div>
+            </section>
+        </div>
+
+        <!-- RIGHT: ORDER SUMMARY -->
+        <aside class="yq-checkout-summary yq-glass yq-reveal">
+            <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+
+            <div class="yq-checkout-summary__items">
+                @foreach (var item in items)
+                {
+                    var lineTotal = item.Quantity * (item.Product?.Price ?? 0);
+                    <div class="yq-checkout-summary__item">
+                        <div class="yq-checkout-summary__item-media">
+                            <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
+                                 alt="@item.Product?.Name"
+                                 data-yaqut-fallback="/images/placeholder-product.svg" />
+                            <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
+                        </div>
+                        <span class="yq-checkout-summary__item-name">@item.Product?.Name</span>
+                        <span class="yq-checkout-summary__item-price">@lineTotal.ToString("N0") ر.س</span>
+                    </div>
+                }
+            </div>
+
+            <div class="yq-checkout-summary__divider"></div>
+
+            <div class="yq-checkout-summary__row">
+                <span>المجموع الفرعي</span>
+                <span>@subtotal.ToString("N0") ر.س</span>
+            </div>
+            <div class="yq-checkout-summary__row">
+                <span>الشحن</span>
+                @if (qualifiesForFreeShipping)
+                {
+                    <span class="yq-checkout-summary__free">مجاني</span>
+                }
+                else
+                {
+                    <span class="yq-checkout-summary__tbd">يُحدد عند الدفع</span>
+                }
+            </div>
+
+            @if (!qualifiesForFreeShipping)
+            {
+                <p class="yq-checkout-summary__hint">
+                    <i class="bi bi-truck"></i>
+                    أضف <strong>@remainingForFreeShipping.ToString("N0") ر.س</strong> للحصول على شحن مجاني
+                </p>
+            }
+
+            <div class="yq-checkout-summary__divider"></div>
+
+            <div class="yq-checkout-summary__row yq-checkout-summary__row--total">
+                <span>الإجمالي</span>
+                <span>@subtotal.ToString("N0") <small>ر.س</small></span>
+            </div>
+
+            <form asp-controller="Orders" asp-action="Checkout" method="post" id="yqCheckoutForm">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
+                    <i class="bi bi-shield-check"></i> تأكيد الطلب والدفع
+                </button>
+            </form>
+
+            <p class="yq-checkout-summary__secure">
+                <i class="bi bi-lock"></i> معاملتك محمية وآمنة بالكامل
+            </p>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/orders/checkout.js" asp-append-version="true"></script>
+}

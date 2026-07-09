@@ -1,30 +1,196 @@
 @model YAGOT_2._0.Models.Order
+@using System.Security.Claims
 @{
     ViewData["Title"] = "تأكيد الطلب";
+    var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
+    const decimal freeShippingThreshold = 500;
+    var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
+
+    var customerName = Model.User?.Name ?? User.Identity?.Name;
+    var customerPhone = Model.User?.Phone ?? User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+
+    var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
+    if (currentStepIndex < 0) currentStepIndex = 0;
+
+    var stepLabels = new Dictionary<string, string>
+    {
+        ["Pending"] = "تم استلام الطلب",
+        ["Processed"] = "قيد التحضير",
+        ["Shipped"] = "تم الشحن",
+        ["Delivered"] = "تم التوصيل"
+    };
 }
 
-<div class="yaqut-confirm">
-    <i class="bi bi-check-circle yaqut-confirm__icon"></i>
-    <h1 class="yaqut-confirm__title">تم تأكيد طلبك بنجاح!</h1>
-    <p class="text-muted">شكراً لثقتك في ياقوت.</p>
-    <p>رقم التتبع: <strong class="yaqut-order-card__tracking">@Model.Trackingnumber</strong></p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/orders/confirmation.css" asp-append-version="true" />
+}
 
-    <div class="yaqut-confirm__box glass-effect">
-        <h2 class="h5 mb-3">ملخص الطلب</h2>
-        @foreach (var item in Model.Orderitems)
-        {
-            <div class="yaqut-confirm__item">
-                <span>@item.Product?.Name &times; @item.Quantity</span>
-                <span>@((item.Quantity * item.Unitprice).ToString("N0")) ر.س</span>
-            </div>
-        }
-        <div class="yaqut-order-card__footer mt-3">
-            <span>الإجمالي</span>
-            <span class="yaqut-order-card__tracking">@Model.Totalamount.ToString("N0") ر.س</span>
+<div class="yq-confirm-page">
+
+    <!-- SUCCESS HERO -->
+    <section class="yq-confirm-hero yq-reveal">
+        <div class="yq-confirm-hero__icon">
+            <i class="bi bi-check-lg"></i>
         </div>
-    </div>
+        <h1 class="yq-confirm-hero__title">تم تأكيد طلبك بنجاح!</h1>
+        <p class="yq-confirm-hero__sub">شكراً لثقتك في ياقوت. تم استلام طلبك وسيتم التواصل معك قريباً.</p>
 
-    <a asp-controller="Home" asp-action="Index" class="btn-yaqut-outline">
-        <i class="bi bi-house"></i> العودة للرئيسية
-    </a>
+        <div class="yq-confirm-tracking">
+            <span class="yq-confirm-tracking__label">رقم التتبع</span>
+            <div class="yq-confirm-tracking__value">
+                <span id="yqTrackingNumber">@Model.Trackingnumber</span>
+                <button type="button" class="yq-confirm-tracking__copy" id="yqCopyTrackingBtn" aria-label="نسخ رقم التتبع">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATUS TIMELINE -->
+    <section class="yq-confirm-timeline yq-glass yq-reveal">
+        @for (var i = 0; i < statusSteps.Length; i++)
+        {
+            var isDone = i < currentStepIndex;
+            var isActive = i == currentStepIndex;
+            var isCancelled = Model.Status == "Cancelled";
+            <div class="yq-timeline-step @(isDone ? "is-done" : "") @(isActive && !isCancelled ? "is-active" : "")">
+                <span class="yq-timeline-step__dot">
+                    @if (isDone)
+                    {
+                        <i class="bi bi-check-lg"></i>
+                    }
+                    else
+                    {
+                        @(i + 1)
+                    }
+                </span>
+                <span class="yq-timeline-step__label">@stepLabels[statusSteps[i]]</span>
+            </div>
+            @if (i < statusSteps.Length - 1)
+            {
+                <div class="yq-timeline-connector @(isDone ? "is-done" : "")"></div>
+            }
+        }
+    </section>
+
+    @if (Model.Status == "Cancelled")
+    {
+        <div class="yaqut-alert yaqut-alert--danger yq-reveal">
+            <i class="bi bi-exclamation-circle"></i> تم إلغاء هذا الطلب.
+        </div>
+    }
+
+    <div class="yq-confirm-layout">
+
+        <!-- LEFT: DETAILS -->
+        <div class="yq-confirm-details yq-reveal">
+
+            <!-- CUSTOMER + DELIVERY -->
+            <section class="yq-confirm-card yq-glass">
+                <h2 class="yq-confirm-card__title"><i class="bi bi-person"></i> معلومات العميل والتوصيل</h2>
+                <div class="yq-confirm-info-grid">
+                    <div>
+                        <span class="yq-confirm-info-label">الاسم</span>
+                        <span class="yq-confirm-info-value">@customerName</span>
+                    </div>
+                    <div>
+                        <span class="yq-confirm-info-label">رقم الجوال</span>
+                        <span class="yq-confirm-info-value">@(customerPhone ?? "-")</span>
+                    </div>
+                    <div>
+                        <span class="yq-confirm-info-label">تاريخ الطلب</span>
+                        <span class="yq-confirm-info-value">@(Model.Orderdate.HasValue? Model.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "-")</span>
+                    </div>
+                    <div>
+                        <span class="yq-confirm-info-label">مدة التوصيل المتوقعة</span>
+                        <span class="yq-confirm-info-value">2-3 أيام عمل</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAYMENT -->
+            <section class="yq-confirm-card yq-glass">
+                <h2 class="yq-confirm-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                <div class="yq-confirm-payment">
+                    <span class="yq-confirm-payment__icon"><i class="bi bi-cash-coin"></i></span>
+                    <div>
+                        <strong>الدفع عند الاستلام</strong>
+                        <p>سيتم تحصيل المبلغ نقداً عند استلام طلبك</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PURCHASED PRODUCTS -->
+            <section class="yq-confirm-card yq-glass">
+                <h2 class="yq-confirm-card__title"><i class="bi bi-bag-check"></i> المنتجات المطلوبة</h2>
+                <div class="yq-confirm-products">
+                    @foreach (var item in items)
+                    {
+                        var lineTotal = item.Quantity * item.Unitprice;
+                        <div class="yq-confirm-product">
+                            <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-confirm-product__media">
+                                <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
+                                     alt="@item.Product?.Name"
+                                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                            </a>
+                            <div class="yq-confirm-product__info">
+                                <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-confirm-product__name">
+                                    @item.Product?.Name
+                                </a>
+                                <span class="yq-confirm-product__meta">الكمية: @item.Quantity × @item.Unitprice.ToString("N0") ر.س</span>
+                            </div>
+                            <span class="yq-confirm-product__total">@lineTotal.ToString("N0") ر.س</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <!-- RIGHT: ORDER SUMMARY -->
+        <aside class="yq-confirm-summary yq-glass yq-reveal">
+            <h2 class="yq-confirm-summary__title">ملخص الطلب</h2>
+
+            <div class="yq-confirm-summary__row">
+                <span>عدد المنتجات</span>
+                <span>@items.Sum(i => i.Quantity)</span>
+            </div>
+            <div class="yq-confirm-summary__row">
+                <span>الشحن</span>
+                @if (qualifiesForFreeShipping)
+                {
+                    <span class="yq-confirm-summary__free">مجاني</span>
+                }
+                else
+                {
+                    <span class="yq-confirm-summary__tbd">يُحدد عند التوصيل</span>
+                }
+            </div>
+
+            <div class="yq-confirm-summary__divider"></div>
+
+            <div class="yq-confirm-summary__row yq-confirm-summary__row--total">
+                <span>الإجمالي</span>
+                <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
+            </div>
+
+            <div class="yq-confirm-summary__actions">
+                <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-gold yq-confirm-summary__btn">
+                    <i class="bi bi-receipt"></i> عرض طلباتي
+                </a>
+                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline yq-confirm-summary__btn">
+                    <i class="bi bi-bag-plus"></i> متابعة التسوق
+                </a>
+            </div>
+
+            <p class="yq-confirm-summary__note">
+                <i class="bi bi-envelope-check"></i>
+                سيتم التواصل معك عبر رقم الجوال المسجل لتأكيد التوصيل
+            </p>
+        </aside>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/orders/confirmation.js" asp-append-version="true"></script>
+}
