@@ -51,6 +51,7 @@ public class HomeController : Controller
                 return RedirectToAction("AuthR", "Account");
         }
         return View(model);
+
     }
 
     public IActionResult Privacy()
