@@ -1,0 +1,73 @@
+﻿@model IEnumerable<YAGOT_2._0.Models.Category>
+@{
+    ViewData["Title"] = "العائلات العطرية";
+    var categories = Model.ToList();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/categories/index.css" asp-append-version="true" />
+}
+
+<div class="yq-categories-page">
+
+    <header class="yq-categories-header yq-reveal">
+        <span class="yq-categories-header__eyebrow"><i class="bi bi-flower1"></i> تصفح حسب الفئة</span>
+        <h1 class="yq-categories-header__title">العائلات العطرية</h1>
+        <p class="yq-categories-header__sub">
+            اكتشف مجموعاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
+        </p>
+    </header>
+
+    @if (categories.Any())
+    {
+        <div class="yq-categories-grid">
+            @foreach (var cat in categories)
+            {
+                var productCount = cat.Products?.Count(p => p.Stockquantity > 0) ?? 0;
+                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id"
+                   class="yq-cat-tile yq-reveal">
+                    <div class="yq-cat-tile__media">
+                        @if (!string.IsNullOrEmpty(cat.Imageurl))
+                        {
+                            <img src="@Url.Content("~/" + cat.Imageurl)" alt="@cat.Name"
+                                 data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="yq-cat-tile__placeholder"><i class="bi bi-flower2"></i></div>
+                        }
+                        <span class="yq-cat-tile__count">
+                            <i class="bi bi-box-seam"></i> @productCount @(productCount == 1 ? "منتج" : "منتجات")
+                        </span>
+                    </div>
+
+                    <div class="yq-cat-tile__body">
+                        <h2 class="yq-cat-tile__name">@cat.Name</h2>
+                        @if (!string.IsNullOrEmpty(cat.Description))
+                        {
+                            <p class="yq-cat-tile__desc">@cat.Description</p>
+                        }
+                        <span class="yq-cat-tile__link">
+                            استكشف المجموعة <i class="bi bi-arrow-left"></i>
+                        </span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="yaqut-empty yq-glass yq-categories-empty yq-reveal">
+            <i class="bi bi-flower1 yaqut-empty__icon"></i>
+            <h2 class="yq-categories-empty__title">لا توجد عائلات عطرية متاحة حالياً</h2>
+            <p class="yaqut-empty__text">عُد قريباً لاكتشاف تصنيفاتنا الجديدة.</p>
+            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold mt-3">
+                <i class="bi bi-stars"></i> تصفح جميع العطور
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/categories/index.js" asp-append-version="true"></script>
+}

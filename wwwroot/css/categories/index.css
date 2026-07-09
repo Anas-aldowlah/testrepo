@@ -1,0 +1,191 @@
+﻿/* ═══ Categories / Index — Category Browsing Page ═══ */
+
+.yq-categories-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+/* ── Header ── */
+.yq-categories-header {
+    text-align: center;
+    max-width: 620px;
+    margin: 0 auto;
+    padding-top: 1rem;
+}
+
+.yq-categories-header__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--yq-gold);
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 1.1rem;
+    border: 1px solid var(--yq-border);
+    border-radius: 50px;
+}
+
+.yq-categories-header__title {
+    font-family: var(--yq-font-display);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    color: var(--yq-gold);
+    margin: 0 0 0.9rem;
+}
+
+.yq-categories-header__sub {
+    color: var(--yq-text-soft);
+    font-size: 0.98rem;
+    line-height: 1.8;
+    margin: 0;
+}
+
+/* ── Grid ── */
+.yq-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.75rem;
+}
+
+/* ── Category Tile ── */
+.yq-cat-tile {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--yq-radius);
+    overflow: hidden;
+    background: var(--yq-bg-elevated);
+    border: 1px solid var(--yq-border-sub);
+    box-shadow: var(--yq-shadow);
+    transition: transform var(--yq-ease), box-shadow var(--yq-ease), border-color var(--yq-ease);
+}
+
+    .yq-cat-tile:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--yq-shadow-gold);
+        border-color: var(--yq-gold);
+    }
+
+.yq-cat-tile__media {
+    position: relative;
+    aspect-ratio: 5/4;
+    overflow: hidden;
+    background: var(--yq-bg);
+}
+
+    .yq-cat-tile__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+.yq-cat-tile:hover .yq-cat-tile__media img {
+    transform: scale(1.1);
+}
+
+.yq-cat-tile__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--yq-gold);
+}
+
+.yq-cat-tile__count {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(10, 10, 10, 0.65);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 0.85rem;
+    border-radius: 50px;
+    backdrop-filter: blur(8px);
+}
+
+    .yq-cat-tile__count i {
+        color: var(--yq-gold-bright);
+    }
+
+.yq-cat-tile__body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex: 1;
+}
+
+.yq-cat-tile__name {
+    font-family: var(--yq-font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--yq-text);
+    margin: 0;
+    transition: color var(--yq-ease);
+}
+
+.yq-cat-tile:hover .yq-cat-tile__name {
+    color: var(--yq-gold);
+}
+
+.yq-cat-tile__desc {
+    color: var(--yq-text-soft);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.yq-cat-tile__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--yq-gold);
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+    .yq-cat-tile__link i {
+        transition: transform var(--yq-ease);
+    }
+
+.yq-cat-tile:hover .yq-cat-tile__link i {
+    transform: translateX(-4px);
+}
+
+/* ── Empty State ── */
+.yq-categories-empty {
+    padding: 5rem 2rem;
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.yq-categories-empty__title {
+    font-family: var(--yq-font-display);
+    font-size: 1.4rem;
+    color: var(--yq-text);
+    margin: 0.5rem 0 0.75rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 576px) {
+    .yq-categories-grid {
+        grid-template-columns: 1fr;
+    }
+}
