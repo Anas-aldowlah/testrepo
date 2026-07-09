@@ -45,11 +45,14 @@
                 </div>
             }
 
-            <div class="yaqut-order-card__footer">
+            <div class="yq-order-card__footer">
                 <span>الإجمالي</span>
-                <span class="yaqut-order-card__tracking">@order.Totalamount.ToString("N0") ر.س</span>
+                <span class="yq-order-card__tracking">@order.Totalamount.ToString("N0") ر.س</span>
             </div>
-            <div class="yaqut-order-card__date">@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "-")</div>
+            <div class="yq-order-card__date">@(order.Orderdate.HasValue? order.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "-")</div>
+            <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="yq-order-card__details-link">
+                <i class="bi bi-eye"></i> عرض التفاصيل
+            </a>
         </article>
     }
 }
@@ -61,3 +64,4 @@ else
         <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold mt-3">تصفح العطور</a>
     </div>
 }
+

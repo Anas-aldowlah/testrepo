@@ -69,6 +69,14 @@ public class OrdersController : Controller
         return View(order);
     }
 
+    public async Task<IActionResult> Details(int id)
+    {
+        var userId = await ResolveUserIdAsync();
+        var order = await _orderService.GetOrderByIdAsync(id);
+        if (order == null || order.Userid != userId) return NotFound();
+        return View(order);
+    }
+
     private async Task<int> ResolveUserIdAsync()
     {
         var user = await _context.Users.FirstOrDefaultAsync(n => n.Name == User.Identity!.Name);
