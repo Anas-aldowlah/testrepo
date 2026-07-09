@@ -1,114 +1,171 @@
 @model YAGOT_2._0.Services.ViewModels
 @{
     ViewData["Title"] = "الرئيسية | ياقوت";
-    var categories = Model.Categories.ToList();
-    int? selectedCategoryId = ViewBag.SelectedCategoryId as int?;
-    string? selectedCategoryName = ViewBag.SelectedCategoryName as string;
+
+    var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
+    var inStockProducts = Model.Products?.Where(p => p.Stockquantity > 0).ToList()
+                           ?? new List<YAGOT_2._0.Models.Product>();
+
+    foreach (var p in inStockProducts)
+    {
+        p.Category = categories.FirstOrDefault(c => c.Id == p.Categoryid);
+    }
+
+    var newArrivals = inStockProducts.OrderByDescending(p => p.Createdat).Take(8).ToList();
+    var premiumSelection = inStockProducts.OrderByDescending(p => p.Price).Take(8).ToList();
+    var heroSlides = newArrivals.Take(5).ToList();
+    var storyImageUrl = categories.FirstOrDefault(c => !string.IsNullOrEmpty(c.Imageurl))?.Imageurl;
 }
 
-<div class="yq-home">
+@section Styles {
+    <link rel="stylesheet" href="~/css/home/index.css" asp-append-version="true" />
+}
 
-    <!-- HERO SECTION -->
-    <section class="yq-hero" aria-label="بانر ياقوت الفاخر">
-        <div class="yq-hero__track" aria-hidden="true">
-            <div class="yq-hero__slide yq-hero__slide--1"></div>
-            <div class="yq-hero__slide yq-hero__slide--2"></div>
-            <div class="yq-hero__slide yq-hero__slide--3"></div>
+<div class="yq-home-page">
+
+    <!-- HERO -->
+    <section class="yq-home-hero yq-reveal">
+        <div class="yq-home-hero__bg" aria-hidden="true"></div>
+        <div class="yq-home-hero__inner">
+            <div class="yq-home-hero__content">
+                <span class="yq-home-hero__eyebrow"><i class="bi bi-gem"></i> مجموعة العطور الفاخرة</span>
+                <h1 class="yq-home-hero__title">حيث تولد الروائح<br />كقطع فنية خالدة</h1>
+                <p class="yq-home-hero__desc">
+                    اكتشف عالماً من العطور الشرقية والغربية الأصيلة، المصنوعة بأجود المكونات
+                    لتجربة فاخرة تأسر حواسك من أول رشة.
+                </p>
+                <div class="yq-home-hero__actions">
+                    <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                        <i class="bi bi-stars"></i> استكشف المجموعة
+                    </a>
+                    @if (categories.Any())
+                    {
+                        <a asp-controller="Products" asp-action="Index"
+                           asp-route-categoryId="@categories.First().Id"
+                           class="btn-yaqut-outline">
+                            <i class="bi bi-flower1"></i> العائلات العطرية
+                        </a>
+                    }
+                </div>
+            </div>
+
+            @if (heroSlides.Any())
+            {
+                <div class="yq-home-hero__spotlight" data-yq-hero-carousel aria-label="أحدث العطور المميزة" aria-live="polite">
+                    <div class="yq-home-hero__spotlight-track">
+                        @for (var i = 0; i < heroSlides.Count; i++)
+                        {
+                            var product = heroSlides[i];
+                            <div class="yq-home-hero__slide @(i == 0 ? "is-active" : "")" data-index="@i">
+                                <span class="yq-home-hero__spotlight-badge">جديد</span>
+                                <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id"
+                                   class="yq-home-hero__spotlight-media">
+                                    <img src="@product.Imageurl" alt="@product.Name"
+                                         data-yaqut-fallback="/images/placeholder-product.svg"
+                                         loading="@(i == 0 ? "eager" : "lazy")" />
+                                </a>
+                                <div class="yq-home-hero__spotlight-info">
+                                    <span class="yq-home-hero__spotlight-name">@product.Name</span>
+                                    <span class="yq-home-hero__spotlight-price">@product.Price.ToString("N0") ر.س</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (heroSlides.Count > 1)
+                    {
+                        <div class="yq-home-hero__spotlight-dots">
+                            @for (var i = 0; i < heroSlides.Count; i++)
+                            {
+                                <button type="button" class="yq-home-hero__dot @(i == 0 ? "is-active" : "")"
+                                        data-yq-hero-dot="@i" aria-label="عرض المنتج @(i + 1)"></button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
         </div>
-        <div class="yq-hero__veil" aria-hidden="true"></div>
-        <div class="yq-hero__content">
- <center>
-            <div class="yq-hero__logo-wrap yaqut-logo-wrap yaqut-logo-wrap--hero">
-                <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo yaqut-logo--hero" style="border-radius: 20%;"/>
-            </div>
-    </center>
-    <br/>
-            <span class="yq-hero__eyebrow">مجموعة العطور الفاخرة</span>
-            <h1 class="yq-hero__title">حيث تولد الروائح<br />كقطع فنية خالدة</h1>
-            <p class="yq-hero__desc">
-                اكتشف عالماً من العطور الشرقية الأصيلة المصنوعة بأجود المكونات،
-                لتجربة فاخرة تأسر حواسك من أول رشة.
-            </p>
-            <div class="yq-hero__actions">
-                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
-                    <i class="bi bi-stars"></i> استكشف المجموعة
-                </a>
-                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@(categories.FirstOrDefault()?.Id)" class="btn-yaqut-outline">
-                    <i class="bi bi-flower1"></i> العائلات العطرية
-                </a>
-            </div>
-            <!-- Slide Indicators -->
-            <div class="yq-hero__dots" aria-label="مؤشرات الشرائح"></div>
+        <div class="yq-home-hero__scroll" aria-hidden="true">
+            <i class="bi bi-chevron-down"></i>
         </div>
     </section>
 
-    <!-- CATEGORIES SECTION -->
-    <section class="yq-section yq-reveal">
-        <header class="yq-section__head">
-            <div>
-                <h2 class="yq-section__title">العائلات العطرية</h2>
-                <p class="yq-section__sub">اختر عطرك من مجموعاتنا المنسقة بعناية</p>
-            </div>
-            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline btn-sm">عرض الكل</a>
-        </header>
+    <!-- TRUST STRIP -->
+    <section class="yq-home-trust yq-reveal">
+        <div class="yq-home-trust__item">
+            <i class="bi bi-gem"></i>
+            <span>عطور أصيلة 100%</span>
+        </div>
+        <div class="yq-home-trust__item">
+            <i class="bi bi-truck"></i>
+            <span>شحن مجاني فوق 500 ر.س</span>
+        </div>
+        <div class="yq-home-trust__item">
+            <i class="bi bi-shield-check"></i>
+            <span>ضمان استرجاع 14 يوماً</span>
+        </div>
+        <div class="yq-home-trust__item">
+            <i class="bi bi-lock"></i>
+            <span>دفع وتصفح آمن</span>
+        </div>
+    </section>
 
-        @if (categories.Any())
-        {
-            <div class="row g-4">
+    <!-- CATEGORIES -->
+    @if (categories.Any())
+    {
+        <section class="yq-home-section yq-reveal">
+            <header class="yq-home-section__head">
+                <div>
+                    <h2 class="yq-home-section__title">العائلات العطرية</h2>
+                    <p class="yq-home-section__sub">اختر عطرك من مجموعاتنا المنسقة بعناية</p>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
+                    عرض الكل <i class="bi bi-arrow-left"></i>
+                </a>
+            </header>
+
+            <div class="yq-home-categories">
                 @foreach (var cat in categories)
                 {
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id" class="yq-cat-card">
-                            @if (!string.IsNullOrEmpty(cat.Imageurl))
-                            {
-                                <img src="@Url.Content("~/" + cat.Imageurl)"
-                                     alt="@cat.Name"
-                                     class="yq-cat-card__img"
-                                     data-yaqut-fallback="/images/placeholder-product.svg" />
-                            }
-                            else
-                            {
-                                <div class="yq-cat-placeholder"><i class="bi bi-flower2"></i></div>
-                            }
-                            <span class="yq-cat-card__arrow"><i class="bi bi-arrow-left"></i></span>
-                            <div class="yq-cat-card__overlay">
-                                <h3 class="yq-cat-card__name">@cat.Name</h3>
-                                @if (!string.IsNullOrEmpty(cat.Description))
-                                {
-                                    <p class="yq-cat-card__desc">@cat.Description</p>
-                                }
-                            </div>
-                        </a>
-                    </div>
+                    <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id"
+                       class="yq-home-cat-card">
+                        @if (!string.IsNullOrEmpty(cat.Imageurl))
+                        {
+                            <img src="@Url.Content("~/" + cat.Imageurl)" alt="@cat.Name"
+                                 data-yaqut-fallback="/images/placeholder-product.svg" />
+                        }
+                        else
+                        {
+                            <div class="yq-home-cat-card__placeholder"><i class="bi bi-flower2"></i></div>
+                        }
+                        <div class="yq-home-cat-card__overlay">
+                            <span class="yq-home-cat-card__name">@cat.Name</span>
+                            <span class="yq-home-cat-card__arrow"><i class="bi bi-arrow-left"></i></span>
+                        </div>
+                    </a>
                 }
             </div>
-        }
-    </section>
+        </section>
+    }
 
-    <!-- PRODUCTS SECTION -->
-    <section class="yq-section yq-reveal">
-        <header class="yq-section__head">
+    <!-- NEW ARRIVALS -->
+    <section class="yq-home-section yq-reveal">
+        <header class="yq-home-section__head">
             <div>
-                <h2 class="yq-section__title">
-                    @(selectedCategoryId.HasValue ? $"مختارات: {selectedCategoryName}" : "أحدث الإصدارات")
-                </h2>
-                <p class="yq-section__sub">قطع حصرية مختارة لعشاق العطور الراقية</p>
+                <h2 class="yq-home-section__title">وصل حديثاً</h2>
+                <p class="yq-home-section__sub">أحدث الإصدارات المضافة إلى مجموعتنا</p>
             </div>
+            <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
+                عرض الكل <i class="bi bi-arrow-left"></i>
+            </a>
         </header>
 
-        @if (Model.Products != null && Model.Products.Any())
+        @if (newArrivals.Any())
         {
-            var featured = Model.Products
-                .Where(p => p.Stockquantity > 0)
-                .OrderByDescending(p => p.Createdat)
-                .Take(8)
-                .ToList();
-
-            <div class="row g-4 yq-products-row">
-                @foreach (var item in featured)
+            <div class="yq-home-products-grid">
+                @foreach (var item in newArrivals)
                 {
-                    item.Category = categories.FirstOrDefault(c => c.Id == item.Categoryid);
-                    <div class="col-6 col-md-4 col-lg-3 col-xl-5th">
+                    <div class="yq-home-product-item">
                         <partial name="_ProductCard" model="item" />
                     </div>
                 }
@@ -123,31 +180,98 @@
         }
     </section>
 
-    <!-- WHY YAQUT SECTION -->
-    <section class="yq-section yq-reveal">
-        <header class="yq-section__head">
+    <!-- BRAND STORY -->
+    <section class="yq-home-story yq-reveal">
+        <div class="yq-home-story__media">
+            @if (!string.IsNullOrEmpty(storyImageUrl))
+            {
+                <img src="@Url.Content("~/" + storyImageUrl)" alt="ياقوت للعطور الفاخرة"
+                     data-yaqut-fallback="/images/placeholder-product.svg" />
+            }
+            else
+            {
+                <div class="yq-home-story__placeholder"><i class="bi bi-gem"></i></div>
+            }
+        </div>
+        <div class="yq-home-story__content">
+            <span class="yq-home-hero__eyebrow"><i class="bi bi-award"></i> قصتنا</span>
+            <h2 class="yq-home-section__title">فن صناعة العطور</h2>
+            <p>
+                منذ انطلاقتنا، تبنّت ياقوت رسالة واحدة: تقديم عطور فاخرة أصيلة تُروى من خلالها قصة
+                كل رائحة. نختار مكوناتنا بعناية فائقة من أرقى دور العطور العالمية، لنمنحك تجربة
+                حسية لا تُنسى تعكس فخامة الأناقة الشرقية والغربية في آنٍ واحد.
+            </p>
+            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-stars"></i> اكتشف المجموعة الكاملة
+            </a>
+        </div>
+    </section>
+
+    <!-- PREMIUM SELECTION -->
+    @if (premiumSelection.Any())
+    {
+        <section class="yq-home-section yq-reveal">
+            <header class="yq-home-section__head">
+                <div>
+                    <h2 class="yq-home-section__title">المختارات الفاخرة</h2>
+                    <p class="yq-home-section__sub">قطع حصرية مختارة لعشاق العطور الراقية</p>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
+                    عرض الكل <i class="bi bi-arrow-left"></i>
+                </a>
+            </header>
+
+            <div class="yq-home-products-grid">
+                @foreach (var item in premiumSelection)
+                {
+                    <div class="yq-home-product-item">
+                        <partial name="_ProductCard" model="item" />
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <!-- CTA BANNER -->
+    <section class="yq-home-cta yq-reveal">
+        <div class="yq-home-cta__content">
+            <h2>ابدأ رحلتك مع ياقوت اليوم</h2>
+            <p>تصفح مجموعتنا الكاملة من العطور الفاخرة واعثر على رائحتك المميزة.</p>
+            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                <i class="bi bi-bag-heart"></i> تسوق الآن
+            </a>
+        </div>
+    </section>
+
+    <!-- WHY YAQUT -->
+    <section class="yq-home-section yq-reveal">
+        <header class="yq-home-section__head">
             <div>
-                <h2 class="yq-section__title">لماذا ياقوت؟</h2>
-                <p class="yq-section__sub">تجربة تسوق فاخرة لا مثيل لها</p>
+                <h2 class="yq-home-section__title">لماذا ياقوت؟</h2>
+                <p class="yq-home-section__sub">تجربة تسوق فاخرة لا مثيل لها</p>
             </div>
         </header>
-        <div class="yq-features">
-            <div class="yq-feature yq-glass">
-                <i class="bi bi-gem yq-feature__icon"></i>
-                <h3 class="yq-feature__title">عطور أصيلة 100%</h3>
-                <p class="yq-feature__desc">نضمن أصالة جميع منتجاتنا من أرقى دور العطور العالمية</p>
+        <div class="yq-home-features">
+            <div class="yq-home-feature yq-glass">
+                <i class="bi bi-gem"></i>
+                <h3>عطور أصيلة 100%</h3>
+                <p>نضمن أصالة جميع منتجاتنا من أرقى دور العطور العالمية</p>
             </div>
-            <div class="yq-feature yq-glass">
-                <i class="bi bi-truck yq-feature__icon"></i>
-                <h3 class="yq-feature__title">شحن سريع ومجاني</h3>
-                <p class="yq-feature__desc">توصيل مجاني للطلبات فوق 500 ر.س خلال 2-3 أيام عمل</p>
+            <div class="yq-home-feature yq-glass">
+                <i class="bi bi-truck"></i>
+                <h3>شحن سريع ومجاني</h3>
+                <p>توصيل مجاني للطلبات فوق 500 ر.س خلال 2-3 أيام عمل</p>
             </div>
-            <div class="yq-feature yq-glass">
-                <i class="bi bi-shield-check yq-feature__icon"></i>
-                <h3 class="yq-feature__title">ضمان الجودة</h3>
-                <p class="yq-feature__desc">استبدال أو استرجاع خلال 14 يوماً مع ضمان الرضا الكامل</p>
+            <div class="yq-home-feature yq-glass">
+                <i class="bi bi-shield-check"></i>
+                <h3>ضمان الجودة</h3>
+                <p>استبدال أو استرجاع خلال 14 يوماً مع ضمان الرضا الكامل</p>
             </div>
         </div>
     </section>
 
 </div>
+
+@section Scripts {
+    <script src="~/js/home/index.js" asp-append-version="true"></script>
+}
