@@ -132,7 +132,12 @@
                                             <span>تعديل</span>
                                         </a>
                                         <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
-                                              data-yaqut-confirm="هل أنت متأكد من حذف التصنيف @cat.Name؟">
+                                              class="yq-category-delete-form"
+                                              data-category-delete-form
+                                              data-category-name="@cat.Name"
+                                              data-category-id="@cat.Id"
+                                              data-category-image="@imageUrl"
+                                              data-category-products="@productCount">
                                             <button type="submit" class="yq-categories-action yq-categories-action--delete" aria-label="حذف @cat.Name" title="حذف">
                                                 <i class="bi bi-trash3" aria-hidden="true"></i>
                                                 <span>حذف</span>
@@ -159,4 +164,64 @@
             </div>
         }
     </section>
+
+    <dialog class="yq-category-delete-dialog" data-category-delete-dialog aria-labelledby="categoryDeleteDialogTitle" aria-describedby="categoryDeleteDialogDescription">
+        <div class="yq-category-delete-dialog__shell">
+            <header class="yq-category-delete-dialog__header">
+                <span class="yq-category-delete-dialog__icon" aria-hidden="true">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </span>
+                <div>
+                    <span class="yq-categories-eyebrow">تأكيد الحذف</span>
+                    <h3 id="categoryDeleteDialogTitle">حذف التصنيف</h3>
+                </div>
+                <button type="button" class="yq-category-delete-dialog__close" data-category-delete-cancel aria-label="إغلاق">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </header>
+
+            <div class="yq-category-delete-dialog__body">
+                <div class="yq-category-delete-preview" aria-label="التصنيف المحدد للحذف">
+                    <div class="yq-category-delete-preview__media">
+                        <img data-category-delete-image alt="" hidden />
+                        <span data-category-delete-placeholder aria-hidden="true">
+                            <i class="bi bi-tag"></i>
+                        </span>
+                    </div>
+                    <div class="yq-category-delete-preview__content">
+                        <span class="yq-categories-eyebrow">التصنيف المحدد</span>
+                        <strong data-category-delete-name></strong>
+                        <small data-category-delete-id></small>
+                    </div>
+                </div>
+
+                <p id="categoryDeleteDialogDescription" class="yq-category-delete-dialog__message">
+                    سيتم حذف هذا التصنيف من لوحة الإدارة. راجع المعلومات أدناه قبل المتابعة.
+                </p>
+
+                <div class="yq-category-delete-warning" data-category-delete-warning>
+                    <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+                    <div>
+                        <strong data-category-delete-status></strong>
+                        <span data-category-delete-help></span>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="yq-category-delete-dialog__actions">
+                <button type="button" class="btn-yaqut-outline" data-category-delete-cancel>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    <span>إلغاء والعودة</span>
+                </button>
+                <button type="button" class="yq-category-delete-confirm" data-category-delete-confirm>
+                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                    <span>حذف التصنيف</span>
+                </button>
+            </footer>
+        </div>
+    </dialog>
 </section>
+
+@section Scripts {
+    <script src="~/js/admin/category-delete.js" asp-append-version="true"></script>
+}
