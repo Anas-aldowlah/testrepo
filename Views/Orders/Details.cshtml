@@ -7,7 +7,7 @@
     var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
-    var customerPhone = Model.User?.Phone ?? User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    var customerPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
 
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);

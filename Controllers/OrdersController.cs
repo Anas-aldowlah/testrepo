@@ -22,6 +22,7 @@ public class OrdersController : Controller
         _cartService = cartService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
         var userId = await ResolveUserIdAsync();
@@ -46,6 +47,7 @@ public class OrdersController : Controller
 
     [HttpPost]
     [ActionName("Checkout")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> CheckoutPost()
     {
         try
@@ -61,6 +63,7 @@ public class OrdersController : Controller
         }
     }
 
+    [HttpGet]
     public async Task<IActionResult> Confirmation(int id)
     {
         var userId = await ResolveUserIdAsync();
@@ -69,6 +72,7 @@ public class OrdersController : Controller
         return View(order);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
         var userId = await ResolveUserIdAsync();
