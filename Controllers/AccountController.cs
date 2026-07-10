@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
- using System.Security.Claims;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using YAGOT_2._0.Models;
+
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 
+using Microsoft.Extensions.Configuration;
 
 namespace YAGOT_2._0.Controllers;
 
@@ -21,31 +22,29 @@ public class AccountController : Controller
     private readonly IConfiguration _configuration;
     private readonly IVisitService _visitService;
 
-
     public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService)
     {
         _db = db;
         _configuration = configuration;
         _visitService = visitService;
-
     }
 
     [HttpGet]
     public IActionResult Auth(string? returnUrl = null)
     {
-        if (User.Identity?.IsAuthenticated == true )
+        if (User.Identity?.IsAuthenticated == true)
         {
             return LocalRedirect(GetRedirectUrl(returnUrl));
         }
-      
+
         ;
 
         ViewData["ReturnUrl"] = returnUrl;
         return View();
     }
-    public IActionResult AuthR(string? returnUrl = null,string? email=null)
-    {
 
+    public IActionResult AuthR(string? returnUrl = null, string? email = null)
+    {
         ViewData["ReturnUrl"] = returnUrl;
         TempData["Email"] = email;
         return View("Auth");
@@ -53,7 +52,6 @@ public class AccountController : Controller
 
     public IActionResult RecoveryAccountTem(string? returnUrl = null, string? email = null)
     {
-
         ViewData["ReturnUrl"] = returnUrl;
         TempData["Email"] = email;
         return View("RecoveryAccount");
@@ -63,7 +61,6 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
-
         ViewData["ReturnUrl"] = returnUrl;
 
         if (string.IsNullOrWhiteSpace(model.Phone))
@@ -85,9 +82,8 @@ public class AccountController : Controller
         ;
         await SignInUserAsync(user);
         TempData["UserName"] = user.Name;
-        await _visitService.SaveVisitAsync(HttpContext,user.Name);
+        await _visitService.SaveVisitAsync(HttpContext, user.Name);
         return LocalRedirect(GetRedirectUrl(returnUrl));
-
     }
 
     [HttpPost]
@@ -140,7 +136,7 @@ public class AccountController : Controller
             Phone = HashPhone(phone),
             Passwordhash = HashPassword(model.Password),
             Role = "Customer",
-            Email=model.Email?.Trim()
+            Email = model.Email?.Trim()
         };
 
         _db.Users.Add(user);
@@ -161,10 +157,69 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Auth));
     }
 
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Profile()
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == User.Identity!.Name);
+        if (user == null) return NotFound();
+
+        var model = new ProfileVM
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role,
+            CreatedAt = user.Createdat
+        };
+
+        return View(model);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Profile(ProfileVM model)
+    {
+        var currentUser = await _db.Users.FirstOrDefaultAsync(u => u.Name == User.Identity!.Name);
+        if (currentUser == null) return NotFound();
+
+        // منع تعديل ملف مستخدم آخر عبر التلاعب بالنموذج (Id قادم من حقل مخفي)
+        if (model.Id != currentUser.Id)
+        {
+            return Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Name))
+            ModelState.AddModelError(nameof(model.Name), "الاسم الكامل مطلوب.");
+        else if (model.Name.Trim().Length < 2)
+            ModelState.AddModelError(nameof(model.Name), "الاسم يجب أن يكون حرفين على الأقل.");
+        else if (await _db.Users.AnyAsync(u => u.Id != currentUser.Id && u.Name == model.Name.Trim()))
+            ModelState.AddModelError(nameof(model.Name), "هذا الاسم مستخدم بالفعل.");
+
+        if (!ModelState.IsValid)
+        {
+            model.Role = currentUser.Role;
+            model.CreatedAt = currentUser.Createdat;
+            return View(model);
+        }
+
+        currentUser.Name = model.Name.Trim();
+        currentUser.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+
+        await _db.SaveChangesAsync();
+
+        // إعادة تسجيل الدخول لتحديث الـ Claims — الاسم يُستخدم لربط السلة والطلبات بالمستخدم
+        await SignInUserAsync(currentUser);
+
+        TempData["ProfileSuccess"] = true;
+        return RedirectToAction(nameof(Profile));
+    }
+
     [HttpGet]
     public IActionResult RecoveryAccount()
     {
-      return View();
+        return View();
     }
 
     [HttpPost]
@@ -177,7 +232,7 @@ public class AccountController : Controller
             ModelState.AddModelError(string.Empty, "لم يتم العثور على حساب بهذا البريد الإلكتروني أو رقم الجوال.");
             return View("RecoveryAccount");
         }
-        accountUser.Passwordhash= HashPassword(model.Password);
+        accountUser.Passwordhash = HashPassword(model.Password);
         await _db.SaveChangesAsync();
         return View("Auth");
     }
@@ -188,6 +243,7 @@ public class AccountController : Controller
             ? "/Home/Index"
             : returnUrl!;
     }
+
     [HttpGet]
     public IActionResult GoogleLogin(string? returnUrl = "/Account/AuthR")
     {
@@ -198,6 +254,7 @@ public class AccountController : Controller
 
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult GoogleResponse(string? returnUrl = null)
@@ -209,7 +266,7 @@ public class AccountController : Controller
 
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
 
-        return RedirectToAction("AuthR", "Account", new { email=email });
+        return RedirectToAction("AuthR", "Account", new { email = email });
     }
 
     public IActionResult GoogleLoginRecovery()
@@ -221,6 +278,7 @@ public class AccountController : Controller
 
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult GoogleResponseRecovery()
@@ -234,6 +292,7 @@ public class AccountController : Controller
 
         return RedirectToAction("RecoveryAccountTem", "Account", new { email = email });
     }
+
     private async Task SignInUserAsync(User user)
     {
         var claims = new List<Claim>
@@ -265,6 +324,7 @@ public class AccountController : Controller
         var hash = algorithm.GetBytes(32);
         return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
     }
+
     private string HashPhone(string phone)
     {
         string key = _configuration["Encryption:Key"];
@@ -309,6 +369,6 @@ public class AccountController : Controller
         public string Phone { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;   
+        public string Email { get; set; } = string.Empty;
     }
 }

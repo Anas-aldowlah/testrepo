@@ -1,0 +1,116 @@
+@model YAGOT_2._0.Models.ProfileVM
+@using System.Security.Claims
+@using YAGOT_2._0.Services
+@inject DealingAPI DealingApiService
+@{
+    ViewData["Title"] = "ملفي الشخصي | ياقوت";
+    var isSuccess = TempData["ProfileSuccess"] != null;
+    var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account/profile.css" asp-append-version="true" />
+}
+
+<div class="yq-profile">
+
+    <nav class="yq-profile-breadcrumb yq-reveal" aria-label="مسار التصفح">
+        <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+        <i class="bi bi-chevron-left"></i>
+        <span>ملفي الشخصي</span>
+    </nav>
+
+    <header class="yq-profile-header yq-reveal">
+        <div class="yq-profile-header__avatar">
+            <i class="bi bi-person"></i>
+        </div>
+        <div>
+            <h1 class="yq-profile-header__title">مرحباً، @Model.Name</h1>
+            <p class="yq-profile-header__sub">إدارة معلومات حسابك الشخصي</p>
+        </div>
+    </header>
+
+    @if (isSuccess)
+    {
+        <div class="yq-profile-alert yq-profile-alert--success yq-reveal">
+            <i class="bi bi-check-circle"></i> تم تحديث بياناتك بنجاح.
+        </div>
+    }
+
+    <div class="yq-profile-layout">
+
+        <!-- EDIT FORM -->
+        <section class="yq-profile-form-wrap yq-glass yq-reveal">
+            <h2 class="yq-profile-form__title"><i class="bi bi-pencil-square"></i> تعديل البيانات</h2>
+
+            <form asp-controller="Account" asp-action="Profile" method="post" data-yq-validate novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger"></div>
+
+                <div class="yaqut-form-group">
+                    <label asp-for="Name" class="yaqut-form-label">الاسم الكامل</label>
+                    <div class="yaqut-input-wrap">
+                        <i class="bi bi-person"></i>
+                        <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" />
+                    </div>
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="yaqut-form-group">
+                    <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
+                    <div class="yaqut-input-wrap">
+                        <i class="bi bi-envelope"></i>
+                        <input asp-for="Email" type="email" class="yaqut-form-input" placeholder="example@email.com" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="yaqut-form-group">
+                    <label class="yaqut-form-label">رقم الجوال</label>
+                    <div class="yaqut-input-wrap yaqut-input-wrap--disabled">
+                        <i class="bi bi-phone"></i>
+                        <span class="yq-checkout-info-value">@(customerPhone ?? "-")</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-yaqut-gold yq-profile-submit-btn">
+                    <i class="bi bi-check-lg"></i> حفظ التغييرات
+                </button>
+            </form>
+        </section>
+
+        <!-- ACCOUNT SUMMARY -->
+        <aside class="yq-profile-summary yq-glass yq-reveal">
+            <h2 class="yq-profile-summary__title">معلومات الحساب</h2>
+
+            <div class="yq-profile-summary__row">
+                <span>نوع الحساب</span>
+                <span class="yq-profile-summary__badge">@(Model.Role == "Admin" ? "مدير" : "زبون")</span>
+            </div>
+            <div class="yq-profile-summary__row">
+                <span>تاريخ الانضمام</span>
+                <span>@(Model.CreatedAt.HasValue? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "-")</span>
+            </div>
+
+            <div class="yq-profile-summary__divider"></div>
+
+            <div class="yq-profile-summary__links">
+                <a asp-controller="Orders" asp-action="Index" class="yq-profile-summary__link">
+                    <i class="bi bi-receipt"></i> طلباتي
+                </a>
+                <a asp-controller="Account" asp-action="RecoveryAccount" class="yq-profile-summary__link">
+                    <i class="bi bi-shield-lock"></i> تغيير كلمة المرور
+                </a>
+                <a asp-controller="Account" asp-action="Logout" class="yq-profile-summary__link yq-profile-summary__link--danger">
+                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                </a>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
