@@ -6,6 +6,16 @@ namespace YAGOT_2._0.Services
     {
         private readonly IWebHostEnvironment _webHostEnvironment;
 
+        private static readonly string[] AllowedExtensions =
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        };
+
+        private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
+
         public Image(IWebHostEnvironment webHostEnvironment)
         {
             _webHostEnvironment = webHostEnvironment;
@@ -16,15 +26,27 @@ namespace YAGOT_2._0.Services
             if (imageFile == null || imageFile.Length == 0)
                 return null;
 
-            // تحديد المسار (wwwroot/images/subFolder)
-            string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", subFolder);
+            if (imageFile.Length > MaxFileSize)
+                return null;
+
+            string extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+
+            if (!AllowedExtensions.Contains(extension))
+                return null;
+
+            // تحديد المسار
+            string uploadsFolder = Path.Combine(
+                _webHostEnvironment.WebRootPath,
+                "images",
+                subFolder);
 
             // إنشاء المجلد إذا لم يكن موجوداً
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            // توليد اسم فريد
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
+            // اسم جديد يحل مشكلة العربية
+            string uniqueFileName = $"{Guid.NewGuid()}{extension}";
+
             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
             // حفظ الملف
@@ -36,20 +58,35 @@ namespace YAGOT_2._0.Services
             return uniqueFileName;
         }
 
-        public async Task<string?> UpdateImage(IFormFile? imageFile, string subFolder,string ExistingImage)
+        public async Task<string?> UpdateImage(
+            IFormFile? imageFile,
+            string subFolder,
+            string ExistingImage)
         {
             if (imageFile == null || imageFile.Length == 0)
                 return null;
 
-            // تحديد المسار (wwwroot/images/subFolder)
-            string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", subFolder);
+            if (imageFile.Length > MaxFileSize)
+                return null;
+
+            string extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+
+            if (!AllowedExtensions.Contains(extension))
+                return null;
+
+            // تحديد المسار
+            string uploadsFolder = Path.Combine(
+                _webHostEnvironment.WebRootPath,
+                "images",
+                subFolder);
 
             // إنشاء المجلد إذا لم يكن موجوداً
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            // توليد اسم فريد
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
+            // اسم جديد يحل مشكلة العربية
+            string uniqueFileName = $"{Guid.NewGuid()}{extension}";
+
             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
             // حفظ الملف
@@ -58,11 +95,9 @@ namespace YAGOT_2._0.Services
                 await imageFile.CopyToAsync(fileStream);
             }
 
-
-            // 3. حذف الصورة القديمة من السيرفر (فقط إذا نجح الرفع الجديد)
+            // حذف الصورة القديمة بعد نجاح رفع الجديدة
             if (!string.IsNullOrEmpty(ExistingImage))
             {
-                // تنظيف المسار لضمان دمج صحيح
                 string oldFileName = Path.GetFileName(ExistingImage);
                 string oldPath = Path.Combine(uploadsFolder, oldFileName);
 
@@ -71,7 +106,9 @@ namespace YAGOT_2._0.Services
                     System.IO.File.Delete(oldPath);
                 }
             }
-            return "/images/products/"+ uniqueFileName;
+
+            // حافظت على نفس طريقة الإرجاع حتى لا يتأثر مشروعك
+            return "/images/products/" + uniqueFileName;
         }
     }
 }
