@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +35,7 @@ builder.Services.AddControllersWithViews()
         options.MaxModelBindingCollectionSize = 1000;
     });
 builder.Services.AddHttpClient<DealingAPI>();
+builder.Services.AddScoped<IVisitService, VisitService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -96,6 +98,13 @@ builder.Services.AddHttpClient<SiteStatusFilterAdmin>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

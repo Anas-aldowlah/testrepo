@@ -12,18 +12,19 @@ namespace Yagot.Controllers;
 public class HomeController : Controller
 {
     private readonly NeondbContext _context;
-    
-    public HomeController(NeondbContext context)
+    private readonly IVisitService _visitService;
+
+    public HomeController(NeondbContext context, IVisitService visitService)
     {
         _context = context;
+        _visitService = visitService;
       
     }
   
     public async Task<IActionResult> Index(int? categoryId)
     {
 
-
-
+        await _visitService.SaveVisitAsync(HttpContext);
         var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
         var categoriesFromDb = await _context.Categories.ToListAsync();
         var model = new ViewModels

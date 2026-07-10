@@ -8,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 using YAGOT_2._0.Models;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 
 
 namespace YAGOT_2._0.Controllers;
@@ -15,10 +18,13 @@ namespace YAGOT_2._0.Controllers;
 public class AccountController : Controller
 {
     private readonly NeondbContext _db;
+    private readonly IConfiguration _configuration;
 
-    public AccountController(NeondbContext db)
+
+    public AccountController(NeondbContext db, IConfiguration configuration)
     {
         _db = db;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -254,11 +260,22 @@ public class AccountController : Controller
         var hash = algorithm.GetBytes(32);
         return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
     }
-    private static string HashPhone(string phone)
+    private string HashPhone(string phone)
     {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(phone));
-        return Convert.ToHexString(bytes);
+        string key = _configuration["Encryption:Key"];
+        string iv = _configuration["Encryption:IV"];
+
+        using var aes = Aes.Create();
+
+        aes.Key = Encoding.UTF8.GetBytes(key);
+        aes.IV = Encoding.UTF8.GetBytes(iv);
+
+        using var encryptor = aes.CreateEncryptor();
+
+        byte[] phoneBytes = Encoding.UTF8.GetBytes(phone);
+        byte[] encryptedBytes = encryptor.TransformFinalBlock(phoneBytes, 0, phoneBytes.Length);
+
+        return Convert.ToBase64String(encryptedBytes);
     }
 
     private static bool VerifyHashedPassword(string password, string storedHash)

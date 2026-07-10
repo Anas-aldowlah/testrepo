@@ -1,6 +1,7 @@
 @model IEnumerable<User>
 @{
     ViewData["Title"] = "إدارة المستخدمين";
+    var id =1;
 }
 
 <div class="yaqut-admin-header">
@@ -18,16 +19,31 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var user in Model)
+        
+        @foreach (var user in Model.OrderBy(s=> s.Id))
         {
+           
             <tr>
-                <td>@user.Id</td>
+                <td>@id</td>
                 <td>@user.Name</td>
-                <td>@user.Phone</td>
+                <td>
+                    @if (user.Role == "Developer")
+                    {
+                    <span >775458250</span>
+                    }
+                    else
+                    {
+                        @user.Phone
+                    }
+                </td>
                 <td>
                     @if (user.Role == "Admin")
                     {
                         <span class="badge badge-shipped">مدير</span>
+                    }
+                    else if (user.Role == "Developer")
+                    {
+                        <span class="badge badge-pending">مطور</span>
                     }
                     else
                     {
@@ -36,6 +52,7 @@
                 </td>
                 <td>@(user.Createdat.HasValue ? user.Createdat.Value.ToString("dd/MM/yyyy") : "-")</td>
             </tr>
+            id += 1;
         }
     </tbody>
 </table>
