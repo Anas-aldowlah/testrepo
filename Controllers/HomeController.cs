@@ -8,7 +8,7 @@ using static YAGOT_2._0.Services.DealingAPI;
 
 namespace Yagot.Controllers;
 
-[ServiceFilter(typeof(SiteStatusFilter))] 
+[ServiceFilter(typeof(SiteStatusFilter))]
 public class HomeController : Controller
 {
     private readonly NeondbContext _context;
@@ -18,12 +18,10 @@ public class HomeController : Controller
     {
         _context = context;
         _visitService = visitService;
-      
     }
-  
+
     public async Task<IActionResult> Index(int? categoryId)
     {
-
         var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
         var categoriesFromDb = await _context.Categories.ToListAsync();
         var model = new ViewModels
@@ -42,14 +40,8 @@ public class HomeController : Controller
         {
             var allProducts = model.Products;
         }
-        var name = TempData["UserName"];
-        bool exists = _context.Users.Any(s => s.Name == name);
-        if (!exists)
-        {
-                return RedirectToAction("AuthR", "Account");
-        }
-        return View(model);
 
+        return View(model);
     }
 
     public IActionResult About()
@@ -87,7 +79,5 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-
-
     }
 }
