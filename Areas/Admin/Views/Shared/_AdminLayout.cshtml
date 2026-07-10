@@ -1,5 +1,6 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="dark-mode yaqut-admin-root">
+<html lang="ar" dir="rtl" class="theme-dark yaqut-admin-root">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,36 +9,162 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/yaqut-theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin/layout.css" asp-append-version="true" />
     <script src="~/js/yaqut-main.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="dark-mode yaqut-admin-body">
-    <header class="yaqut-admin-mobile-header">
-        <button type="button" class="yaqut-admin-menu-toggle" aria-label="فتح القائمة" onclick="toggleAdminNav()">
-            <i class="bi bi-list"></i>
-        </button>
-        <a class="yaqut-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">ياقوت — الإدارة</a>
-    </header>
+<body class="yaqut-admin-body">
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        bool IsActive(string controller) => string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase);
+        var pageTitle = ViewData["Title"]?.ToString() ?? "لوحة التحكم";
+    }
 
-    <div class="yaqut-admin-wrapper">
-        <aside class="yaqut-admin-sidebar" id="adminSidebar">
-            <a class="yaqut-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
-                <i class="bi bi-gem"></i> ياقوت — الإدارة
-            </a>
-            <ul class="yaqut-sidebar-nav">
-                <li><a asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> لوحة التحكم</a></li>
-                <li><a asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i> المنتجات</a></li>
-                <li><a asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i> التصنيفات</a></li>
-                <li><a asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i> الطلبات</a></li>
-                <li><a asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i> المستخدمين</a></li>
-                <li><a asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-shop"></i> العودة للمتجر</a></li>
-            </ul>
+    <div class="yq-admin-shell" id="yqAdminShell">
+
+        <!-- SIDEBAR -->
+        <aside class="yq-admin-sidebar" id="yqAdminSidebar">
+            <div class="yq-admin-sidebar__head">
+                <a class="yq-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                    <span class="yq-admin-brand__mark"><i class="bi bi-gem"></i></span>
+                    <span class="yq-admin-brand__text">
+                        <strong>ياقوت</strong>
+                        <small>لوحة الإدارة</small>
+                    </span>
+                </a>
+                <button type="button" class="yq-admin-sidebar__collapse" id="yqSidebarCollapseBtn"
+                        aria-label="طي القائمة الجانبية" title="طي/توسيع القائمة">
+                    <i class="bi bi-layout-sidebar-inset"></i>
+                </button>
+            </div>
+
+            <nav class="yq-admin-nav" aria-label="التنقل في لوحة الإدارة">
+
+                <div class="yq-admin-nav__group">
+                    <span class="yq-admin-nav__group-label">نظرة عامة</span>
+                    <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Dashboard") ? "is-active" : "")" title="لوحة التحكم">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>لوحة التحكم</span>
+                    </a>
+                </div>
+
+                <div class="yq-admin-nav__group">
+                    <span class="yq-admin-nav__group-label">الكتالوج</span>
+                    <a asp-area="Admin" asp-controller="Products" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Products") ? "is-active" : "")" title="المنتجات">
+                        <i class="bi bi-box-seam"></i>
+                        <span>المنتجات</span>
+                    </a>
+                    <a asp-area="Admin" asp-controller="Categories" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Categories") ? "is-active" : "")" title="التصنيفات">
+                        <i class="bi bi-tags"></i>
+                        <span>التصنيفات</span>
+                    </a>
+                </div>
+
+                <div class="yq-admin-nav__group">
+                    <span class="yq-admin-nav__group-label">المبيعات</span>
+                    <a asp-area="Admin" asp-controller="Orders" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Orders") ? "is-active" : "")" title="الطلبات">
+                        <i class="bi bi-receipt"></i>
+                        <span>الطلبات</span>
+                    </a>
+                </div>
+
+                <div class="yq-admin-nav__group">
+                    <span class="yq-admin-nav__group-label">المستخدمون</span>
+                    <a asp-area="Admin" asp-controller="Users" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Users") ? "is-active" : "")" title="المستخدمين">
+                        <i class="bi bi-people"></i>
+                        <span>المستخدمين</span>
+                    </a>
+                </div>
+
+                <div class="yq-admin-nav__group">
+                    <span class="yq-admin-nav__group-label">النظام</span>
+                    <span class="yq-admin-nav__link is-disabled" aria-disabled="true" title="قريباً">
+                        <i class="bi bi-gear"></i>
+                        <span>الإعدادات</span>
+                        <small class="yq-admin-nav__soon">قريباً</small>
+                    </span>
+                </div>
+
+            </nav>
+
+            <div class="yq-admin-sidebar__foot">
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="yq-admin-back-store" title="العودة للمتجر">
+                    <i class="bi bi-box-arrow-in-left"></i>
+                    <span>العودة للمتجر</span>
+                </a>
+            </div>
         </aside>
-        <main class="yaqut-admin-content">
-            @RenderBody()
-        </main>
+
+        <!-- MOBILE OVERLAY -->
+        <div class="yq-admin-overlay" id="yqAdminOverlay"></div>
+
+        <!-- MAIN COLUMN -->
+        <div class="yq-admin-main">
+
+            <!-- TOPBAR -->
+            <header class="yq-admin-topbar">
+                <button type="button" class="yq-admin-topbar__menu-btn" id="yqAdminMenuBtn"
+                        aria-label="فتح القائمة" aria-controls="yqAdminSidebar" aria-expanded="false">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <div class="yq-admin-topbar__titles">
+                    <nav class="yq-admin-breadcrumb" aria-label="مسار التصفح">
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">الإدارة</a>
+                        @await RenderSectionAsync("Breadcrumb", required: false)
+                    </nav>
+                    <h1 class="yq-admin-topbar__title">@pageTitle</h1>
+                </div>
+
+                <div class="yq-admin-topbar__actions">
+                    <div class="yaqut-theme-pill" role="group" aria-label="تبديل وضع الألوان">
+                        <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="light" aria-label="الوضع الصباحي" title="وضع النهار">
+                            <i class="bi bi-sun"></i>
+                        </button>
+                        <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="dark" aria-label="الوضع المسائي" title="وضع الليل">
+                            <i class="bi bi-moon-stars"></i>
+                        </button>
+                    </div>
+
+                    <div class="yq-admin-user" id="yqAdminUserMenu">
+                        <button type="button" class="yq-admin-user__trigger" id="yqAdminUserTrigger" aria-haspopup="true" aria-expanded="false">
+                            <span class="yq-admin-user__avatar"><i class="bi bi-person-fill"></i></span>
+                            <span class="yq-admin-user__meta d-none d-md-flex">
+                                <strong>@User.Identity?.Name</strong>
+                                <small>@(User.IsInRole("Developer") ? "مطور" : "مدير")</small>
+                            </span>
+                            <i class="bi bi-chevron-down yq-admin-user__caret"></i>
+                        </button>
+                        <div class="yq-admin-user__dropdown" id="yqAdminUserDropdown">
+                            <a asp-area="" asp-controller="Account" asp-action="Profile">
+                                <i class="bi bi-person-circle"></i> ملفي الشخصي
+                            </a>
+                            <a asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-shop"></i> عرض المتجر
+                            </a>
+                            <hr />
+                            <a asp-area="" asp-controller="Account" asp-action="Logout" class="yq-admin-user__logout">
+                                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- PAGE CONTENT -->
+            <main class="yq-admin-content" id="yqAdminContent">
+                @RenderBody()
+            </main>
+        </div>
     </div>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/admin/layout.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
