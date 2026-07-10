@@ -11,21 +11,23 @@ public class OrdersController : Controller
 {
     private readonly NeondbContext _context;
 
-    private static readonly HashSet<string> ActiveStatuses = new()
-    {
-        "Processed",
-        "Shipped",
-        "Delivered"
-    };
+    private static readonly HashSet<string> ActiveStatuses =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Processed",
+            "Shipped",
+            "Delivered"
+        };
 
-    private static readonly HashSet<string> AllowedStatuses = new()
-    {
-        "Pending",
-        "Processed",
-        "Shipped",
-        "Delivered",
-        "Cancelled"
-    };
+    private static readonly HashSet<string> AllowedStatuses =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Pending",
+            "Processed",
+            "Shipped",
+            "Delivered",
+            "Cancelled"
+        };
 
     public OrdersController(NeondbContext context)
     {
@@ -35,13 +37,14 @@ public class OrdersController : Controller
     public async Task<IActionResult> Index(string[]? status, string? search)
     {
         IQueryable<Order> query = _context.Orders
+            .AsNoTracking()
             .Include(o => o.User)
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
             .OrderByDescending(o => o.Orderdate);
 
         // ????? ??? ??????
-        if (status is { Length: > 0 })
+        if (status?.Any() == true)
         {
             query = query.Where(o => status.Contains(o.Status));
         }
@@ -53,7 +56,7 @@ public class OrdersController : Controller
 
             query = query.Where(o =>
                 (o.User != null && o.User.Name.Contains(search)) ||
-                (!string.IsNullOrEmpty(o.Trackingnumber) &&
+                (!string.IsNullOrWhiteSpace(o.Trackingnumber) &&
                  o.Trackingnumber.Contains(search)));
         }
 
@@ -67,6 +70,11 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(int id, string status)
     {
+        if (string.IsNullOrWhiteSpace(status))
+            return BadRequest();
+
+        status = status.Trim();
+
         if (!AllowedStatuses.Contains(status))
             return BadRequest("Invalid order status.");
 
@@ -78,37 +86,29 @@ public class OrdersController : Controller
         if (order == null)
             return NotFound();
 
-        if (order.Status == status)
+        // ?? ??? ??? ??? ??? ???? ?????? ?????
+        if (order.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
             return RedirectToAction(nameof(Index));
+
+        bool wasActive = ActiveStatuses.Contains(order.Status);
+        bool willBeActive = ActiveStatuses.Contains(status);
 
         try
         {
-            // ??? ???????
-            if (order.Status == "Pending" &&
-                ActiveStatuses.Contains(status))
+            // ???????? ?? ???? ??? ????? ??? ???? ????? => ??? ???????
+            if (!wasActive && willBeActive)
             {
-                foreach (var item in order.Orderitems)
+                if (!DeductStock(order))
                 {
-                    if (item.Product.Stockquantity < item.Quantity)
-                    {
-                        TempData["Error"] =
-                            $"Not enough stock for {item.Product.Name}.";
-
-                        return RedirectToAction(nameof(Index));
-                    }
-
-                    item.Product.Stockquantity -= item.Quantity;
+                    TempData["Error"] = "One or more products do not have sufficient stock.";
+                    return RedirectToAction(nameof(Index));
                 }
             }
 
-            // ????? ???????
-            if (status == "Cancelled" &&
-                ActiveStatuses.Contains(order.Status))
+            // ???????? ?? ???? ????? ??? ???? ??? ????? => ????? ???????
+            if (wasActive && !willBeActive)
             {
-                foreach (var item in order.Orderitems)
-                {
-                    item.Product.Stockquantity += item.Quantity;
-                }
+                RestoreStock(order);
             }
 
             order.Status = status;
@@ -120,9 +120,45 @@ public class OrdersController : Controller
         }
         catch
         {
-            TempData["Error"] = "An unexpected error occurred.";
+            TempData["Error"] = "An unexpected error occurred while updating the order.";
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// ??? ???? ????????.
+    /// </summary>
+    private bool DeductStock(Order order)
+    {
+        foreach (var item in order.Orderitems)
+        {
+            if (item.Product == null)
+                return false;
+
+            if (item.Product.Stockquantity < item.Quantity)
+                return false;
+        }
+
+        foreach (var item in order.Orderitems)
+        {
+            item.Product!.Stockquantity -= item.Quantity;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// ????? ???? ???????? ???????.
+    /// </summary>
+    private void RestoreStock(Order order)
+    {
+        foreach (var item in order.Orderitems)
+        {
+            if (item.Product != null)
+            {
+                item.Product.Stockquantity += item.Quantity;
+            }
+        }
     }
 }
