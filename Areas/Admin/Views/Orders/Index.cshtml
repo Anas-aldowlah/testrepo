@@ -7,6 +7,136 @@
     <h1><i class="bi bi-receipt"></i> إدارة الطلبات</h1>
 </div>
 
+@{
+    var selectedStatus = ViewBag.SelectedStatus as string[] ?? Array.Empty<string>();
+}
+
+<form method="get" class="glass-effect p-4 mb-4">
+
+    <div class="row">
+
+        <!-- البحث -->
+        <div class="col-lg-4">
+
+            <label class="fw-bold mb-2">
+                البحث
+            </label>
+
+            <div class="input-group">
+
+                <input type="text"
+                       class="form-control"
+                       name="search"
+                       value="@ViewBag.Search"
+                       placeholder="اسم العميل أو رقم التتبع..." />
+
+                <button class="btn-yaqut-gold" type="submit">
+                    <i class="bi bi-search"></i>
+                    بحث
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- فلترة الحالة -->
+
+        <div class="col-lg-8">
+
+            <label class="fw-bold mb-2">
+                فلترة حسب حالة الطلب
+            </label>
+
+            <div class="d-flex flex-wrap gap-4">
+
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="status"
+                           value="Pending"
+                           @(selectedStatus.Contains("Pending") ? "checked" : "") />
+
+                    <label class="form-check-label">
+                        قيد الانتظار
+                    </label>
+                </div>
+
+                <div class="form-check">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="status"
+                           value="Processed"
+                           @(selectedStatus.Contains("Processed") ? "checked" : "") />
+
+                    <label class="form-check-label">
+                        قيد المعالجة
+                    </label>
+
+                </div>
+
+                <div class="form-check">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="status"
+                           value="Shipped"
+                           @(selectedStatus.Contains("Shipped") ? "checked" : "") />
+
+                    <label class="form-check-label">
+                        تم الشحن
+                    </label>
+
+                </div>
+
+                <div class="form-check">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="status"
+                           value="Delivered"
+                           @(selectedStatus.Contains("Delivered") ? "checked" : "") />
+
+                    <label class="form-check-label">
+                        تم التوصيل
+                    </label>
+
+                </div>
+
+                <div class="form-check">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="status"
+                           value="Cancelled"
+                           @(selectedStatus.Contains("Cancelled") ? "checked" : "") />
+
+                    <label class="form-check-label">
+                        ملغي
+                    </label>
+
+                </div>
+
+            </div>
+
+            <div class="mt-3">
+
+                <button class="btn-yaqut-gold">
+                    تطبيق الفلتر
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">
+                    إلغاء
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</form>
 @if (Model.Any())
 {
     <div class="yaqut-order-admin-grid">
@@ -44,11 +174,11 @@
                 </div>
                 <div class="yaqut-data-row">
                     <span class="yaqut-data-label">التاريخ</span>
-                    <span class="yaqut-data-value">@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</span>
+                    <span class="yaqut-data-value">@(order.Orderdate.HasValue? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</span>
                 </div>
                 <div class="yaqut-data-row">
                     <span class="yaqut-data-label">تاريخ الحالة</span>
-                    <span class="yaqut-data-value">@(order.TimeState.HasValue ? order.TimeState.Value.ToString("dd/MM/yyyy") : "-")</span>
+                    <span class="yaqut-data-value">@(order.TimeState.HasValue? order.TimeState.Value.ToString("dd/MM/yyyy") : "-")</span>
                 </div>
 
                 <div class="mt-2">
