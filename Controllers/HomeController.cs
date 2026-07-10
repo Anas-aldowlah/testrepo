@@ -24,7 +24,6 @@ public class HomeController : Controller
     public async Task<IActionResult> Index(int? categoryId)
     {
 
-        await _visitService.SaveVisitAsync(HttpContext);
         var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
         var categoriesFromDb = await _context.Categories.ToListAsync();
         var model = new ViewModels

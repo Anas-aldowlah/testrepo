@@ -19,12 +19,15 @@ public class AccountController : Controller
 {
     private readonly NeondbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly IVisitService _visitService;
 
 
-    public AccountController(NeondbContext db, IConfiguration configuration)
+    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService)
     {
         _db = db;
         _configuration = configuration;
+        _visitService = visitService;
+
     }
 
     [HttpGet]
@@ -79,7 +82,7 @@ public class AccountController : Controller
             ModelState.AddModelError(string.Empty, "رقم الجوال أو كلمة المرور غير صحيحة.");
             return View("Auth");
         }
-
+        await _visitService.SaveVisitAsync(HttpContext);
         await SignInUserAsync(user);
         TempData["UserName"] = user.Name;
         return LocalRedirect(GetRedirectUrl(returnUrl));
