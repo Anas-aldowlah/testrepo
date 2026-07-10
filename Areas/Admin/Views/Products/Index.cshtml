@@ -1,45 +1,194 @@
 @model YAGOT_2._0.Services.ViewModels
 @{
     ViewData["Title"] = "إدارة المنتجات";
+
+    const string deletedImage = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+    const string fallbackImage = "/images/placeholder-product.svg";
+
+    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
+    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
+    var activeProducts = products
+        .Where(p => !(p.Stockquantity == 0 && string.Equals(p.Imageurl, deletedImage, StringComparison.OrdinalIgnoreCase)))
+        .OrderByDescending(p => p.Createdat)
+        .ThenBy(p => p.Name)
+        .ToList();
+
+    var lowStockCount = activeProducts.Count(p => p.Stockquantity > 0 && p.Stockquantity < 5);
+    var outOfStockCount = activeProducts.Count(p => p.Stockquantity <= 0);
 }
 
-<div class="yaqut-admin-header">
-    <h1><i class="bi bi-box-seam"></i> إدارة المنتجات</h1>
-    <div class="d-flex gap-2 flex-wrap">
-        <a asp-action="trash" class="btn-yaqut-outline btn-sm"><i class="bi bi-trash"></i> سلة المحذوفات</a>
-        <a asp-action="Create" class="btn-yaqut-gold btn-sm"><i class="bi bi-plus-lg"></i> إضافة منتج</a>
-    </div>
-</div>
-
-@if (TempData["Error"] != null)
-{
-    <div class="yaqut-alert yaqut-alert--danger">@TempData["Error"]</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
 }
 
-<div class="yaqut-admin-grid">
-    @foreach (var p in Model.Products)
+@section Breadcrumb {
+    <span>/</span>
+    <span>المنتجات</span>
+}
+
+<section class="yq-products-admin" aria-labelledby="productsIndexTitle">
+    <header class="yq-products-hero">
+        <div class="yq-products-hero__content">
+            <span class="yq-products-eyebrow">إدارة الكتالوج</span>
+            <h2 id="productsIndexTitle">المنتجات</h2>
+            <p>راجع بيانات المنتجات، المخزون، التصنيفات، والأسعار من شاشة واحدة مصممة لإدارة يومية أسرع.</p>
+        </div>
+
+        <div class="yq-products-hero__actions" aria-label="إجراءات المنتجات">
+            <a asp-action="trash" class="btn-yaqut-outline">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+                <span>سلة المحذوفات</span>
+            </a>
+            <a asp-action="Create" class="btn-yaqut-gold">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>إضافة منتج</span>
+            </a>
+        </div>
+    </header>
+
+    @if (TempData["Error"] != null)
     {
-        if (!(p.Stockquantity == 0 && p.Imageurl == "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png"))
-        {
-            var cat = Model.Categories.FirstOrDefault(c => c.Id == p.Categoryid);
-            var stockClass = p.Stockquantity < 5 ? "yaqut-stock-badge--low" : "yaqut-stock-badge--ok";
-
-            <article class="yaqut-admin-card glass-effect">
-                <img src="@p.Imageurl" alt="@p.Name" class="yaqut-admin-card__img yaqut-card-img" data-yaqut-fallback="/images/placeholder-product.svg" />
-                <div class="yaqut-admin-card__body">
-                    <h3 class="yaqut-admin-card__title">@p.Name</h3>
-                    <p class="text-muted small mb-2">@(cat?.Name ?? "-")</p>
-                    <div class="yaqut-product-card__price mb-2">@p.Price.ToString("N0") <small>ر.س</small></div>
-                    <span class="yaqut-stock-badge @stockClass">@p.Stockquantity وحدة</span>
-                    <div class="d-flex gap-2 mt-3">
-                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn-yaqut-outline btn-sm flex-fill text-center">تعديل</a>
-                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="flex-fill"
-                              data-yaqut-confirm="هل أنت متأكد من حذف المنتج @p.Name؟">
-                            <button type="submit" class="btn-yaqut-danger btn-sm w-100">حذف</button>
-                        </form>
-                    </div>
-                </div>
-            </article>
-        }
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
     }
-</div>
+
+    <section class="yq-products-summary" aria-label="ملخص المنتجات">
+        <article class="yq-products-stat">
+            <span class="yq-products-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+            <div>
+                <p>المنتجات النشطة</p>
+                <strong>@activeProducts.Count</strong>
+            </div>
+        </article>
+        <article class="yq-products-stat">
+            <span class="yq-products-stat__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
+            <div>
+                <p>التصنيفات</p>
+                <strong>@categories.Count</strong>
+            </div>
+        </article>
+        <article class="yq-products-stat">
+            <span class="yq-products-stat__icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+            <div>
+                <p>مخزون منخفض</p>
+                <strong>@lowStockCount</strong>
+            </div>
+        </article>
+        <article class="yq-products-stat">
+            <span class="yq-products-stat__icon"><i class="bi bi-slash-circle" aria-hidden="true"></i></span>
+            <div>
+                <p>نفد المخزون</p>
+                <strong>@outOfStockCount</strong>
+            </div>
+        </article>
+    </section>
+
+    <section class="yq-products-panel" aria-labelledby="productsTableTitle">
+        <div class="yq-products-panel__header">
+            <div>
+                <span class="yq-products-eyebrow">قائمة الإدارة</span>
+                <h3 id="productsTableTitle">جميع المنتجات النشطة</h3>
+            </div>
+            <div class="yq-products-filter-note" aria-label="الفلاتر المتاحة">
+                <i class="bi bi-funnel" aria-hidden="true"></i>
+                <span>التصنيفات والمخزون معروضة حسب البيانات المتاحة</span>
+            </div>
+        </div>
+
+        @if (activeProducts.Any())
+        {
+            <div class="yq-products-table-wrap">
+                <table class="yq-products-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">المنتج</th>
+                            <th scope="col">التصنيف</th>
+                            <th scope="col">السعر</th>
+                            <th scope="col">المخزون</th>
+                            <th scope="col">الحالة</th>
+                            <th scope="col">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in activeProducts)
+                        {
+                            var cat = categories.FirstOrDefault(c => c.Id == p.Categoryid);
+                            var imageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? fallbackImage : p.Imageurl;
+                            var stockClass = p.Stockquantity <= 0
+                                ? "yq-products-badge--danger"
+                                : p.Stockquantity < 5
+                                    ? "yq-products-badge--warning"
+                                    : "yq-products-badge--success";
+                            var stockLabel = p.Stockquantity <= 0
+                                ? "نفد المخزون"
+                                : p.Stockquantity < 5
+                                    ? "مخزون منخفض"
+                                    : "متوفر";
+
+                            <tr>
+                                <td data-label="المنتج">
+                                    <div class="yq-products-item">
+                                        <img src="@imageUrl" alt="@p.Name" class="yq-products-item__image yaqut-card-img" loading="lazy" data-yaqut-fallback="@fallbackImage" />
+                                        <div class="yq-products-item__meta">
+                                            <strong>@p.Name</strong>
+                                            <span>#@p.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="التصنيف">
+                                    <span class="yq-products-category">@(cat?.Name ?? "-")</span>
+                                </td>
+                                <td data-label="السعر">
+                                    <div class="yq-products-price">
+                                        <strong>@p.Price.ToString("N0")</strong>
+                                        <span>ر.س</span>
+                                    </div>
+                                </td>
+                                <td data-label="المخزون">
+                                    <div class="yq-products-stock">
+                                        <span class="yq-products-badge @stockClass">@stockLabel</span>
+                                        <small>@p.Stockquantity وحدة</small>
+                                    </div>
+                                </td>
+                                <td data-label="الحالة">
+                                    <span class="yq-products-badge yq-products-badge--active">نشط</span>
+                                </td>
+                                <td data-label="الإجراءات">
+                                    <div class="yq-products-actions">
+                                        <a asp-action="Edit" asp-route-id="@p.Id" class="yq-products-action yq-products-action--edit" aria-label="تعديل @p.Name" title="تعديل">
+                                            <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                            <span>تعديل</span>
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" data-yaqut-confirm="هل أنت متأكد من حذف المنتج @p.Name؟">
+                                            <button type="submit" class="yq-products-action yq-products-action--delete" aria-label="حذف @p.Name" title="حذف">
+                                                <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                <span>حذف</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="yq-products-empty" role="status">
+                <i class="bi bi-box-seam" aria-hidden="true"></i>
+                <h3>لا توجد منتجات نشطة</h3>
+                <p>ابدأ بإضافة منتج جديد أو راجع سلة المحذوفات لاستعادة المنتجات غير المعروضة.</p>
+                <div class="yq-products-empty__actions">
+                    <a asp-action="Create" class="btn-yaqut-gold">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        <span>إضافة منتج</span>
+                    </a>
+                    <a asp-action="trash" class="btn-yaqut-outline">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                        <span>سلة المحذوفات</span>
+                    </a>
+                </div>
+            </div>
+        }
+    </section>
+</section>
