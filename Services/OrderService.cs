@@ -66,8 +66,8 @@ public class OrderService
             });
             _context.SaveChanges();
             // خصم المخزون
-            var product = _context.Products.FirstOrDefault(p => p.Id == item.Productid);
-            if (product != null) product.Stockquantity -= item.Quantity;
+            //var product = _context.Products.FirstOrDefault(p => p.Id == item.Productid);
+            //if (product != null) product.Stockquantity -= item.Quantity;
         }
 
         // تفريغ السلة
