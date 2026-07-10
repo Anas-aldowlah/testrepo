@@ -27,8 +27,10 @@
         <!-- SIDEBAR -->
         <aside class="yq-admin-sidebar" id="yqAdminSidebar" aria-label="القائمة الجانبية للإدارة">
             <div class="yq-admin-sidebar__head">
-                <a class="yq-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
-                    <span class="yq-admin-brand__mark"><i class="bi bi-gem"></i></span>
+                <a class="yq-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" aria-label="Yaqoot admin dashboard">
+                    <span class="yq-admin-brand__mark">
+                        <img src="~/images/yaqut-logo.png" alt="Yaqoot" class="yq-admin-brand__logo" />
+                    </span>
                     <span class="yq-admin-brand__text">
                         <strong>ياقوت</strong>
                         <small>لوحة الإدارة</small>
@@ -127,6 +129,7 @@
                         @await RenderSectionAsync("Breadcrumb", required: false)
                     </nav>
                     <h1 class="yq-admin-topbar__title">@pageTitle</h1>
+                    <p class="yq-admin-topbar__subtitle">Yaqoot operations workspace</p>
                 </div>
 
                 <div class="yq-admin-topbar__actions">
