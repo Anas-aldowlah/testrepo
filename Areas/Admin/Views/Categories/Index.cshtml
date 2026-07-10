@@ -1,45 +1,162 @@
 @model YAGOT_2._0.Services.ViewModels
 @{
     ViewData["Title"] = "إدارة التصنيفات";
+
+    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
+    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
+    var categoriesWithImages = categories.Count(c => !string.IsNullOrWhiteSpace(c.Imageurl));
 }
 
-<div class="yaqut-admin-header">
-    <h1><i class="bi bi-tags"></i> إدارة التصنيفات</h1>
-    <a asp-action="Create" class="btn-yaqut-gold btn-sm"><i class="bi bi-plus-lg"></i> إضافة تصنيف</a>
-</div>
-
-@if (TempData["Error"] != null)
-{
-    <div class="yaqut-alert yaqut-alert--danger">@TempData["Error"]</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/categories.css" asp-append-version="true" />
 }
 
-<div class="yaqut-admin-grid">
-    @foreach (var cat in Model.Categories)
+@section Breadcrumb {
+    <span>/</span>
+    <span>التصنيفات</span>
+}
+
+<section class="yq-categories-admin" aria-labelledby="categoriesIndexTitle">
+    <header class="yq-categories-hero">
+        <div class="yq-categories-hero__content">
+            <span class="yq-categories-eyebrow">إدارة الكتالوج</span>
+            <h2 id="categoriesIndexTitle">التصنيفات</h2>
+            <p>نظّم مجموعات العطور، راجع الصور والوصف وعدد المنتجات المرتبطة بكل تصنيف، وانتقل بسرعة إلى إجراءات الإدارة اليومية.</p>
+        </div>
+
+        <div class="yq-categories-hero__actions" aria-label="إجراءات التصنيفات">
+            <a asp-action="Create" class="btn-yaqut-gold">
+                <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                <span>إضافة تصنيف</span>
+            </a>
+        </div>
+    </header>
+
+    @if (TempData["Error"] != null)
     {
-        var productCount = Model.Products.Count(p => p.Categoryid == cat.Id);
-        <article class="yaqut-admin-card glass-effect">
-            @if (!string.IsNullOrEmpty(cat.Imageurl))
-            {
-                <img src="@Url.Content("~/" + cat.Imageurl)" alt="@cat.Name" class="yaqut-admin-card__img" />
-            }
-            else
-            {
-                <div class="yaqut-category-card__placeholder">
-                    <i class="bi bi-tag"></i>
-                </div>
-            }
-            <div class="yaqut-admin-card__body">
-                <h3 class="yaqut-admin-card__title">@cat.Name</h3>
-                <p class="text-muted small">@cat.Description</p>
-                <span class="text-warning small">@productCount منتج</span>
-                <div class="d-flex gap-2 mt-3">
-                    <a asp-action="Edit" asp-route-id="@cat.Id" class="btn-yaqut-outline btn-sm">تعديل</a>
-                    <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
-                          data-yaqut-confirm="هل أنت متأكد من حذف التصنيف @cat.Name؟">
-                        <button type="submit" class="btn-yaqut-danger btn-sm">حذف</button>
-                    </form>
-                </div>
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+    }
+
+    <section class="yq-categories-summary" aria-label="ملخص التصنيفات">
+        <article class="yq-categories-stat">
+            <span class="yq-categories-stat__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
+            <div>
+                <p>إجمالي التصنيفات</p>
+                <strong>@categories.Count</strong>
             </div>
         </article>
-    }
-</div>
+        <article class="yq-categories-stat">
+            <span class="yq-categories-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+            <div>
+                <p>المنتجات المرتبطة</p>
+                <strong>@products.Count</strong>
+            </div>
+        </article>
+        <article class="yq-categories-stat">
+            <span class="yq-categories-stat__icon"><i class="bi bi-image" aria-hidden="true"></i></span>
+            <div>
+                <p>تصنيفات بصور</p>
+                <strong>@categoriesWithImages</strong>
+            </div>
+        </article>
+    </section>
+
+    <section class="yq-categories-panel" aria-labelledby="categoriesTableTitle">
+        <div class="yq-categories-panel__header">
+            <div>
+                <span class="yq-categories-eyebrow">قائمة الإدارة</span>
+                <h3 id="categoriesTableTitle">جميع التصنيفات</h3>
+            </div>
+            <div class="yq-categories-panel__note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>تظهر البيانات حسب المعلومات المتاحة من النظام</span>
+            </div>
+        </div>
+
+        @if (categories.Any())
+        {
+            <div class="yq-categories-table-wrap">
+                <table class="yq-categories-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">التصنيف</th>
+                            <th scope="col">الوصف</th>
+                            <th scope="col">عدد المنتجات</th>
+                            <th scope="col">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cat in categories)
+                        {
+                            var productCount = products.Count(p => p.Categoryid == cat.Id);
+                            var imageUrl = string.IsNullOrWhiteSpace(cat.Imageurl)
+                                ? null
+                                : Url.Content(cat.Imageurl.StartsWith("/") ? "~" + cat.Imageurl : "~/" + cat.Imageurl);
+
+                            <tr>
+                                <td data-label="التصنيف">
+                                    <div class="yq-categories-item">
+                                        @if (!string.IsNullOrWhiteSpace(imageUrl))
+                                        {
+                                            <img src="@imageUrl" alt="@cat.Name" class="yq-categories-item__image" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="yq-categories-item__placeholder" aria-hidden="true">
+                                                <i class="bi bi-tag"></i>
+                                            </span>
+                                        }
+                                        <div class="yq-categories-item__meta">
+                                            <strong>@cat.Name</strong>
+                                            <span>#@cat.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="الوصف">
+                                    @if (!string.IsNullOrWhiteSpace(cat.Description))
+                                    {
+                                        <p class="yq-categories-description">@cat.Description</p>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-categories-muted">لا يوجد وصف</span>
+                                    }
+                                </td>
+                                <td data-label="عدد المنتجات">
+                                    <span class="yq-categories-count">@productCount منتج</span>
+                                </td>
+                                <td data-label="الإجراءات">
+                                    <div class="yq-categories-actions">
+                                        <a asp-action="Edit" asp-route-id="@cat.Id" class="yq-categories-action yq-categories-action--edit" aria-label="تعديل @cat.Name" title="تعديل">
+                                            <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                            <span>تعديل</span>
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
+                                              data-yaqut-confirm="هل أنت متأكد من حذف التصنيف @cat.Name؟">
+                                            <button type="submit" class="yq-categories-action yq-categories-action--delete" aria-label="حذف @cat.Name" title="حذف">
+                                                <i class="bi bi-trash3" aria-hidden="true"></i>
+                                                <span>حذف</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="yq-categories-empty" role="status">
+                <i class="bi bi-tags" aria-hidden="true"></i>
+                <h3>لا توجد تصنيفات بعد</h3>
+                <p>ابدأ بإضافة تصنيف جديد لتنظيم المنتجات داخل الكتالوج.</p>
+                <a asp-action="Create" class="btn-yaqut-gold">
+                    <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                    <span>إضافة تصنيف</span>
+                </a>
+            </div>
+        }
+    </section>
+</section>
