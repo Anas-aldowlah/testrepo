@@ -1,42 +1,144 @@
 @model CategoryVW
 @{
     ViewData["Title"] = "تعديل التصنيف";
-    var previewSrc = !string.IsNullOrEmpty(Model.Existingimage)
-        ? Url.Content("~/" + Model.Existingimage)
-        : "/images/placeholder-product.svg";
+
+    var routeId = ViewContext.RouteData.Values["id"]?.ToString();
+    var categoryId = Model.Id != 0 ? Model.Id.ToString() : routeId;
+    var existingImage = Model.Existingimage;
+    var hasExistingImage = !string.IsNullOrWhiteSpace(existingImage);
+    var previewSrc = hasExistingImage
+        ? (Uri.TryCreate(existingImage, UriKind.Absolute, out _)
+            ? existingImage
+            : Url.Content(existingImage!.StartsWith("/") ? "~" + existingImage : "~/" + existingImage))
+        : Url.Content("~/images/placeholder-product.svg");
 }
 
-<div class="yaqut-admin-form glass-effect">
-    <h1 class="yaqut-admin-form__title"><i class="bi bi-pencil"></i> تعديل: @Model.Name</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/categories.css" asp-append-version="true" />
+}
 
-    <form asp-action="Edit" method="post" enctype="multipart/form-data">
-        <input asp-for="Id" type="hidden" />
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">التصنيفات</a>
+    <span>/</span>
+    <span>تعديل التصنيف</span>
+}
+
+<section class="yq-categories-create yq-categories-edit" aria-labelledby="categoryEditTitle">
+    <header class="yq-categories-hero yq-categories-create__hero">
+        <div class="yq-categories-hero__content">
+            <span class="yq-categories-eyebrow">إدارة الكتالوج</span>
+            <h2 id="categoryEditTitle">تعديل التصنيف</h2>
+            <p>راجع بيانات التصنيف الحالية، حدّث الاسم والوصف، واستبدل صورة العرض عند الحاجة مع الحفاظ على مسار إدارة التصنيفات كما هو.</p>
+        </div>
+
+        <div class="yq-categories-hero__actions" aria-label="إجراءات التنقل">
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>العودة للتصنيفات</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="yq-category-edit-identity" aria-label="التصنيف الحالي">
+        <span class="yq-category-edit-identity__icon">
+            <i class="bi bi-tag" aria-hidden="true"></i>
+        </span>
+        <div>
+            <span class="yq-categories-eyebrow">التصنيف الحالي</span>
+            <strong>@Model.Name</strong>
+            @if (!string.IsNullOrWhiteSpace(categoryId))
+            {
+                <small>#@categoryId</small>
+            }
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-category-form">
+        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
+        <input asp-for="Id" type="hidden" value="@categoryId" />
         <input asp-for="Existingimage" type="hidden" />
 
-        <div class="yaqut-form-group">
-            <label asp-for="Name" class="yaqut-form-label">اسم التصنيف</label>
-            <input asp-for="Name" type="text" required class="yaqut-form-input" />
-        </div>
-        <div class="yaqut-form-group">
-            <label asp-for="Description" class="yaqut-form-label">الوصف</label>
-            <textarea asp-for="Description" rows="3" class="yaqut-form-input"></textarea>
-        </div>
-        <div class="yaqut-image-upload">
-            <label class="yaqut-form-label">صورة التصنيف</label>
-            <div class="yaqut-image-upload__row">
-                <div class="yaqut-image-preview">
-                    <img id="imagePreview" src="@previewSrc" alt="معاينة" />
-                </div>
-                <div class="flex-grow-1">
-                    <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" />
-                    <p class="text-muted small mt-2 mb-0">JPG, PNG, WebP — الحد الأقصى 10MB</p>
-                </div>
+        <div class="yq-category-form__layout">
+            <div class="yq-category-form__main">
+                <section class="yq-category-form__section" aria-labelledby="categoryDetailsTitle">
+                    <div class="yq-category-form__section-head">
+                        <span class="yq-category-form__section-icon">
+                            <i class="bi bi-card-text" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h3 id="categoryDetailsTitle">بيانات التصنيف</h3>
+                            <p>عدّل التسمية والوصف كما يظهران في لوحة الإدارة والمتجر، مع الحفاظ على وضوح التصنيف داخل الكتالوج.</p>
+                        </div>
+                    </div>
+
+                    <div class="yq-category-form__fields">
+                        <div class="yaqut-form-group yq-category-field">
+                            <label asp-for="Name" class="yaqut-form-label">اسم التصنيف</label>
+                            <input asp-for="Name" type="text" required class="yaqut-form-input" autocomplete="off" aria-describedby="NameHelp NameValidation" />
+                            <span id="NameHelp" class="yq-category-help">استخدم اسما قصيرا وواضحا يسهل تمييزه عند ربط المنتجات بالتصنيفات.</span>
+                            <span asp-validation-for="Name" id="NameValidation" class="yq-category-validation"></span>
+                        </div>
+
+                        <div class="yaqut-form-group yq-category-field">
+                            <label asp-for="Description" class="yaqut-form-label">الوصف</label>
+                            <textarea asp-for="Description" rows="6" class="yaqut-form-input" aria-describedby="DescriptionHelp DescriptionValidation"></textarea>
+                            <span id="DescriptionHelp" class="yq-category-help">حدّث الوصف بما يعكس طبيعة المنتجات المدرجة ضمن هذا التصنيف.</span>
+                            <span asp-validation-for="Description" id="DescriptionValidation" class="yq-category-validation"></span>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <span asp-validation-for="ImageFile" class="text-danger small"></span>
+
+            <aside class="yq-category-form__media" aria-labelledby="categoryImageTitle">
+                <section class="yq-category-form__section yq-category-form__section--sticky">
+                    <div class="yq-category-form__section-head">
+                        <span class="yq-category-form__section-icon">
+                            <i class="bi bi-image" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h3 id="categoryImageTitle">صورة التصنيف</h3>
+                            <p>تظهر الصورة الحالية هنا. اختيار صورة جديدة يستبدلها عند حفظ التعديلات.</p>
+                        </div>
+                    </div>
+
+                    <div class="yq-category-upload">
+                        <div class="yq-category-upload__preview">
+                            <img id="imagePreview" src="@previewSrc" alt="معاينة صورة @Model.Name" data-yaqut-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+                        </div>
+
+                        <div class="yq-category-upload__control">
+                            <div class="yq-category-current-image">
+                                <span>@(hasExistingImage ? "الصورة الحالية محفوظة" : "لا توجد صورة محفوظة")</span>
+                                <small>@(hasExistingImage ? "اترك الحقل فارغا للاحتفاظ بها." : "اختر صورة قبل الحفظ إذا كانت مطلوبة.")</small>
+                            </div>
+
+                            <label asp-for="ImageFile" class="yq-category-upload__label">
+                                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                                <span>استبدال الصورة</span>
+                            </label>
+                            <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" aria-describedby="ImageFileHelp ImageFileValidation" />
+                            <span id="ImageFileHelp" class="yq-category-help">JPG, PNG, WebP — الحد الأقصى 10MB.</span>
+                            <span asp-validation-for="ImageFile" id="ImageFileValidation" class="yq-category-validation"></span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
         </div>
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn-yaqut-gold">حفظ التعديل</button>
-            <a asp-action="Index" class="btn-yaqut-outline">إلغاء</a>
+
+        <div class="yq-category-form__actions" aria-label="إجراءات تعديل التصنيف">
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>رجوع</span>
+            </a>
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+                <span>إلغاء</span>
+            </a>
+            <button type="submit" class="btn-yaqut-gold">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                <span>حفظ التعديلات</span>
+            </button>
         </div>
     </form>
-</div>
+</section>
