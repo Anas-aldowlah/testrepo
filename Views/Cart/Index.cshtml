@@ -1,11 +1,11 @@
 @model YAGOT_2._0.Models.Cart
+@using YAGOT_2._0.Services
 @{
     ViewData["Title"] = "سلة المشتريات";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
     decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
-    const decimal freeShippingThreshold = 500;
-    var remainingForFreeShipping = freeShippingThreshold - subtotal;
-    var qualifiesForFreeShipping = subtotal >= freeShippingThreshold;
+    var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
+    var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
 }
 
 @section Styles {
@@ -27,10 +27,10 @@
         </a>
     </header>
 
-    @if (ViewBag.message != null)
+    @if (TempData["Message"] != null)
     {
-        <div class="yaqut-alert yaqut-alert--danger yq-reveal">
-            <i class="bi bi-exclamation-circle"></i> @ViewBag.message
+        <div class="yaqut-alert yaqut-alert--danger yq-reveal" role="alert" aria-live="polite">
+            <i class="bi bi-exclamation-circle"></i> @TempData["Message"]
         </div>
     }
 
@@ -62,6 +62,7 @@
                                        class="yq-cart-item__name">@item.Product?.Name</a>
                                 </div>
                                 <form asp-controller="Cart" asp-action="Remove" method="post" class="yq-cart-item__remove-form">
+                                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <button type="submit" class="yq-cart-item__remove" aria-label="إزالة @item.Product?.Name من السلة">
                                         <i class="bi bi-trash3"></i>
@@ -133,7 +134,7 @@
                     <span>@subtotal.ToString("N0") <small>ر.س</small></span>
                 </div>
 
-                <a asp-controller="Orders" asp-action="CheckoutPost" class="btn-yaqut-gold yq-cart-checkout-btn">
+                <a asp-controller="Orders" asp-action="Checkout" class="btn-yaqut-gold yq-cart-checkout-btn">
                     <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
                 </a>
 

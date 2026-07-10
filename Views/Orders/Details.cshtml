@@ -1,0 +1,220 @@
+﻿@model YAGOT_2._0.Models.Order
+@using System.Security.Claims
+@{
+    ViewData["Title"] = $"تفاصيل الطلب {Model.Trackingnumber} | ياقوت";
+    var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
+    const decimal freeShippingThreshold = 500;
+    var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
+
+    var customerName = Model.User?.Name ?? User.Identity?.Name;
+    var customerPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+
+    var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
+    var isCancelled = Model.Status == "Cancelled";
+    if (currentStepIndex < 0) currentStepIndex = 0;
+
+    var stepLabels = new Dictionary<string, string>
+    {
+        ["Pending"] = "تم استلام الطلب",
+        ["Processed"] = "قيد التحضير",
+        ["Shipped"] = "تم الشحن",
+        ["Delivered"] = "تم التوصيل"
+    };
+
+    string stateAr = Model.Status switch
+    {
+        "Pending" => "قيد الانتظار",
+        "Processed" => "قيد المعالجة",
+        "Shipped" => "تم الشحن",
+        "Delivered" => "تم التوصيل",
+        _ => "ملغي"
+    };
+    var badgeClass = Model.Status.ToLower() switch
+    {
+        "pending" => "yaqut-badge--pending",
+        "processed" => "yaqut-badge--processed",
+        "shipped" => "yaqut-badge--shipped",
+        "delivered" => "yaqut-badge--delivered",
+        _ => "yaqut-badge--cancelled"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/orders/details.css" asp-append-version="true" />
+}
+
+<div class="yq-order-details">
+
+    <!-- BREADCRUMB -->
+    <nav class="yq-od-breadcrumb yq-reveal" aria-label="مسار التصفح">
+        <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+        <i class="bi bi-chevron-left"></i>
+        <a asp-controller="Orders" asp-action="Index">طلباتي</a>
+        <i class="bi bi-chevron-left"></i>
+        <span>تفاصيل الطلب</span>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="yq-od-header yq-reveal">
+        <div>
+            <a asp-controller="Orders" asp-action="Index" class="yq-od-back-link">
+                <i class="bi bi-arrow-right"></i> العودة لطلباتي
+            </a>
+            <h1 class="yq-od-header__title">
+                <i class="bi bi-receipt"></i> تفاصيل الطلب
+            </h1>
+            <div class="yq-od-header__tracking">
+                <span>رقم التتبع</span>
+                <strong id="yqDetailsTrackingNumber">@Model.Trackingnumber</strong>
+                <button type="button" class="yq-od-copy-btn" id="yqDetailsCopyTrackingBtn" aria-label="نسخ رقم التتبع">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+        </div>
+        <span class="yaqut-badge @badgeClass yq-od-header__badge">@stateAr</span>
+    </header>
+
+    @if (isCancelled)
+    {
+        <div class="yaqut-alert yaqut-alert--danger yq-reveal">
+            <i class="bi bi-exclamation-circle"></i> تم إلغاء هذا الطلب.
+        </div>
+    }
+    else
+    {
+        <!-- STATUS TIMELINE -->
+        <section class="yq-od-timeline yq-glass yq-reveal">
+            @for (var i = 0; i < statusSteps.Length; i++)
+            {
+                var isDone = i < currentStepIndex;
+                var isActive = i == currentStepIndex;
+                <div class="yq-timeline-step @(isDone ? "is-done" : "") @(isActive ? "is-active" : "")">
+                    <span class="yq-timeline-step__dot">
+                        @if (isDone)
+                        {
+                            <i class="bi bi-check-lg"></i>
+                        }
+                        else
+                        {
+                            @(i + 1)
+                        }
+                    </span>
+                    <span class="yq-timeline-step__label">@stepLabels[statusSteps[i]]</span>
+                </div>
+                @if (i < statusSteps.Length - 1)
+                {
+                    <div class="yq-timeline-connector @(isDone ? "is-done" : "")"></div>
+                }
+            }
+        </section>
+    }
+
+    <div class="yq-od-layout">
+
+        <!-- LEFT: DETAILS -->
+        <div class="yq-od-details yq-reveal">
+
+            <!-- CUSTOMER + DATES -->
+            <section class="yq-od-card yq-glass">
+                <h2 class="yq-od-card__title"><i class="bi bi-person"></i> معلومات العميل والطلب</h2>
+                <div class="yq-od-info-grid">
+                    <div>
+                        <span class="yq-od-info-label">الاسم</span>
+                        <span class="yq-od-info-value">@customerName</span>
+                    </div>
+                    <div>
+                        <span class="yq-od-info-label">رقم الجوال</span>
+                        <span class="yq-od-info-value">@(customerPhone ?? "-")</span>
+                    </div>
+                    <div>
+                        <span class="yq-od-info-label">تاريخ الطلب</span>
+                        <span class="yq-od-info-value">@(Model.Orderdate.HasValue? Model.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "-")</span>
+                    </div>
+                    <div>
+                        <span class="yq-od-info-label">آخر تحديث للحالة</span>
+                        <span class="yq-od-info-value">@(Model.TimeState.HasValue? Model.TimeState.Value.ToString("dd/MM/yyyy HH:mm") : "-")</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAYMENT -->
+            <section class="yq-od-card yq-glass">
+                <h2 class="yq-od-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                <div class="yq-od-payment">
+                    <span class="yq-od-payment__icon"><i class="bi bi-cash-coin"></i></span>
+                    <div>
+                        <strong>الدفع عند الاستلام</strong>
+                        <p>يتم تحصيل المبلغ نقداً عند استلام الطلب</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PRODUCTS -->
+            <section class="yq-od-card yq-glass">
+                <h2 class="yq-od-card__title"><i class="bi bi-bag-check"></i> المنتجات المطلوبة</h2>
+                <div class="yq-od-products">
+                    @foreach (var item in items)
+                    {
+                        var lineTotal = item.Quantity * item.Unitprice;
+                        <div class="yq-od-product">
+                            <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-od-product__media">
+                                <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
+                                     alt="@item.Product?.Name"
+                                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                            </a>
+                            <div class="yq-od-product__info">
+                                <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-od-product__name">
+                                    @item.Product?.Name
+                                </a>
+                                <span class="yq-od-product__meta">الكمية: @item.Quantity × @item.Unitprice.ToString("N0") ر.س</span>
+                            </div>
+                            <span class="yq-od-product__total">@lineTotal.ToString("N0") ر.س</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <!-- RIGHT: SUMMARY -->
+        <aside class="yq-od-summary yq-glass yq-reveal">
+            <h2 class="yq-od-summary__title">ملخص الطلب</h2>
+
+            <div class="yq-od-summary__row">
+                <span>عدد المنتجات</span>
+                <span>@items.Sum(i => i.Quantity)</span>
+            </div>
+            <div class="yq-od-summary__row">
+                <span>الشحن</span>
+                @if (qualifiesForFreeShipping)
+                {
+                    <span class="yq-od-summary__free">مجاني</span>
+                }
+                else
+                {
+                    <span class="yq-od-summary__tbd">يُحدد عند التوصيل</span>
+                }
+            </div>
+
+            <div class="yq-od-summary__divider"></div>
+
+            <div class="yq-od-summary__row yq-od-summary__row--total">
+                <span>الإجمالي</span>
+                <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
+            </div>
+
+            <div class="yq-od-summary__actions">
+                <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-outline yq-od-summary__btn">
+                    <i class="bi bi-receipt"></i> جميع طلباتي
+                </a>
+                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold yq-od-summary__btn">
+                    <i class="bi bi-bag-plus"></i> متابعة التسوق
+                </a>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/orders/details.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,15 @@
+﻿.yq-order-card__details-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--yq-gold, #c9a24b);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+    .yq-order-card__details-link:hover {
+        opacity: 0.75;
+    }

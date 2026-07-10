@@ -9,12 +9,11 @@ namespace Yagot.Controllers;
 
 [Authorize]
 [ServiceFilter(typeof(SiteStatusFilter))]
-
 public class CartController : Controller
 {
     private readonly NeondbContext _context;
     private readonly CartService _cartService;
-     
+
     public CartController(NeondbContext context, CartService cartService)
     {
         // ADD CHANGE
@@ -25,14 +24,12 @@ public class CartController : Controller
     public int nextCartId()
     {
         return _context.Carts.Any() ? _context.Carts.Max(c => c.Id) + 1 : 1;
-
     }
 
     public async Task<IActionResult> Index()
     {
         var userId = await ResolveUserIdAsync();
         var cart = await _cartService.GetCartAsync(userId);
-        ViewBag.message = _cartService.MESSAGE;
         return View(cart);
     }
 
@@ -46,6 +43,7 @@ public class CartController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(int cartItemId)
     {
         var userId = await ResolveUserIdAsync();
