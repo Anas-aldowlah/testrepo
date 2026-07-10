@@ -87,6 +87,7 @@ public class AccountController : Controller
         TempData["UserName"] = user.Name;
         await _visitService.SaveVisitAsync(HttpContext);
         return LocalRedirect(GetRedirectUrl(returnUrl));
+
     }
 
     [HttpPost]
