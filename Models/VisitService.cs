@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using UAParser;
+
 namespace YAGOT_2._0.Models
 {
     public class VisitService : IVisitService
@@ -19,7 +20,7 @@ namespace YAGOT_2._0.Models
         {
             try
             {
-                // اسم المستخدم
+                // اسم الزائر
                 string visitorName = context.User.Identity?.IsAuthenticated == true
                     ? context.User.Identity.Name!
                     : "زائر";
@@ -42,10 +43,19 @@ namespace YAGOT_2._0.Models
                 else
                     device = "Desktop";
 
-                // IP
-                string ip = context.Connection.RemoteIpAddress?.ToString() ?? "";
+                // الحصول على IP الحقيقي
+                string ip = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
 
-                // أثناء التطوير على localhost
+                if (!string.IsNullOrWhiteSpace(ip))
+                {
+                    ip = ip.Split(',')[0].Trim();
+                }
+                else
+                {
+                    ip = context.Connection.RemoteIpAddress?.ToString() ?? "";
+                }
+
+                // أثناء التطوير المحلي
                 if (ip == "::1" || ip == "127.0.0.1")
                     ip = "";
 
@@ -55,23 +65,27 @@ namespace YAGOT_2._0.Models
 
                 try
                 {
-                    var http = _httpClientFactory.CreateClient();
-
-                    var result = await http.GetFromJsonAsync<IpApiResponse>(
-                        $"http://ip-api.com/json/{ip}?fields=country,regionName,city");
-
-                    if (result != null)
+                    if (!string.IsNullOrWhiteSpace(ip))
                     {
-                        country = result.Country ?? "";
-                        governorate = result.RegionName ?? "";
-                        city = result.City ?? "";
+                        var http = _httpClientFactory.CreateClient();
+
+                        var result = await http.GetFromJsonAsync<IpWhoIsResponse>(
+                            $"https://ipwho.is/{ip}");
+
+                        if (result != null && result.Success)
+                        {
+                            country = result.Country ?? "";
+                            governorate = result.Region ?? "";
+                            city = result.City ?? "";
+                        }
                     }
                 }
                 catch
                 {
+                    // تجاهل خطأ خدمة تحديد الموقع
                 }
 
-                var visit = new Visit   
+                var visit = new Visit
                 {
                     Visitdate = DateTime.Now,
                     Visitorname = visitorName,
@@ -83,7 +97,6 @@ namespace YAGOT_2._0.Models
                 };
 
                 _db.Visits.Add(visit);
-
                 await _db.SaveChangesAsync();
             }
             catch
