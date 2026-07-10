@@ -20,10 +20,12 @@
         var pageTitle = ViewData["Title"]?.ToString() ?? "لوحة التحكم";
     }
 
+    <a class="yq-admin-skip-link" href="#yqAdminContent">تخطي إلى المحتوى</a>
+
     <div class="yq-admin-shell" id="yqAdminShell">
 
         <!-- SIDEBAR -->
-        <aside class="yq-admin-sidebar" id="yqAdminSidebar">
+        <aside class="yq-admin-sidebar" id="yqAdminSidebar" aria-label="القائمة الجانبية للإدارة">
             <div class="yq-admin-sidebar__head">
                 <a class="yq-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
                     <span class="yq-admin-brand__mark"><i class="bi bi-gem"></i></span>
@@ -33,6 +35,7 @@
                     </span>
                 </a>
                 <button type="button" class="yq-admin-sidebar__collapse" id="yqSidebarCollapseBtn"
+                        aria-controls="yqAdminSidebar" aria-expanded="true"
                         aria-label="طي القائمة الجانبية" title="طي/توسيع القائمة">
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
@@ -43,7 +46,8 @@
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">نظرة عامة</span>
                     <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Dashboard") ? "is-active" : "")" title="لوحة التحكم">
+                       class="yq-admin-nav__link @(IsActive("Dashboard") ? "is-active" : "")"
+                       aria-current="@(IsActive("Dashboard") ? "page" : null)" title="لوحة التحكم">
                         <i class="bi bi-speedometer2"></i>
                         <span>لوحة التحكم</span>
                     </a>
@@ -52,12 +56,14 @@
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">الكتالوج</span>
                     <a asp-area="Admin" asp-controller="Products" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Products") ? "is-active" : "")" title="المنتجات">
+                       class="yq-admin-nav__link @(IsActive("Products") ? "is-active" : "")"
+                       aria-current="@(IsActive("Products") ? "page" : null)" title="المنتجات">
                         <i class="bi bi-box-seam"></i>
                         <span>المنتجات</span>
                     </a>
                     <a asp-area="Admin" asp-controller="Categories" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Categories") ? "is-active" : "")" title="التصنيفات">
+                       class="yq-admin-nav__link @(IsActive("Categories") ? "is-active" : "")"
+                       aria-current="@(IsActive("Categories") ? "page" : null)" title="التصنيفات">
                         <i class="bi bi-tags"></i>
                         <span>التصنيفات</span>
                     </a>
@@ -66,7 +72,8 @@
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">المبيعات</span>
                     <a asp-area="Admin" asp-controller="Orders" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Orders") ? "is-active" : "")" title="الطلبات">
+                       class="yq-admin-nav__link @(IsActive("Orders") ? "is-active" : "")"
+                       aria-current="@(IsActive("Orders") ? "page" : null)" title="الطلبات">
                         <i class="bi bi-receipt"></i>
                         <span>الطلبات</span>
                     </a>
@@ -75,7 +82,8 @@
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">المستخدمون</span>
                     <a asp-area="Admin" asp-controller="Users" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Users") ? "is-active" : "")" title="المستخدمين">
+                       class="yq-admin-nav__link @(IsActive("Users") ? "is-active" : "")"
+                       aria-current="@(IsActive("Users") ? "page" : null)" title="المستخدمين">
                         <i class="bi bi-people"></i>
                         <span>المستخدمين</span>
                     </a>
@@ -101,7 +109,7 @@
         </aside>
 
         <!-- MOBILE OVERLAY -->
-        <div class="yq-admin-overlay" id="yqAdminOverlay"></div>
+        <div class="yq-admin-overlay" id="yqAdminOverlay" hidden></div>
 
         <!-- MAIN COLUMN -->
         <div class="yq-admin-main">
@@ -157,7 +165,7 @@
             </header>
 
             <!-- PAGE CONTENT -->
-            <main class="yq-admin-content" id="yqAdminContent">
+            <main class="yq-admin-content" id="yqAdminContent" tabindex="-1">
                 @RenderBody()
             </main>
         </div>

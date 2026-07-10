@@ -18,6 +18,9 @@
         try {
             if (localStorage.getItem(STORAGE_KEY) === "1") {
                 shell.classList.add("is-collapsed");
+                if (collapseBtn) {
+                    collapseBtn.setAttribute("aria-expanded", "false");
+                }
             }
         } catch (e) {
             /* localStorage unavailable — ignore */
@@ -25,14 +28,24 @@
 
         function openMobileNav() {
             sidebar.classList.add("is-open");
-            overlay.classList.add("is-open");
-            menuBtn.setAttribute("aria-expanded", "true");
+            if (overlay) {
+                overlay.hidden = false;
+                overlay.classList.add("is-open");
+            }
+            if (menuBtn) {
+                menuBtn.setAttribute("aria-expanded", "true");
+            }
         }
 
         function closeMobileNav() {
             sidebar.classList.remove("is-open");
-            overlay.classList.remove("is-open");
-            menuBtn.setAttribute("aria-expanded", "false");
+            if (overlay) {
+                overlay.classList.remove("is-open");
+                overlay.hidden = true;
+            }
+            if (menuBtn) {
+                menuBtn.setAttribute("aria-expanded", "false");
+            }
         }
 
         if (menuBtn) {
@@ -56,6 +69,7 @@
         if (collapseBtn) {
             collapseBtn.addEventListener("click", function () {
                 var collapsed = shell.classList.toggle("is-collapsed");
+                collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
                 try {
                     localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
                 } catch (e) {
