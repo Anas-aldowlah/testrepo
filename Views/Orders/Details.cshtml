@@ -1,5 +1,7 @@
 ﻿@model YAGOT_2._0.Models.Order
 @using System.Security.Claims
+@using YAGOT_2._0.Services
+@inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = $"تفاصيل الطلب {Model.Trackingnumber} | ياقوت";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
@@ -7,7 +9,8 @@
     var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
-    var customerPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
 
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);

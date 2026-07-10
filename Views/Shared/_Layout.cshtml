@@ -72,9 +72,9 @@
                     {
                         <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-yaqut-gold btn-sm d-none d-lg-inline-flex">الإدارة</a>
                     }
-                    <span class="yaqut-user-chip d-none d-md-inline-flex">
+                    <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip d-none d-md-inline-flex" title="ملفي الشخصي">
                         <i class="bi bi-person-circle"></i> @User.Identity.Name
-                    </span>
+                    </a>
                     <a asp-controller="Account" asp-action="Logout" class="btn btn-yaqut-outline btn-sm yaqut-logout-btn">
                         <i class="bi bi-box-arrow-right"></i>
                         <span class="d-none d-md-inline">خروج</span>

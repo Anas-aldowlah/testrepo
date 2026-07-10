@@ -1,6 +1,7 @@
 @model YAGOT_2._0.Models.Cart
 @using YAGOT_2._0.Services
 @using System.Security.Claims
+@inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = "إتمام الطلب";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
@@ -8,7 +9,8 @@
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var customerName = User.Identity?.Name;
-    var customerPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
 }
 
 @section Styles {
