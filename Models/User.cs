@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
 
-public partial class  User
+public partial class User
 {
     public int Id { get; set; }
 

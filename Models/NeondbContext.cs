@@ -33,6 +33,8 @@ public partial class NeondbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<Visit> Visits { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseNpgsql("Host=ep-floral-forest-al2seqtv-pooler.c-3.eu-central-1.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=npg_KPysbZlLh54g;SSL Mode=Require;Trust Server Certificate=true");
@@ -253,6 +255,37 @@ public partial class NeondbContext : DbContext
                 .HasMaxLength(50)
                 .HasDefaultValueSql("'Customer'::character varying")
                 .HasColumnName("role");
+        });
+
+        modelBuilder.Entity<Visit>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("visits_pkey");
+
+            entity.ToTable("visits");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Browser)
+                .HasMaxLength(30)
+                .HasColumnName("browser");
+            entity.Property(e => e.City)
+                .HasMaxLength(100)
+                .HasColumnName("city");
+            entity.Property(e => e.Country)
+                .HasMaxLength(100)
+                .HasColumnName("country");
+            entity.Property(e => e.Device)
+                .HasMaxLength(20)
+                .HasColumnName("device");
+            entity.Property(e => e.Governorate)
+                .HasMaxLength(100)
+                .HasColumnName("governorate");
+            entity.Property(e => e.Visitdate)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("visitdate");
+            entity.Property(e => e.Visitorname)
+                .HasMaxLength(100)
+                .HasColumnName("visitorname");
         });
 
         OnModelCreatingPartial(modelBuilder);
