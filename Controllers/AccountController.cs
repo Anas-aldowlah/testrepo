@@ -82,9 +82,10 @@ public class AccountController : Controller
             ModelState.AddModelError(string.Empty, "رقم الجوال أو كلمة المرور غير صحيحة.");
             return View("Auth");
         }
-        await _visitService.SaveVisitAsync(HttpContext);
+        ;
         await SignInUserAsync(user);
         TempData["UserName"] = user.Name;
+        await _visitService.SaveVisitAsync(HttpContext);
         return LocalRedirect(GetRedirectUrl(returnUrl));
     }
 
