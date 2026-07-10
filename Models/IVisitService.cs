@@ -2,6 +2,6 @@
 {
     public interface IVisitService
     {
-        Task SaveVisitAsync(HttpContext context);
+        Task SaveVisitAsync(HttpContext context,string name);
     }
 }

@@ -16,14 +16,16 @@ namespace YAGOT_2._0.Models
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task SaveVisitAsync(HttpContext context)
+        public async Task SaveVisitAsync(HttpContext context,string? name=null)
         {
             try
             {
                 // اسم الزائر
-                string visitorName = context.User.Identity?.IsAuthenticated == true
-                    ? context.User.Identity.Name!
+                string visitorName = name != null
+                    ? name!
                     : "زائر";
+
+
 
                 // User Agent
                 string userAgent = context.Request.Headers["User-Agent"].ToString();

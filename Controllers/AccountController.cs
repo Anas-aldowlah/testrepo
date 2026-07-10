@@ -85,7 +85,7 @@ public class AccountController : Controller
         ;
         await SignInUserAsync(user);
         TempData["UserName"] = user.Name;
-        await _visitService.SaveVisitAsync(HttpContext);
+        await _visitService.SaveVisitAsync(HttpContext,user.Name);
         return LocalRedirect(GetRedirectUrl(returnUrl));
 
     }
