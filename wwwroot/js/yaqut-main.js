@@ -66,11 +66,7 @@
     }
 
     // تطبيق الثيم فوراً لتجنب الوميض الأبيض (Flicker)
-    if (!document.documentElement.classList.contains('yaqut-admin-root')) {
-        applyTheme(getPreferredTheme());
-    } else {
-        document.documentElement.classList.add('dark-mode', 'theme-dark');
-    }
+    applyTheme(getPreferredTheme());
 
     function initThemeToggle() {
         document.querySelectorAll('#yaqutThemeToggle, .yaqut-theme-toggle').forEach(function (btn) {
@@ -458,9 +454,6 @@
     }
 
     function init() {
-        if (document.body && document.body.classList.contains('yaqut-admin-body')) {
-            document.documentElement.classList.add('dark-mode', 'theme-dark');
-        }
         initThemeToggle();
         initHeroSlider();
         initAuthPanels();
