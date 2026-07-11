@@ -240,6 +240,7 @@
 
                 <form asp-action="UpdateStatus" method="post" class="yq-order-status-form">
                     <input type="hidden" name="Id" value="@Model.Id" />
+                    <input type="hidden" name="returnToDetails" value="true" />
                     <label for="orderStatus">حالة الطلب الحالية</label>
                     <select id="orderStatus" name="Status" class="yq-orders-status-select">
                         <option value="Pending" selected="@(Model.Status == "Pending")">قيد الانتظار</option>

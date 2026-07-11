@@ -66,9 +66,24 @@ public class OrdersController : Controller
         return View(await query.ToListAsync());
     }
 
+    public async Task<IActionResult> Details(int id)
+    {
+        var order = await _context.Orders
+            .AsNoTracking()
+            .Include(o => o.User)
+            .Include(o => o.Orderitems)
+                .ThenInclude(oi => oi.Product)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+            return NotFound();
+
+        return View(order);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateStatus(int id, string status)
+    public async Task<IActionResult> UpdateStatus(int id, string status, bool returnToDetails = false)
     {
         if (string.IsNullOrWhiteSpace(status))
             return BadRequest();
@@ -88,7 +103,7 @@ public class OrdersController : Controller
 
         // ?? ??? ??? ??? ??? ???? ?????? ?????
         if (order.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
-            return RedirectToAction(nameof(Index));
+            return RedirectAfterStatusUpdate(id, returnToDetails);
 
         bool wasActive = ActiveStatuses.Contains(order.Status);
         bool willBeActive = ActiveStatuses.Contains(status);
@@ -101,7 +116,7 @@ public class OrdersController : Controller
                 if (!DeductStock(order))
                 {
                     TempData["Error"] = "One or more products do not have sufficient stock.";
-                    return RedirectToAction(nameof(Index));
+                    return RedirectAfterStatusUpdate(id, returnToDetails);
                 }
             }
 
@@ -122,6 +137,14 @@ public class OrdersController : Controller
         {
             TempData["Error"] = "An unexpected error occurred while updating the order.";
         }
+
+        return RedirectAfterStatusUpdate(id, returnToDetails);
+    }
+
+    private IActionResult RedirectAfterStatusUpdate(int orderId, bool returnToDetails)
+    {
+        if (returnToDetails)
+            return RedirectToAction(nameof(Details), new { id = orderId });
 
         return RedirectToAction(nameof(Index));
     }
