@@ -1,0 +1,229 @@
+@model User
+@{
+    ViewData["Title"] = $"تفاصيل المستخدم #{Model.Id}";
+
+    var recentOrders = ViewBag.RecentOrders as IEnumerable<Order> ?? Enumerable.Empty<Order>();
+    var orders = recentOrders.ToList();
+    var displayName = !string.IsNullOrWhiteSpace(Model.Name) ? Model.Name : "غير متوفر";
+    var displayEmail = !string.IsNullOrWhiteSpace(Model.Email) ? Model.Email : "غير متوفر";
+    var displayPhone = !string.IsNullOrWhiteSpace(Model.Phone) ? Model.Phone : "غير متوفر";
+    var displayRole = Model.Role switch
+    {
+        "Admin" => "مدير",
+        "Developer" => "مطور",
+        "Customer" => "زبون",
+        _ => !string.IsNullOrWhiteSpace(Model.Role) ? Model.Role : "غير متوفر"
+    };
+    var roleClass = Model.Role switch
+    {
+        "Admin" => "yq-users-badge--admin",
+        "Developer" => "yq-users-badge--developer",
+        "Customer" => "yq-users-badge--customer",
+        _ => "yq-users-badge--neutral"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/users.css" asp-append-version="true" />
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">المستخدمون</a>
+    <span>/</span>
+    <span>#@Model.Id</span>
+}
+
+<section class="yq-user-details-admin" aria-labelledby="userDetailsTitle">
+    <header class="yq-user-details-hero">
+        <div class="yq-user-details-hero__content">
+            <a asp-action="Index" class="yq-user-details-back">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>العودة إلى المستخدمين</span>
+            </a>
+            <span class="yq-users-eyebrow">ملف المستخدم</span>
+            <h2 id="userDetailsTitle">@displayName</h2>
+            <p>مراجعة بيانات الحساب الأساسية والطلبات الحديثة المتاحة من النظام الحالي.</p>
+        </div>
+
+        <div class="yq-user-details-identity" aria-label="ملخص المستخدم">
+            <span class="yq-user-details-avatar" aria-hidden="true">
+                <i class="bi bi-person-fill"></i>
+            </span>
+            <div>
+                <strong>#@Model.Id</strong>
+                <span class="yq-users-badge @roleClass">@displayRole</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="yq-user-details-summary" aria-label="ملخص الحساب">
+        <article class="yq-user-detail-stat">
+            <span class="yq-user-detail-stat__icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
+            <div>
+                <p>تاريخ التسجيل</p>
+                <strong>@(Model.Createdat.HasValue ? Model.Createdat.Value.ToString("dd/MM/yyyy") : "غير متوفر")</strong>
+            </div>
+        </article>
+        <article class="yq-user-detail-stat">
+            <span class="yq-user-detail-stat__icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
+            <div>
+                <p>الطلبات الحديثة</p>
+                <strong>@orders.Count</strong>
+            </div>
+        </article>
+        <article class="yq-user-detail-stat">
+            <span class="yq-user-detail-stat__icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+            <div>
+                <p>حالة الحساب</p>
+                <strong>غير متوفر</strong>
+            </div>
+        </article>
+    </section>
+
+    <div class="yq-user-details-layout">
+        <div class="yq-user-details-main">
+            <section class="yq-user-detail-card" aria-labelledby="profileSummaryTitle">
+                <div class="yq-user-detail-card__header">
+                    <div>
+                        <span class="yq-users-eyebrow">الملخص</span>
+                        <h3 id="profileSummaryTitle">ملخص الملف الشخصي</h3>
+                    </div>
+                </div>
+
+                <dl class="yq-user-info-list">
+                    <div>
+                        <dt>الاسم الكامل</dt>
+                        <dd>@displayName</dd>
+                    </div>
+                    <div>
+                        <dt>البريد الإلكتروني</dt>
+                        <dd>@displayEmail</dd>
+                    </div>
+                    <div>
+                        <dt>رقم الهاتف</dt>
+                        <dd>@displayPhone</dd>
+                    </div>
+                    <div>
+                        <dt>الدور</dt>
+                        <dd><span class="yq-users-badge @roleClass">@displayRole</span></dd>
+                    </div>
+                    <div>
+                        <dt>تاريخ التسجيل</dt>
+                        <dd>@(Model.Createdat.HasValue ? Model.Createdat.Value.ToString("dd/MM/yyyy HH:mm") : "غير متوفر")</dd>
+                    </div>
+                    <div>
+                        <dt>حالة الحساب</dt>
+                        <dd><span class="yq-users-badge yq-users-badge--neutral">غير متوفر</span></dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="yq-user-detail-card" aria-labelledby="recentOrdersTitle">
+                <div class="yq-user-detail-card__header">
+                    <div>
+                        <span class="yq-users-eyebrow">الطلبات</span>
+                        <h3 id="recentOrdersTitle">آخر الطلبات</h3>
+                    </div>
+                    <span class="yq-user-detail-card__meta">@orders.Count طلب</span>
+                </div>
+
+                @if (orders.Any())
+                {
+                    <div class="yq-user-orders-wrap">
+                        <table class="yq-user-orders-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">رقم الطلب</th>
+                                    <th scope="col">الحالة</th>
+                                    <th scope="col">الإجمالي</th>
+                                    <th scope="col">التاريخ</th>
+                                    <th scope="col">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in orders)
+                                {
+                                    var statusLabel = order.Status switch
+                                    {
+                                        "Pending" => "قيد الانتظار",
+                                        "Processed" => "قيد المعالجة",
+                                        "Shipped" => "تم الشحن",
+                                        "Delivered" => "تم التوصيل",
+                                        "Cancelled" => "ملغي",
+                                        _ => !string.IsNullOrWhiteSpace(order.Status) ? order.Status : "غير متوفر"
+                                    };
+                                    var statusClass = order.Status switch
+                                    {
+                                        "Pending" => "yq-user-order-status--pending",
+                                        "Processed" => "yq-user-order-status--processed",
+                                        "Shipped" => "yq-user-order-status--shipped",
+                                        "Delivered" => "yq-user-order-status--delivered",
+                                        "Cancelled" => "yq-user-order-status--cancelled",
+                                        _ => "yq-user-order-status--neutral"
+                                    };
+
+                                    <tr>
+                                        <td data-label="رقم الطلب">
+                                            <strong>#@order.Id</strong>
+                                        </td>
+                                        <td data-label="الحالة">
+                                            <span class="yq-user-order-status @statusClass">@statusLabel</span>
+                                        </td>
+                                        <td data-label="الإجمالي">@order.Totalamount.ToString("N0") ر.س</td>
+                                        <td data-label="التاريخ">
+                                            @(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "غير متوفر")
+                                        </td>
+                                        <td data-label="الإجراءات">
+                                            <a asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="yq-users-detail-link" aria-label="عرض الطلب رقم @order.Id">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                                <span>عرض</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="yq-users-empty yq-users-empty--compact" role="status">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        <h3>لا توجد طلبات مرتبطة</h3>
+                        <p>ستظهر الطلبات الحديثة هنا عند توفرها في نموذج البيانات الحالي.</p>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <aside class="yq-user-details-side" aria-label="معلومات الحساب">
+            <section class="yq-user-detail-card" aria-labelledby="accountInfoTitle">
+                <div class="yq-user-detail-card__header">
+                    <div>
+                        <span class="yq-users-eyebrow">الحساب</span>
+                        <h3 id="accountInfoTitle">معلومات أساسية</h3>
+                    </div>
+                </div>
+                <dl class="yq-user-info-list yq-user-info-list--compact">
+                    <div>
+                        <dt>معرف المستخدم</dt>
+                        <dd>#@Model.Id</dd>
+                    </div>
+                    <div>
+                        <dt>الدور</dt>
+                        <dd>@displayRole</dd>
+                    </div>
+                    <div>
+                        <dt>حالة الحساب</dt>
+                        <dd>غير متوفر في نموذج المستخدم الحالي</dd>
+                    </div>
+                    <div>
+                        <dt>طلبات حديثة معروضة</dt>
+                        <dd>@orders.Count</dd>
+                    </div>
+                </dl>
+            </section>
+        </aside>
+    </div>
+</section>

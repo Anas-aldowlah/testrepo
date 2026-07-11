@@ -54,7 +54,7 @@
 
 
 
-**Phase 1 — Public Storefront**
+**Phase 3 — Admin Dashboard**
 
 
 
@@ -74,7 +74,7 @@
 
 **| Phase 2 — Customer Experience | ⏳ Not Started |**
 
-**| Phase 3 — Admin Dashboard | ⏳ Not Started |**
+**| Phase 3 — Admin Dashboard | 🔄 In Progress |**
 
 **| Phase 4 — Production Readiness | ⏳ Not Started |**
 
@@ -100,7 +100,7 @@
 
 
 
-**Phase 1 — Public Storefront**
+**Phase 3 — Admin Dashboard**
 
 
 
@@ -180,17 +180,17 @@
 
 
 
-**- \[ ] Admin Layout**
+**- \[x] Admin Layout**
 
-**- \[ ] Dashboard**
+**- \[x] Dashboard**
 
-**- \[ ] Products**
+**- \[x] Products**
 
-**- \[ ] Categories**
+**- \[x] Categories**
 
-**- \[ ] Orders**
+**- \[x] Orders**
 
-**- \[ ] Users**
+**- \[x] Users Index + Details**
 
 **- \[ ] Settings**
 

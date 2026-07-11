@@ -20,12 +20,56 @@ public class UsersController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var users = await _context.Users.ToListAsync();
+        var users = await _context.Users
+            .AsNoTracking()
+            .OrderBy(user => user.Id)
+            .ToListAsync();
 
         foreach (var user in users)
         {
-            user.Phone = _DealingAPI.DecryptPhone(user.Phone);
+            user.Phone = DecryptPhoneOrUnavailable(user.Phone);
         }
-        return View(_context.Users);
+
+        return View(users);
+    }
+
+    public async Task<IActionResult> Details(int id)
+    {
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(user => user.Id == id);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        user.Phone = DecryptPhoneOrUnavailable(user.Phone);
+
+        ViewBag.RecentOrders = await _context.Orders
+            .AsNoTracking()
+            .Where(order => order.Userid == id)
+            .OrderByDescending(order => order.Orderdate)
+            .Take(5)
+            .ToListAsync();
+
+        return View(user);
+    }
+
+    private string DecryptPhoneOrUnavailable(string? encryptedPhone)
+    {
+        if (string.IsNullOrWhiteSpace(encryptedPhone))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return _DealingAPI.DecryptPhone(encryptedPhone);
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 }
