@@ -30,7 +30,7 @@
         <div class="yq-products-hero__content">
             <span class="yq-products-eyebrow">إدارة الأرشيف</span>
             <h2 id="productsTrashTitle">سلة محذوفات المنتجات</h2>
-            <p>تحتوي هذه الصفحة على المنتجات المؤرشفة التي أزيلت من واجهة المتجر. يمكن مراجعة بياناتها واستعادتها عبر مسار التعديل الحالي دون تغيير سير العمل الخلفي.</p>
+            <p>تحتوي هذه الصفحة على المنتجات المؤرشفة التي أزيلت من واجهة المتجر. يفتح إجراء المراجعة صفحة تعديل المنتج حتى يتمكن المدير من تحديث بياناته وإعادة نشره عبر سير العمل الحالي.</p>
         </div>
 
         <div class="yq-products-hero__actions" aria-label="إجراءات سلة المنتجات">
@@ -105,9 +105,9 @@
                                 </td>
                                 <td data-label="الإجراء">
                                     <div class="yq-products-actions">
-                                        <a asp-action="Edit" asp-route-id="@p.Id" class="yq-products-action yq-products-action--restore" aria-label="استعادة @p.Name" title="استعادة">
+                                        <a asp-action="Edit" asp-route-id="@p.Id" class="yq-products-action yq-products-action--restore" aria-label="مراجعة وتعديل @p.Name لإعادة النشر" title="مراجعة وتعديل">
                                             <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                                            <span>استعادة</span>
+                                            <span>مراجعة وتعديل</span>
                                         </a>
                                     </div>
                                 </td>
@@ -122,7 +122,7 @@
             <div class="yq-products-empty" role="status">
                 <i class="bi bi-archive" aria-hidden="true"></i>
                 <h3>لا توجد منتجات مؤرشفة</h3>
-                <p>عند أرشفة منتج من صفحة الإدارة سيظهر هنا للمراجعة والاستعادة عبر سير العمل الحالي.</p>
+                <p>عند أرشفة منتج من صفحة الإدارة سيظهر هنا للمراجعة، ويمكن فتح صفحة التعديل لإعادة نشره عبر سير العمل الحالي.</p>
                 <div class="yq-products-empty__actions">
                     <a asp-action="Index" class="btn-yaqut-gold">
                         <i class="bi bi-arrow-right" aria-hidden="true"></i>
