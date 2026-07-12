@@ -1,69 +1,178 @@
 @model ProductVW
 @{
     ViewData["Title"] = "تعديل المنتج";
-    var previewSrc = !string.IsNullOrEmpty(Model.Existingimage)
-        ? Url.Content("~/" + Model.Existingimage)
-        : "/images/placeholder-product.svg";
+
+    var categories = ViewBag.Categories ?? ViewBag.Categoryid ?? Enumerable.Empty<object>();
+    var routeId = ViewContext.RouteData.Values["id"]?.ToString();
+    var productId = Model.Id != 0 ? Model.Id.ToString() : routeId;
+    var existingImage = Model.Existingimage;
+    var hasExistingImage = !string.IsNullOrWhiteSpace(existingImage);
+    var previewSrc = hasExistingImage
+        ? (Uri.TryCreate(existingImage, UriKind.Absolute, out _)
+            ? existingImage
+            : Url.Content(existingImage!.StartsWith("/") ? "~" + existingImage : "~/" + existingImage))
+        : Url.Content("~/images/placeholder-product.svg");
 }
 
-<div class="yaqut-admin-form glass-effect">
-    <h1 class="yaqut-admin-form__title"><i class="bi bi-pencil"></i> تعديل: @Model.Name</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
+}
 
-    <form asp-action="Edit" method="post" enctype="multipart/form-data">
-        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger"></div>
-        <input type="hidden" asp-for="Id" />
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">المنتجات</a>
+    <span>/</span>
+    <span>تعديل المنتج</span>
+}
+
+<section class="yq-products-create yq-products-edit" aria-labelledby="productEditTitle">
+    <header class="yq-products-hero yq-products-create__hero">
+        <div class="yq-products-hero__content">
+            <span class="yq-products-eyebrow">إدارة الكتالوج</span>
+            <h2 id="productEditTitle">تعديل المنتج</h2>
+            <p>راجع بيانات المنتج الحالية، حدّث التصنيف والسعر والمخزون، واستبدل صورة العرض عند الحاجة مع الحفاظ على نفس مسار النشر.</p>
+        </div>
+
+        <div class="yq-products-hero__actions" aria-label="إجراءات التنقل">
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>العودة للمنتجات</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="yq-product-edit-identity" aria-label="المنتج الحالي">
+        <span class="yq-product-edit-identity__icon">
+            <i class="bi bi-upc-scan" aria-hidden="true"></i>
+        </span>
+        <div>
+            <span class="yq-products-eyebrow">المنتج الحالي</span>
+            <strong>@Model.Name</strong>
+            @if (!string.IsNullOrWhiteSpace(productId))
+            {
+                <small>#@productId</small>
+            }
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-product-form">
+        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
+        <input type="hidden" asp-for="Id" value="@productId" />
         <input type="hidden" asp-for="Existingimage" />
 
-        <div class="yaqut-form-group">
-            <label asp-for="Name" class="yaqut-form-label">اسم المنتج</label>
-            <input asp-for="Name" class="yaqut-form-input" />
-            <span asp-validation-for="Name" class="text-danger small"></span>
-        </div>
+        <div class="yq-product-form__layout">
+            <div class="yq-product-form__main">
+                <section class="yq-product-form__section" aria-labelledby="productBasicsTitle">
+                    <div class="yq-product-form__section-head">
+                        <span class="yq-product-form__section-icon">
+                            <i class="bi bi-card-text" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h3 id="productBasicsTitle">بيانات المنتج</h3>
+                            <p>حدّث الاسم والوصف كما يظهران في واجهة المتجر وضمن شاشة إدارة الكتالوج.</p>
+                        </div>
+                    </div>
 
-        <div class="yaqut-form-group">
-            <label asp-for="Description" class="yaqut-form-label">الوصف (الهرم العطري: إفتتاحية | قلب | قاعدة)</label>
-            <textarea asp-for="Description" rows="4" class="yaqut-form-input"></textarea>
-            <span asp-validation-for="Description" class="text-danger small"></span>
-        </div>
+                    <div class="yq-product-form__fields">
+                        <div class="yaqut-form-group yq-product-field">
+                            <label asp-for="Name" class="yaqut-form-label">اسم المنتج</label>
+                            <input asp-for="Name" class="yaqut-form-input" autocomplete="off" aria-describedby="NameValidation" />
+                            <span asp-validation-for="Name" id="NameValidation" class="yq-product-validation"></span>
+                        </div>
 
-        <div class="yaqut-form-row">
-            <div class="yaqut-form-group">
-                <label asp-for="Price" class="yaqut-form-label">السعر (ر.س)</label>
-                <input asp-for="Price" type="number" step="0.01" class="yaqut-form-input" />
-                <span asp-validation-for="Price" class="text-danger small"></span>
+                        <div class="yaqut-form-group yq-product-field">
+                            <label asp-for="Description" class="yaqut-form-label">الوصف والهرم العطري</label>
+                            <textarea asp-for="Description" rows="6" class="yaqut-form-input" placeholder="مثال: برغموت وبرتقال | ياسمين وورد | عود وعنبر" aria-describedby="DescriptionHelp DescriptionValidation"></textarea>
+                            <span id="DescriptionHelp" class="yq-product-help">حافظ على تنسيق الهرم العطري عند توفره: افتتاحية | قلب | قاعدة.</span>
+                            <span asp-validation-for="Description" id="DescriptionValidation" class="yq-product-validation"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="yq-product-form__section" aria-labelledby="productCatalogTitle">
+                    <div class="yq-product-form__section-head">
+                        <span class="yq-product-form__section-icon">
+                            <i class="bi bi-tags" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h3 id="productCatalogTitle">التصنيف والتسعير</h3>
+                            <p>اضبط مكان المنتج في الكتالوج وقيمته وحالة توفره حسب البيانات الفعلية.</p>
+                        </div>
+                    </div>
+
+                    <div class="yq-product-form__grid">
+                        <div class="yaqut-form-group yq-product-field yq-product-field--wide">
+                            <label asp-for="Categoryid" class="yaqut-form-label">التصنيف / العائلة العطرية</label>
+                            <select asp-for="Categoryid" asp-items="@(new SelectList(categories, "Id", "Name"))" class="yaqut-form-input" aria-describedby="CategoryidValidation">
+                                <option value="">-- اختر التصنيف --</option>
+                            </select>
+                            <span asp-validation-for="Categoryid" id="CategoryidValidation" class="yq-product-validation"></span>
+                        </div>
+
+                        <div class="yaqut-form-group yq-product-field">
+                            <label asp-for="Price" class="yaqut-form-label">السعر (ر.س)</label>
+                            <input asp-for="Price" type="number" step="0.01" class="yaqut-form-input" inputmode="decimal" aria-describedby="PriceValidation" />
+                            <span asp-validation-for="Price" id="PriceValidation" class="yq-product-validation"></span>
+                        </div>
+
+                        <div class="yaqut-form-group yq-product-field">
+                            <label asp-for="Stockquantity" class="yaqut-form-label">الكمية</label>
+                            <input asp-for="Stockquantity" type="number" class="yaqut-form-input" inputmode="numeric" aria-describedby="StockquantityValidation" />
+                            <span asp-validation-for="Stockquantity" id="StockquantityValidation" class="yq-product-validation"></span>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="yaqut-form-group">
-                <label asp-for="Stockquantity" class="yaqut-form-label">الكمية</label>
-                <input asp-for="Stockquantity" type="number" class="yaqut-form-input" />
-                <span asp-validation-for="Stockquantity" class="text-danger small"></span>
-            </div>
+
+            <aside class="yq-product-form__media" aria-labelledby="productImageTitle">
+                <section class="yq-product-form__section yq-product-form__section--sticky">
+                    <div class="yq-product-form__section-head">
+                        <span class="yq-product-form__section-icon">
+                            <i class="bi bi-image" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h3 id="productImageTitle">صورة المنتج</h3>
+                            <p>تظهر الصورة الحالية هنا. اختيار صورة جديدة يستبدلها عند حفظ التعديلات.</p>
+                        </div>
+                    </div>
+
+                    <div class="yq-product-upload">
+                        <div class="yq-product-upload__preview">
+                            <img id="imagePreview" src="@previewSrc" alt="معاينة صورة @Model.Name" data-yaqut-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+                        </div>
+
+                        <div class="yq-product-upload__control">
+                            <div class="yq-product-current-image">
+                                <span>@(hasExistingImage ? "الصورة الحالية محفوظة" : "لا توجد صورة محفوظة")</span>
+                                <small>@(hasExistingImage ? "اترك الحقل فارغاً للاحتفاظ بها." : "اختر صورة قبل الحفظ إذا كانت مطلوبة.")</small>
+                            </div>
+
+                            <label asp-for="Imagefile" class="yq-product-upload__label">
+                                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                                <span>استبدال الصورة</span>
+                            </label>
+                            <input asp-for="Imagefile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" aria-describedby="ImagefileHelp ImagefileValidation" />
+                            <span id="ImagefileHelp" class="yq-product-help">JPG, PNG, WebP — الحد الأقصى 10MB.</span>
+                            <span asp-validation-for="Imagefile" id="ImagefileValidation" class="yq-product-validation"></span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
         </div>
 
-        <div class="yaqut-form-group">
-            <label asp-for="Categoryid" class="yaqut-form-label">التصنيف</label>
-            <select asp-for="Categoryid" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name"))" class="yaqut-form-input">
-                <option value="">-- اختر التصنيف --</option>
-            </select>
-            <span asp-validation-for="Categoryid" class="text-danger small"></span>
-        </div>
-
-        <div class="yaqut-image-upload">
-            <label class="yaqut-form-label">صورة المنتج</label>
-            <div class="yaqut-image-upload__row">
-                <div class="yaqut-image-preview">
-                    <img id="imagePreview" src="@previewSrc" alt="معاينة" />
-                </div>
-                <div class="flex-grow-1">
-                    <label class="text-muted small">تغيير الصورة (اختياري)</label>
-                    <input name="Imagefile" type="file" id="imageInput" accept="image/*" data-yaqut-image-input="imagePreview" />
-                    <p class="text-muted small mt-2 mb-0">JPG, PNG, WebP — الحد الأقصى 10MB</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex gap-2 pt-3 border-top border-secondary">
-            <button type="submit" class="btn-yaqut-gold">حفظ التعديلات</button>
-            <a asp-action="Index" class="btn-yaqut-outline">إلغاء</a>
+        <div class="yq-product-form__actions" aria-label="إجراءات تعديل المنتج">
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>رجوع</span>
+            </a>
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+                <span>إلغاء</span>
+            </a>
+            <button type="submit" class="btn-yaqut-gold">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                <span>حفظ التعديلات</span>
+            </button>
         </div>
     </form>
-</div>
+</section>

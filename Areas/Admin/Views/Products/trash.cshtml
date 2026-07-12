@@ -1,40 +1,135 @@
 @model YAGOT_2._0.Services.ViewModels
 @{
-    ViewData["Title"] = "سلة المحذوفات";
+    ViewData["Title"] = "سلة محذوفات المنتجات";
+
+    const string deletedImage = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+    const string fallbackImage = "/images/placeholder-product.svg";
+
+    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
+    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
+    var archivedProducts = products
+        .Where(p => p.Stockquantity == 0 && string.Equals(p.Imageurl, deletedImage, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(p => p.Createdat)
+        .ThenBy(p => p.Name)
+        .ToList();
 }
 
-<div class="yaqut-admin-header">
-    <h1><i class="bi bi-trash"></i> سلة المحذوفات</h1>
-    <a asp-action="Index" class="btn-yaqut-gold btn-sm"><i class="bi bi-arrow-right"></i> العودة للمنتجات</a>
-</div>
-
-@if (TempData["Error"] != null)
-{
-    <div class="yaqut-alert yaqut-alert--danger">@TempData["Error"]</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
 }
 
-<div class="yaqut-admin-grid">
-    @foreach (var p in Model.Products)
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">المنتجات</a>
+    <span>/</span>
+    <span>سلة المحذوفات</span>
+}
+
+<section class="yq-products-admin yq-products-trash" aria-labelledby="productsTrashTitle">
+    <header class="yq-products-hero">
+        <div class="yq-products-hero__content">
+            <span class="yq-products-eyebrow">إدارة الأرشيف</span>
+            <h2 id="productsTrashTitle">سلة محذوفات المنتجات</h2>
+            <p>تحتوي هذه الصفحة على المنتجات المؤرشفة التي أزيلت من واجهة المتجر. يمكن مراجعة بياناتها واستعادتها عبر مسار التعديل الحالي دون تغيير سير العمل الخلفي.</p>
+        </div>
+
+        <div class="yq-products-hero__actions" aria-label="إجراءات سلة المنتجات">
+            <a asp-action="Index" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>العودة للمنتجات</span>
+            </a>
+        </div>
+    </header>
+
+    @if (TempData["Error"] != null)
     {
-        if (p.Stockquantity == 0 && p.Imageurl == "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png")
-        {
-            var cat = Model.Categories.FirstOrDefault(c => c.Id == p.Categoryid);
-
-            <article class="yaqut-admin-card glass-effect">
-                <img src="@p.Imageurl" alt="@p.Name" class="yaqut-admin-card__img" />
-                <div class="yaqut-admin-card__body">
-                    <h3 class="yaqut-admin-card__title">@p.Name</h3>
-                    <p class="text-muted small">@(cat?.Name ?? "-")</p>
-                    <div class="yaqut-product-card__price mb-2">@p.Price.ToString("N0") <small>ر.س</small></div>
-                    <div class="d-flex gap-2 mt-3">
-                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn-yaqut-outline btn-sm flex-fill text-center">استعادة / تعديل</a>
-                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="flex-fill"
-                              data-yaqut-confirm="هل أنت متأكد من الحذف النهائي لـ @p.Name؟">
-                            <button type="submit" class="btn-yaqut-danger btn-sm w-100">حذف نهائي</button>
-                        </form>
-                    </div>
-                </div>
-            </article>
-        }
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
     }
-</div>
+
+    <section class="yq-products-panel" aria-labelledby="archivedProductsTitle">
+        <div class="yq-products-panel__header">
+            <div>
+                <span class="yq-products-eyebrow">منتجات مؤرشفة</span>
+                <h3 id="archivedProductsTitle">قائمة المنتجات غير المعروضة</h3>
+            </div>
+            <div class="yq-products-filter-note" aria-label="عدد المنتجات المؤرشفة">
+                <i class="bi bi-archive" aria-hidden="true"></i>
+                <span>@archivedProducts.Count منتج مؤرشف</span>
+            </div>
+        </div>
+
+        @if (archivedProducts.Any())
+        {
+            <div class="yq-products-table-wrap">
+                <table class="yq-products-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">المنتج</th>
+                            <th scope="col">التصنيف</th>
+                            <th scope="col">السعر</th>
+                            <th scope="col">تاريخ الحذف</th>
+                            <th scope="col">الحالة</th>
+                            <th scope="col">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in archivedProducts)
+                        {
+                            var cat = categories.FirstOrDefault(c => c.Id == p.Categoryid);
+                            var imageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? fallbackImage : p.Imageurl;
+
+                            <tr>
+                                <td data-label="المنتج">
+                                    <div class="yq-products-item">
+                                        <img src="@imageUrl" alt="@p.Name" class="yq-products-item__image yaqut-card-img" loading="lazy" data-yaqut-fallback="@fallbackImage" />
+                                        <div class="yq-products-item__meta">
+                                            <strong>@p.Name</strong>
+                                            <span>#@p.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="التصنيف">
+                                    <span class="yq-products-category">@(cat?.Name ?? "-")</span>
+                                </td>
+                                <td data-label="السعر">
+                                    <div class="yq-products-price">
+                                        <strong>@p.Price.ToString("N0")</strong>
+                                        <span>ر.س</span>
+                                    </div>
+                                </td>
+                                <td data-label="تاريخ الحذف">
+                                    <span class="yq-products-muted-value">غير متاح</span>
+                                </td>
+                                <td data-label="الحالة">
+                                    <span class="yq-products-badge yq-products-badge--danger">مؤرشف</span>
+                                </td>
+                                <td data-label="الإجراء">
+                                    <div class="yq-products-actions">
+                                        <a asp-action="Edit" asp-route-id="@p.Id" class="yq-products-action yq-products-action--restore" aria-label="استعادة @p.Name" title="استعادة">
+                                            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                                            <span>استعادة</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="yq-products-empty" role="status">
+                <i class="bi bi-archive" aria-hidden="true"></i>
+                <h3>لا توجد منتجات مؤرشفة</h3>
+                <p>عند أرشفة منتج من صفحة الإدارة سيظهر هنا للمراجعة والاستعادة عبر سير العمل الحالي.</p>
+                <div class="yq-products-empty__actions">
+                    <a asp-action="Index" class="btn-yaqut-gold">
+                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        <span>العودة للمنتجات</span>
+                    </a>
+                </div>
+            </div>
+        }
+    </section>
+</section>
