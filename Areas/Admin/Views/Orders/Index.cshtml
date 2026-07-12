@@ -260,21 +260,27 @@
                                     </time>
                                 </td>
                                 <td data-label="الإجراءات">
-                                    <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
-                                        <input type="hidden" name="Id" value="@order.Id" />
-                                        <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
-                                        <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
-                                            <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
-                                            <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
-                                            <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
-                                            <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
-                                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
-                                        </select>
-                                        <button type="submit" class="yq-orders-action-button">
-                                            <i class="bi bi-check2" aria-hidden="true"></i>
-                                            <span>تحديث</span>
-                                        </button>
-                                    </form>
+                                    <div class="yq-orders-action-stack">
+                                        <a asp-action="Details" asp-route-id="@order.Id" class="yq-orders-detail-link">
+                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                            <span>التفاصيل</span>
+                                        </a>
+                                        <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                            <input type="hidden" name="Id" value="@order.Id" />
+                                            <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
+                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
+                                                <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
+                                                <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
+                                                <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
+                                                <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
+                                                <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
+                                            </select>
+                                            <button type="submit" class="yq-orders-action-button">
+                                                <i class="bi bi-check2" aria-hidden="true"></i>
+                                                <span>تحديث</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         }

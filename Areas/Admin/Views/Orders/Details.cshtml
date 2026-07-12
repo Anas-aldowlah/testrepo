@@ -1,0 +1,364 @@
+@model YAGOT_2._0.Models.Order
+@using YAGOT_2._0.Services
+@inject DealingAPI DealingApiService
+@{
+    ViewData["Title"] = $"تفاصيل الطلب #{Model.Id}";
+
+    var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
+    var itemCount = items.Sum(item => item.Quantity);
+    var subtotal = items.Sum(item => item.Quantity * item.Unitprice);
+    var totalAdjustment = Model.Totalamount - subtotal;
+    var customerName = Model.User?.Name ?? "عميل غير معروف";
+    var customerPhone = DealingApiService.DecryptPhone(Model.User?.Phone ?? string.Empty);
+    var customerEmail = Model.User?.Email;
+    var statusLabel = Model.Status switch
+    {
+        "Pending" => "قيد الانتظار",
+        "Processed" => "قيد المعالجة",
+        "Shipped" => "تم الشحن",
+        "Delivered" => "تم التوصيل",
+        "Cancelled" => "ملغي",
+        _ => Model.Status
+    };
+    var statusClass = Model.Status switch
+    {
+        "Pending" => "yq-orders-badge--pending",
+        "Processed" => "yq-orders-badge--processed",
+        "Shipped" => "yq-orders-badge--shipped",
+        "Delivered" => "yq-orders-badge--delivered",
+        "Cancelled" => "yq-orders-badge--cancelled",
+        _ => "yq-orders-badge--neutral"
+    };
+    var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
+    var isCancelled = string.Equals(Model.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+    if (currentStepIndex < 0)
+    {
+        currentStepIndex = 0;
+    }
+
+    var stepLabels = new Dictionary<string, string>
+    {
+        ["Pending"] = "استلام الطلب",
+        ["Processed"] = "المعالجة",
+        ["Shipped"] = "الشحن",
+        ["Delivered"] = "التوصيل"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/orders.css" asp-append-version="true" />
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">الطلبات</a>
+    <span>/</span>
+    <span>#@Model.Id</span>
+}
+
+<section class="yq-order-details-admin" aria-labelledby="orderDetailsTitle">
+    <header class="yq-order-details-hero">
+        <div class="yq-order-details-hero__content">
+            <a asp-action="Index" class="yq-order-details-back">
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                <span>العودة إلى الطلبات</span>
+            </a>
+            <span class="yq-orders-eyebrow">إدارة الطلب</span>
+            <h2 id="orderDetailsTitle">تفاصيل الطلب #@Model.Id</h2>
+            <p>واجهة موحدة لمراجعة بيانات العميل، حالة التنفيذ، المنتجات المطلوبة، وإجراءات تحديث الطلب باستخدام البيانات المتوفرة من النظام.</p>
+        </div>
+
+        <div class="yq-order-details-hero__status">
+            <span class="yq-orders-badge @statusClass">@statusLabel</span>
+            <strong>@Model.Totalamount.ToString("N0") ر.س</strong>
+            <small>@itemCount قطعة</small>
+        </div>
+    </header>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--success" role="alert">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+    }
+
+    <section class="yq-order-details-summary" aria-label="ملخص الطلب">
+        <article class="yq-order-detail-card yq-order-detail-card--summary">
+            <span class="yq-order-detail-card__icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
+            <div>
+                <p>رقم التتبع</p>
+                <strong>@(!string.IsNullOrWhiteSpace(Model.Trackingnumber) ? Model.Trackingnumber : "غير متوفر")</strong>
+            </div>
+        </article>
+        <article class="yq-order-detail-card yq-order-detail-card--summary">
+            <span class="yq-order-detail-card__icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
+            <div>
+                <p>تاريخ الطلب</p>
+                <strong>@(Model.Orderdate.HasValue ? Model.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "غير متوفر")</strong>
+            </div>
+        </article>
+        <article class="yq-order-detail-card yq-order-detail-card--summary">
+            <span class="yq-order-detail-card__icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+            <div>
+                <p>آخر تحديث للحالة</p>
+                <strong>@(Model.TimeState.HasValue ? Model.TimeState.Value.ToString("dd/MM/yyyy HH:mm") : "غير متوفر")</strong>
+            </div>
+        </article>
+    </section>
+
+    <div class="yq-order-details-layout">
+        <div class="yq-order-details-main">
+            <section class="yq-order-detail-card" aria-labelledby="orderStatusTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">حالة الطلب</span>
+                        <h3 id="orderStatusTitle">مسار التنفيذ</h3>
+                    </div>
+                    <span class="yq-orders-badge @statusClass">@statusLabel</span>
+                </div>
+
+                @if (isCancelled)
+                {
+                    <div class="yq-order-details-state-note yq-order-details-state-note--danger" role="status">
+                        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                        <span>تم إلغاء هذا الطلب. يمكن تغيير الحالة من نموذج الإجراءات إذا كان سير العمل الحالي يسمح بذلك.</span>
+                    </div>
+                }
+                else
+                {
+                    <ol class="yq-order-details-timeline" aria-label="خطوات حالة الطلب">
+                        @for (var i = 0; i < statusSteps.Length; i++)
+                        {
+                            var isDone = i < currentStepIndex;
+                            var isActive = i == currentStepIndex;
+                            <li class="@(isDone ? "is-done" : "") @(isActive ? "is-active" : "")">
+                                <span class="yq-order-details-timeline__dot" aria-hidden="true">
+                                    @if (isDone)
+                                    {
+                                        <i class="bi bi-check-lg"></i>
+                                    }
+                                    else
+                                    {
+                                        @(i + 1)
+                                    }
+                                </span>
+                                <span>@stepLabels[statusSteps[i]]</span>
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="orderProductsTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">المنتجات</span>
+                        <h3 id="orderProductsTitle">المنتجات المطلوبة</h3>
+                    </div>
+                    <span class="yq-order-detail-card__meta">@items.Count منتج</span>
+                </div>
+
+                @if (items.Any())
+                {
+                    <div class="yq-order-products-wrap">
+                        <table class="yq-order-products-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">المنتج</th>
+                                    <th scope="col">سعر الوحدة</th>
+                                    <th scope="col">الكمية</th>
+                                    <th scope="col">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in items)
+                                {
+                                    var lineTotal = item.Quantity * item.Unitprice;
+                                    <tr>
+                                        <td data-label="المنتج">
+                                            <div class="yq-order-product">
+                                                @if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
+                                                {
+                                                    <img src="@item.Product.Imageurl" alt="@item.Product.Name" loading="lazy" />
+                                                }
+                                                else
+                                                {
+                                                    <span class="yq-order-product__placeholder" aria-hidden="true">
+                                                        <i class="bi bi-box-seam"></i>
+                                                    </span>
+                                                }
+                                                <div>
+                                                    <strong>@(item.Product?.Name ?? "منتج غير متوفر")</strong>
+                                                    <span>رقم المنتج: @item.Productid</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td data-label="سعر الوحدة">@item.Unitprice.ToString("N0") ر.س</td>
+                                        <td data-label="الكمية">@item.Quantity</td>
+                                        <td data-label="الإجمالي"><strong>@lineTotal.ToString("N0") ر.س</strong></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="yq-order-details-empty" role="status">
+                        <i class="bi bi-bag-x" aria-hidden="true"></i>
+                        <p>لا توجد منتجات مرتبطة بهذا الطلب في البيانات الحالية.</p>
+                    </div>
+                }
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="orderNotesTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الملاحظات</span>
+                        <h3 id="orderNotesTitle">ملاحظات الطلب</h3>
+                    </div>
+                </div>
+                <div class="yq-order-details-state-note">
+                    <i class="bi bi-journal-text" aria-hidden="true"></i>
+                    <span>لا يدعم نموذج الطلب الحالي ملاحظات إدارية أو ملاحظات عميل.</span>
+                </div>
+            </section>
+        </div>
+
+        <aside class="yq-order-details-side" aria-label="تفاصيل مرتبطة بالطلب">
+            <section class="yq-order-detail-card" aria-labelledby="orderActionsTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الإجراءات</span>
+                        <h3 id="orderActionsTitle">تحديث الحالة</h3>
+                    </div>
+                </div>
+
+                <form asp-action="UpdateStatus" method="post" class="yq-order-status-form">
+                    <input type="hidden" name="Id" value="@Model.Id" />
+                    <input type="hidden" name="returnToDetails" value="true" />
+                    <label for="orderStatus">حالة الطلب الحالية</label>
+                    <select id="orderStatus" name="Status" class="yq-orders-status-select">
+                        <option value="Pending" selected="@(Model.Status == "Pending")">قيد الانتظار</option>
+                        <option value="Processed" selected="@(Model.Status == "Processed")">قيد المعالجة</option>
+                        <option value="Shipped" selected="@(Model.Status == "Shipped")">تم الشحن</option>
+                        <option value="Delivered" selected="@(Model.Status == "Delivered")">تم التوصيل</option>
+                        <option value="Cancelled" selected="@(Model.Status == "Cancelled")">ملغي</option>
+                    </select>
+                    <button type="submit" class="btn-yaqut-gold">
+                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                        <span>حفظ الحالة</span>
+                    </button>
+                </form>
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="customerInfoTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">العميل</span>
+                        <h3 id="customerInfoTitle">معلومات العميل</h3>
+                    </div>
+                </div>
+                <dl class="yq-order-info-list">
+                    <div>
+                        <dt>الاسم</dt>
+                        <dd>@customerName</dd>
+                    </div>
+                    <div>
+                        <dt>رقم الهاتف</dt>
+                        <dd>@(!string.IsNullOrWhiteSpace(customerPhone) ? customerPhone : "غير متوفر")</dd>
+                    </div>
+                    <div>
+                        <dt>البريد الإلكتروني</dt>
+                        <dd>@(!string.IsNullOrWhiteSpace(customerEmail) ? customerEmail : "غير متوفر")</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="shippingInfoTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الشحن</span>
+                        <h3 id="shippingInfoTitle">معلومات الشحن</h3>
+                    </div>
+                </div>
+                <dl class="yq-order-info-list">
+                    <div>
+                        <dt>رقم التتبع</dt>
+                        <dd>@(!string.IsNullOrWhiteSpace(Model.Trackingnumber) ? Model.Trackingnumber : "غير متوفر")</dd>
+                    </div>
+                    <div>
+                        <dt>حالة التنفيذ</dt>
+                        <dd><span class="yq-orders-badge @statusClass">@statusLabel</span></dd>
+                    </div>
+                    <div>
+                        <dt>عنوان الشحن</dt>
+                        <dd>غير متوفر في بيانات الطلب الحالية</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="billingInfoTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الفوترة</span>
+                        <h3 id="billingInfoTitle">معلومات الفوترة</h3>
+                    </div>
+                </div>
+                <div class="yq-order-details-state-note">
+                    <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                    <span>معلومات الفوترة غير متوفرة في نموذج الطلب الحالي.</span>
+                </div>
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="paymentInfoTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الدفع</span>
+                        <h3 id="paymentInfoTitle">معلومات الدفع</h3>
+                    </div>
+                </div>
+                <dl class="yq-order-info-list">
+                    <div>
+                        <dt>طريقة الدفع</dt>
+                        <dd>غير متوفرة في بيانات الطلب الحالية</dd>
+                    </div>
+                    <div>
+                        <dt>حالة الدفع</dt>
+                        <dd><span class="yq-orders-badge yq-orders-badge--neutral">غير متوفرة</span></dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="orderTotalsTitle">
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">الإجماليات</span>
+                        <h3 id="orderTotalsTitle">ملخص المبالغ</h3>
+                    </div>
+                </div>
+                <dl class="yq-order-totals">
+                    <div>
+                        <dt>إجمالي المنتجات</dt>
+                        <dd>@subtotal.ToString("N0") ر.س</dd>
+                    </div>
+                    @if (totalAdjustment != 0)
+                    {
+                        <div>
+                            <dt>فروقات مسجلة</dt>
+                            <dd>@totalAdjustment.ToString("N0") ر.س</dd>
+                        </div>
+                    }
+                    <div class="yq-order-totals__total">
+                        <dt>إجمالي الطلب</dt>
+                        <dd>@Model.Totalamount.ToString("N0") ر.س</dd>
+                    </div>
+                </dl>
+            </section>
+        </aside>
+    </div>
+</section>
