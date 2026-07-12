@@ -1,58 +1,106 @@
 @model IEnumerable<User>
 @{
     ViewData["Title"] = "إدارة المستخدمين";
-    var id =1;
+    var id = 1;
+    var users = Model.OrderBy(s=> s.Id).ToList();
 }
 
-<div class="yaqut-admin-header">
-    <h1><i class="bi bi-people"></i> إدارة المستخدمين</h1>
-</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/users.css" asp-append-version="true" />
+}
 
-<table class="yaqut-admin-table">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>الاسم</th>
-            <th>رقم الجوال</th>
-            <th>الدور</th>
-            <th>تاريخ التسجيل</th>
-        </tr>
-    </thead>
-    <tbody>
-        
-        @foreach (var user in Model.OrderBy(s=> s.Id))
+<section class="yq-users-admin" aria-labelledby="usersPageTitle">
+    <header class="yq-users-hero">
+        <div class="yq-users-hero__content">
+            <span class="yq-users-eyebrow">Users Directory</span>
+            <h2 id="usersPageTitle"><i class="bi bi-people"></i> إدارة المستخدمين</h2>
+            <p>مراجعة حسابات المتجر وأدوارها الحالية ضمن لوحة إدارية واضحة وسريعة القراءة.</p>
+        </div>
+        <div class="yq-users-hero__meta" aria-label="إجمالي المستخدمين">
+            <span>إجمالي الحسابات</span>
+            <strong>@users.Count</strong>
+        </div>
+    </header>
+
+    <section class="yq-users-panel" aria-labelledby="usersTableTitle">
+        <div class="yq-users-panel__header">
+            <div>
+                <h3 id="usersTableTitle">سجل المستخدمين</h3>
+                <p>البيانات الأساسية لكل حساب مسجل.</p>
+            </div>
+        </div>
+
+        @if (users.Any())
         {
-           
-            <tr>
-                <td>@id</td>
-                <td>@user.Name</td>
-                <td>
-                    @if (user.Role == "Developer")
-                    {
-                    <span >775458250</span>
-                    }
-                    else
-                    {
-                        @user.Phone
-                    }
-                </td>
-                <td>
-                    @if (user.Role == "Admin")
-                    {
-                        <span class="badge badge-shipped">مدير</span>
-                    }
-                    else if (user.Role == "Developer")
-                    {
-                        <span class="badge badge-pending">مطور</span>
-                    }
-                    else
-                    {
-                        <span class="badge badge-pending">زبون</span>
-                    }
-                </td>
-                <td>@(user.Createdat.HasValue ? user.Createdat.Value.ToString("dd/MM/yyyy") : "-")</td>
-            </tr>
-            id += 1;
+            <div class="yq-users-table-wrap">
+                <table class="yq-users-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">الاسم</th>
+                            <th scope="col">رقم الجوال</th>
+                            <th scope="col">الدور</th>
+                            <th scope="col">تاريخ التسجيل</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in users)
+                        {
+                            <tr>
+                                <td data-label="#">
+                                    <span class="yq-users-row-number">@id</span>
+                                </td>
+                                <td data-label="الاسم">
+                                    <div class="yq-users-person">
+                                        <span class="yq-users-person__avatar" aria-hidden="true">
+                                            <i class="bi bi-person-fill"></i>
+                                        </span>
+                                        <strong>@user.Name</strong>
+                                    </div>
+                                </td>
+                                <td data-label="رقم الجوال">
+                                    <span class="yq-users-phone">
+                                        @if (user.Role == "Developer")
+                                        {
+                                            <span>775458250</span>
+                                        }
+                                        else
+                                        {
+                                            @user.Phone
+                                        }
+                                    </span>
+                                </td>
+                                <td data-label="الدور">
+                                    @if (user.Role == "Admin")
+                                    {
+                                        <span class="yq-users-badge yq-users-badge--admin">مدير</span>
+                                    }
+                                    else if (user.Role == "Developer")
+                                    {
+                                        <span class="yq-users-badge yq-users-badge--developer">مطور</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-users-badge yq-users-badge--customer">زبون</span>
+                                    }
+                                </td>
+                                <td data-label="تاريخ التسجيل">
+                                    <time class="yq-users-date">@(user.Createdat.HasValue ? user.Createdat.Value.ToString("dd/MM/yyyy") : "-")</time>
+                                </td>
+                            </tr>
+                            id += 1;
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
-    </tbody>
-</table>
+        else
+        {
+            <div class="yq-users-empty" role="status">
+                <i class="bi bi-person-x" aria-hidden="true"></i>
+                <h3>لا يوجد مستخدمون</h3>
+                <p>ستظهر الحسابات المسجلة هنا عند توفرها.</p>
+            </div>
+        }
+    </section>
+</section>
