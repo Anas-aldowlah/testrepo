@@ -1,226 +1,305 @@
 @model IEnumerable<YAGOT_2._0.Models.Order>
+@using YAGOT_2._0.Services
+@using System.Security.Claims
+@inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = "إدارة الطلبات";
-}
 
-<div class="yaqut-admin-header">
-    <h1><i class="bi bi-receipt"></i> إدارة الطلبات</h1>
-</div>
-
-@{
+    var orders = Model?.ToList() ?? new List<YAGOT_2._0.Models.Order>();
     var selectedStatus = ViewBag.SelectedStatus as string[] ?? Array.Empty<string>();
+    var search = ViewBag.Search as string;
+    var hasActiveFilters = selectedStatus.Any() || !string.IsNullOrWhiteSpace(search);
+    var pendingCount = orders.Count(o => string.Equals(o.Status, "Pending", StringComparison.OrdinalIgnoreCase));
+    var activeCount = orders.Count(o =>
+        string.Equals(o.Status, "Processed", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(o.Status, "Shipped", StringComparison.OrdinalIgnoreCase));
+    var deliveredCount = orders.Count(o => string.Equals(o.Status, "Delivered", StringComparison.OrdinalIgnoreCase));
+    var totalRevenue = orders.Sum(o => o.Totalamount);
 }
 
-<form method="get" class="glass-effect p-4 mb-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/orders.css" asp-append-version="true" />
+}
 
-    <div class="row">
+@section Breadcrumb {
+    <span>/</span>
+    <span>الطلبات</span>
+}
 
-        <!-- البحث -->
-        <div class="col-lg-4">
-
-            <label class="fw-bold mb-2">
-                البحث
-            </label>
-
-            <div class="input-group">
-
-                <input type="text"
-                       class="form-control"
-                       name="search"
-                       value="@ViewBag.Search"
-                       placeholder="اسم العميل أو رقم التتبع..." />
-
-                <button class="btn-yaqut-gold" type="submit">
-                    <i class="bi bi-search"></i>
-                    بحث
-                </button>
-
-            </div>
-
+<section class="yq-orders-admin" aria-labelledby="ordersIndexTitle">
+    <header class="yq-orders-hero">
+        <div class="yq-orders-hero__content">
+            <span class="yq-orders-eyebrow">إدارة المبيعات</span>
+            <h2 id="ordersIndexTitle">الطلبات</h2>
+            <p>تابع طلبات العملاء، راجع الإجماليات وحالات التنفيذ، وحدّث حالة الطلب من واجهة واضحة مهيأة للعمل اليومي.</p>
         </div>
 
-        <!-- فلترة الحالة -->
-
-        <div class="col-lg-8">
-
-            <label class="fw-bold mb-2">
-                فلترة حسب حالة الطلب
-            </label>
-
-            <div class="d-flex flex-wrap gap-4">
-
-                <div class="form-check">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="status"
-                           value="Pending"
-                           @(selectedStatus.Contains("Pending") ? "checked" : "") />
-
-                    <label class="form-check-label">
-                        قيد الانتظار
-                    </label>
-                </div>
-
-                <div class="form-check">
-
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="status"
-                           value="Processed"
-                           @(selectedStatus.Contains("Processed") ? "checked" : "") />
-
-                    <label class="form-check-label">
-                        قيد المعالجة
-                    </label>
-
-                </div>
-
-                <div class="form-check">
-
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="status"
-                           value="Shipped"
-                           @(selectedStatus.Contains("Shipped") ? "checked" : "") />
-
-                    <label class="form-check-label">
-                        تم الشحن
-                    </label>
-
-                </div>
-
-                <div class="form-check">
-
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="status"
-                           value="Delivered"
-                           @(selectedStatus.Contains("Delivered") ? "checked" : "") />
-
-                    <label class="form-check-label">
-                        تم التوصيل
-                    </label>
-
-                </div>
-
-                <div class="form-check">
-
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="status"
-                           value="Cancelled"
-                           @(selectedStatus.Contains("Cancelled") ? "checked" : "") />
-
-                    <label class="form-check-label">
-                        ملغي
-                    </label>
-
-                </div>
-
-            </div>
-
-            <div class="mt-3">
-
-                <button class="btn-yaqut-gold">
-                    تطبيق الفلتر
-                </button>
-
-                <a asp-action="Index"
-                   class="btn btn-secondary">
-                    إلغاء
-                </a>
-
-            </div>
-
+        <div class="yq-orders-hero__meta" aria-label="ملخص الطلبات المعروضة">
+            <span>@orders.Count طلب</span>
+            <strong>@totalRevenue.ToString("N0") ر.س</strong>
         </div>
+    </header>
 
-    </div>
+    @if (TempData["Success"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--success" role="alert">@TempData["Success"]</div>
+    }
 
-</form>
-@if (Model.Any())
-{
-    <div class="yaqut-order-admin-grid">
-        @foreach (var order in Model)
-        {
-            string stateAr = order.Status switch
+    @if (TempData["Error"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+    }
+
+    <section class="yq-orders-summary" aria-label="ملخص حالات الطلبات">
+        <article class="yq-orders-stat">
+            <span class="yq-orders-stat__icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
+            <div>
+                <p>الطلبات المعروضة</p>
+                <strong>@orders.Count</strong>
+            </div>
+        </article>
+        <article class="yq-orders-stat">
+            <span class="yq-orders-stat__icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+            <div>
+                <p>قيد الانتظار</p>
+                <strong>@pendingCount</strong>
+            </div>
+        </article>
+        <article class="yq-orders-stat">
+            <span class="yq-orders-stat__icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
+            <div>
+                <p>قيد التنفيذ</p>
+                <strong>@activeCount</strong>
+            </div>
+        </article>
+        <article class="yq-orders-stat">
+            <span class="yq-orders-stat__icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+            <div>
+                <p>تم التوصيل</p>
+                <strong>@deliveredCount</strong>
+            </div>
+        </article>
+    </section>
+
+    <section class="yq-orders-filter-panel" aria-labelledby="ordersFilterTitle">
+        <div class="yq-orders-filter-panel__header">
+            <div>
+                <span class="yq-orders-eyebrow">البحث والتصفية</span>
+                <h3 id="ordersFilterTitle">تصفية الطلبات</h3>
+            </div>
+            @if (hasActiveFilters)
             {
-                "Pending" => "قيد الانتظار",
-                "Processed" => "قيد المعالجة",
-                "Shipped" => "تم الشحن",
-                "Delivered" => "تم التوصيل",
-                _ => "ملغي"
-            };
+                <a asp-action="Index" class="yq-orders-clear-filter">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    <span>مسح الفلاتر</span>
+                </a>
+            }
+        </div>
 
-            <article class="yaqut-order-admin-card glass-effect">
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label"># المعرف</span>
-                    <span class="yaqut-data-value">@order.Id</span>
+        <form method="get" class="yq-orders-filter-form">
+            <div class="yq-orders-search">
+                <label for="ordersSearch">البحث</label>
+                <div class="yq-orders-search__control">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input id="ordersSearch"
+                           type="search"
+                           name="search"
+                           value="@search"
+                           placeholder="اسم العميل أو رقم التتبع" />
                 </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">رقم التتبع</span>
-                    <span class="yaqut-data-value text-warning">@order.Trackingnumber</span>
-                </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">العميل</span>
-                    <span class="yaqut-data-value">@(order.User?.Name ?? "غير معروف")</span>
-                </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">الإجمالي</span>
-                    <span class="yaqut-data-value">@order.Totalamount.ToString("N0") ر.س</span>
-                </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">الحالة</span>
-                    <span class="yaqut-data-value"><span class="badge badge-@order.Status.ToLower()">@stateAr</span></span>
-                </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">التاريخ</span>
-                    <span class="yaqut-data-value">@(order.Orderdate.HasValue? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</span>
-                </div>
-                <div class="yaqut-data-row">
-                    <span class="yaqut-data-label">تاريخ الحالة</span>
-                    <span class="yaqut-data-value">@(order.TimeState.HasValue? order.TimeState.Value.ToString("dd/MM/yyyy") : "-")</span>
-                </div>
+            </div>
 
-                <div class="mt-2">
-                    <span class="yaqut-data-label d-block mb-1">المنتجات المطلوبة</span>
-                    <table class="yaqut-admin-items-table">
-                        <thead>
-                            <tr>
-                                <th>اسم المنتج</th>
-                                <th>الكمية</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var orderItem in order.Orderitems)
+            <fieldset class="yq-orders-status-filter">
+                <legend>حالة الطلب</legend>
+                <label>
+                    <input type="checkbox" name="status" value="Pending" checked="@selectedStatus.Contains("Pending")" />
+                    <span>قيد الانتظار</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="status" value="Processed" checked="@selectedStatus.Contains("Processed")" />
+                    <span>قيد المعالجة</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="status" value="Shipped" checked="@selectedStatus.Contains("Shipped")" />
+                    <span>تم الشحن</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="status" value="Delivered" checked="@selectedStatus.Contains("Delivered")" />
+                    <span>تم التوصيل</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="status" value="Cancelled" checked="@selectedStatus.Contains("Cancelled")" />
+                    <span>ملغي</span>
+                </label>
+            </fieldset>
+
+            <div class="yq-orders-filter-actions">
+                <button type="submit" class="btn-yaqut-gold">
+                    <i class="bi bi-funnel" aria-hidden="true"></i>
+                    <span>تطبيق</span>
+                </button>
+                <a asp-action="Index" class="btn-yaqut-outline">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                    <span>إعادة ضبط</span>
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="yq-orders-panel" aria-labelledby="ordersTableTitle">
+        <div class="yq-orders-panel__header">
+            <div>
+                <span class="yq-orders-eyebrow">قائمة الإدارة</span>
+                <h3 id="ordersTableTitle">جميع الطلبات</h3>
+            </div>
+            <div class="yq-orders-panel__note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>حالة الدفع غير متوفرة في بيانات الطلب الحالية</span>
+            </div>
+        </div>
+
+        @if (orders.Any())
+        {
+            <div class="yq-orders-table-wrap">
+                <table class="yq-orders-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">رقم الطلب</th>
+                            <th scope="col">العميل</th>
+                            <th scope="col">الإجمالي</th>
+                            <th scope="col">حالة الدفع</th>
+                            <th scope="col">حالة الطلب</th>
+                            <th scope="col">تاريخ الطلب</th>
+                            <th scope="col">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in orders)
+                        {
+                            var statusLabel = order.Status switch
                             {
-                                <tr>
-                                    <td>@orderItem.Product.Name</td>
-                                    <td>@orderItem.Quantity</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                                "Pending" => "قيد الانتظار",
+                                "Processed" => "قيد المعالجة",
+                                "Shipped" => "تم الشحن",
+                                "Delivered" => "تم التوصيل",
+                                "Cancelled" => "ملغي",
+                                _ => order.Status
+                            };
 
-                <form asp-action="UpdateStatus" method="post" class="yaqut-status-form">
-                    <input type="hidden" name="Id" value="@order.Id" />
-                    <label class="yaqut-data-label">تحديث الحالة</label>
-                    <div class="d-flex gap-2 mt-1">
-                        <select name="Status" class="yaqut-status-select">
-                            <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
-                            <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
-                            <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
-                            <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
-                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
-                        </select>
-                        <button type="submit" class="btn-yaqut-gold btn-sm">تحديث</button>
-                    </div>
-                </form>
-            </article>
+                            var statusClass = order.Status switch
+                            {
+                                "Pending" => "yq-orders-badge--pending",
+                                "Processed" => "yq-orders-badge--processed",
+                                "Shipped" => "yq-orders-badge--shipped",
+                                "Delivered" => "yq-orders-badge--delivered",
+                                "Cancelled" => "yq-orders-badge--cancelled",
+                                _ => "yq-orders-badge--neutral"
+                            };
+
+                            var customerName = order.User?.Name ?? "عميل غير معروف";
+                            var customerPhone = DealingApiService.DecryptPhone(order.User?.Phone);
+                            var customerEmail = order.User?.Email;
+                            var itemCount = order.Orderitems?.Sum(i => i.Quantity) ?? 0;
+
+                            <tr>
+                                <td data-label="رقم الطلب">
+                                    <div class="yq-orders-number">
+                                        <strong>#@order.Id</strong>
+                                        @if (!string.IsNullOrWhiteSpace(order.Trackingnumber))
+                                        {
+                                            <span>@order.Trackingnumber</span>
+                                        }
+                                        else
+                                        {
+                                            <span>لا يوجد رقم تتبع</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-label="العميل">
+                                    <div class="yq-orders-customer">
+                                        <span class="yq-orders-customer__avatar" aria-hidden="true">
+                                            <i class="bi bi-person"></i>
+                                        </span>
+                                        <div>
+                                            <strong>@customerName</strong>
+                                            @if (!string.IsNullOrWhiteSpace(customerPhone))
+                                            {
+                                                <span>@customerPhone</span>
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(customerEmail))
+                                            {
+                                                <span>@customerEmail</span>
+                                            }
+                                            else
+                                            {
+                                                <span>لا توجد بيانات تواصل</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="الإجمالي">
+                                    <div class="yq-orders-total">
+                                        <strong>@order.Totalamount.ToString("N0")</strong>
+                                        <span>ر.س</span>
+                                        <small>@itemCount قطعة</small>
+                                    </div>
+                                </td>
+                                <td data-label="حالة الدفع">
+                                    <span class="yq-orders-badge yq-orders-badge--neutral">غير متوفر</span>
+                                </td>
+                                <td data-label="حالة الطلب">
+                                    <span class="yq-orders-badge @statusClass">@statusLabel</span>
+                                    @if (order.TimeState.HasValue)
+                                    {
+                                        <small class="yq-orders-status-date">@order.TimeState.Value.ToString("dd/MM/yyyy")</small>
+                                    }
+                                </td>
+                                <td data-label="تاريخ الطلب">
+                                    <time class="yq-orders-date" datetime="@(order.Orderdate?.ToString("yyyy-MM-dd") ?? "")">
+                                        @(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")
+                                    </time>
+                                </td>
+                                <td data-label="الإجراءات">
+                                    <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                        <input type="hidden" name="Id" value="@order.Id" />
+                                        <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
+                                        <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
+                                            <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
+                                            <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
+                                            <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
+                                            <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
+                                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
+                                        </select>
+                                        <button type="submit" class="yq-orders-action-button">
+                                            <i class="bi bi-check2" aria-hidden="true"></i>
+                                            <span>تحديث</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
-    </div>
-}
-else
-{
-    <p class="text-muted">لا توجد طلبات بعد.</p>
-}
+        else
+        {
+            <div class="yq-orders-empty" role="status">
+                <i class="bi bi-receipt" aria-hidden="true"></i>
+                <h3>لا توجد طلبات</h3>
+                @if (hasActiveFilters)
+                {
+                    <p>لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية. جرّب تعديل معايير التصفية أو مسحها.</p>
+                    <a asp-action="Index" class="btn-yaqut-gold">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                        <span>مسح الفلاتر</span>
+                    </a>
+                }
+                else
+                {
+                    <p>ستظهر طلبات العملاء هنا بمجرد توفرها من النظام.</p>
+                }
+            </div>
+        }
+    </section>
+</section>
