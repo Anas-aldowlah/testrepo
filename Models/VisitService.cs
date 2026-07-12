@@ -89,7 +89,7 @@ namespace YAGOT_2._0.Models
 
                 var visit = new Visit
                 {
-                    Visitdate = DateTime.Now,
+                    Visitdate = DateTime.UtcNow.AddHours(3),
                     Visitorname = visitorName,
                     Country = country,
                     Governorate = governorate,
