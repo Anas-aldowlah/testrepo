@@ -368,12 +368,67 @@
     align-items: flex-start;
 }
 
+.yq-categories-edit {
+    display: grid;
+    gap: clamp(1rem, 1.8vw, 1.5rem);
+}
+
 .yq-categories-create a:focus-visible,
 .yq-categories-create button:focus-visible,
 .yq-categories-create input:focus-visible,
 .yq-categories-create textarea:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--yq-admin-gold-bright, #d4af37) 55%, transparent);
     outline-offset: 3px;
+}
+
+.yq-category-edit-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem;
+    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background: var(--yq-admin-surface, #151719);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.12);
+}
+
+.theme-light .yq-category-edit-identity {
+    box-shadow: 0 16px 38px rgba(28, 26, 20, 0.06);
+}
+
+.yq-category-edit-identity__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 16%, var(--yq-admin-surface-soft, #1b1f22));
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 1.15rem;
+}
+
+.yq-category-edit-identity div {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+}
+
+.yq-category-edit-identity strong {
+    overflow: hidden;
+    color: var(--yq-admin-text, #f8f5ee);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    font-weight: 900;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yq-category-edit-identity small {
+    color: var(--yq-admin-muted, #b6b1a6);
+    font-size: 0.78rem;
+    font-weight: 800;
 }
 
 .yq-category-form {
@@ -538,6 +593,28 @@
 .yq-category-upload__control {
     display: grid;
     gap: 0.45rem;
+}
+
+.yq-category-current-image {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.72rem 0.8rem;
+    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background: var(--yq-admin-surface-soft, #1b1f22);
+}
+
+.yq-category-current-image span {
+    color: var(--yq-admin-text, #f8f5ee);
+    font-size: 0.86rem;
+    font-weight: 900;
+}
+
+.yq-category-current-image small {
+    color: var(--yq-admin-muted, #b6b1a6);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.55;
 }
 
 .yq-category-upload__label {
