@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
-using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,10 +81,18 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<NeondbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("MYDB"), npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-    }));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("MYDB"),
+        npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        }));
+
+builder.Services.AddDbContext<UsersDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("User"),
+        npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        }));
 
 //  انشاء كائن object (Dependency Injection - DI) كل مايتم انشاء HTTP Request
 builder.Services.AddScoped<CartService>();
@@ -98,6 +107,22 @@ builder.Services.AddHttpClient<SiteStatusFilterAdmin>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// Drop old database foreign key constraints pointing to the deleted users table
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NeondbContext>();
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE carts DROP CONSTRAINT IF EXISTS fk_user_cart;");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE orders DROP CONSTRAINT IF EXISTS fk_user_order;");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE securitylogs DROP CONSTRAINT IF EXISTS fk_user_logs;");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error dropping constraints: {ex.Message}");
+    }
+}
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {

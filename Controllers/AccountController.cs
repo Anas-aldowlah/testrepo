@@ -8,6 +8,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.UsersDatabase;
+using YAGOT_2._0.Data;
+
 
 using System.Security.Cryptography;
 using System.Text;
@@ -19,14 +22,16 @@ namespace YAGOT_2._0.Controllers;
 public class AccountController : Controller
 {
     private readonly NeondbContext _db;
+    private readonly UsersDbContext _dbUser;
     private readonly IConfiguration _configuration;
     private readonly IVisitService _visitService;
 
-    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService)
+    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService, UsersDbContext user)
     {
         _db = db;
         _configuration = configuration;
         _visitService = visitService;
+        _dbUser = user;
     }
 
     [HttpGet]
@@ -72,7 +77,7 @@ public class AccountController : Controller
             return View("Auth");
 
         var phone = model.Phone.Trim();
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == HashPhone(phone));
+        var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Phone == HashPhone(phone));
 
         if (user == null || !VerifyHashedPassword(model.Password, user.Passwordhash))
         {
@@ -80,7 +85,7 @@ public class AccountController : Controller
             return View("Auth");
         }
         ;
-        await SignInUserAsync(user);
+        await SignInUserAsync(user,user.Id);
         TempData["UserName"] = user.Name;
         await _visitService.SaveVisitAsync(HttpContext, user.Name);
         return LocalRedirect(GetRedirectUrl(returnUrl));
@@ -124,24 +129,31 @@ public class AccountController : Controller
         }
 
         var phone = model.Phone.Trim();
-        if (await _db.Users.AnyAsync(u => u.Phone == HashPhone(phone)))
+        if (await _dbUser.Users.AnyAsync(u => u.Phone == HashPhone(phone)))
         {
             ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مستخدم بالفعل. سجّل الدخول أو استخدم رقماً آخر.");
             return View("Auth");
         }
 
-        var user = new User
+        var user = new Models.UsersDatabase.User
         {
             Name = model.Name.Trim(),
             Phone = HashPhone(phone),
             Passwordhash = HashPassword(model.Password),
-            Role = "Customer",
             Email = model.Email?.Trim()
         };
 
-        _db.Users.Add(user);
+        _dbUser.Users.Add(user);
+        await _dbUser.SaveChangesAsync();
+        var userSite = new UserSite
+        {
+            UserId = user.Id,
+            Role = "Customer",
+        };
+
+        _db.UserSites.Add(userSite);
         await _db.SaveChangesAsync();
-        await SignInUserAsync(user);
+        await SignInUserAsync(user,user.Id);
 
         TempData["UserName"] = user.Name;
         TempData.Remove("ShowRegister");
@@ -161,7 +173,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == User.Identity!.Name);
+        var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdVal) || !int.TryParse(userIdVal, out var userId))
+            return Challenge();
+
+        var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return NotFound();
 
         var model = new ProfileVM
@@ -169,7 +185,7 @@ public class AccountController : Controller
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
-            Role = user.Role,
+            Role = _db.UserSites.Where(s => s.UserId == user.Id).Select(f => f.Role).FirstOrDefault() ?? "Customer",
             CreatedAt = user.Createdat
         };
 
@@ -181,7 +197,11 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileVM model)
     {
-        var currentUser = await _db.Users.FirstOrDefaultAsync(u => u.Name == User.Identity!.Name);
+        var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdVal) || !int.TryParse(userIdVal, out var userId))
+            return Challenge();
+
+        var currentUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (currentUser == null) return NotFound();
 
         // منع تعديل ملف مستخدم آخر عبر التلاعب بالنموذج (Id قادم من حقل مخفي)
@@ -194,12 +214,11 @@ public class AccountController : Controller
             ModelState.AddModelError(nameof(model.Name), "الاسم الكامل مطلوب.");
         else if (model.Name.Trim().Length < 2)
             ModelState.AddModelError(nameof(model.Name), "الاسم يجب أن يكون حرفين على الأقل.");
-        else if (await _db.Users.AnyAsync(u => u.Id != currentUser.Id && u.Name == model.Name.Trim()))
+        else if (await _dbUser.Users.AnyAsync(u => u.Id != currentUser.Id && u.Name == model.Name.Trim()))
             ModelState.AddModelError(nameof(model.Name), "هذا الاسم مستخدم بالفعل.");
 
         if (!ModelState.IsValid)
         {
-            model.Role = currentUser.Role;
             model.CreatedAt = currentUser.Createdat;
             return View(model);
         }
@@ -207,10 +226,10 @@ public class AccountController : Controller
         currentUser.Name = model.Name.Trim();
         currentUser.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
 
-        await _db.SaveChangesAsync();
+        await _dbUser.SaveChangesAsync();
 
         // إعادة تسجيل الدخول لتحديث الـ Claims — الاسم يُستخدم لربط السلة والطلبات بالمستخدم
-        await SignInUserAsync(currentUser);
+        await SignInUserAsync(currentUser, currentUser.Id);
 
         TempData["ProfileSuccess"] = true;
         return RedirectToAction(nameof(Profile));
@@ -225,7 +244,7 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
-        var accountUser = await _db.Users.FirstOrDefaultAsync(u =>
+        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(u =>
             u.Email == model.Email || u.Phone == HashPhone(model.Phone));
         if (accountUser == null)
         {
@@ -233,7 +252,7 @@ public class AccountController : Controller
             return View("RecoveryAccount");
         }
         accountUser.Passwordhash = HashPassword(model.Password);
-        await _db.SaveChangesAsync();
+        await _dbUser.SaveChangesAsync();
         return View("Auth");
     }
 
@@ -293,14 +312,27 @@ public class AccountController : Controller
         return RedirectToAction("RecoveryAccountTem", "Account", new { email = email });
     }
 
-    private async Task SignInUserAsync(User user)
+    private async Task SignInUserAsync(Models.UsersDatabase.User user, int Id)
     {
+        var userSite = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == Id);
+        if (userSite == null)
+        {
+            userSite = new UserSite
+            {
+                UserId = Id,
+                Role = "Customer"
+            };
+            _db.UserSites.Add(userSite);
+            await _db.SaveChangesAsync();
+        }
+
+        var role = userSite.Role;
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, Id.ToString()),
             new(ClaimTypes.Name, user.Name),
             new(ClaimTypes.MobilePhone, user.Phone),
-            new(ClaimTypes.Role, user.Role ?? "Customer")
+            new(ClaimTypes.Role, role ?? "Customer")
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

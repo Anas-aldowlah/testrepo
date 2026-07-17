@@ -21,5 +21,5 @@ public partial class Order
 
     public virtual ICollection<Orderitem> Orderitems { get; set; } = new List<Orderitem>();
 
-    public virtual User User { get; set; } = null!;
+    public virtual UserSite User { get; set; } = null!;
 }

@@ -19,5 +19,5 @@ public partial class Securitylog
 
     public DateTime? Createdat { get; set; }
 
-    public virtual User? User { get; set; }
+    public virtual UserSite? User { get; set; }
 }

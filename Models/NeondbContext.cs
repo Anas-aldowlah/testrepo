@@ -31,7 +31,7 @@ public partial class NeondbContext : DbContext
 
     public virtual DbSet<Securitylog> Securitylogs { get; set; }
 
-    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<UserSite> UserSites { get; set; }
 
     public virtual DbSet<Visit> Visits { get; set; }
 
@@ -49,13 +49,14 @@ public partial class NeondbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Createdat)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
             entity.Property(e => e.Userid).HasColumnName("userid");
 
             entity.HasOne(d => d.User).WithMany(p => p.Carts)
                 .HasForeignKey(d => d.Userid)
+                .HasPrincipalKey(e => e.UserId)
                 .HasConstraintName("fk_user_cart");
         });
 
@@ -137,7 +138,7 @@ public partial class NeondbContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.TimeState)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Totalamount)
                 .HasPrecision(10, 2)
@@ -149,6 +150,7 @@ public partial class NeondbContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.Userid)
+                .HasPrincipalKey(e => e.UserId)
                 .HasConstraintName("fk_user_order");
         });
 
@@ -185,7 +187,7 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Categoryid).HasColumnName("categoryid");
             entity.Property(e => e.Createdat)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
             entity.Property(e => e.Description).HasColumnName("description");
@@ -228,33 +230,24 @@ public partial class NeondbContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.Securitylogs)
                 .HasForeignKey(d => d.Userid)
+                .HasPrincipalKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_user_logs");
         });
 
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<UserSite>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("users_pkey");
+            entity.HasKey(e => e.Id).HasName("UserSite_pkey");
 
-            entity.ToTable("users");
+            entity.ToTable("UserSite");
 
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Createdat)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("createdat");
-            entity.Property(e => e.Email)
-                .HasMaxLength(260)
-                .HasColumnName("email");
-            entity.Property(e => e.Name)
-                .HasMaxLength(255)
-                .HasColumnName("name");
-            entity.Property(e => e.Passwordhash).HasColumnName("passwordhash");
-            entity.Property(e => e.Phone).HasColumnName("phone");
+            entity.Property(e => e.Id)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("id");
             entity.Property(e => e.Role)
-                .HasMaxLength(50)
                 .HasDefaultValueSql("'Customer'::character varying")
-                .HasColumnName("role");
+                .HasColumnType("character varying");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
         });
 
         modelBuilder.Entity<Visit>(entity =>
@@ -280,7 +273,7 @@ public partial class NeondbContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("governorate");
             entity.Property(e => e.Visitdate)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("visitdate");
             entity.Property(e => e.Visitorname)

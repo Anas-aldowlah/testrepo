@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
@@ -71,22 +71,34 @@ namespace YAGOT_2._0.Services
 
 
         }
-        public string DecryptPhone(string encryptedPhone)
+        public string DecryptPhone(string? encryptedPhone)
         {
-            string key = _configuration["Encryption:Key"];
-            string iv = _configuration["Encryption:IV"];
+            if (string.IsNullOrWhiteSpace(encryptedPhone))
+            {
+                return string.Empty;
+            }
 
-            using var aes = Aes.Create();
+            try
+            {
+                string key = _configuration["Encryption:Key"];
+                string iv = _configuration["Encryption:IV"];
 
-            aes.Key = Encoding.UTF8.GetBytes(key);
-            aes.IV = Encoding.UTF8.GetBytes(iv);
+                using var aes = Aes.Create();
 
-            using var decryptor = aes.CreateDecryptor();
+                aes.Key = Encoding.UTF8.GetBytes(key);
+                aes.IV = Encoding.UTF8.GetBytes(iv);
 
-            byte[] encryptedBytes = Convert.FromBase64String(encryptedPhone);
-            byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
+                using var decryptor = aes.CreateDecryptor();
 
-            return Encoding.UTF8.GetString(decryptedBytes);
+                byte[] encryptedBytes = Convert.FromBase64String(encryptedPhone);
+                byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
+
+                return Encoding.UTF8.GetString(decryptedBytes);
+            }
+            catch
+            {
+                return string.Empty;
+            }
         }
     }
 }

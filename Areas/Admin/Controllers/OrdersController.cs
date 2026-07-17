@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
@@ -10,6 +11,7 @@ namespace YAGOT_2._0.Areas.Admin.Controllers;
 public class OrdersController : Controller
 {
     private readonly NeondbContext _context;
+    private readonly UsersDbContext _dbUser;
 
     private static readonly HashSet<string> ActiveStatuses =
         new(StringComparer.OrdinalIgnoreCase)
@@ -29,48 +31,62 @@ public class OrdersController : Controller
             "Cancelled"
         };
 
-    public OrdersController(NeondbContext context)
+    public OrdersController(NeondbContext context, UsersDbContext dbUser)
     {
         _context = context;
+        _dbUser = dbUser;
     }
 
     public async Task<IActionResult> Index(string[]? status, string? search)
     {
         IQueryable<Order> query = _context.Orders
             .AsNoTracking()
-            .Include(o => o.User)
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
             .OrderByDescending(o => o.Orderdate);
 
-        // ????? ??? ??????
+        var searchUserIds = new HashSet<int>();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.Trim();
+
+            var matchedUserIds = await _dbUser.Users
+                .Where(u => u.Name.Contains(search))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            searchUserIds = new HashSet<int>(matchedUserIds);
+        }
+
         if (status?.Any() == true)
         {
             query = query.Where(o => status.Contains(o.Status));
         }
 
-        // ?????
-        if (!string.IsNullOrWhiteSpace(search))
+        if (searchUserIds.Count > 0)
         {
-            search = search.Trim();
-
+            query = query.Where(o => searchUserIds.Contains(o.Userid));
+        }
+        else if (!string.IsNullOrWhiteSpace(search))
+        {
             query = query.Where(o =>
-                (o.User != null && o.User.Name.Contains(search)) ||
-                (!string.IsNullOrWhiteSpace(o.Trackingnumber) &&
-                 o.Trackingnumber.Contains(search)));
+                !string.IsNullOrWhiteSpace(o.Trackingnumber) &&
+                o.Trackingnumber.Contains(search));
         }
 
         ViewBag.SelectedStatus = status ?? Array.Empty<string>();
         ViewBag.Search = search;
 
-        return View(await query.ToListAsync());
+        var orders = await query.ToListAsync();
+        await PopulateUserDisplayDataAsync(orders);
+        return View(orders);
     }
 
     public async Task<IActionResult> Details(int id)
     {
         var order = await _context.Orders
             .AsNoTracking()
-            .Include(o => o.User)
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
             .FirstOrDefaultAsync(o => o.Id == id);
@@ -78,7 +94,33 @@ public class OrdersController : Controller
         if (order == null)
             return NotFound();
 
+        await PopulateUserDisplayDataAsync(new[] { order });
         return View(order);
+    }
+
+    private async Task PopulateUserDisplayDataAsync(IEnumerable<Order> orders)
+    {
+        var userIds = orders.Select(o => o.Userid).Distinct().ToList();
+        var users = await _dbUser.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
+
+        var userCache = users.ToDictionary(u => u.Id);
+
+        foreach (var order in orders)
+        {
+            if (userCache.TryGetValue(order.Userid, out var user))
+            {
+                order.User = new UserSite
+                {
+                    UserId = order.Userid,
+                    Name = user.Name,
+                    Phone = user.Phone,
+                    Email = user.Email,
+                    User = user
+                };
+            }
+        }
     }
 
     [HttpPost]

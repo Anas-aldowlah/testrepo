@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -14,12 +15,14 @@ public class OrdersController : Controller
     private readonly OrderService _orderService;
     private readonly CartService _cartService;
     private readonly NeondbContext _context;
+    private readonly UsersDbContext _dbUser;
 
-    public OrdersController(OrderService orderService, CartService cartService, NeondbContext context)
+    public OrdersController(OrderService orderService, CartService cartService, NeondbContext context,UsersDbContext users)
     {
         _context = context;
         _orderService = orderService;
         _cartService = cartService;
+        _dbUser = users;
     }
 
     [HttpGet]
@@ -81,9 +84,13 @@ public class OrdersController : Controller
         return View(order);
     }
 
-    private async Task<int> ResolveUserIdAsync()
+    private Task<int> ResolveUserIdAsync()
     {
-        var user = await _context.Users.FirstOrDefaultAsync(n => n.Name == User.Identity!.Name);
-        return user?.Id ?? 1;
+        var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdVal, out var userId))
+        {
+            return Task.FromResult(userId);
+        }
+        return Task.FromResult(1);
     }
 }

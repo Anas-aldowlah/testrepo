@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -12,22 +13,35 @@ public class UsersController : Controller
 {
     private readonly NeondbContext _context;
     private readonly DealingAPI _DealingAPI;
-    public UsersController(NeondbContext context,DealingAPI dealingAPI)
+    private readonly UsersDbContext _dbUser;
+    public UsersController(NeondbContext context,DealingAPI dealingAPI,UsersDbContext User)
     {
         _context = context;
         _DealingAPI = dealingAPI;
+        _dbUser = User;
     }
 
     public async Task<IActionResult> Index()
     {
-        var users = await _context.Users
+        var users = await _dbUser.Users
             .AsNoTracking()
             .OrderBy(user => user.Id)
             .ToListAsync();
 
+        var userSites = await _context.UserSites
+            .AsNoTracking()
+            .ToListAsync();
+
+        var roleCache = new Dictionary<int, string?>();
+        foreach (var us in userSites)
+        {
+            roleCache[us.UserId] = us.Role;
+        }
+
         foreach (var user in users)
         {
             user.Phone = DecryptPhoneOrUnavailable(user.Phone);
+            user.Role = roleCache.GetValueOrDefault(user.Id);
         }
 
         return View(users);
@@ -35,7 +49,7 @@ public class UsersController : Controller
 
     public async Task<IActionResult> Details(int id)
     {
-        var user = await _context.Users
+        var user = await _dbUser.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user => user.Id == id);
 
@@ -45,6 +59,10 @@ public class UsersController : Controller
         }
 
         user.Phone = DecryptPhoneOrUnavailable(user.Phone);
+        user.Role = await _context.UserSites
+            .Where(us => us.UserId == id)
+            .Select(us => us.Role)
+            .FirstOrDefaultAsync();
 
         ViewBag.RecentOrders = await _context.Orders
             .AsNoTracking()

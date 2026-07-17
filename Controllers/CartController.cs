@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -13,12 +14,14 @@ public class CartController : Controller
 {
     private readonly NeondbContext _context;
     private readonly CartService _cartService;
+    private readonly UsersDbContext _dbUser;
 
-    public CartController(NeondbContext context, CartService cartService)
+    public CartController(NeondbContext context, CartService cartService,UsersDbContext User)
     {
         // ADD CHANGE
         _context = context;
         _cartService = cartService;
+        _dbUser = User;
     }
 
     public int nextCartId()
@@ -52,9 +55,13 @@ public class CartController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task<int> ResolveUserIdAsync()
+    private Task<int> ResolveUserIdAsync()
     {
-        var user = await _context.Users.FirstOrDefaultAsync(n => n.Name == User.Identity!.Name);
-        return user?.Id ?? 1;
+        var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdVal, out var userId))
+        {
+            return Task.FromResult(userId);
+        }
+        return Task.FromResult(1);
     }
 }
