@@ -8,6 +8,16 @@
 <div class="yaqut-auth-page">
     <article class="yaqut-auth-card">
         <div class="yaqut-auth-card__shine" aria-hidden="true"></div>
+        <aside class="yaqut-auth-card__visual" aria-label="تجربة ياقوت">
+            <span class="yaqut-auth-card__eyebrow">Yaqut Private Access</span>
+            <h2>بوابتك الهادئة لعالم العطور الفاخرة</h2>
+            <p>تابع طلباتك، احفظ بياناتك، وأكمل رحلتك العطرية بتجربة مصممة بعناية.</p>
+            <div class="yaqut-auth-perks">
+                <span><i class="bi bi-shield-check"></i> جلسة آمنة</span>
+                <span><i class="bi bi-bag-heart"></i> طلبات محفوظة</span>
+                <span><i class="bi bi-stars"></i> تجربة مخصصة</span>
+            </div>
+        </aside>
         <div class="yaqut-auth-card__body">
 
             <div class="yaqut-auth-logo">
@@ -16,8 +26,10 @@
                 </div>
             </div>
 
-            <h1 class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
-            <p class="yaqut-auth-subtitle">سجّل دخولك أو أنشئ حساباً للوصول إلى عالم العطور الفاخرة</p>
+            <header class="yaqut-auth-heading">
+                <h1 class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
+                <p class="yaqut-auth-subtitle">ادخل لحسابك أو أنشئ حساباً جديداً لإكمال تجربة التسوق بسلاسة.</p>
+            </header>
 
             <div class="yaqut-auth-tabs" role="tablist">
                 <button type="button"
@@ -39,6 +51,7 @@
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="yaqut-alert yaqut-alert--danger" role="alert">
+                    <strong>يرجى مراجعة البيانات التالية:</strong>
                     @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                     {
                         <div>@error.ErrorMessage</div>
@@ -51,7 +64,7 @@
                  class="auth-panel @(showRegisterPanel ? "d-none" : "")"
                  role="tabpanel"
                  aria-hidden="@showRegisterPanel">
-                <form asp-controller="Account" asp-action="Login" method="post" data-yq-validate novalidate>
+                <form asp-controller="Account" asp-action="Login" method="post" class="yaqut-auth-form" data-yq-validate novalidate>
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                     
@@ -79,12 +92,9 @@
                         <i class="bi bi-unlock"></i> تسجيل الدخول
                     </button>
                 </form>
-                <div class="forgot-password">
-                <br />
-                    <br />
-                    <a href="/Account/RecoveryAccount">نسيت كلمة المرور؟</a>
-                    <a href="/Account/RecoveryAccount" style="color:white">تغيير كلمة المرور</a>
-
+                <div class="yaqut-auth-help">
+                    <span>تحتاج لاستعادة الوصول؟</span>
+                    <a asp-controller="Account" asp-action="RecoveryAccount">نسيت أو تريد تغيير كلمة المرور</a>
                 </div>
             </div>
 
@@ -93,94 +103,108 @@
                  class="auth-panel @(showRegisterPanel ? "" : "d-none")"
                  role="tabpanel"
                  aria-hidden="@(!showRegisterPanel)">
-                <form asp-controller="Account" asp-action="Register" method="post" data-yq-validate novalidate>
+                <form asp-controller="Account" asp-action="Register" method="post" class="yaqut-auth-form" data-yq-validate novalidate>
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <input name="Email" value='@TempData["Email"]' type="hidden" />
 
-                    <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regName">الاسم الكامل</label>
-                        <div class="yaqut-input-wrap">
-                            <i class="bi bi-person"></i>
-                            <input id="regName" name="Name" type="text" class="yaqut-form-input"
-                                   placeholder="اسمك الكامل" required autocomplete="name" minlength="2" />
+                    <section class="yaqut-auth-form-section" aria-labelledby="registerIdentityTitle">
+                        <h2 id="registerIdentityTitle" class="yaqut-auth-form-section__title">
+                            <i class="bi bi-person-vcard"></i> بيانات الحساب
+                        </h2>
+
+                        <div class="yaqut-form-group">
+                            <label class="yaqut-form-label" for="regName">الاسم الكامل</label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-person"></i>
+                                <input id="regName" name="Name" type="text" class="yaqut-form-input"
+                                       placeholder="اسمك الكامل" required autocomplete="name" minlength="2" />
+                            </div>
+                            <div class="yq-field-error" data-yq-error-for="regName"></div>
                         </div>
-                        <div class="yq-field-error" data-yq-error-for="regName"></div>
-                    </div>
 
-                    <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regPhone">رقم الجوال</label>
-                        <div class="yaqut-input-wrap">
-                            <i class="bi bi-phone"></i>
-                            <input id="regPhone" name="Phone" type="tel" class="yaqut-form-input"
-                                   placeholder="أدخل 9 أرقام" required autocomplete="tel" minlength="9" maxlength="9" />
+                        <div class="yaqut-auth-field-row">
+                            <div class="yaqut-form-group">
+                                <label class="yaqut-form-label" for="regPhone">رقم الجوال</label>
+                                <div class="yaqut-input-wrap">
+                                    <i class="bi bi-phone"></i>
+                                    <input id="regPhone" name="Phone" type="tel" class="yaqut-form-input"
+                                           placeholder="أدخل 9 أرقام" required autocomplete="tel" minlength="9" maxlength="9" />
+                                </div>
+                                <div class="yq-field-error" data-yq-error-for="regPhone"></div>
+                            </div>
+
+                            <div class="yaqut-form-group">
+                                <label class="yaqut-form-label" for="regConfirmPhone">تأكيد رقم الجوال</label>
+                                <div class="yaqut-input-wrap">
+                                    <i class="bi bi-phone-flip"></i>
+                                    <input id="regConfirmPhone" name="ConfirmPhone" type="tel" class="yaqut-form-input"
+                                           placeholder="أعد كتابة رقم الجوال" required autocomplete="tel" minlength="9" maxlength="9" />
+                                </div>
+                                <div class="yq-field-error" data-yq-error-for="regConfirmPhone"></div>
+                            </div>
                         </div>
-                        <div class="yq-field-error" data-yq-error-for="regPhone"></div>
-                    </div>
+                    </section>
 
-                      <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regPhone">تأكيد رقم الجوال</label>
-                        <div class="yaqut-input-wrap">
-                            <i class="bi bi-phone"></i>
-                            <input id="regConfirmPhone" name="ConfirmPhone" type="tel" class="yaqut-form-input"
-                                   placeholder="أعد كتابة رقم الجوال" required autocomplete="new-Phone" minlength="6" />
-                        </div>
-                        <div class="yq-field-error" data-yq-error-for="regConfirm"></div>
-                    </div>
-
-                    <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regPhone">تسجيل الايميل</label>
-                    <a asp-controller="Account"
+                    <section class="yaqut-auth-form-section" aria-labelledby="registerEmailTitle">
+                        <h2 id="registerEmailTitle" class="yaqut-auth-form-section__title">
+                            <i class="bi bi-envelope-check"></i> البريد الإلكتروني
+                        </h2>
+                        <a asp-controller="Account"
                            asp-action="GoogleLogin"
-                       class="google-btn-rect">
-                        <div class="google-icon-wrapper">
-                            <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" />
-                            </svg>
-                        </div>
-                        <span class="google-btn-text">تسجيل الدخول بواسطة Google</span>
-                            <input name="Email" value='@TempData["Email"]' type="hidden" />
-                    </a>
-                    <div style="text-align:left">
-                    @{
-                                if (TempData["Email"] == null)
-                        {
-                                    <p style="color:red;font-weight:800;text-align:right">لم يتم جلب الايميل بشكل صحيح</p>
-                                }
-                                else
-                                {
-                                    <p style="color:forestgreen;font-weight:800;text-align:right">@TempData["Email"]</p>
-                                }
+                           class="google-btn-rect">
+                            <div class="google-icon-wrapper">
+                                <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" />
+                                </svg>
+                            </div>
+                            <span class="google-btn-text">ربط البريد بواسطة Google</span>
+                        </a>
+                        @{
+                            if (TempData["Email"] == null)
+                            {
+                                <p class="yaqut-auth-email-status yaqut-auth-email-status--error">
+                                    <i class="bi bi-exclamation-circle"></i> لم يتم جلب البريد الإلكتروني بشكل صحيح
+                                </p>
                             }
-                            
+                            else
+                            {
+                                <p class="yaqut-auth-email-status yaqut-auth-email-status--success">
+                                    <i class="bi bi-check-circle"></i> @TempData["Email"]
+                                </p>
+                            }
+                        }
+                    </section>
 
-                    </div>
-                </div>
+                    <section class="yaqut-auth-form-section" aria-labelledby="registerSecurityTitle">
+                        <h2 id="registerSecurityTitle" class="yaqut-auth-form-section__title">
+                            <i class="bi bi-shield-lock"></i> حماية الحساب
+                        </h2>
+                        <div class="yaqut-auth-field-row">
+                            <div class="yaqut-form-group">
+                                <label class="yaqut-form-label" for="regPassword">كلمة المرور</label>
+                                <div class="yaqut-input-wrap">
+                                    <i class="bi bi-shield-lock"></i>
+                                    <input id="regPassword" name="Password" type="password" class="yaqut-form-input"
+                                           placeholder="6 أحرف على الأقل" required autocomplete="new-password" minlength="6" />
+                                </div>
+                                <div class="yq-field-error" data-yq-error-for="regPassword"></div>
+                            </div>
 
-                    <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regPassword">كلمة المرور</label>
-                        <div class="yaqut-input-wrap">
-                            <i class="bi bi-shield-lock"></i>
-                            <input id="regPassword" name="Password" type="password" class="yaqut-form-input"
-                                   placeholder="6 أحرف على الأقل" required autocomplete="new-password" minlength="6" />
+                            <div class="yaqut-form-group">
+                                <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور</label>
+                                <div class="yaqut-input-wrap">
+                                    <i class="bi bi-shield-check"></i>
+                                    <input id="regConfirm" name="ConfirmPassword" type="password" class="yaqut-form-input"
+                                           placeholder="أعد كتابة كلمة المرور" required autocomplete="new-password" minlength="6" />
+                                </div>
+                                <div class="yq-field-error" data-yq-error-for="regConfirm"></div>
+                            </div>
                         </div>
-                        <div class="yq-field-error" data-yq-error-for="regPassword"></div>
-                    </div>
-
-                    <div class="yaqut-form-group">
-                        <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور</label>
-                        <div class="yaqut-input-wrap">
-                            <i class="bi bi-shield-check"></i>
-                            <input id="regConfirm" name="ConfirmPassword" type="password" class="yaqut-form-input"
-                                   placeholder="أعد كتابة كلمة المرور" required autocomplete="new-password" minlength="6" />
-                        </div>
-                        <div class="yq-field-error" data-yq-error-for="regConfirm"></div>
-                    </div>
-
-                    
-                    <hr />
+                    </section>
 
                     <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
                         <i class="bi bi-stars"></i> إنشاء حساب

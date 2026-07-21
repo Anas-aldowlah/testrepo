@@ -15,44 +15,35 @@
 <body>
     <a href="#yaqutMain" class="yq-skip-link">تجاوز إلى المحتوى</a>
 
-    <!-- Announcement Bar -->
     <div class="yaqut-announce">
-        <i class="bi bi-gem"></i>
-        شحن مجاني للطلبات فوق 500 ر.س — ياقوت للعطور الفاخرة
+        <div class="yaqut-announce__inner">
+            <span><i class="bi bi-gem"></i> ياقوت للعطور الفاخرة</span>
+            <span><i class="bi bi-truck"></i> شحن مجاني للطلبات فوق 500 ر.س</span>
+            <span><i class="bi bi-shield-check"></i> تجربة تسوق آمنة</span>
+        </div>
     </div>
 
-    <!-- Header -->
     <header class="yaqut-header" id="yaqutHeader">
         <div class="yaqut-header__inner">
-            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" aria-controls="yaqutNav" aria-expanded="false" data-yq-nav-toggle>
-                <i class="bi bi-list"></i>
-            </button>
-
             <a class="yaqut-brand" asp-area="" asp-controller="Home" asp-action="Index" aria-label="ياقوت - الصفحة الرئيسية">
                 <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
                     <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
                 </span>
             </a>
 
+            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" aria-controls="yaqutNav" aria-expanded="false" data-yq-nav-toggle>
+                <i class="bi bi-list"></i>
+            </button>
+
             <nav class="yaqut-nav" id="yaqutNav" aria-label="التنقل الرئيسي">
                 <ul>
                     <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i><span>الرئيسية</span></a></li>
                     <li><a asp-controller="Products" asp-action="Index"><i class="bi bi-collection"></i><span>المجموعة</span></a></li>
                     <li><a asp-controller="Categories" asp-action="Index"><i class="bi bi-grid"></i><span>التصنيفات</span></a></li>
-                    <li><a asp-controller="Home" asp-action="Contact"><i class="bi bi-chat-dots"></i><span>تواصل معنا</span></a></li>
                     <li><a asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i><span>طلباتي</span></a></li>
+                    <li><a asp-controller="Home" asp-action="Contact"><i class="bi bi-chat-dots"></i><span>تواصل معنا</span></a></li>
                 </ul>
             </nav>
-
-            <form asp-controller="Products" asp-action="Index" method="get" class="yaqut-search" role="search">
-                <i class="bi bi-search yaqut-search__icon" aria-hidden="true"></i>
-                <input type="search" name="search" id="yaqutSearchInput" class="yaqut-search__input"
-                       placeholder="ابحث عن عطرك المفضل..." value="@Context.Request.Query["search"]"
-                       autocomplete="off" aria-label="بحث عن منتج" />
-                <button type="submit" class="yaqut-search__btn" aria-label="بحث">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-            </form>
 
             <div class="yaqut-header__actions">
                 <div class="yaqut-theme-pill" role="group" aria-label="تبديل وضع الألوان">
@@ -64,8 +55,9 @@
                     </button>
                 </div>
 
-                <a asp-controller="Cart" asp-action="Index" class="yaqut-icon-btn" aria-label="سلة المشتريات" title="السلة">
+                <a asp-controller="Cart" asp-action="Index" class="yaqut-cart-link" aria-label="سلة المشتريات" title="السلة">
                     <i class="bi bi-bag"></i>
+                    <span>السلة</span>
                 </a>
 
                 @if (User.Identity?.IsAuthenticated == true)
@@ -89,6 +81,16 @@
                     </a>
                 }
             </div>
+
+            <form asp-controller="Products" asp-action="Index" method="get" class="yaqut-search" role="search">
+                <i class="bi bi-search yaqut-search__icon" aria-hidden="true"></i>
+                <input type="search" name="search" id="yaqutSearchInput" class="yaqut-search__input"
+                       placeholder="ابحث عن عطر، عائلة عطرية، أو مناسبة..." value="@Context.Request.Query["search"]"
+                       autocomplete="off" aria-label="بحث عن منتج" />
+                <button type="submit" class="yaqut-search__btn" aria-label="بحث">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+            </form>
         </div>
     </header>
 
@@ -98,15 +100,24 @@
         </main>
     </div>
 
-    <!-- Footer -->
     <footer class="yaqut-footer">
         <div class="yaqut-footer__inner">
+            <div class="yaqut-footer__lead">
+                <div>
+                    <span class="yaqut-footer__eyebrow">Yaqut Perfumes</span>
+                    <h2>عطور مختارة بعناية لتجربة يومية أكثر فخامة</h2>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                    <i class="bi bi-bag-heart"></i> تسوق المجموعة
+                </a>
+            </div>
+
             <div class="yaqut-footer__grid">
                 <div class="yaqut-footer__col yaqut-footer__col--brand">
                     <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
                         <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
                     </span>
-                    <p class="yaqut-footer__tagline">حيث تولد الروائح كقطع فنية خالدة</p>
+                    <p class="yaqut-footer__tagline">وجهة عربية فاخرة لاختيار العطور الشرقية والغربية، بتجربة شراء هادئة وواضحة من أول تصفح حتى وصول الطلب.</p>
                     <div class="yaqut-footer__social" aria-label="تابعنا على وسائل التواصل الاجتماعي">
                         <a href="#" aria-label="إنستغرام"><i class="bi bi-instagram"></i></a>
                         <a href="#" aria-label="تويتر"><i class="bi bi-twitter-x"></i></a>
@@ -129,6 +140,7 @@
                 <nav class="yaqut-footer__col" aria-label="الدعم والحساب">
                     <h3 class="yaqut-footer__col-title">الدعم</h3>
                     <ul>
+                        <li><a asp-controller="Home" asp-action="Contact">تواصل معنا</a></li>
                         <li><a asp-controller="Home" asp-action="Privacy">سياسة الخصوصية</a></li>
                         <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
                     </ul>
@@ -140,6 +152,7 @@
                         <li><i class="bi bi-geo-alt"></i><span>المملكة العربية السعودية</span></li>
                         <li><i class="bi bi-clock"></i><span>خدمة العملاء: يومياً 9 ص - 10 م</span></li>
                         <li><i class="bi bi-truck"></i><span>توصيل سريع داخل المملكة</span></li>
+                        <li><i class="bi bi-envelope"></i><span>الدعم عبر صفحة التواصل</span></li>
                     </ul>
                 </div>
             </div>

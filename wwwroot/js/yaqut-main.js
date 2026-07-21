@@ -507,6 +507,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const loginPanel = document.getElementById("loginPanel");
     const registerPanel = document.getElementById("registerPanel");
+    if (!loginBtn || !registerBtn || !loginPanel || !registerPanel) return;
 
     function showLogin() {
 

@@ -70,7 +70,21 @@
         start();
     }
 
+    function initAuthStorageCleanup() {
+        var root = document.querySelector('[data-yq-auth-clear="true"]');
+        if (!root || !window.localStorage) return;
+
+        try {
+            ['regName', 'regPhone', 'regConfirmPhone', 'regPassword', 'regConfirm', 'AuthPanel'].forEach(function (key) {
+                window.localStorage.removeItem(key);
+            });
+        } catch (error) {
+            return;
+        }
+    }
+
     function init() {
+        initAuthStorageCleanup();
         initHeroCarousel();
     }
 

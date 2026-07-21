@@ -38,7 +38,11 @@
     </nav>
 
     <header class="yq-checkout-header yq-reveal">
-        <h1><i class="bi bi-credit-card"></i> إتمام الطلب</h1>
+        <div>
+            <span class="yq-checkout-kicker"><i class="bi bi-gem"></i> خطوة أخيرة قبل تجهيز الطلب</span>
+            <h1><i class="bi bi-credit-card"></i> إتمام الطلب</h1>
+            <p>راجع بياناتك واختر طريقة الدفع المناسبة، وسيتم التواصل معك لتأكيد التفاصيل قبل التجهيز.</p>
+        </div>
         <a asp-controller="Cart" asp-action="Index" class="yq-checkout-back-link">
             <i class="bi bi-arrow-right"></i> العودة للسلة
         </a>
@@ -60,7 +64,10 @@
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
                     <span class="yq-checkout-card__step">01</span>
-                    <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
+                    <div>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
+                        <p class="yq-checkout-card__desc">بيانات التواصل الأساسية لمتابعة الطلب.</p>
+                    </div>
                 </div>
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
@@ -82,7 +89,10 @@
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
                     <span class="yq-checkout-card__step">02</span>
-                    <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
+                    <div>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
+                        <p class="yq-checkout-card__desc">العنوان الذي سيتم اعتماده عند تأكيد الطلب.</p>
+                    </div>
                 </div>
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
@@ -116,7 +126,10 @@
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
                     <span class="yq-checkout-card__step">03</span>
-                    <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                    <div>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                        <p class="yq-checkout-card__desc">اختر البطاقة المناسبة؛ الخيار المحدد سيظهر بإطار ذهبي واضح.</p>
+                    </div>
                 </div>
                 <div class="yq-checkout-payment">
                     <label class="yq-checkout-payment__option is-selected">
@@ -164,7 +177,13 @@
 
         <!-- RIGHT: ORDER SUMMARY -->
         <aside class="yq-checkout-summary yq-glass yq-reveal">
-            <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+            <div class="yq-checkout-summary__head">
+                <span><i class="bi bi-bag-check"></i></span>
+                <div>
+                    <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+                    <p>تأكد من المنتجات قبل إرسال الطلب</p>
+                </div>
+            </div>
 
             <div class="yq-checkout-summary__items">
                 @foreach (var item in items)
