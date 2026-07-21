@@ -619,7 +619,7 @@
     outline-offset: 3px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-users-hero,
     .yq-users-panel__header,
     .yq-user-details-hero,
@@ -717,8 +717,15 @@
     .yq-users-person strong,
     .yq-users-phone,
     .yq-users-date,
-    .yq-user-detail-stat strong {
+    .yq-user-detail-stat strong,
+    .yq-user-details-identity strong,
+    .yq-user-order-status,
+    .yq-user-detail-card__meta {
         white-space: normal;
         overflow-wrap: anywhere;
+    }
+
+    .yq-user-details-identity {
+        align-items: flex-start;
     }
 }

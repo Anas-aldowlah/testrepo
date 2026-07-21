@@ -58,61 +58,105 @@
 
             <!-- CUSTOMER INFO -->
             <section class="yq-checkout-card yq-glass">
-                <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
-                <div class="yq-checkout-info-grid">
-                    <div>
-                        <span class="yq-checkout-info-label">الاسم</span>
-                        <span class="yq-checkout-info-value">@customerName</span>
-                    </div>
-                    <div>
-                        <span class="yq-checkout-info-label">رقم الجوال</span>
-                        <span class="yq-checkout-info-value">@(customerPhone ?? "-")</span>
-                    </div>
+                <div class="yq-checkout-card__head">
+                    <span class="yq-checkout-card__step">01</span>
+                    <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
+                </div>
+                <div class="yq-checkout-field-grid">
+                    <label class="yq-checkout-field">
+                        <span>الاسم الكامل</span>
+                        <input form="yqCheckoutForm" type="text" name="customerName" value="@customerName" autocomplete="name" />
+                    </label>
+                    <label class="yq-checkout-field">
+                        <span>رقم الجوال</span>
+                        <input form="yqCheckoutForm" type="tel" name="customerPhone" value="@(customerPhone ?? string.Empty)" autocomplete="tel" inputmode="tel" />
+                    </label>
+                    <label class="yq-checkout-field yq-checkout-field--wide">
+                        <span>البريد الإلكتروني <small>اختياري</small></span>
+                        <input form="yqCheckoutForm" type="email" name="customerEmail" autocomplete="email" />
+                    </label>
                 </div>
             </section>
 
             <!-- DELIVERY INFO -->
             <section class="yq-checkout-card yq-glass">
-                <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
-                <div class="yq-checkout-delivery">
-                    <div class="yq-checkout-delivery__item">
-                        <i class="bi bi-clock-history"></i>
-                        <div>
-                            <strong>مدة التوصيل المتوقعة</strong>
-                            <p>2-3 أيام عمل داخل المملكة</p>
-                        </div>
-                    </div>
-                    <div class="yq-checkout-delivery__item">
-                        <i class="bi bi-telephone"></i>
-                        <div>
-                            <strong>التواصل للتوصيل</strong>
-                            <p>سيتم التواصل معك عبر رقم الجوال المسجل لتأكيد وتنسيق التسليم</p>
-                        </div>
-                    </div>
+                <div class="yq-checkout-card__head">
+                    <span class="yq-checkout-card__step">02</span>
+                    <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
+                </div>
+                <div class="yq-checkout-field-grid">
+                    <label class="yq-checkout-field">
+                        <span>المحافظة</span>
+                        <input form="yqCheckoutForm" type="text" name="governorate" autocomplete="address-level1" />
+                    </label>
+                    <label class="yq-checkout-field">
+                        <span>المدينة</span>
+                        <input form="yqCheckoutForm" type="text" name="city" autocomplete="address-level2" />
+                    </label>
+                    <label class="yq-checkout-field">
+                        <span>الحي</span>
+                        <input form="yqCheckoutForm" type="text" name="district" autocomplete="address-level3" />
+                    </label>
+                    <label class="yq-checkout-field">
+                        <span>الشارع</span>
+                        <input form="yqCheckoutForm" type="text" name="street" autocomplete="street-address" />
+                    </label>
+                    <label class="yq-checkout-field yq-checkout-field--wide">
+                        <span>ملاحظات إضافية</span>
+                        <textarea form="yqCheckoutForm" name="deliveryNotes" rows="3"></textarea>
+                    </label>
+                </div>
+                <div class="yq-checkout-delivery-note">
+                    <i class="bi bi-clock-history"></i>
+                    <span>مدة التوصيل المتوقعة 2-3 أيام عمل، وسيتم التواصل معك لتأكيد التفاصيل قبل التسليم.</span>
                 </div>
             </section>
 
             <!-- PAYMENT METHOD -->
             <section class="yq-checkout-card yq-glass">
-                <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                <div class="yq-checkout-card__head">
+                    <span class="yq-checkout-card__step">03</span>
+                    <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
+                </div>
                 <div class="yq-checkout-payment">
                     <label class="yq-checkout-payment__option is-selected">
-                        <input type="radio" name="paymentMethod" value="cod" checked />
+                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="al-amqi" checked />
                         <span class="yq-checkout-payment__icon"><i class="bi bi-cash-coin"></i></span>
                         <span class="yq-checkout-payment__text">
-                            <strong>الدفع عند الاستلام</strong>
-                            <small>ادفع نقداً عند استلام طلبك</small>
+                            <strong>العمقي</strong>
+                            <small>خيار دفع محلي جاهز للتأكيد عند التواصل</small>
                         </span>
                         <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
                     </label>
 
-                    <label class="yq-checkout-payment__option is-disabled">
-                        <input type="radio" name="paymentMethod" value="card" disabled />
-                        <span class="yq-checkout-payment__icon"><i class="bi bi-credit-card-2-front"></i></span>
+                    <label class="yq-checkout-payment__option">
+                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="bin-dawl" />
+                        <span class="yq-checkout-payment__icon"><i class="bi bi-bank"></i></span>
                         <span class="yq-checkout-payment__text">
-                            <strong>بطاقة ائتمانية</strong>
-                            <small>قريباً</small>
+                            <strong>بن دول</strong>
+                            <small>اختره وسيتم تأكيد آلية الدفع مع الطلب</small>
                         </span>
+                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
+                    </label>
+
+                    <label class="yq-checkout-payment__option">
+                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="al-basiri" />
+                        <span class="yq-checkout-payment__icon"><i class="bi bi-wallet2"></i></span>
+                        <span class="yq-checkout-payment__text">
+                            <strong>البسيري</strong>
+                            <small>طريقة دفع سهلة لمتابعة الطلب بعد التأكيد</small>
+                        </span>
+                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
+                    </label>
+
+                    <label class="yq-checkout-payment__option">
+                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="other" />
+                        <span class="yq-checkout-payment__icon"><i class="bi bi-three-dots"></i></span>
+                        <span class="yq-checkout-payment__text">
+                            <strong>أخرى</strong>
+                            <small>سيتم الاتفاق على الطريقة المناسبة قبل التجهيز</small>
+                        </span>
+                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
                     </label>
                 </div>
             </section>

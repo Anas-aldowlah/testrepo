@@ -351,6 +351,18 @@
     }
 }
 
+@media (max-width: 576px) {
+    .yq-about-hero {
+        margin-inline: -1rem;
+    }
+
+    .yq-about-hero__eyebrow {
+        letter-spacing: 0.04em;
+        white-space: normal;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 480px) {
     .yq-about-values {
         grid-template-columns: 1fr;

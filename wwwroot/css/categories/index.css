@@ -185,7 +185,18 @@
 
 /* ── Responsive ── */
 @media (max-width: 576px) {
+    .yq-categories-header__eyebrow {
+        letter-spacing: 0.04em;
+        white-space: normal;
+        justify-content: center;
+    }
+
     .yq-categories-grid {
         grid-template-columns: 1fr;
+    }
+
+    .yq-cat-tile__body,
+    .yq-categories-empty {
+        padding: 1.25rem;
     }
 }

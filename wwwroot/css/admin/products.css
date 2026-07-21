@@ -752,7 +752,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-product-form__grid,
     .yq-product-upload {
         grid-template-columns: 1fr;
@@ -788,7 +788,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-products-hero,
     .yq-products-panel__header {
         align-items: stretch;
@@ -878,5 +878,13 @@
 
     .yq-products-actions form .yq-products-action {
         width: 100%;
+    }
+
+    .yq-products-item__meta strong,
+    .yq-product-edit-identity strong,
+    .yq-products-category,
+    .yq-products-muted-value {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 }

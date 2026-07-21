@@ -747,6 +747,8 @@
 
     .yq-admin-user__trigger {
         max-width: none;
+        min-width: 0;
+        padding-inline: 0.5rem;
     }
 
     .yq-admin-user__caret {
@@ -756,6 +758,28 @@
     .yq-admin-user__dropdown {
         inset-inline-end: 0;
         min-width: min(230px, calc(100vw - 2rem));
+    }
+}
+
+@media (max-width: 420px) {
+    .yq-admin-topbar {
+        gap: 0.65rem;
+        padding-inline: 0.75rem;
+    }
+
+    .yq-admin-topbar__menu-btn,
+    .yq-admin-user__trigger {
+        min-height: 42px;
+    }
+
+    .yq-admin-user__avatar {
+        width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+    }
+
+    .yq-admin-content {
+        padding-inline: 0.75rem;
     }
 }
 

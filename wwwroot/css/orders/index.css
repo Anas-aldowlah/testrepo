@@ -254,6 +254,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     font-size: 0.85rem;
 }
 
@@ -265,6 +266,9 @@
     font-weight: 700;
     color: var(--yq-gold, #c9a24b);
     letter-spacing: 0.02em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: end;
 }
 
 /* PROGRESS */
@@ -356,6 +360,17 @@
 }
 
 @media (max-width: 480px) {
+    .yq-orders-search {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .yq-orders-filter {
+        flex: 1 1 130px;
+        justify-content: center;
+        min-height: 44px;
+    }
+
     .yq-orders-grid {
         grid-template-columns: 1fr;
     }
@@ -363,5 +378,11 @@
     .yq-order-card__thumb {
         width: 36px;
         height: 36px;
+    }
+
+    .yq-order-card__row,
+    .yq-order-card__footer {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

@@ -359,7 +359,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-dashboard-hero,
     .yq-dashboard-panel__header {
         align-items: stretch;
@@ -433,5 +433,17 @@
 
     .yq-dashboard-kpi {
         align-items: flex-start;
+    }
+
+    .yq-dashboard-kpi__value,
+    .yq-dashboard-metric {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .yq-dashboard-orders td {
+        align-items: flex-start;
+        flex-direction: column;
+        text-align: start;
     }
 }

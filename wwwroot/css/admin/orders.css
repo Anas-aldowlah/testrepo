@@ -554,7 +554,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-orders-hero,
     .yq-orders-filter-panel__header,
     .yq-orders-panel__header {
@@ -652,6 +652,15 @@
     .yq-orders-detail-link,
     .yq-orders-status-select {
         width: 100%;
+    }
+
+    .yq-orders-number strong,
+    .yq-orders-customer strong,
+    .yq-orders-total strong,
+    .yq-orders-date,
+    .yq-orders-badge {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 }
 
@@ -1092,7 +1101,7 @@
     }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
     .yq-order-details-hero {
         align-items: stretch;
         flex-direction: column;
@@ -1182,5 +1191,11 @@
     .yq-order-products-table td {
         grid-template-columns: 1fr;
         gap: 0.35rem;
+    }
+
+    .yq-order-product strong,
+    .yq-order-product span,
+    .yq-order-details-hero__status strong {
+        overflow-wrap: anywhere;
     }
 }

@@ -7,12 +7,19 @@
     function initPaymentSelection() {
         var options = document.querySelectorAll('.yq-checkout-payment__option:not(.is-disabled)');
         options.forEach(function (option) {
-            option.addEventListener('click', function () {
+            function selectOption() {
                 options.forEach(function (o) { o.classList.remove('is-selected'); });
                 option.classList.add('is-selected');
                 var input = option.querySelector('input[type="radio"]');
                 if (input) input.checked = true;
-            });
+            }
+
+            option.addEventListener('click', selectOption);
+
+            var input = option.querySelector('input[type="radio"]');
+            if (input) {
+                input.addEventListener('change', selectOption);
+            }
         });
     }
 

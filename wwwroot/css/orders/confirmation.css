@@ -49,6 +49,7 @@
     display: inline-flex;
     flex-direction: column;
     gap: 0.5rem;
+    max-width: 100%;
     padding: 1rem 1.75rem;
     border-radius: var(--yq-radius);
     background: var(--yq-bg-input);
@@ -64,12 +65,14 @@
 .yq-confirm-tracking__value {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.65rem;
     justify-content: center;
     font-family: var(--yq-font-display);
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--yq-gold);
+    overflow-wrap: anywhere;
 }
 
 .yq-confirm-tracking__copy {
@@ -211,6 +214,7 @@
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--yq-text);
+    overflow-wrap: anywhere;
 }
 
 /* ── Payment ── */
@@ -338,6 +342,7 @@
 .yq-confirm-summary__row {
     display: flex;
     justify-content: space-between;
+    gap: 0.75rem;
     font-size: 0.92rem;
     color: var(--yq-text);
     margin-bottom: 0.9rem;
@@ -441,12 +446,27 @@
 }
 
 @media (max-width: 576px) {
+    .yq-confirm-card,
+    .yq-confirm-summary,
+    .yq-confirm-timeline {
+        padding: 1.25rem;
+    }
+
     .yq-confirm-info-grid {
         grid-template-columns: 1fr;
     }
 
     .yq-confirm-hero {
         padding: 2.25rem 1.25rem 1.75rem;
+    }
+
+    .yq-confirm-tracking {
+        width: 100%;
+        padding-inline: 1rem;
+    }
+
+    .yq-confirm-tracking__value {
+        font-size: 1.05rem;
     }
 
     .yq-timeline-step {
@@ -462,7 +482,19 @@
     }
 
     .yq-confirm-product__total {
-        margin-right: auto;
-        padding-right: 76px;
+        min-width: 0;
+        margin-right: 76px;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .yq-confirm-summary__row {
+        align-items: flex-start;
+    }
+
+    .yq-confirm-summary__row > span:last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        text-align: end;
     }
 }

@@ -35,7 +35,10 @@ public class UsersController : Controller
         var roleCache = new Dictionary<int, string?>();
         foreach (var us in userSites)
         {
-            roleCache[us.UserId] = us.Role;
+            if (us.UserId.HasValue)
+            {
+                roleCache[us.UserId.Value] = us.Role;
+            }
         }
 
         foreach (var user in users)

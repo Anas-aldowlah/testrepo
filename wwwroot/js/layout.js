@@ -25,13 +25,14 @@
     }
 
     function initMenuToggleAria() {
-        var btn = document.querySelector('.yaqut-menu-toggle');
-        var nav = document.querySelector('.yaqut-nav');
+        var btn = document.querySelector('[data-yq-nav-toggle]');
+        var nav = document.getElementById('yaqutNav');
         if (!btn || !nav) return;
 
         btn.addEventListener('click', function () {
-            var isOpen = nav.classList.contains('is-open');
-            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            var shouldOpen = !nav.classList.contains('is-open');
+            nav.classList.toggle('is-open', shouldOpen);
+            btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
         });
     }
 

@@ -24,7 +24,7 @@
     <!-- Header -->
     <header class="yaqut-header" id="yaqutHeader">
         <div class="yaqut-header__inner">
-            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" aria-controls="yaqutNav" aria-expanded="false" onclick="toggleNav()">
+            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" aria-controls="yaqutNav" aria-expanded="false" data-yq-nav-toggle>
                 <i class="bi bi-list"></i>
             </button>
 
@@ -38,6 +38,8 @@
                 <ul>
                     <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i><span>الرئيسية</span></a></li>
                     <li><a asp-controller="Products" asp-action="Index"><i class="bi bi-collection"></i><span>المجموعة</span></a></li>
+                    <li><a asp-controller="Categories" asp-action="Index"><i class="bi bi-grid"></i><span>التصنيفات</span></a></li>
+                    <li><a asp-controller="Home" asp-action="Contact"><i class="bi bi-chat-dots"></i><span>تواصل معنا</span></a></li>
                     <li><a asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i><span>طلباتي</span></a></li>
                 </ul>
             </nav>
@@ -118,6 +120,7 @@
                     <ul>
                         <li><a asp-controller="Home" asp-action="Index">الرئيسية</a></li>
                         <li><a asp-controller="Products" asp-action="Index">المجموعة الكاملة</a></li>
+                        <li><a asp-controller="Categories" asp-action="Index">التصنيفات</a></li>
                         <li><a asp-controller="Cart" asp-action="Index">سلة المشتريات</a></li>
                         <li><a asp-controller="Orders" asp-action="Index">طلباتي</a></li>
                     </ul>
@@ -130,6 +133,15 @@
                         <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
                     </ul>
                 </nav>
+
+                <div class="yaqut-footer__col">
+                    <h3 class="yaqut-footer__col-title">معلومات المتجر</h3>
+                    <ul class="yaqut-footer__contact">
+                        <li><i class="bi bi-geo-alt"></i><span>المملكة العربية السعودية</span></li>
+                        <li><i class="bi bi-clock"></i><span>خدمة العملاء: يومياً 9 ص - 10 م</span></li>
+                        <li><i class="bi bi-truck"></i><span>توصيل سريع داخل المملكة</span></li>
+                    </ul>
+                </div>
             </div>
 
             <div class="yaqut-footer__bottom">

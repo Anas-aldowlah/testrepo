@@ -221,6 +221,12 @@
 }
 
 @media (max-width: 576px) {
+    .yq-contact-header__eyebrow {
+        letter-spacing: 0.04em;
+        white-space: normal;
+        justify-content: center;
+    }
+
     .yq-contact-form-wrap {
         padding: 1.5rem;
     }
@@ -231,5 +237,14 @@
 
     .yq-contact-info {
         flex-direction: column;
+    }
+
+    .yq-contact-info__card {
+        min-width: 0;
+        padding: 1.25rem;
+    }
+
+    .yq-contact-social__links {
+        flex-wrap: wrap;
     }
 }

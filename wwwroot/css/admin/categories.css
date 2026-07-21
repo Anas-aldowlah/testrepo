@@ -942,7 +942,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
     .yq-category-upload {
         grid-template-columns: 1fr;
     }
@@ -1089,5 +1089,13 @@
         width: 100%;
         height: auto;
         aspect-ratio: 16 / 10;
+    }
+
+    .yq-categories-item__meta strong,
+    .yq-category-edit-identity strong,
+    .yq-categories-count,
+    .yq-categories-muted {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 }

@@ -9,6 +9,7 @@
 .yq-profile-breadcrumb {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
     font-size: 0.85rem;
     color: var(--yq-text-muted, #94a3b8);
@@ -149,6 +150,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     font-size: 0.88rem;
     padding: 0.55rem 0;
     color: var(--yq-text-muted, #94a3b8);
@@ -215,5 +217,29 @@
         flex-direction: column;
         align-items: flex-start;
         text-align: right;
+    }
+
+    .yq-profile-form-wrap,
+    .yq-profile-summary {
+        padding: 1.25rem;
+    }
+
+    .yq-profile-alert {
+        align-items: flex-start;
+    }
+
+    .yq-profile-submit-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .yq-profile-summary__row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .yq-profile-summary__row > span:last-child {
+        overflow-wrap: anywhere;
     }
 }

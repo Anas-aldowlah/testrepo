@@ -152,6 +152,7 @@
     color: #d4a82a;
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.35rem;
     font-weight: 600;
 }
@@ -522,6 +523,11 @@
         min-height: 320px;
     }
 
+    .yq-pdp-title,
+    .yq-pdp-price {
+        overflow-wrap: anywhere;
+    }
+
     .yq-pdp-purchase {
         flex-direction: column;
     }
@@ -541,5 +547,14 @@
     .yq-pdp-tab {
         padding: 0.85rem 1rem;
         font-size: 0.85rem;
+    }
+
+    .yq-pdp-specs div {
+        display: grid;
+        gap: 0.25rem;
+    }
+
+    .yq-pdp-recent__grid {
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
     }
 }
