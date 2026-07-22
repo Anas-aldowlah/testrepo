@@ -1,0 +1,11 @@
+fail: Microsoft.EntityFrameworkCore.Database.Connection[20004]
+      An error occurred using the connection to database 'neondb' on server 'tcp://ep-floral-forest-al2seqtv-pooler.c-3.eu-central-1.aws.neon.tech:5432'.
+Error dropping constraints: An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:5099
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\WinDows\source\repos\YAGOT

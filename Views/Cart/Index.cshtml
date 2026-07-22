@@ -64,6 +64,7 @@
                                 <form asp-controller="Cart" asp-action="Remove" method="post" class="yq-cart-item__remove-form">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
+                                    <input type="hidden" name="productId" value="@item.Productid" />
                                     <button type="submit" class="yq-cart-item__remove" aria-label="إزالة @item.Product?.Name من السلة">
                                         <i class="bi bi-trash3"></i>
                                     </button>
@@ -71,12 +72,25 @@
                             </div>
 
                             <div class="yq-cart-item__footer">
-                                <div class="yq-cart-item__qty-block">
+                                <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="cartItemId" value="@item.Id" />
+                                    <input type="hidden" name="productId" value="@item.Productid" />
                                     <span class="yq-cart-item__qty-label">الكمية</span>
-                                    <div class="yq-cart-item__qty-value">
-                                        <i class="bi bi-hash"></i> @item.Quantity
+                                    <div class="yq-cart-item__qty-control">
+                                        <input type="number"
+                                               name="quantity"
+                                               value="@item.Quantity"
+                                               min="0"
+                                               max="@(item.Product?.Stockquantity ?? item.Quantity)"
+                                               class="yq-cart-item__qty-input"
+                                               aria-label="تحديث كمية @item.Product?.Name" />
+                                        <button type="submit" class="yq-cart-item__qty-submit">
+                                            <i class="bi bi-check2"></i>
+                                            <span>تحديث</span>
+                                        </button>
                                     </div>
-                                </div>
+                                </form>
 
                                 <div class="yq-cart-item__pricing">
                                     <span class="yq-cart-item__unit-price">

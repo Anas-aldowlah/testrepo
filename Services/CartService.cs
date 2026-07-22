@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models;
+
 namespace YAGOT_2._0.Services;
 
 public class CartService
 {
     private readonly NeondbContext _context;
 
-    public string ? MESSAGE = null;
+    public string? MESSAGE = null;
 
     public CartService(NeondbContext context)
     {
@@ -15,13 +16,14 @@ public class CartService
 
     public int nextCartId()
     {
-        
         return _context.Carts.Any() ? _context.Carts.Max(c => c.Id) + 1 : 1;
     }
+
     public int nextCartItemId()
     {
         return _context.Cartitems.Any() ? _context.Cartitems.Max(ci => ci.Id) + 1 : 1;
     }
+
     public async Task<Cart> GetCartAsync(int userId)
     {
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.Userid == userId);
@@ -31,47 +33,96 @@ public class CartService
             await _context.Carts.AddAsync(cart);
             await _context.SaveChangesAsync();
         }
-        // تحميل عناصر السلة من جدول CartItems
+
         cart.Cartitems = await _context.Cartitems.Where(ci => ci.Cartid == cart.Id).ToListAsync();
-        // ربط المنتج بعنصر السلة
         foreach (var item in cart.Cartitems)
         {
             item.Product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.Productid)!;
         }
+
         return cart;
     }
 
     public async Task AddToCartAsync(int userId, int productId, int quantity)
     {
-        var cart = await GetCartAsync(userId);
-        var existingItem = _context.Cartitems.FirstOrDefault(i => i.Cartid == cart.Id && i.Productid == productId);
+        MESSAGE = null;
+        quantity = Math.Max(1, quantity);
 
+        var cart = await GetCartAsync(userId);
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
+        if (product == null || product.Stockquantity <= 0)
+        {
+            MESSAGE = "هذا المنتج غير متوفر حالياً.";
+            return;
+        }
+
+        var existingItem = await _context.Cartitems.FirstOrDefaultAsync(i => i.Cartid == cart.Id && i.Productid == productId);
         if (existingItem != null)
         {
-            existingItem.Quantity += quantity;
-            var product = _context.Products.FirstOrDefault(p => p.Id == productId);
-            if (product.Stockquantity < existingItem.Quantity)
+            var requestedQuantity = existingItem.Quantity + quantity;
+            existingItem.Quantity = Math.Min(requestedQuantity, product.Stockquantity);
+            if (requestedQuantity > product.Stockquantity)
             {
-                MESSAGE = $"كمية {product.Name} المتبقية : {product.Stockquantity} اقل من الكمية المطلوبة : {existingItem.Quantity}";
+                MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
             }
+
             await _context.SaveChangesAsync();
+            return;
         }
-        else
+
+        if (quantity > product.Stockquantity)
         {
-            var product = _context.Products.FirstOrDefault(p => p.Id == productId);
-            if (product != null && product.Stockquantity >= quantity)
-            {
-                _context.Cartitems.Add(new Cartitem
-                {
-                    Id = nextCartItemId(),
-                    Cartid = cart.Id,
-                    Productid = productId,
-                    Quantity = quantity,
-                    Product = product
-                });
-                await _context.SaveChangesAsync();
-            }
+            MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
+            quantity = product.Stockquantity;
         }
+
+        _context.Cartitems.Add(new Cartitem
+        {
+            Id = nextCartItemId(),
+            Cartid = cart.Id,
+            Productid = productId,
+            Quantity = quantity,
+            Product = product
+        });
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateQuantityAsync(int userId, int cartItemId, int quantity)
+    {
+        MESSAGE = null;
+
+        var cart = await GetCartAsync(userId);
+        var item = await _context.Cartitems.FirstOrDefaultAsync(i => i.Id == cartItemId && i.Cartid == cart.Id);
+        if (item == null)
+        {
+            MESSAGE = "العنصر غير موجود في سلتك";
+            return;
+        }
+
+        if (quantity <= 0)
+        {
+            _context.Cartitems.Remove(item);
+            await _context.SaveChangesAsync();
+            MESSAGE = "تم حذف العنصر بنجاح";
+            return;
+        }
+
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.Productid);
+        if (product == null || product.Stockquantity <= 0)
+        {
+            _context.Cartitems.Remove(item);
+            await _context.SaveChangesAsync();
+            MESSAGE = "هذا المنتج غير متوفر حالياً.";
+            return;
+        }
+
+        item.Quantity = Math.Min(quantity, product.Stockquantity);
+        if (quantity > product.Stockquantity)
+        {
+            MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task RemoveFromCartAsync(int userId, int cartItemId)
@@ -107,6 +158,7 @@ public class CartService
         {
             _context.Cartitems.Remove(item);
         }
+
         await _context.SaveChangesAsync();
     }
 }

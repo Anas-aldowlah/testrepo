@@ -14,14 +14,16 @@ public class OrdersController : Controller
 {
     private readonly OrderService _orderService;
     private readonly CartService _cartService;
+    private readonly GuestCartService _guestCartService;
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
 
-    public OrdersController(OrderService orderService, CartService cartService, NeondbContext context,UsersDbContext users)
+    public OrdersController(OrderService orderService, CartService cartService, GuestCartService guestCartService, NeondbContext context,UsersDbContext users)
     {
         _context = context;
         _orderService = orderService;
         _cartService = cartService;
+        _guestCartService = guestCartService;
         _dbUser = users;
     }
 
@@ -33,11 +35,11 @@ public class OrdersController : Controller
         return View(orders);
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> Checkout()
     {
-        var userId = await ResolveUserIdAsync();
-        var cart = await _cartService.GetCartAsync(userId);
+        var cart = await GetCurrentCartAsync();
 
         if (cart.Cartitems == null || !cart.Cartitems.Any())
         {
@@ -48,14 +50,32 @@ public class OrdersController : Controller
         return View(cart);
     }
 
+    [AllowAnonymous]
     [HttpPost]
     [ActionName("Checkout")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CheckoutPost()
     {
+        if (!TryResolveUserId(out var userId))
+        {
+            var cart = await _guestCartService.GetCartAsync();
+            if (cart.Cartitems == null || !cart.Cartitems.Any())
+            {
+                TempData["Error"] = "السلة فارغة - لا يمكن إتمام الطلب بدون منتجات";
+                return RedirectToAction("Index", "Cart");
+            }
+
+            if (Request.HasFormContentType)
+            {
+                ViewData["CheckoutFormValues"] = Request.Form;
+            }
+
+            ViewData["ShowAuthModal"] = true;
+            return View(cart);
+        }
+
         try
         {
-            var userId = await ResolveUserIdAsync();
             var order = await _orderService.CreateOrderAsync(userId);
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
@@ -82,6 +102,19 @@ public class OrdersController : Controller
         var order = await _orderService.GetOrderByIdAsync(id);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
+    }
+
+    private async Task<Cart> GetCurrentCartAsync()
+    {
+        return TryResolveUserId(out var userId)
+            ? await _cartService.GetCartAsync(userId)
+            : await _guestCartService.GetCartAsync();
+    }
+
+    private bool TryResolveUserId(out int userId)
+    {
+        var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(userIdVal, out userId);
     }
 
     private Task<int> ResolveUserIdAsync()

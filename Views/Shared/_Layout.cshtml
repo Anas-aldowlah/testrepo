@@ -40,7 +40,10 @@
                     <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i><span>الرئيسية</span></a></li>
                     <li><a asp-controller="Products" asp-action="Index"><i class="bi bi-collection"></i><span>المجموعة</span></a></li>
                     <li><a asp-controller="Categories" asp-action="Index"><i class="bi bi-grid"></i><span>التصنيفات</span></a></li>
-                    <li><a asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i><span>طلباتي</span></a></li>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <li><a asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i><span>طلباتي</span></a></li>
+                    }
                     <li><a asp-controller="Home" asp-action="Contact"><i class="bi bi-chat-dots"></i><span>تواصل معنا</span></a></li>
                 </ul>
             </nav>
@@ -66,8 +69,12 @@
                     {
                         <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-yaqut-gold btn-sm d-none d-lg-inline-flex">الإدارة</a>
                     }
-                    <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip d-none d-md-inline-flex" title="ملفي الشخصي">
-                        <i class="bi bi-person-circle"></i> @User.Identity.Name
+                    <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip d-none d-md-inline-flex" title="حسابي">
+                        <i class="bi bi-person-circle"></i> حسابي
+                    </a>
+                    <a asp-controller="Orders" asp-action="Index" class="btn btn-yaqut-outline btn-sm d-none d-lg-inline-flex">
+                        <i class="bi bi-receipt"></i>
+                        <span>طلباتي</span>
                     </a>
                     <a asp-controller="Account" asp-action="Logout" class="btn btn-yaqut-outline btn-sm yaqut-logout-btn">
                         <i class="bi bi-box-arrow-right"></i>
@@ -78,6 +85,9 @@
                 {
                     <a asp-controller="Account" asp-action="Auth" class="btn-yaqut-outline btn-sm yaqut-login-btn">
                         <i class="bi bi-person"></i><span class="d-none d-md-inline">دخول</span>
+                    </a>
+                    <a asp-controller="Account" asp-action="Auth" asp-route-register="true" class="btn btn-yaqut-gold btn-sm d-none d-lg-inline-flex">
+                        <i class="bi bi-person-plus"></i><span>حساب جديد</span>
                     </a>
                 }
             </div>

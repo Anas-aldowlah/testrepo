@@ -16,6 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using Microsoft.Extensions.Configuration;
+using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Controllers;
 
@@ -25,17 +26,19 @@ public class AccountController : Controller
     private readonly UsersDbContext _dbUser;
     private readonly IConfiguration _configuration;
     private readonly IVisitService _visitService;
+    private readonly GuestCartService _guestCartService;
 
-    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService, UsersDbContext user)
+    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService, UsersDbContext user, GuestCartService guestCartService)
     {
         _db = db;
         _configuration = configuration;
         _visitService = visitService;
         _dbUser = user;
+        _guestCartService = guestCartService;
     }
 
     [HttpGet]
-    public IActionResult Auth(string? returnUrl = null)
+    public IActionResult Auth(string? returnUrl = null, bool register = false)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
@@ -45,6 +48,7 @@ public class AccountController : Controller
         ;
 
         ViewData["ReturnUrl"] = returnUrl;
+        ViewData["ShowRegister"] = register;
         return View();
     }
 
@@ -86,6 +90,7 @@ public class AccountController : Controller
         }
         ;
         await SignInUserAsync(user,user.Id);
+        await _guestCartService.MergeIntoUserCartAsync(user.Id);
         TempData["UserName"] = user.Name;
         await _visitService.SaveVisitAsync(HttpContext, user.Name);
         return LocalRedirect(GetRedirectUrl(returnUrl));
@@ -154,6 +159,7 @@ public class AccountController : Controller
         _db.UserSites.Add(userSite);
         await _db.SaveChangesAsync();
         await SignInUserAsync(user,user.Id);
+        await _guestCartService.MergeIntoUserCartAsync(user.Id);
 
         TempData["UserName"] = user.Name;
         TempData.Remove("ShowRegister");
@@ -166,7 +172,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction(nameof(Auth));
+        return RedirectToAction("Index", "Home");
     }
 
     [Authorize]

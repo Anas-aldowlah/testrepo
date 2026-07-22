@@ -1,5 +1,7 @@
 @model YAGOT_2._0.Models.Order
 @using System.Security.Claims
+@using YAGOT_2._0.Services
+@inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = "تأكيد الطلب";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
@@ -97,7 +99,7 @@
                     </div>
                     <div>
                         <span class="yq-confirm-info-label">رقم الجوال</span>
-                        <span class="yq-confirm-info-value">@(customerPhone ?? "-")</span>
+                        <span class="yq-confirm-info-value">@(DealingApiService.DecryptPhone(customerPhone) ?? "-")</span>
                     </div>
                     <div>
                         <span class="yq-confirm-info-label">تاريخ الطلب</span>

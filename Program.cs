@@ -96,6 +96,7 @@ builder.Services.AddDbContext<UsersDbContext>(options =>
 
 //  انشاء كائن object (Dependency Injection - DI) كل مايتم انشاء HTTP Request
 builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();
@@ -163,12 +164,6 @@ app.Use(async (context, next) =>
         return;
     }
 
-    // صفحة البداية للزائر: توجيه الجذر فقط إلى تسجيل الدخول (الشعار يوجّه إلى Home/Index)
-    if (!isAuthenticated && path == "/")
-    {
-        context.Response.Redirect("/Account/Auth");
-        return;
-    }
     //if (context.User.Identity?.IsAuthenticated == true)
     //{
     //    // الحصول على اسم المستخدم من الـ Cookie

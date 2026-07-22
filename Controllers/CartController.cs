@@ -1,67 +1,93 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using YAGOT_2._0.Data;
+using System.Security.Claims;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace Yagot.Controllers;
 
-[Authorize]
 [ServiceFilter(typeof(SiteStatusFilter))]
 public class CartController : Controller
 {
-    private readonly NeondbContext _context;
     private readonly CartService _cartService;
-    private readonly UsersDbContext _dbUser;
+    private readonly GuestCartService _guestCartService;
 
-    public CartController(NeondbContext context, CartService cartService,UsersDbContext User)
+    public CartController(CartService cartService, GuestCartService guestCartService)
     {
-        // ADD CHANGE
-        _context = context;
         _cartService = cartService;
-        _dbUser = User;
-    }
-
-    public int nextCartId()
-    {
-        return _context.Carts.Any() ? _context.Carts.Max(c => c.Id) + 1 : 1;
+        _guestCartService = guestCartService;
     }
 
     public async Task<IActionResult> Index()
     {
-        var userId = await ResolveUserIdAsync();
-        var cart = await _cartService.GetCartAsync(userId);
+        var cart = await GetCurrentCartAsync();
         return View(cart);
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(int productId, int quantity)
     {
-        var userId = await ResolveUserIdAsync();
-        await _cartService.AddToCartAsync(userId, productId, quantity);
-        TempData["Message"] = _cartService.MESSAGE;
+        if (TryResolveUserId(out var userId))
+        {
+            await _cartService.AddToCartAsync(userId, productId, quantity);
+            TempData["Message"] = _cartService.MESSAGE;
+        }
+        else
+        {
+            await _guestCartService.AddToCartAsync(productId, quantity);
+            TempData["Message"] = _guestCartService.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Remove(int cartItemId)
+    public async Task<IActionResult> Update(int cartItemId, int productId, int quantity)
     {
-        var userId = await ResolveUserIdAsync();
-        await _cartService.RemoveFromCartAsync(userId, cartItemId);
-        TempData["Message"] = _cartService.MESSAGE;
+        if (TryResolveUserId(out var userId))
+        {
+            await _cartService.UpdateQuantityAsync(userId, cartItemId, quantity);
+            TempData["Message"] = _cartService.MESSAGE;
+        }
+        else
+        {
+            await _guestCartService.UpdateQuantityAsync(productId, quantity);
+            TempData["Message"] = _guestCartService.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
-    private Task<int> ResolveUserIdAsync()
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Remove(int cartItemId, int productId)
     {
-        var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(userIdVal, out var userId))
+        if (TryResolveUserId(out var userId))
         {
-            return Task.FromResult(userId);
+            await _cartService.RemoveFromCartAsync(userId, cartItemId);
+            TempData["Message"] = _cartService.MESSAGE;
         }
-        return Task.FromResult(1);
+        else
+        {
+            await _guestCartService.RemoveFromCartAsync(productId);
+            TempData["Message"] = _guestCartService.Message;
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<Cart> GetCurrentCartAsync()
+    {
+        return TryResolveUserId(out var userId)
+            ? await _cartService.GetCartAsync(userId)
+            : await _guestCartService.GetCartAsync();
+    }
+
+    private bool TryResolveUserId(out int userId)
+    {
+        var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(userIdVal, out userId);
     }
 }

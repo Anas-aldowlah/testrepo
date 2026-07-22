@@ -2,7 +2,7 @@
     Layout = "_AuthLayout";
     ViewData["Title"] = "بوابة الدخول";
     var returnUrl = ViewData["ReturnUrl"] as string ?? "/Home/Index";
-    var showRegisterPanel = (TempData["ShowRegister"] as bool?) == true;
+    var showRegisterPanel = (ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true;
 }
 
 <div class="yaqut-auth-page">

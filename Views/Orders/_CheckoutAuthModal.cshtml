@@ -1,0 +1,47 @@
+@model bool
+@{
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="modal fade yq-checkout-auth-modal"
+     id="yqCheckoutAuthModal"
+     tabindex="-1"
+     aria-labelledby="yqCheckoutAuthModalTitle"
+     aria-hidden="true"
+     data-yq-show-on-load="@(Model.ToString().ToLowerInvariant())">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content yq-checkout-auth-modal__content">
+            <div class="modal-header yq-checkout-auth-modal__header">
+                <div>
+                    <span class="yq-checkout-auth-modal__eyebrow">
+                        <i class="bi bi-shield-lock"></i> مطلوب حساب
+                    </span>
+                    <h2 class="modal-title yq-checkout-auth-modal__title" id="yqCheckoutAuthModalTitle">
+                        أكمل الشراء بحسابك
+                    </h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body yq-checkout-auth-modal__body">
+                <p>
+                    نحتاج إلى تسجيل الدخول أو إنشاء حساب جديد قبل تأكيد الطلب، حتى يتم ربط الطلب بحسابك ومتابعته من صفحة طلباتي.
+                </p>
+            </div>
+            <div class="modal-footer yq-checkout-auth-modal__actions">
+                <a asp-controller="Account"
+                   asp-action="Auth"
+                   asp-route-returnUrl="@returnUrl"
+                   class="btn-yaqut-gold yq-checkout-auth-modal__action">
+                    <i class="bi bi-box-arrow-in-left"></i> دخول
+                </a>
+                <a asp-controller="Account"
+                   asp-action="Auth"
+                   asp-route-register="true"
+                   asp-route-returnUrl="@returnUrl"
+                   class="btn-yaqut-outline yq-checkout-auth-modal__action">
+                    <i class="bi bi-person-plus"></i> إنشاء حساب
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
