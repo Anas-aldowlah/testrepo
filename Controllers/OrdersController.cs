@@ -5,6 +5,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using System.Security.Claims;
 
 namespace YAGOT_2._0.Controllers;
 
@@ -15,15 +16,23 @@ public class OrdersController : Controller
     private readonly OrderService _orderService;
     private readonly CartService _cartService;
     private readonly GuestCartService _guestCartService;
+    private readonly DealingAPI _dealingApiService;
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
 
-    public OrdersController(OrderService orderService, CartService cartService, GuestCartService guestCartService, NeondbContext context,UsersDbContext users)
+    public OrdersController(
+        OrderService orderService,
+        CartService cartService,
+        GuestCartService guestCartService,
+        DealingAPI dealingApiService,
+        NeondbContext context,
+        UsersDbContext users)
     {
         _context = context;
         _orderService = orderService;
         _cartService = cartService;
         _guestCartService = guestCartService;
+        _dealingApiService = dealingApiService;
         _dbUser = users;
     }
 
@@ -47,42 +56,44 @@ public class OrdersController : Controller
             return RedirectToAction("Index", "Cart");
         }
 
-        return View(cart);
+        return View(BuildCheckoutViewModel(cart));
     }
 
     [AllowAnonymous]
     [HttpPost]
     [ActionName("Checkout")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CheckoutPost()
+    public async Task<IActionResult> CheckoutPost(CheckoutVM model)
     {
+        var cart = await GetCurrentCartAsync();
+        if (cart.Cartitems == null || !cart.Cartitems.Any())
+        {
+            TempData["Error"] = "السلة فارغة - لا يمكن إتمام الطلب بدون منتجات";
+            return RedirectToAction("Index", "Cart");
+        }
+
+        model.Cart = cart;
+
+        if (!ModelState.IsValid)
+        {
+            return View("Checkout", model);
+        }
+
         if (!TryResolveUserId(out var userId))
         {
-            var cart = await _guestCartService.GetCartAsync();
-            if (cart.Cartitems == null || !cart.Cartitems.Any())
-            {
-                TempData["Error"] = "السلة فارغة - لا يمكن إتمام الطلب بدون منتجات";
-                return RedirectToAction("Index", "Cart");
-            }
-
-            if (Request.HasFormContentType)
-            {
-                ViewData["CheckoutFormValues"] = Request.Form;
-            }
-
             ViewData["ShowAuthModal"] = true;
-            return View(cart);
+            return View("Checkout", model);
         }
 
         try
         {
-            var order = await _orderService.CreateOrderAsync(userId);
+            var order = await _orderService.CreateOrderAsync(userId, model);
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
-            return RedirectToAction("Index", "Cart");
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("Checkout", model);
         }
     }
 
@@ -125,5 +136,22 @@ public class OrdersController : Controller
             return Task.FromResult(userId);
         }
         return Task.FromResult(1);
+    }
+
+    private CheckoutVM BuildCheckoutViewModel(Cart cart)
+    {
+        var model = new CheckoutVM
+        {
+            Cart = cart
+        };
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            model.CustomerName = User.Identity?.Name ?? string.Empty;
+            var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+            model.CustomerPhone = _dealingApiService.DecryptPhone(encryptedPhone);
+        }
+
+        return model;
     }
 }

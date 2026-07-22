@@ -5,22 +5,22 @@
     'use strict';
 
     function initPaymentSelection() {
-        var options = document.querySelectorAll('.yq-checkout-payment__option:not(.is-disabled)');
-        options.forEach(function (option) {
-            function selectOption() {
-                options.forEach(function (o) { o.classList.remove('is-selected'); });
-                option.classList.add('is-selected');
-                var input = option.querySelector('input[type="radio"]');
-                if (input) input.checked = true;
-            }
+        var inputs = document.querySelectorAll('.yq-checkout-payment__option input[type="radio"]');
+        if (!inputs.length) return;
 
-            option.addEventListener('click', selectOption);
+        function syncSelection() {
+            inputs.forEach(function (input) {
+                var option = input.closest('.yq-checkout-payment__option');
+                if (!option) return;
+                option.classList.toggle('is-selected', input.checked);
+            });
+        }
 
-            var input = option.querySelector('input[type="radio"]');
-            if (input) {
-                input.addEventListener('change', selectOption);
-            }
+        inputs.forEach(function (input) {
+            input.addEventListener('change', syncSelection);
         });
+
+        syncSelection();
     }
 
     function initPlaceOrderGuard() {
@@ -29,6 +29,11 @@
         if (!form || !btn) return;
 
         form.addEventListener('submit', function (event) {
+            if (!validateForm(form)) {
+                event.preventDefault();
+                return;
+            }
+
             var authRequired = form.getAttribute('data-yq-auth-required') === 'true';
             if (authRequired) {
                 event.preventDefault();
@@ -39,6 +44,40 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> جارِ تأكيد الطلب...';
         });
+    }
+
+    function validateForm(form) {
+        if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.valid === 'function') {
+            var isValid = window.jQuery(form).valid();
+            if (!isValid) {
+                focusFirstInvalidField(form, false);
+            }
+            return isValid;
+        }
+
+        if (typeof form.checkValidity === 'function') {
+            var nativeValid = form.checkValidity();
+            if (!nativeValid) {
+                focusFirstInvalidField(form, true);
+            }
+            return nativeValid;
+        }
+
+        return true;
+    }
+
+    function focusFirstInvalidField(form, includeNativeInvalid) {
+        var firstInvalid = form.querySelector('.input-validation-error, .is-invalid, [aria-invalid="true"]');
+        if (!firstInvalid && includeNativeInvalid && typeof form.querySelector === 'function') {
+            firstInvalid = form.querySelector(':invalid');
+        }
+
+        if (firstInvalid && typeof firstInvalid.focus === 'function') {
+            firstInvalid.focus({ preventScroll: false });
+            if (typeof firstInvalid.scrollIntoView === 'function') {
+                firstInvalid.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        }
     }
 
     function showAuthModal(modalId) {
@@ -63,6 +102,7 @@
         initPaymentSelection();
         initPlaceOrderGuard();
         initAuthModalAutoShow();
+        focusFirstInvalidField(document.getElementById('yqCheckoutForm') || document, false);
     }
 
     if (document.readyState === 'loading') {

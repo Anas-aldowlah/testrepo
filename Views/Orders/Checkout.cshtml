@@ -1,29 +1,15 @@
-@model YAGOT_2._0.Models.Cart
+@model YAGOT_2._0.Models.CheckoutVM
 @using YAGOT_2._0.Services
-@using System.Security.Claims
-@inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = "إتمام الطلب";
-    var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
+    var items = Model?.Cart?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
     decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
-    var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
     var showAuthModal = (ViewData["ShowAuthModal"] as bool?) == true;
-    var customerName = User.Identity?.Name;
-    var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
-    string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
-    string CheckoutValue(string name, string? fallback = null)
-    {
-        if (checkoutFormValues != null && checkoutFormValues.TryGetValue(name, out var value))
-        {
-            return value.ToString();
-        }
-
-        return fallback ?? string.Empty;
-    }
-    var selectedPaymentMethod = CheckoutValue("paymentMethod", "al-amqi");
+    var selectedPaymentMethod = Model?.PaymentMethod ?? string.Empty;
+    var hasModelErrors = ViewData.ModelState[""]?.Errors.Count > 0;
 }
 
 @section Styles {
@@ -61,14 +47,22 @@
         </a>
     </header>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--danger yq-reveal">
-            <i class="bi bi-exclamation-circle"></i> @TempData["Error"]
-        </div>
-    }
+    <form asp-controller="Orders"
+          asp-action="Checkout"
+          method="post"
+          id="yqCheckoutForm"
+          data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
+          data-yq-auth-modal="yqCheckoutAuthModal"
+          data-yq-validate
+          novalidate>
+        @Html.AntiForgeryToken()
 
-    <div class="yq-checkout-layout">
+        @if (hasModelErrors)
+        {
+            <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger yq-reveal" role="alert"></div>
+        }
+
+        <div class="yq-checkout-layout">
 
         <!-- LEFT: DETAILS -->
         <div class="yq-checkout-details yq-reveal">
@@ -85,15 +79,18 @@
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
                         <span>الاسم الكامل</span>
-                        <input form="yqCheckoutForm" type="text" name="customerName" value="@CheckoutValue("customerName", customerName)" autocomplete="name" />
+                        <input asp-for="CustomerName" form="yqCheckoutForm" type="text" autocomplete="name" />
+                        <span asp-validation-for="CustomerName" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم الجوال</span>
-                        <input form="yqCheckoutForm" type="tel" name="customerPhone" value="@CheckoutValue("customerPhone", customerPhone)" autocomplete="tel" inputmode="tel" />
+                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" autocomplete="tel" inputmode="tel" />
+                        <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
                         <span>البريد الإلكتروني <small>اختياري</small></span>
-                        <input form="yqCheckoutForm" type="email" name="customerEmail" value="@CheckoutValue("customerEmail")" autocomplete="email" />
+                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" autocomplete="email" />
+                        <span asp-validation-for="CustomerEmail" class="yq-checkout-field__error"></span>
                     </label>
                 </div>
             </section>
@@ -110,23 +107,28 @@
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
                         <span>المحافظة</span>
-                        <input form="yqCheckoutForm" type="text" name="governorate" value="@CheckoutValue("governorate")" autocomplete="address-level1" />
+                        <input asp-for="Governorate" form="yqCheckoutForm" type="text" autocomplete="address-level1" />
+                        <span asp-validation-for="Governorate" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>المدينة</span>
-                        <input form="yqCheckoutForm" type="text" name="city" value="@CheckoutValue("city")" autocomplete="address-level2" />
+                        <input asp-for="City" form="yqCheckoutForm" type="text" autocomplete="address-level2" />
+                        <span asp-validation-for="City" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>الحي</span>
-                        <input form="yqCheckoutForm" type="text" name="district" value="@CheckoutValue("district")" autocomplete="address-level3" />
+                        <input asp-for="District" form="yqCheckoutForm" type="text" autocomplete="address-level3" />
+                        <span asp-validation-for="District" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>الشارع</span>
-                        <input form="yqCheckoutForm" type="text" name="street" value="@CheckoutValue("street")" autocomplete="street-address" />
+                        <input asp-for="Street" form="yqCheckoutForm" type="text" autocomplete="street-address" />
+                        <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
                         <span>ملاحظات إضافية</span>
-                        <textarea form="yqCheckoutForm" name="deliveryNotes" rows="3">@CheckoutValue("deliveryNotes")</textarea>
+                        <textarea asp-for="DeliveryNotes" form="yqCheckoutForm" rows="3"></textarea>
+                        <span asp-validation-for="DeliveryNotes" class="yq-checkout-field__error"></span>
                     </label>
                 </div>
                 <div class="yq-checkout-delivery-note">
@@ -146,7 +148,7 @@
                 </div>
                 <div class="yq-checkout-payment">
                     <label class="yq-checkout-payment__option @(selectedPaymentMethod == "al-amqi" ? "is-selected" : "")">
-                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="al-amqi" checked="@(selectedPaymentMethod == "al-amqi")" />
+                        <input asp-for="PaymentMethod" id="PaymentMethod-al-amqi" form="yqCheckoutForm" type="radio" value="al-amqi" />
                         <span class="yq-checkout-payment__icon"><i class="bi bi-cash-coin"></i></span>
                         <span class="yq-checkout-payment__text">
                             <strong>العمقي</strong>
@@ -156,7 +158,7 @@
                     </label>
 
                     <label class="yq-checkout-payment__option @(selectedPaymentMethod == "bin-dawl" ? "is-selected" : "")">
-                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="bin-dawl" checked="@(selectedPaymentMethod == "bin-dawl")" />
+                        <input asp-for="PaymentMethod" id="PaymentMethod-bin-dawl" form="yqCheckoutForm" type="radio" value="bin-dawl" />
                         <span class="yq-checkout-payment__icon"><i class="bi bi-bank"></i></span>
                         <span class="yq-checkout-payment__text">
                             <strong>بن دول</strong>
@@ -166,7 +168,7 @@
                     </label>
 
                     <label class="yq-checkout-payment__option @(selectedPaymentMethod == "al-basiri" ? "is-selected" : "")">
-                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="al-basiri" checked="@(selectedPaymentMethod == "al-basiri")" />
+                        <input asp-for="PaymentMethod" id="PaymentMethod-al-basiri" form="yqCheckoutForm" type="radio" value="al-basiri" />
                         <span class="yq-checkout-payment__icon"><i class="bi bi-wallet2"></i></span>
                         <span class="yq-checkout-payment__text">
                             <strong>البسيري</strong>
@@ -176,7 +178,7 @@
                     </label>
 
                     <label class="yq-checkout-payment__option @(selectedPaymentMethod == "other" ? "is-selected" : "")">
-                        <input form="yqCheckoutForm" type="radio" name="paymentMethod" value="other" checked="@(selectedPaymentMethod == "other")" />
+                        <input asp-for="PaymentMethod" id="PaymentMethod-other" form="yqCheckoutForm" type="radio" value="other" />
                         <span class="yq-checkout-payment__icon"><i class="bi bi-three-dots"></i></span>
                         <span class="yq-checkout-payment__text">
                             <strong>أخرى</strong>
@@ -185,6 +187,7 @@
                         <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
                     </label>
                 </div>
+                <span asp-validation-for="PaymentMethod" class="yq-checkout-field__error yq-checkout-field__error--payment"></span>
             </section>
         </div>
 
@@ -248,20 +251,16 @@
                 <span>@subtotal.ToString("N0") <small>ر.س</small></span>
             </div>
 
-            <form asp-controller="Orders" asp-action="Checkout" method="post" id="yqCheckoutForm"
-                  data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
-                  data-yq-auth-modal="yqCheckoutAuthModal">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
-                    <i class="bi bi-shield-check"></i> تأكيد الطلب والدفع
-                </button>
-            </form>
+            <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
+                <i class="bi bi-shield-check"></i> تأكيد الطلب والدفع
+            </button>
 
             <p class="yq-checkout-summary__secure">
                 <i class="bi bi-lock"></i> معاملتك محمية وآمنة بالكامل
             </p>
         </aside>
-    </div>
+        </div>
+    </form>
 </div>
 
 @if (!isAuthenticated)
@@ -270,5 +269,6 @@
 }
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script src="~/js/orders/checkout.js" asp-append-version="true"></script>
 }

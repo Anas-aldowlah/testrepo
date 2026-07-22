@@ -8,6 +8,13 @@ public class OrderService
 {
     private readonly NeondbContext _context;
     private readonly CartService _cartService;
+    private static readonly HashSet<string> AllowedPaymentMethods = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "al-amqi",
+        "bin-dawl",
+        "al-basiri",
+        "other"
+    };
 
     public int NextOrderId()
     {
@@ -25,9 +32,11 @@ public class OrderService
         _cartService = cartService;
     }
 
-    public async Task<Order> CreateOrderAsync(int userId)
+    public async Task<Order> CreateOrderAsync(int userId, CheckoutVM checkout)
     {
-            var cart = await _cartService.GetCartAsync(userId);
+        ValidateCheckout(checkout);
+
+        var cart = await _cartService.GetCartAsync(userId);
         if (cart.Cartitems == null || !cart.Cartitems.Any())
             throw new InvalidOperationException("السلة فارغة - لا يمكن إنشاء طلب بدون منتجات");
 
@@ -51,6 +60,16 @@ public class OrderService
         _context.Orders.Add(order);
         _context.SaveChanges(); // حفظ الطلب أولاً للحصول على معرفه
 
+        _context.Deliveryorders.Add(new Deliveryorder
+        {
+            Orderid = order.Id,
+            Fullname = checkout.CustomerName,
+            Phonenumber = checkout.CustomerPhone,
+            Governorate = checkout.Governorate,
+            City = checkout.City,
+            District = checkout.District
+        });
+        _context.SaveChanges();
 
         // إنشاء عناصر الطلب وخصم المخزون
         foreach (var item in cart.Cartitems)
@@ -79,6 +98,33 @@ public class OrderService
         order.Orderitems = await _context.Orderitems.Where(oi => oi.Orderid == order.Id).ToListAsync();
 
         return order;
+    }
+
+    private static void ValidateCheckout(CheckoutVM checkout)
+    {
+        if (checkout == null)
+            throw new ArgumentNullException(nameof(checkout));
+
+        if (string.IsNullOrWhiteSpace(checkout.CustomerName))
+            throw new InvalidOperationException("اسم العميل مطلوب.");
+
+        if (string.IsNullOrWhiteSpace(checkout.CustomerPhone))
+            throw new InvalidOperationException("رقم الجوال مطلوب.");
+
+        if (string.IsNullOrWhiteSpace(checkout.Governorate))
+            throw new InvalidOperationException("المحافظة مطلوبة.");
+
+        if (string.IsNullOrWhiteSpace(checkout.City))
+            throw new InvalidOperationException("المدينة مطلوبة.");
+
+        if (string.IsNullOrWhiteSpace(checkout.District))
+            throw new InvalidOperationException("الحي مطلوب.");
+
+        if (string.IsNullOrWhiteSpace(checkout.Street))
+            throw new InvalidOperationException("الشارع أو العنوان مطلوب.");
+
+        if (string.IsNullOrWhiteSpace(checkout.PaymentMethod) || !AllowedPaymentMethods.Contains(checkout.PaymentMethod))
+            throw new InvalidOperationException("الرجاء اختيار طريقة دفع صحيحة.");
     }
 
     public Task<IEnumerable<Order>> GetUserOrdersAsync(int userId)
