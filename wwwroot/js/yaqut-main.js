@@ -172,35 +172,65 @@
 
     /* ═══ AUTH TABS ═══ */
     function initAuthPanels() {
+        var root = document.querySelector('[data-yq-auth-root]');
         var loginToggle = document.getElementById('loginToggle');
         var registerToggle = document.getElementById('registerToggle');
         var loginPanel = document.getElementById('loginPanel');
         var registerPanel = document.getElementById('registerPanel');
         if (!loginToggle || !registerToggle || !loginPanel || !registerPanel) return;
 
-        function setActive(panel) {
+        var tabs = [loginToggle, registerToggle];
+
+        function setActive(panel, shouldFocus) {
             var isLogin = panel === 'login';
             loginToggle.classList.toggle('is-active', isLogin);
             registerToggle.classList.toggle('is-active', !isLogin);
             loginPanel.classList.toggle('d-none', !isLogin);
             registerPanel.classList.toggle('d-none', isLogin);
-            loginPanel.setAttribute('aria-hidden', !isLogin);
-            registerPanel.setAttribute('aria-hidden', isLogin);
-            
-            // إخفاء الأخطاء القديمة عند الانتقال بين التبويبات
-            document.querySelectorAll('.yq-field-error').forEach(function(el) {
+            loginPanel.hidden = !isLogin;
+            registerPanel.hidden = isLogin;
+            loginPanel.setAttribute('aria-hidden', isLogin ? 'false' : 'true');
+            registerPanel.setAttribute('aria-hidden', isLogin ? 'true' : 'false');
+            loginToggle.setAttribute('aria-selected', isLogin ? 'true' : 'false');
+            registerToggle.setAttribute('aria-selected', isLogin ? 'false' : 'true');
+            loginToggle.setAttribute('tabindex', isLogin ? '0' : '-1');
+            registerToggle.setAttribute('tabindex', isLogin ? '-1' : '0');
+
+            document.querySelectorAll('.yq-field-error').forEach(function (el) {
                 el.style.display = 'none';
+                el.textContent = '';
             });
-            document.querySelectorAll('.yaqut-form-input').forEach(function(input) {
+            document.querySelectorAll('.yaqut-form-input').forEach(function (input) {
                 input.classList.remove('is-invalid', 'is-valid');
+                input.removeAttribute('aria-invalid');
             });
+
+            if (shouldFocus) {
+                (isLogin ? loginToggle : registerToggle).focus();
+            }
         }
 
-        loginToggle.addEventListener('click', function () { setActive('login'); });
-        registerToggle.addEventListener('click', function () { setActive('register'); });
+        loginToggle.addEventListener('click', function () { setActive('login', false); });
+        registerToggle.addEventListener('click', function () { setActive('register', false); });
 
-        var startRegister = !registerPanel.classList.contains('d-none');
-        setActive(startRegister ? 'register' : 'login');
+        tabs.forEach(function (tab, index) {
+            tab.addEventListener('keydown', function (e) {
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return;
+                e.preventDefault();
+
+                var nextIndex = index;
+                if (e.key === 'Home') nextIndex = 0;
+                if (e.key === 'End') nextIndex = tabs.length - 1;
+                if (e.key === 'ArrowLeft') nextIndex = index === tabs.length - 1 ? 0 : index + 1;
+                if (e.key === 'ArrowRight') nextIndex = index === 0 ? tabs.length - 1 : index - 1;
+
+                setActive(nextIndex === 0 ? 'login' : 'register', true);
+            });
+        });
+
+        var initial = root ? root.getAttribute('data-yq-auth-initial') : '';
+        var startRegister = initial === 'register' || !registerPanel.classList.contains('d-none');
+        setActive(startRegister ? 'register' : 'login', false);
     }
 
     /* ═══ FORM VALIDATION (التحقق الفوري والذكي) ═══ */
@@ -274,9 +304,9 @@
             }
 
             if (input.id === 'regConfirmPhone') {
-                var passwordInput = document.getElementById('regPhone');
-                if (passwordInput && val !== passwordInput.value) {
-                    showError(input, 'رقم الجوال وتأكيدها غير متطابقين.');
+                var phoneInput = document.getElementById('regPhone');
+                if (phoneInput && val !== phoneInput.value) {
+                    showError(input, 'رقم الجوال وتأكيده غير متطابقين.');
                     return false;
                 }
             }
@@ -289,7 +319,9 @@
         function showError(input, msg) {
             input.classList.add('is-invalid');
             input.classList.remove('is-valid');
-            var errorEl = input.closest('.yaqut-form-group').querySelector('.yq-field-error');
+            input.setAttribute('aria-invalid', 'true');
+            var group = input.closest('.yaqut-form-group');
+            var errorEl = group ? group.querySelector('.yq-field-error') : null;
             if (errorEl) {
                 errorEl.textContent = msg;
                 errorEl.style.display = 'block';
@@ -298,12 +330,14 @@
 
         function clearError(input) {
             input.classList.remove('is-invalid');
+            input.removeAttribute('aria-invalid');
             if (input.value.trim()) {
                 input.classList.add('is-valid');
             } else {
                 input.classList.remove('is-valid');
             }
-            var errorEl = input.closest('.yaqut-form-group').querySelector('.yq-field-error');
+            var group = input.closest('.yaqut-form-group');
+            var errorEl = group ? group.querySelector('.yq-field-error') : null;
             if (errorEl) {
                 errorEl.textContent = '';
                 errorEl.style.display = 'none';
@@ -473,80 +507,3 @@
         init();
     }
 })(window, document);
-document.addEventListener("DOMContentLoaded", function () {
-
-    const fields = [
-        "regName",
-        "regPhone",
-        "regConfirmPhone"
-    ];
-
-    // استرجاع البيانات
-    fields.forEach(id => {
-        const element = document.getElementById(id);
-
-        if (element) {
-            const savedValue = localStorage.getItem(id);
-
-            if (savedValue !== null) {
-                element.value = savedValue;
-            }
-
-            // حفظ البيانات عند الكتابة
-            element.addEventListener("input", function () {
-                localStorage.setItem(id, this.value);
-            });
-        }
-    });
-
-});
-document.addEventListener("DOMContentLoaded", function () {
-
-    const loginBtn = document.getElementById("loginToggle");
-    const registerBtn = document.getElementById("registerToggle");
-
-    const loginPanel = document.getElementById("loginPanel");
-    const registerPanel = document.getElementById("registerPanel");
-    if (!loginBtn || !registerBtn || !loginPanel || !registerPanel) return;
-
-    function showLogin() {
-
-        loginPanel.classList.remove("d-none");
-        registerPanel.classList.add("d-none");
-
-        loginBtn.classList.add("is-active");
-        registerBtn.classList.remove("is-active");
-
-        loginBtn.setAttribute("aria-selected", "true");
-        registerBtn.setAttribute("aria-selected", "false");
-
-        localStorage.setItem("AuthPanel", "login");
-    }
-
-    function showRegister() {
-
-        registerPanel.classList.remove("d-none");
-        loginPanel.classList.add("d-none");
-
-        registerBtn.classList.add("is-active");
-        loginBtn.classList.remove("is-active");
-
-        registerBtn.setAttribute("aria-selected", "true");
-        loginBtn.setAttribute("aria-selected", "false");
-
-        localStorage.setItem("AuthPanel", "register");
-    }
-
-    loginBtn.addEventListener("click", showLogin);
-    registerBtn.addEventListener("click", showRegister);
-
-    // استرجاع آخر تبويب
-    const panel = localStorage.getItem("AuthPanel");
-
-    if (panel === "register") {
-        showRegister();
-    } else {
-        showLogin();
-    }
-
-});

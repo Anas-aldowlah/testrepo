@@ -117,7 +117,7 @@
                 </label>
                 <label>
                     <input type="checkbox" name="status" value="Processed" checked="@selectedStatus.Contains("Processed")" />
-                    <span>قيد المعالجة</span>
+                    <span>تم الدفع</span>
                 </label>
                 <label>
                     <input type="checkbox" name="status" value="Shipped" checked="@selectedStatus.Contains("Shipped")" />
@@ -179,7 +179,7 @@
                             var statusLabel = order.Status switch
                             {
                                 "Pending" => "قيد الانتظار",
-                                "Processed" => "قيد المعالجة",
+                                "Processed" => "تم الدفع",
                                 "Shipped" => "تم الشحن",
                                 "Delivered" => "تم التوصيل",
                                 "Cancelled" => "ملغي",
@@ -270,7 +270,7 @@
                                             <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
                                             <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
                                                 <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
-                                                <option value="Processed" selected="@(order.Status == "Processed")">قيد المعالجة</option>
+                                                <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
                                                 <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
                                                 <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
                                                 <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
