@@ -185,6 +185,10 @@
             var isLogin = panel === 'login';
             loginToggle.classList.toggle('is-active', isLogin);
             registerToggle.classList.toggle('is-active', !isLogin);
+            if (root) {
+                root.classList.toggle('is-login-active', isLogin);
+                root.classList.toggle('is-register-active', !isLogin);
+            }
             loginPanel.classList.toggle('d-none', !isLogin);
             registerPanel.classList.toggle('d-none', isLogin);
             loginPanel.hidden = !isLogin;

@@ -5,7 +5,7 @@
     var showRegisterPanel = (ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true;
 }
 
-<div class="yaqut-auth-page yq-login-view" data-yq-auth-root data-yq-auth-initial="@(showRegisterPanel ? "register" : "login")">
+<div class="yaqut-auth-page yq-login-view @(showRegisterPanel ? "is-register-active" : "is-login-active")" data-yq-auth-root data-yq-auth-initial="@(showRegisterPanel ? "register" : "login")">
     <article class="yaqut-auth-card yq-login-card" aria-labelledby="authPageTitle">
         <div class="yaqut-auth-card__shine" aria-hidden="true"></div>
         <aside class="yaqut-auth-card__visual yq-login-visual" aria-label="تجربة حساب ياقوت">
@@ -122,23 +122,34 @@
             </div>
 
             <div id="registerPanel"
-                 class="auth-panel @(showRegisterPanel ? "" : "d-none")"
+                 class="auth-panel yq-register-panel @(showRegisterPanel ? "" : "d-none")"
                  role="tabpanel"
                  aria-labelledby="registerToggle"
                  aria-hidden="@(showRegisterPanel ? "false" : "true")"
                  tabindex="0">
-                <form asp-controller="Account" asp-action="Register" method="post" class="yaqut-auth-form" data-yq-validate novalidate>
+                <form asp-controller="Account" asp-action="Register" method="post" class="yaqut-auth-form yq-register-form" data-yq-validate novalidate>
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                     <input name="Email" value='@TempData["Email"]' type="hidden" />
 
-                    <section class="yaqut-auth-form-section" aria-labelledby="registerIdentityTitle">
+                    <div class="yq-register-intro" aria-labelledby="registerIntroTitle">
+                        <span class="yq-register-intro__icon" aria-hidden="true">
+                            <i class="bi bi-person-hearts"></i>
+                        </span>
+                        <div>
+                            <h2 id="registerIntroTitle">أنشئ حسابك بخطوات واضحة</h2>
+                            <p>املأ البيانات الأساسية، اربط بريدك عبر Google، ثم اختر كلمة مرور آمنة لإكمال التسجيل.</p>
+                        </div>
+                    </div>
+
+                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--identity" aria-labelledby="registerIdentityTitle">
                         <h2 id="registerIdentityTitle" class="yaqut-auth-form-section__title">
                             <i class="bi bi-person-vcard" aria-hidden="true"></i> بيانات الحساب
                         </h2>
+                        <p class="yq-register-section__note">سنستخدم هذه البيانات لتجربة شراء أسرع ومتابعة الطلبات بدقة.</p>
 
                         <div class="yaqut-form-group">
-                            <label class="yaqut-form-label" for="regName">الاسم الكامل</label>
+                            <label class="yaqut-form-label" for="regName">الاسم الكامل <span class="yq-required-mark">مطلوب</span></label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-person" aria-hidden="true"></i>
                                 <input id="regName" name="Name" type="text" class="yaqut-form-input"
@@ -146,31 +157,33 @@
                                        required
                                        autocomplete="name"
                                        minlength="2"
-                                       aria-describedby="regNameError" />
+                                       aria-describedby="regNameHint regNameError" />
                             </div>
+                            <p id="regNameHint" class="yq-field-hint">اكتب الاسم كما تفضّل أن يظهر في حسابك وطلباتك.</p>
                             <div id="regNameError" class="yq-field-error" data-yq-error-for="regName" aria-live="polite"></div>
                         </div>
 
                         <div class="yaqut-auth-field-row">
                             <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regPhone">رقم الجوال</label>
+                                <label class="yaqut-form-label" for="regPhone">رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
                                 <div class="yaqut-input-wrap">
                                     <i class="bi bi-phone" aria-hidden="true"></i>
                                     <input id="regPhone" name="Phone" type="tel" class="yaqut-form-input"
-                                           placeholder="مثال: 777123456"
+                                           placeholder="ادخل رقم الجوال"
                                            required
                                            autocomplete="tel"
                                            inputmode="numeric"
                                            pattern="[0-9]{9}"
                                            minlength="9"
                                            maxlength="9"
-                                           aria-describedby="regPhoneError" />
+                                           aria-describedby="regPhoneHint regPhoneError" />
                                 </div>
+                                <p id="regPhoneHint" class="yq-field-hint">9 أرقام فقط بدون مفتاح الدولة أو مسافات.</p>
                                 <div id="regPhoneError" class="yq-field-error" data-yq-error-for="regPhone" aria-live="polite"></div>
                             </div>
 
                             <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regConfirmPhone">تأكيد رقم الجوال</label>
+                                <label class="yaqut-form-label" for="regConfirmPhone">تأكيد رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
                                 <div class="yaqut-input-wrap">
                                     <i class="bi bi-phone-flip" aria-hidden="true"></i>
                                     <input id="regConfirmPhone" name="ConfirmPhone" type="tel" class="yaqut-form-input"
@@ -181,20 +194,22 @@
                                            pattern="[0-9]{9}"
                                            minlength="9"
                                            maxlength="9"
-                                           aria-describedby="regConfirmPhoneError" />
+                                           aria-describedby="regConfirmPhoneHint regConfirmPhoneError" />
                                 </div>
+                                <p id="regConfirmPhoneHint" class="yq-field-hint">يساعدنا التأكيد على منع أخطاء التواصل والتوصيل.</p>
                                 <div id="regConfirmPhoneError" class="yq-field-error" data-yq-error-for="regConfirmPhone" aria-live="polite"></div>
                             </div>
                         </div>
                     </section>
 
-                    <section class="yaqut-auth-form-section" aria-labelledby="registerEmailTitle">
+                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--email" aria-labelledby="registerEmailTitle">
                         <h2 id="registerEmailTitle" class="yaqut-auth-form-section__title">
                             <i class="bi bi-envelope-check" aria-hidden="true"></i> البريد الإلكتروني
                         </h2>
+                        <p class="yq-register-section__note">ربط البريد يؤكد ملكية الحساب ويجعل استعادته أسهل عند الحاجة.</p>
                         <a asp-controller="Account"
                            asp-action="GoogleLogin"
-                           class="google-btn-rect"
+                           class="google-btn-rect yq-register-google"
                            aria-describedby="registerEmailHelp">
                             <div class="google-icon-wrapper">
                                 <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -222,13 +237,14 @@
                         }
                     </section>
 
-                    <section class="yaqut-auth-form-section" aria-labelledby="registerSecurityTitle">
+                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--security" aria-labelledby="registerSecurityTitle">
                         <h2 id="registerSecurityTitle" class="yaqut-auth-form-section__title">
                             <i class="bi bi-shield-lock" aria-hidden="true"></i> حماية الحساب
                         </h2>
+                        <p class="yq-register-section__note">اختر كلمة مرور لا تقل عن 6 أحرف، ويفضل أن تجمع بين حروف وأرقام.</p>
                         <div class="yaqut-auth-field-row">
                             <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regPassword">كلمة المرور</label>
+                                <label class="yaqut-form-label" for="regPassword">كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
                                 <div class="yaqut-input-wrap">
                                     <i class="bi bi-shield-lock" aria-hidden="true"></i>
                                     <input id="regPassword" name="Password" type="password" class="yaqut-form-input"
@@ -236,13 +252,14 @@
                                            required
                                            autocomplete="new-password"
                                            minlength="6"
-                                           aria-describedby="regPasswordError" />
+                                           aria-describedby="regPasswordHint regPasswordError" />
                                 </div>
+                                <p id="regPasswordHint" class="yq-field-hint">استخدم كلمة مرور يسهل عليك تذكرها ويصعب تخمينها.</p>
                                 <div id="regPasswordError" class="yq-field-error" data-yq-error-for="regPassword" aria-live="polite"></div>
                             </div>
 
                             <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور</label>
+                                <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
                                 <div class="yaqut-input-wrap">
                                     <i class="bi bi-shield-check" aria-hidden="true"></i>
                                     <input id="regConfirm" name="ConfirmPassword" type="password" class="yaqut-form-input"
@@ -250,16 +267,23 @@
                                            required
                                            autocomplete="new-password"
                                            minlength="6"
-                                           aria-describedby="regConfirmError" />
+                                           aria-describedby="regConfirmHint regConfirmError" />
                                 </div>
+                                <p id="regConfirmHint" class="yq-field-hint">أعد كتابة كلمة المرور للتأكد من عدم وجود خطأ.</p>
                                 <div id="regConfirmError" class="yq-field-error" data-yq-error-for="regConfirm" aria-live="polite"></div>
                             </div>
                         </div>
                     </section>
 
-                    <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
-                        <i class="bi bi-stars" aria-hidden="true"></i> إنشاء حساب
-                    </button>
+                    <div class="yq-register-actions">
+                        <p>
+                            <i class="bi bi-lock" aria-hidden="true"></i>
+                            بالمتابعة سيتم إنشاء حساب آمن وربطه بسلة التسوق وطلباتك القادمة.
+                        </p>
+                        <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
+                            <i class="bi bi-stars" aria-hidden="true"></i> إنشاء حساب
+                        </button>
+                    </div>
                 </form>
             </div>
 
