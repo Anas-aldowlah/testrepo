@@ -71,16 +71,39 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
-
+        var phone = model.Phone.Trim();
+       
         if (string.IsNullOrWhiteSpace(model.Phone))
             ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مطلوب.");
         if (string.IsNullOrWhiteSpace(model.Password))
             ModelState.AddModelError(nameof(model.Password), "كلمة المرور مطلوبة.");
-
         if (!ModelState.IsValid)
             return View("Auth");
+        var userGloble = await _dbUser.Users
+     .FirstOrDefaultAsync(i => i.Phone == HashPhone(phone));
 
-        var phone = model.Phone.Trim();
+        if (userGloble == null)
+        {
+            return View("Auth");
+        }
+
+        var userSiteVB = await _db.UserSites
+            .FirstOrDefaultAsync(i => i.UserId == userGloble.Id);
+
+        if (userSiteVB == null)
+        {
+            var userSite = new UserSite
+            {
+                UserId = userGloble.Id,
+                Role = "Customer"
+            };
+
+            _db.UserSites.Add(userSite);
+            await _db.SaveChangesAsync();
+        }
+
+
+
         var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Phone == HashPhone(phone));
 
         if (user == null || !VerifyHashedPassword(model.Password, user.Passwordhash))
