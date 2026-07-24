@@ -1,68 +1,96 @@
 @model YAGOT_2._0.Models.Product
 @{
     var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
-    var rating = 4.0 + (Model.Id % 10) * 0.1;
-    var fullStars = (int)Math.Floor(rating);
     var categoryName = Model.Category?.Name ?? "";
+    var isAvailable = Model.Stockquantity > 0;
+    var statusLabel = isAvailable ? "متوفر" : "غير متوفر";
+    var statusId = $"yq-product-status-{Model.Id}-{Guid.NewGuid():N}";
 }
 
-<article class="yaqut-product-card yq-glass h-100"
+<article class="yaqut-product-card yq-glass h-100 @(isAvailable ? null : "is-unavailable")"
          data-yaqut-product
+         data-yq-product-card
+         data-product-id="@Model.Id"
+         data-product-name="@Model.Name"
          data-name="@Model.Name.ToLower()"
          data-family="@categoryName"
          data-size="@(Model.Name.Contains("100") || (Model.Description?.Contains("100") ?? false) ? "100" : Model.Name.Contains("50") || (Model.Description?.Contains("50") ?? false) ? "50" : "all")"
          data-concentration="@(Model.Name.Contains("EDP", StringComparison.OrdinalIgnoreCase) || (Model.Description?.Contains("EDP", StringComparison.OrdinalIgnoreCase) ?? false) ? "edp" : Model.Name.Contains("EDT", StringComparison.OrdinalIgnoreCase) || (Model.Description?.Contains("EDT", StringComparison.OrdinalIgnoreCase) ?? false) ? "edt" : Model.Name.Contains("Parfum", StringComparison.OrdinalIgnoreCase) ? "parfum" : "all")">
     <div class="yaqut-product-card__media">
-        <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yaqut-product-card__img-link">
+        <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yaqut-product-card__img-link" aria-label="عرض تفاصيل @Model.Name">
             <img src="@Model.Imageurl"
                  alt="@Model.Name"
                  class="yaqut-card-img"
-                 data-yaqut-fallback="/images/placeholder-product.svg" />
+                 data-yaqut-fallback="/images/placeholder-product.svg"
+                 loading="lazy" />
         </a>
-        @if (Model.Stockquantity > 0)
-        {
-            <span class="yaqut-product-card__badge">متوفر</span>
-        }
+        <span class="yaqut-product-card__badge @(isAvailable ? "yaqut-product-card__badge--available" : "yaqut-product-card__badge--out")">
+            @statusLabel
+        </span>
     </div>
+
     <div class="yaqut-product-card__body">
         @if (!string.IsNullOrEmpty(categoryName))
         {
             <span class="yaqut-product-card__family">@categoryName</span>
         }
+
         <h3 class="yaqut-product-card__name">
             <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yaqut-product-card__name-link">@Model.Name</a>
         </h3>
-        <div class="yaqut-rating" aria-label="التقييم @rating من 5">
-            @for (var i = 1; i <= 5; i++)
-            {
-                <i class="bi @(i <= fullStars ? "bi-star-fill" : i - rating < 1 ? "bi-star-half" : "bi-star")"></i>
-            }
-            <span class="yaqut-rating__value">@rating.ToString("0.0")</span>
-        </div>
+
         <p class="yaqut-product-card__desc">@Model.Description</p>
-        <div class="yaqut-product-card__footer">
+
+        <div class="yaqut-product-card__meta">
             <span class="yaqut-product-card__price">
                 @Model.Price.ToString("N0") <small>ر.س</small>
             </span>
-            <div class="yaqut-product-card__actions">
-                <a asp-controller="Products"
-                   asp-action="Details"
-                   asp-route-id="@Model.Id"
-                   class="btn btn-yaqut-outline btn-sm"
-                   aria-label="تفاصيل @Model.Name">
-                    <i class="bi bi-eye"></i>
-                </a>
-                @if (showQuickAdd && Model.Stockquantity > 0)
+        </div>
+
+        <div class="yaqut-product-card__actions">
+            @if (showQuickAdd)
+            {
+                @if (isAvailable)
                 {
-                    <form asp-controller="Cart" asp-action="Add" method="post" class="yaqut-quick-add-form">
+                    <form asp-controller="Cart"
+                          asp-action="Add"
+                          method="post"
+                          class="yaqut-quick-add-form"
+                          data-yq-add-to-cart-form
+                          data-product-id="@Model.Id"
+                          data-product-name="@Model.Name">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" name="productId" value="@Model.Id" />
                         <input type="hidden" name="quantity" value="1" />
-                        <button type="submit" class="btn btn-yaqut-gold btn-sm" aria-label="إضافة @Model.Name للسلة">
-                            <i class="bi bi-bag-plus"></i>
+                        <button type="submit"
+                                class="btn-yaqut-gold yaqut-product-card__add"
+                                aria-describedby="@statusId"
+                                data-yq-add-button>
+                            <span class="yaqut-product-card__button-icon" aria-hidden="true">
+                                <i class="bi bi-bag-plus"></i>
+                            </span>
+                            <span data-yq-add-label>إضافة للسلة</span>
                         </button>
                     </form>
                 }
-            </div>
+                else
+                {
+                    <button type="button" class="btn-yaqut-outline yaqut-product-card__add" disabled>
+                        <i class="bi bi-bell" aria-hidden="true"></i>
+                        <span>غير متوفر</span>
+                    </button>
+                }
+            }
+
+            <a asp-controller="Products"
+               asp-action="Details"
+               asp-route-id="@Model.Id"
+               class="btn-yaqut-outline yaqut-product-card__details">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+                <span>عرض التفاصيل</span>
+            </a>
+
+            <p class="yaqut-product-card__status" id="@statusId" data-yq-add-status aria-live="polite"></p>
         </div>
     </div>
 </article>

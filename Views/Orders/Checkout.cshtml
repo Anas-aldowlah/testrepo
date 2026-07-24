@@ -10,7 +10,6 @@
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
-    var showAuthModal = (ViewData["ShowAuthModal"] as bool?) == true;
     var customerName = User.Identity?.Name;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
@@ -117,11 +116,11 @@
                         <input form="yqCheckoutForm" type="text" name="city" value="@CheckoutValue("city")" autocomplete="address-level2" />
                     </label>
                     <label class="yq-checkout-field">
-                        <span>الحي</span>
+                        <span>اسم المستلم</span>
                         <input form="yqCheckoutForm" type="text" name="district" value="@CheckoutValue("district")" autocomplete="address-level3" />
                     </label>
                     <label class="yq-checkout-field">
-                        <span>الشارع</span>
+                        <span>رقم جوال المستلم</span>
                         <input form="yqCheckoutForm" type="text" name="street" value="@CheckoutValue("street")" autocomplete="street-address" />
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
@@ -263,11 +262,6 @@
         </aside>
     </div>
 </div>
-
-@if (!isAuthenticated)
-{
-    await Html.RenderPartialAsync("_CheckoutAuthModal", showAuthModal);
-}
 
 @section Scripts {
     <script src="~/js/orders/checkout.js" asp-append-version="true"></script>

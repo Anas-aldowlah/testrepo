@@ -25,7 +25,7 @@
 <div class="yq-home-page" data-yq-auth-clear="@(TempData["Success"] != null ? "true" : "false")">
 
     <!-- HERO -->
-    <section class="yq-home-hero yq-reveal">
+    <section class="yq-home-hero yq-home-hero--shopping yq-reveal">
         <div class="yq-home-hero__bg" aria-hidden="true"></div>
         <div class="yq-home-hero__inner">
             <div class="yq-home-hero__content">
@@ -37,14 +37,14 @@
                 </p>
                 <div class="yq-home-hero__actions">
                     <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
-                        <i class="bi bi-stars"></i> استكشف المنتجات
+                        <i class="bi bi-stars"></i> تسوّق العطور
                     </a>
                     @if (featuredCategory != null)
                     {
                         <a asp-controller="Products" asp-action="Index"
                            asp-route-categoryId="@featuredCategory.Id"
                            class="btn-yaqut-outline">
-                            <i class="bi bi-flower1"></i> العائلات العطرية
+                            <i class="bi bi-flower1"></i> تصفح العائلات
                         </a>
                     }
                 </div>
@@ -111,12 +111,12 @@
         </div>
     </section>
 
-    <section class="yq-home-discovery yq-reveal" aria-label="طرق سريعة لاكتشاف العطور">
+    <section class="yq-home-discovery yq-home-discovery--shopping yq-reveal" aria-label="طرق سريعة لاكتشاف العطور">
         <a asp-controller="Products" asp-action="Index" class="yq-home-discovery-card">
             <span class="yq-home-discovery-card__icon"><i class="bi bi-stars"></i></span>
             <span>
-                <strong>اختيارات جديدة</strong>
-                <small>أحدث العطور المضافة للمتجر</small>
+                <strong>وصل حديثاً</strong>
+                <small>أحدث العطور المختارة لك</small>
             </span>
         </a>
         @if (featuredCategory != null)
@@ -124,7 +124,7 @@
             <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@featuredCategory.Id" class="yq-home-discovery-card">
                 <span class="yq-home-discovery-card__icon"><i class="bi bi-flower2"></i></span>
                 <span>
-                    <strong>ابدأ بالعائلة العطرية</strong>
+                    <strong>اختر حسب العائلة العطرية</strong>
                     <small>@featuredCategory.Name</small>
                 </span>
             </a>
@@ -133,15 +133,72 @@
             <span class="yq-home-discovery-card__icon"><i class="bi bi-bag"></i></span>
             <span>
                 <strong>أكمل مشترياتك</strong>
-                <small>راجع السلة قبل إتمام الطلب</small>
+                <small>راجع اختياراتك قبل إتمام الطلب</small>
             </span>
         </a>
     </section>
 
+    <!-- NEW ARRIVALS -->
+    <section class="yq-home-section yq-home-section--shop yq-home-section--arrival yq-reveal">
+        <header class="yq-home-section__head">
+            <div>
+                <h2 class="yq-home-section__title">وصل حديثاً</h2>
+                <p class="yq-home-section__sub">أحدث الإصدارات المضافة إلى مجموعتنا</p>
+            </div>
+            <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
+                عرض الكل <i class="bi bi-arrow-left"></i>
+            </a>
+        </header>
+
+        @if (newArrivals.Any())
+        {
+            <div class="yq-home-product-rail" aria-label="منتجات وصلت حديثاً">
+                @foreach (var item in newArrivals)
+                {
+                    <div class="yq-home-product-item">
+                        <partial name="_ProductCard" model="item" />
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="yaqut-empty yq-glass">
+                <i class="bi bi-droplet yaqut-empty__icon"></i>
+                <p class="yaqut-empty__text">لا توجد عطور معروضة حالياً. عُد قريباً لاكتشاف المزيد.</p>
+            </div>
+        }
+    </section>
+
+    <!-- PREMIUM SELECTION -->
+    @if (premiumSelection.Any())
+    {
+        <section class="yq-home-section yq-home-section--shop yq-home-section--premium yq-reveal">
+            <header class="yq-home-section__head">
+                <div>
+                    <h2 class="yq-home-section__title">المختارات الفاخرة</h2>
+                    <p class="yq-home-section__sub">قطع مختارة لعشّاق العطور الراقية</p>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
+                    عرض الكل <i class="bi bi-arrow-left"></i>
+                </a>
+            </header>
+
+            <div class="yq-home-product-rail yq-home-product-rail--premium" aria-label="المختارات الفاخرة">
+                @foreach (var item in premiumSelection)
+                {
+                    <div class="yq-home-product-item">
+                        <partial name="_ProductCard" model="item" />
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
     <!-- CATEGORIES -->
     @if (categories.Any())
     {
-        <section class="yq-home-section yq-reveal">
+        <section class="yq-home-section yq-home-section--families yq-reveal">
             <header class="yq-home-section__head">
                 <div>
                     <h2 class="yq-home-section__title">العائلات العطرية</h2>
@@ -176,40 +233,8 @@
         </section>
     }
 
-    <!-- NEW ARRIVALS -->
-    <section class="yq-home-section yq-reveal">
-        <header class="yq-home-section__head">
-            <div>
-                <h2 class="yq-home-section__title">وصل حديثاً</h2>
-                <p class="yq-home-section__sub">أحدث الإصدارات المضافة إلى مجموعتنا</p>
-            </div>
-            <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
-                عرض الكل <i class="bi bi-arrow-left"></i>
-            </a>
-        </header>
-
-        @if (newArrivals.Any())
-        {
-            <div class="yq-home-product-rail" aria-label="منتجات وصلت حديثاً">
-                @foreach (var item in newArrivals)
-                {
-                    <div class="yq-home-product-item">
-                        <partial name="_ProductCard" model="item" />
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="yaqut-empty yq-glass">
-                <i class="bi bi-droplet yaqut-empty__icon"></i>
-                <p class="yaqut-empty__text">لا توجد عطور معروضة حالياً. عُد قريباً لاكتشاف المزيد.</p>
-            </div>
-        }
-    </section>
-
     <!-- BRAND STORY -->
-    <section class="yq-home-story yq-reveal">
+    <section class="yq-home-story yq-home-story--support yq-reveal">
         <div class="yq-home-story__content">
             <span class="yq-home-hero__eyebrow"><i class="bi bi-award"></i> قصتنا</span>
             <h2 class="yq-home-section__title">فن صناعة العطور</h2>
@@ -235,31 +260,6 @@
         </div>
     </section>
 
-    <!-- PREMIUM SELECTION -->
-    @if (premiumSelection.Any())
-    {
-        <section class="yq-home-section yq-reveal">
-            <header class="yq-home-section__head">
-                <div>
-                    <h2 class="yq-home-section__title">المختارات الفاخرة</h2>
-                    <p class="yq-home-section__sub">قطع حصرية مختارة لعشاق العطور الراقية</p>
-                </div>
-                <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">
-                    عرض الكل <i class="bi bi-arrow-left"></i>
-                </a>
-            </header>
-
-            <div class="yq-home-product-rail yq-home-product-rail--premium" aria-label="المختارات الفاخرة">
-                @foreach (var item in premiumSelection)
-                {
-                    <div class="yq-home-product-item">
-                        <partial name="_ProductCard" model="item" />
-                    </div>
-                }
-            </div>
-        </section>
-    }
-
     <!-- CTA BANNER -->
     <section class="yq-home-cta yq-reveal">
         <div class="yq-home-cta__content">
@@ -272,7 +272,7 @@
     </section>
 
     <!-- WHY YAQUT -->
-    <section class="yq-home-section yq-reveal">
+    <section class="yq-home-section yq-home-section--why yq-reveal">
         <header class="yq-home-section__head">
             <div>
                 <h2 class="yq-home-section__title">لماذا ياقوت؟</h2>

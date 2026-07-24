@@ -13,7 +13,6 @@
     var productsActive = IsActive("Products");
     var categoriesActive = IsActive("Categories");
     var ordersActive = IsActive("Orders");
-    var contactActive = IsActive("Home", "Contact");
     var cartActive = IsActive("Cart");
     var profileActive = IsActive("Account", "Profile");
 }
@@ -48,7 +47,8 @@
             <div class="yaqut-header__actions" role="group" aria-label="إجراءات المتجر">
                 <a asp-controller="Cart" asp-action="Index" class="yaqut-cart-link @(cartActive ? "is-active" : null)" aria-label="السلة" aria-current="@(cartActive ? "page" : null)" title="السلة">
                     <i class="bi bi-bag" aria-hidden="true"></i>
-                    <span>السلة</span>
+                    <span class="yaqut-cart-link__text">السلة</span>
+                    <span class="yaqut-cart-link__count" data-yq-cart-count hidden aria-label="0 منتجات">0</span>
                 </a>
 
                 @if (isAuthenticated)
@@ -114,11 +114,6 @@
                 <li>
                     <a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">
                         <i class="bi bi-grid" aria-hidden="true"></i><span>العائلات العطرية</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Home" asp-action="Contact" class="@(contactActive ? "is-active" : null)" aria-current="@(contactActive ? "page" : null)">
-                        <i class="bi bi-chat-dots" aria-hidden="true"></i><span>تواصل معنا</span>
                     </a>
                 </li>
             </ul>

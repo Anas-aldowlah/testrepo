@@ -6,13 +6,14 @@
     decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/cart/index.css" asp-append-version="true" />
 }
 
-<div class="yq-cart">
+<div class="yq-cart" data-yq-cart-page>
 
     <header class="yq-cart-header yq-reveal">
         <div>
@@ -72,22 +73,33 @@
                             </div>
 
                             <div class="yq-cart-item__footer">
-                                <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block">
+                                <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block" data-yq-cart-qty-form>
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <input type="hidden" name="productId" value="@item.Productid" />
                                     <span class="yq-cart-item__qty-label">الكمية</span>
                                     <div class="yq-cart-item__qty-control">
+                                        <button type="button"
+                                                class="yq-cart-item__qty-step"
+                                                data-yq-cart-qty-step="-1"
+                                                aria-label="تقليل كمية @item.Product?.Name"
+                                                @(item.Quantity <= 1 ? "disabled" : null)>
+                                            <i class="bi bi-dash" aria-hidden="true"></i>
+                                        </button>
                                         <input type="number"
                                                name="quantity"
                                                value="@item.Quantity"
-                                               min="0"
+                                               min="1"
                                                max="@(item.Product?.Stockquantity ?? item.Quantity)"
                                                class="yq-cart-item__qty-input"
-                                               aria-label="تحديث كمية @item.Product?.Name" />
-                                        <button type="submit" class="yq-cart-item__qty-submit">
-                                            <i class="bi bi-check2"></i>
-                                            <span>تحديث</span>
+                                               inputmode="numeric"
+                                               aria-label="كمية @item.Product?.Name" />
+                                        <button type="button"
+                                                class="yq-cart-item__qty-step"
+                                                data-yq-cart-qty-step="1"
+                                                aria-label="زيادة كمية @item.Product?.Name"
+                                                @(item.Quantity >= (item.Product?.Stockquantity ?? item.Quantity) ? "disabled" : null)>
+                                            <i class="bi bi-plus" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 </form>
@@ -148,7 +160,12 @@
                     <span>@subtotal.ToString("N0") <small>ر.س</small></span>
                 </div>
 
-                <a asp-controller="Orders" asp-action="Checkout" class="btn-yaqut-gold yq-cart-checkout-btn">
+                <a asp-controller="Orders"
+                   asp-action="Checkout"
+                   class="btn-yaqut-gold yq-cart-checkout-btn"
+                   data-yq-cart-checkout-link
+                   data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
+                   data-yq-auth-modal="yqCheckoutAuthModal">
                     <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
                 </a>
 
@@ -178,6 +195,8 @@
         </div>
     }
 </div>
+
+<div class="visually-hidden" data-yq-cart-live aria-live="polite" aria-atomic="true"></div>
 
 @section Scripts {
     <script src="~/js/cart/index.js" asp-append-version="true"></script>
