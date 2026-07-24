@@ -1,0 +1,84 @@
+@{
+    var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
+    var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
+
+    bool IsActive(string controller, string action = "Index")
+        => string.Equals(routeController, controller, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(routeAction, action, StringComparison.OrdinalIgnoreCase);
+
+    var homeActive = IsActive("Home");
+    var productsActive = IsActive("Products");
+    var categoriesActive = IsActive("Categories");
+    var cartActive = IsActive("Cart");
+    var ordersActive = IsActive("Orders");
+    var contactActive = IsActive("Home", "Contact");
+    var privacyActive = IsActive("Home", "Privacy");
+    var authActive = IsActive("Account", "Auth");
+}
+
+<footer class="yaqut-footer">
+    <div class="yaqut-footer__inner">
+        <section class="yaqut-footer__lead" aria-labelledby="yaqutFooterLeadTitle">
+            <div>
+                <span class="yaqut-footer__eyebrow">Yaqut Perfumes</span>
+                <h2 id="yaqutFooterLeadTitle">عطور مختارة بعناية لتجربة يومية أكثر فخامة</h2>
+            </div>
+            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                <i class="bi bi-bag-heart" aria-hidden="true"></i> تسوق المجموعة
+            </a>
+        </section>
+
+        <div class="yaqut-footer__grid">
+            <div class="yaqut-footer__col yaqut-footer__col--brand">
+                <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
+                    <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
+                </span>
+                <p class="yaqut-footer__tagline">وجهة عربية فاخرة لاختيار العطور الشرقية والغربية، بتجربة شراء هادئة وواضحة من أول تصفح حتى وصول الطلب.</p>
+                <div class="yaqut-footer__social" aria-label="تابعنا على وسائل التواصل الاجتماعي">
+                    <a href="#" aria-label="إنستغرام"><i class="bi bi-instagram" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="تويتر"><i class="bi bi-twitter-x" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="تيك توك"><i class="bi bi-tiktok" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="سناب شات"><i class="bi bi-snapchat" aria-hidden="true"></i></a>
+                </div>
+            </div>
+
+            <nav class="yaqut-footer__col" aria-label="روابط سريعة">
+                <h3 class="yaqut-footer__col-title">روابط سريعة</h3>
+                <ul>
+                    <li><a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">الرئيسية</a></li>
+                    <li><a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">المجموعة الكاملة</a></li>
+                    <li><a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">التصنيفات</a></li>
+                    <li><a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">سلة المشتريات</a></li>
+                    <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
+                </ul>
+            </nav>
+
+            <nav class="yaqut-footer__col" aria-label="الدعم والحساب">
+                <h3 class="yaqut-footer__col-title">الدعم</h3>
+                <ul>
+                    <li><a asp-controller="Home" asp-action="Contact" class="@(contactActive ? "is-active" : null)" aria-current="@(contactActive ? "page" : null)">تواصل معنا</a></li>
+                    <li><a asp-controller="Home" asp-action="Privacy" class="@(privacyActive ? "is-active" : null)" aria-current="@(privacyActive ? "page" : null)">سياسة الخصوصية</a></li>
+                    <li><a asp-controller="Account" asp-action="Auth" class="@(authActive ? "is-active" : null)" aria-current="@(authActive ? "page" : null)">تسجيل الدخول / حساب جديد</a></li>
+                </ul>
+            </nav>
+
+            <div class="yaqut-footer__col">
+                <h3 class="yaqut-footer__col-title">معلومات المتجر</h3>
+                <ul class="yaqut-footer__contact">
+                    <li><i class="bi bi-geo-alt" aria-hidden="true"></i><span>المملكة العربية السعودية</span></li>
+                    <li><i class="bi bi-clock" aria-hidden="true"></i><span>خدمة العملاء: يومياً 9 ص - 10 م</span></li>
+                    <li><i class="bi bi-truck" aria-hidden="true"></i><span>توصيل سريع داخل المملكة</span></li>
+                    <li><i class="bi bi-envelope" aria-hidden="true"></i><span>الدعم عبر صفحة التواصل</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="yaqut-footer__bottom">
+            <p class="yaqut-footer__copy">&copy; @DateTime.Now.Year ياقوت للعطور الفاخرة. جميع الحقوق محفوظة.</p>
+            <div class="yaqut-footer__badges">
+                <span><i class="bi bi-shield-lock" aria-hidden="true"></i> تسوق آمن</span>
+                <span><i class="bi bi-truck" aria-hidden="true"></i> شحن سريع</span>
+            </div>
+        </div>
+    </div>
+</footer>
