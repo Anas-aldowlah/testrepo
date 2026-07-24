@@ -4,6 +4,8 @@
 (function (window, document) {
     'use strict';
 
+    var COLLAPSED_NAV_QUERY = window.matchMedia('(max-width: 991.98px)');
+
     function initHeaderScroll() {
         var header = document.getElementById('yaqutHeader');
         if (!header) return;
@@ -24,65 +26,76 @@
         update();
     }
 
+    function syncNavState(nav, btn, isOpen) {
+        nav.classList.toggle('is-open', isOpen);
+        nav.setAttribute('aria-hidden', isOpen || !COLLAPSED_NAV_QUERY.matches ? 'false' : 'true');
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
     function initMenuToggleAria() {
         var btn = document.querySelector('[data-yq-nav-toggle]');
         var nav = document.getElementById('yaqutNav');
         if (!btn || !nav) return;
 
+        function closeNav(restoreFocus) {
+            if (!nav.classList.contains('is-open') && COLLAPSED_NAV_QUERY.matches) {
+                nav.setAttribute('aria-hidden', 'true');
+                btn.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            syncNavState(nav, btn, false);
+            if (restoreFocus) btn.focus();
+        }
+
+        function openNav() {
+            syncNavState(nav, btn, true);
+            var firstLink = nav.querySelector('a');
+            if (firstLink) firstLink.focus();
+        }
+
         btn.addEventListener('click', function () {
             var shouldOpen = !nav.classList.contains('is-open');
-            nav.classList.toggle('is-open', shouldOpen);
-            btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            shouldOpen ? openNav() : closeNav(false);
         });
-    }
-
-    function initNavAutoClose() {
-        var nav = document.querySelector('.yaqut-nav');
-        if (!nav) return;
 
         nav.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', function () {
-                nav.classList.remove('is-open');
-                var btn = document.querySelector('.yaqut-menu-toggle');
-                if (btn) btn.setAttribute('aria-expanded', 'false');
+                closeNav(false);
             });
         });
-    }
 
-    function initAccountDropdown() {
-        document.querySelectorAll('[data-yq-dropdown]').forEach(function (root) {
-            var trigger = root.querySelector('.yaqut-account__trigger');
-            if (!trigger) return;
-
-            function close() {
-                root.classList.remove('is-open');
-                trigger.setAttribute('aria-expanded', 'false');
-            }
-            function open() {
-                root.classList.add('is-open');
-                trigger.setAttribute('aria-expanded', 'true');
-            }
-
-            trigger.addEventListener('click', function (e) {
-                e.stopPropagation();
-                root.classList.contains('is-open') ? close() : open();
-            });
-
-            document.addEventListener('click', function (e) {
-                if (!root.contains(e.target)) close();
-            });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') close();
-            });
+        document.addEventListener('click', function (e) {
+            if (!nav.classList.contains('is-open')) return;
+            if (nav.contains(e.target) || btn.contains(e.target)) return;
+            closeNav(false);
         });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeNav(true);
+        });
+
+        var onViewportChange = function () {
+            if (!COLLAPSED_NAV_QUERY.matches) {
+                closeNav(false);
+                nav.setAttribute('aria-hidden', 'false');
+            } else if (!nav.classList.contains('is-open')) {
+                nav.setAttribute('aria-hidden', 'true');
+            }
+        };
+
+        if (COLLAPSED_NAV_QUERY.addEventListener) {
+            COLLAPSED_NAV_QUERY.addEventListener('change', onViewportChange);
+        } else if (COLLAPSED_NAV_QUERY.addListener) {
+            COLLAPSED_NAV_QUERY.addListener(onViewportChange);
+        }
+
+        nav.setAttribute('aria-hidden', COLLAPSED_NAV_QUERY.matches ? 'true' : 'false');
     }
 
     function init() {
         initHeaderScroll();
         initMenuToggleAria();
-        initNavAutoClose();
-        initAccountDropdown();
     }
 
     if (document.readyState === 'loading') {

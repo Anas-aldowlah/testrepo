@@ -1,0 +1,168 @@
+@{
+    var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
+    var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
+    var searchValue = Context.Request.Query["search"].ToString();
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole("Admin") || User.IsInRole("Developer");
+
+    bool IsActive(string controller, string action = "Index")
+        => string.Equals(routeController, controller, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(routeAction, action, StringComparison.OrdinalIgnoreCase);
+
+    var homeActive = IsActive("Home");
+    var productsActive = IsActive("Products");
+    var categoriesActive = IsActive("Categories");
+    var ordersActive = IsActive("Orders");
+    var contactActive = IsActive("Home", "Contact");
+    var cartActive = IsActive("Cart");
+    var profileActive = IsActive("Account", "Profile");
+}
+
+<div class="yaqut-announce" role="note" aria-label="مزايا التسوق">
+    <div class="yaqut-announce__inner">
+        <span><i class="bi bi-gem" aria-hidden="true"></i> ياقوت للعطور الفاخرة</span>
+        <span><i class="bi bi-truck" aria-hidden="true"></i> شحن مجاني للطلبات فوق 500 ر.س</span>
+        <span><i class="bi bi-shield-check" aria-hidden="true"></i> تجربة تسوق آمنة</span>
+    </div>
+</div>
+
+<header class="yaqut-header" id="yaqutHeader">
+    <div class="yaqut-header__inner">
+        <div class="yaqut-header__main">
+            <a class="yaqut-brand" asp-area="" asp-controller="Home" asp-action="Index" aria-label="ياقوت - الصفحة الرئيسية">
+                <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
+                    <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
+                </span>
+            </a>
+
+            <form asp-controller="Products" asp-action="Index" method="get" class="yaqut-search" role="search">
+                <i class="bi bi-search yaqut-search__icon" aria-hidden="true"></i>
+                <input type="search" name="search" id="yaqutSearchInput" class="yaqut-search__input"
+                       placeholder="ابحث عن عطر أو وصف..." value="@searchValue"
+                       autocomplete="off" aria-label="بحث عن منتج" />
+                <button type="submit" class="yaqut-search__btn" aria-label="بحث">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
+            </form>
+
+            <div class="yaqut-header__actions" role="group" aria-label="إجراءات المتجر">
+                <a asp-controller="Cart" asp-action="Index" class="yaqut-cart-link @(cartActive ? "is-active" : null)" aria-label="السلة" aria-current="@(cartActive ? "page" : null)" title="السلة">
+                    <i class="bi bi-bag" aria-hidden="true"></i>
+                    <span>السلة</span>
+                </a>
+
+                @if (isAuthenticated)
+                {
+                    <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip @(profileActive ? "is-active" : null)" title="حسابي" aria-current="@(profileActive ? "page" : null)">
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        <span>حسابي</span>
+                    </a>
+
+                    <a asp-controller="Orders" asp-action="Index" class="yaqut-orders-link @(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        <span>طلباتي</span>
+                    </a>
+
+                    @if (isAdmin)
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="yaqut-admin-link">
+                            <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                            <span>الإدارة</span>
+                        </a>
+                    }
+
+                    <a asp-controller="Account" asp-action="Logout" class="yaqut-logout-btn" aria-label="تسجيل الخروج" title="تسجيل الخروج">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        <span>خروج</span>
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Auth" class="yaqut-login-btn">
+                        <i class="bi bi-person" aria-hidden="true"></i>
+                        <span>تسجيل الدخول</span>
+                    </a>
+                }
+
+                <div class="yaqut-theme-pill" role="group" aria-label="تبديل وضع الألوان">
+                    <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="light" aria-label="الوضع الفاتح" title="فاتح">
+                        <i class="bi bi-sun" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="dark" aria-label="الوضع الداكن" title="داكن">
+                        <i class="bi bi-moon-stars" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="yaqut-menu-toggle" aria-label="القائمة" aria-controls="yaqutNav" aria-expanded="false" data-yq-nav-toggle>
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <nav class="yaqut-nav" id="yaqutNav" aria-label="التنقل الرئيسي">
+            <ul class="yaqut-nav__list yaqut-nav__list--primary">
+                <li>
+                    <a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">
+                        <i class="bi bi-house-door" aria-hidden="true"></i><span>الرئيسية</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">
+                        <i class="bi bi-flower1" aria-hidden="true"></i><span>العطور</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">
+                        <i class="bi bi-grid" aria-hidden="true"></i><span>العائلات العطرية</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Home" asp-action="Contact" class="@(contactActive ? "is-active" : null)" aria-current="@(contactActive ? "page" : null)">
+                        <i class="bi bi-chat-dots" aria-hidden="true"></i><span>تواصل معنا</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="yaqut-nav__mobile">
+                <div class="yaqut-nav__section" role="group" aria-label="الحساب">
+                    @if (isAuthenticated)
+                    {
+                        <a asp-controller="Account" asp-action="Profile" class="@(profileActive ? "is-active" : null)" aria-current="@(profileActive ? "page" : null)">
+                            <i class="bi bi-person-circle" aria-hidden="true"></i><span>حسابي</span>
+                        </a>
+                        <a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
+                            <i class="bi bi-receipt" aria-hidden="true"></i><span>طلباتي</span>
+                        </a>
+                        @if (isAdmin)
+                        {
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                <i class="bi bi-speedometer2" aria-hidden="true"></i><span>الإدارة</span>
+                            </a>
+                        }
+                        <a asp-controller="Account" asp-action="Logout">
+                            <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>تسجيل الخروج</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Auth">
+                            <i class="bi bi-person" aria-hidden="true"></i><span>تسجيل الدخول</span>
+                        </a>
+                    }
+                </div>
+
+                <div class="yaqut-nav__theme" role="group" aria-label="تبديل وضع الألوان">
+                    <span>الوضع</span>
+                    <div class="yaqut-theme-pill">
+                        <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="light" aria-label="الوضع الفاتح" title="فاتح">
+                            <i class="bi bi-sun" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="yaqut-theme-pill__btn" data-theme-opt="dark" aria-label="الوضع الداكن" title="داكن">
+                            <i class="bi bi-moon-stars" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
