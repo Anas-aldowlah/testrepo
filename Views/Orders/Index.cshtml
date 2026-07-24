@@ -7,7 +7,7 @@
     string StatusLabel(string status) => status switch
     {
         "Pending" => "قيد الانتظار",
-        "Processed" => "قيد المعالجة",
+        "Processed" => "تم الدفع",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
         _ => "ملغي"
@@ -35,7 +35,7 @@
     {
         ("all", "الكل"),
         ("Pending", "قيد الانتظار"),
-        ("Processed", "قيد المعالجة"),
+        ("Processed", "تم الدفع"),
         ("Shipped", "تم الشحن"),
         ("Delivered", "تم التوصيل"),
         ("Cancelled", "ملغي")

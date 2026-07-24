@@ -14,7 +14,7 @@
     var statusLabel = Model.Status switch
     {
         "Pending" => "قيد الانتظار",
-        "Processed" => "قيد المعالجة",
+        "Processed" => "تم الدفع",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
         "Cancelled" => "ملغي",
@@ -244,7 +244,7 @@
                     <label for="orderStatus">حالة الطلب الحالية</label>
                     <select id="orderStatus" name="Status" class="yq-orders-status-select">
                         <option value="Pending" selected="@(Model.Status == "Pending")">قيد الانتظار</option>
-                        <option value="Processed" selected="@(Model.Status == "Processed")">قيد المعالجة</option>
+                        <option value="Processed" selected="@(Model.Status == "Processed")">تم الدفع</option>
                         <option value="Shipped" selected="@(Model.Status == "Shipped")">تم الشحن</option>
                         <option value="Delivered" selected="@(Model.Status == "Delivered")">تم التوصيل</option>
                         <option value="Cancelled" selected="@(Model.Status == "Cancelled")">ملغي</option>
