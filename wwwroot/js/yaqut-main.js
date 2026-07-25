@@ -349,6 +349,130 @@
         }
     }
 
+    /* ═══ QUICK SUPPORT WIDGET ═══ */
+    function initSupportWidget() {
+        var widget = document.querySelector('[data-yq-contact-widget]');
+        if (!widget || widget.dataset.yqContactBound) return;
+
+        var toggle = widget.querySelector('[data-yq-contact-toggle]');
+        var panel = widget.querySelector('[data-yq-contact-panel]');
+        var closeBtn = widget.querySelector('[data-yq-contact-close]');
+        var form = widget.querySelector('[data-yq-contact-form]');
+        var message = widget.querySelector('[data-yq-contact-message]');
+        var feedback = widget.querySelector('[data-yq-contact-feedback]');
+        var supportNumber = (widget.getAttribute('data-yq-contact-number') || '').replace(/[^\d]/g, '');
+        var storeName = widget.getAttribute('data-yq-contact-store-name') || 'المتجر';
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        var restoreFocusEl = null;
+
+        widget.dataset.yqContactBound = '1';
+
+        function setFeedback(text, isError) {
+            if (!feedback) return;
+            feedback.textContent = text || '';
+            feedback.classList.toggle('is-error', Boolean(isError));
+            feedback.classList.toggle('visually-hidden', !text);
+        }
+
+        function openWidget() {
+            if (!panel || !toggle) return;
+            restoreFocusEl = document.activeElement;
+            panel.hidden = false;
+            widget.classList.add('is-open');
+            toggle.setAttribute('aria-expanded', 'true');
+            window.setTimeout(function () {
+                if (message) message.focus({ preventScroll: true });
+            }, reduceMotion.matches ? 0 : 40);
+        }
+
+        function closeWidget() {
+            if (!panel || !toggle) return;
+            widget.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            setFeedback('', false);
+
+            window.setTimeout(function () {
+                panel.hidden = true;
+                if (restoreFocusEl && document.contains(restoreFocusEl)) {
+                    restoreFocusEl.focus({ preventScroll: true });
+                }
+            }, reduceMotion.matches ? 0 : 180);
+        }
+
+        function buildMessage(note) {
+            var pageTitle = document.title.replace(/\s*-\s*ياقوت\s*$/i, '').trim();
+            return [
+                'السلام عليكم،',
+                'عندي ملاحظة بخصوص ' + storeName + ':',
+                '',
+                note,
+                '',
+                'الصفحة: ' + (pageTitle || document.title),
+                'الرابط: ' + window.location.href
+            ].join('\n');
+        }
+
+        function openWhatsApp(note) {
+            if (!supportNumber) return;
+            var text = encodeURIComponent(buildMessage(note));
+            var url = 'https://wa.me/' + supportNumber + '?text=' + text;
+            var popup = window.open(url, '_blank', 'noopener,noreferrer');
+            if (popup) {
+                popup.opener = null;
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        if (toggle) {
+            toggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (widget.classList.contains('is-open')) {
+                    closeWidget();
+                } else {
+                    openWidget();
+                }
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeWidget();
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var note = message ? message.value.trim() : '';
+                if (!note) {
+                    setFeedback('اكتب ملاحظتك أولاً.', true);
+                    if (message) message.focus({ preventScroll: true });
+                    return;
+                }
+
+                setFeedback('', false);
+                openWhatsApp(note);
+                if (message) message.value = '';
+                closeWidget();
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!widget.classList.contains('is-open')) return;
+            if (widget.contains(e.target)) return;
+            closeWidget();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && widget.classList.contains('is-open')) {
+                e.preventDefault();
+                closeWidget();
+            }
+        });
+    }
+
     /* ═══ SCROLL REVEAL (تأثير الظهور الفخم عند التمرير) ═══ */
     function initScrollReveal() {
         var elements = document.querySelectorAll('.yq-reveal');
@@ -496,6 +620,7 @@
         initHeroSlider();
         initAuthPanels();
         initFormValidation();
+        initSupportWidget();
         initScrollReveal();
         initImageFallbacks();
         initImagePreviews();

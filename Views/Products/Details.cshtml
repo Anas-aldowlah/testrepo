@@ -96,7 +96,14 @@
 
                     @if (inStock)
                     {
-                        <form asp-controller="Cart" asp-action="Add" method="post" class="yq-pdp-purchase">
+                        <form asp-controller="Cart"
+                              asp-action="Add"
+                              method="post"
+                              class="yq-pdp-purchase"
+                              data-yq-add-to-cart-form
+                              data-product-id="@Model.Id"
+                              data-product-name="@Model.Name">
+                            @Html.AntiForgeryToken()
                             <input type="hidden" name="productId" value="@Model.Id" />
 
                             <div class="yq-pdp-qty">
@@ -114,8 +121,9 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn">
-                                <i class="bi bi-bag-plus"></i> إضافة إلى السلة
+                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn" data-yq-add-button>
+                                <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                                <span data-yq-add-label>إضافة للسلة</span>
                             </button>
                         </form>
                     }

@@ -1,0 +1,88 @@
+@using YAGOT_2._0.Services
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var showAuthModal = ViewData["ShowAuthModal"] as bool? == true;
+    ViewData["CheckoutAuthReturnUrl"] = Url.Action("Checkout", "Orders") ?? "/Orders/Checkout";
+}
+
+<aside class="yq-cart-drawer"
+       data-yq-cart-drawer
+       data-yq-commerce-cart
+       data-free-shipping-threshold="@ShippingPolicy.FreeShippingThreshold"
+       role="dialog"
+       aria-modal="false"
+       aria-labelledby="yqCartDrawerTitle"
+       aria-hidden="true"
+       hidden>
+    <div class="yq-cart-drawer__backdrop" data-yq-cart-close tabindex="-1" aria-hidden="true"></div>
+
+    <section class="yq-cart-drawer__panel" role="document" tabindex="-1">
+        <div class="yq-cart-drawer__timer" data-yq-cart-peek-timer aria-hidden="true">
+            <span></span>
+        </div>
+
+        <header class="yq-cart-drawer__header">
+            <div>
+                <p class="yq-cart-drawer__eyebrow">سلة التسوق</p>
+                <h2 class="yq-cart-drawer__title" id="yqCartDrawerTitle">تمت الإضافة إلى السلة</h2>
+                <p class="yq-cart-drawer__count" data-yq-cart-drawer-count>السلة فارغة حالياً</p>
+            </div>
+
+            <button type="button" class="yq-cart-drawer__close" data-yq-cart-close aria-label="إغلاق السلة">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+
+        <div class="yq-cart-drawer__notice" data-yq-cart-drawer-notice role="status" aria-live="polite" hidden></div>
+
+        <div class="yq-cart-drawer__body" data-yq-cart-drawer-body>
+            <div class="yq-cart-drawer__loading" role="status">
+                <span class="yq-cart-drawer__spinner" aria-hidden="true"></span>
+                <span>جارٍ تحديث السلة...</span>
+            </div>
+        </div>
+
+        <footer class="yq-cart-drawer__footer" data-yq-cart-drawer-footer>
+            <div class="yq-cart-drawer__shipping" data-yq-cart-drawer-shipping hidden>
+                <div class="yq-cart-drawer__shipping-head">
+                    <span data-yq-cart-shipping-label>اقتربت من الشحن المجاني</span>
+                    <strong data-yq-cart-shipping-value></strong>
+                </div>
+                <div class="yq-cart-drawer__progress" aria-hidden="true">
+                    <span data-yq-cart-shipping-progress></span>
+                </div>
+            </div>
+
+            <div class="yq-cart-drawer__total">
+                <span>الإجمالي</span>
+                <strong data-yq-cart-drawer-total>0 ر.س</strong>
+            </div>
+
+            <div class="yq-cart-drawer__actions">
+                <a asp-controller="Orders"
+                   asp-action="Checkout"
+                   class="btn-yaqut-gold yq-cart-drawer__checkout"
+                   data-yq-cart-checkout
+                   data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
+                   data-yq-auth-modal="yqCheckoutAuthModal">
+                    <i class="bi bi-credit-card" aria-hidden="true"></i>
+                    <span>إتمام الطلب</span>
+                </a>
+                <a asp-controller="Cart" asp-action="Index" class="btn-yaqut-outline yq-cart-drawer__view-cart">
+                    <i class="bi bi-bag-check" aria-hidden="true"></i>
+                    <span>عرض السلة</span>
+                </a>
+                <button type="button" class="yq-cart-drawer__continue" data-yq-cart-close>
+                    متابعة التسوق
+                </button>
+            </div>
+        </footer>
+
+        <div class="yq-cart-drawer__live visually-hidden" data-yq-cart-live aria-live="polite" aria-atomic="true"></div>
+    </section>
+</aside>
+
+@if (!isAuthenticated)
+{
+    await Html.RenderPartialAsync("~/Views/Orders/_CheckoutAuthModal.cshtml", showAuthModal);
+}

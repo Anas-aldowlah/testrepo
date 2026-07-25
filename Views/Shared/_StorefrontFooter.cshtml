@@ -1,6 +1,7 @@
 @{
     var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
     var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
 
     bool IsActive(string controller, string action = "Index")
         => string.Equals(routeController, controller, StringComparison.OrdinalIgnoreCase)
@@ -11,9 +12,7 @@
     var categoriesActive = IsActive("Categories");
     var cartActive = IsActive("Cart");
     var ordersActive = IsActive("Orders");
-    var contactActive = IsActive("Home", "Contact");
-    var privacyActive = IsActive("Home", "Privacy");
-    var authActive = IsActive("Account", "Auth");
+    var whatsappNumber = "966775458250";
 }
 
 <footer class="yaqut-footer">
@@ -49,28 +48,16 @@
                     <li><a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">المجموعة الكاملة</a></li>
                     <li><a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">التصنيفات</a></li>
                     <li><a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">سلة المشتريات</a></li>
-                    <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
+                    @if (isAuthenticated)
+                    {
+                        <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
+                    }
+                    else
+                    {
+                        <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
+                    }
                 </ul>
             </nav>
-
-            <nav class="yaqut-footer__col" aria-label="الدعم والحساب">
-                <h3 class="yaqut-footer__col-title">الدعم</h3>
-                <ul>
-                    <li><a asp-controller="Home" asp-action="Contact" class="@(contactActive ? "is-active" : null)" aria-current="@(contactActive ? "page" : null)">تواصل معنا</a></li>
-                    <li><a asp-controller="Home" asp-action="Privacy" class="@(privacyActive ? "is-active" : null)" aria-current="@(privacyActive ? "page" : null)">سياسة الخصوصية</a></li>
-                    <li><a asp-controller="Account" asp-action="Auth" class="@(authActive ? "is-active" : null)" aria-current="@(authActive ? "page" : null)">تسجيل الدخول / حساب جديد</a></li>
-                </ul>
-            </nav>
-
-            <div class="yaqut-footer__col">
-                <h3 class="yaqut-footer__col-title">معلومات المتجر</h3>
-                <ul class="yaqut-footer__contact">
-                    <li><i class="bi bi-geo-alt" aria-hidden="true"></i><span>المملكة العربية السعودية</span></li>
-                    <li><i class="bi bi-clock" aria-hidden="true"></i><span>خدمة العملاء: يومياً 9 ص - 10 م</span></li>
-                    <li><i class="bi bi-truck" aria-hidden="true"></i><span>توصيل سريع داخل المملكة</span></li>
-                    <li><i class="bi bi-envelope" aria-hidden="true"></i><span>الدعم عبر صفحة التواصل</span></li>
-                </ul>
-            </div>
         </div>
 
         <div class="yaqut-footer__bottom">
@@ -82,3 +69,50 @@
         </div>
     </div>
 </footer>
+
+<div class="yq-contact-float"
+     data-yq-contact-widget
+     data-yq-contact-number="@whatsappNumber"
+     data-yq-contact-store-name="ياقوت"
+     aria-label="تواصل سريع">
+    <button type="button"
+            class="yq-contact-float__toggle"
+            data-yq-contact-toggle
+            aria-expanded="false"
+            aria-controls="yqContactPanel">
+        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+        <span>تواصل سريع</span>
+    </button>
+
+    <section class="yq-contact-float__panel" id="yqContactPanel" data-yq-contact-panel hidden aria-label="إرسال ملاحظة عبر واتساب">
+        <header class="yq-contact-float__header">
+            <div>
+                <strong>أرسل ملاحظتك</strong>
+                <p>سيفتح واتساب برسالتك جاهزة للإرسال.</p>
+            </div>
+            <button type="button" class="yq-contact-float__close" data-yq-contact-close aria-label="إغلاق">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+
+        <form class="yq-contact-float__form" data-yq-contact-form>
+            <label for="yqQuickContactMessage" class="visually-hidden">ملاحظتك</label>
+            <textarea id="yqQuickContactMessage"
+                      class="yq-contact-float__message"
+                      data-yq-contact-message
+                      rows="4"
+                      placeholder="اكتب ملاحظتك هنا"
+                      required></textarea>
+
+            <div class="yq-contact-float__actions">
+                <button type="submit" class="btn-yaqut-gold yq-contact-float__send">
+                    <i class="bi bi-send" aria-hidden="true"></i>
+                    <span>إرسال إلى واتساب</span>
+                </button>
+            </div>
+
+            <p class="yq-contact-float__hint">سنفتح محادثة واتساب جاهزة بالنص الذي كتبته.</p>
+            <div class="yq-contact-float__feedback visually-hidden" data-yq-contact-feedback aria-live="polite"></div>
+        </form>
+    </section>
+</div>

@@ -1,6 +1,6 @@
 @model bool
 @{
-    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var returnUrl = ViewData["CheckoutAuthReturnUrl"] as string ?? $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="modal fade yq-checkout-auth-modal"
@@ -14,17 +14,17 @@
             <div class="modal-header yq-checkout-auth-modal__header">
                 <div>
                     <span class="yq-checkout-auth-modal__eyebrow">
-                        <i class="bi bi-shield-lock"></i> مطلوب حساب
+                        <i class="bi bi-shield-lock"></i> خطوة أخيرة
                     </span>
                     <h2 class="modal-title yq-checkout-auth-modal__title" id="yqCheckoutAuthModalTitle">
-                        أكمل الشراء بحسابك
+                        سجّل دخولك لإتمام الطلب
                     </h2>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body yq-checkout-auth-modal__body">
                 <p>
-                    نحتاج إلى تسجيل الدخول أو إنشاء حساب جديد قبل تأكيد الطلب، حتى يتم ربط الطلب بحسابك ومتابعته من صفحة طلباتي.
+                    حتى نحفظ طلبك باسمك وتقدر تتابع حالته لاحقاً، سجّل دخولك أو أنشئ حساباً جديداً. سلتك محفوظة، وبعدها تكمل الطلب مباشرة.
                 </p>
             </div>
             <div class="modal-footer yq-checkout-auth-modal__actions">
@@ -32,14 +32,14 @@
                    asp-action="Auth"
                    asp-route-returnUrl="@returnUrl"
                    class="btn-yaqut-gold yq-checkout-auth-modal__action">
-                    <i class="bi bi-box-arrow-in-left"></i> دخول
+                    <i class="bi bi-box-arrow-in-left"></i> تسجيل الدخول
                 </a>
                 <a asp-controller="Account"
                    asp-action="Auth"
                    asp-route-register="true"
                    asp-route-returnUrl="@returnUrl"
                    class="btn-yaqut-outline yq-checkout-auth-modal__action">
-                    <i class="bi bi-person-plus"></i> إنشاء حساب
+                    <i class="bi bi-person-plus"></i> إنشاء حساب جديد
                 </a>
             </div>
         </div>

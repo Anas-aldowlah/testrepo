@@ -7,9 +7,20 @@
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
-    var showAuthModal = (ViewData["ShowAuthModal"] as bool?) == true;
-    var selectedPaymentMethod = Model?.PaymentMethod ?? string.Empty;
-    var hasModelErrors = ViewData.ModelState[""]?.Errors.Count > 0;
+    var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
+    var customerName = User.Identity?.Name;
+    var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
+    string CheckoutValue(string name, string? fallback = null)
+    {
+        if (checkoutFormValues != null && checkoutFormValues.TryGetValue(name, out var value))
+        {
+            return value.ToString();
+        }
+
+        return fallback ?? string.Empty;
+    }
+    var selectedPaymentMethod = CheckoutValue("paymentMethod", "al-amqi");
 }
 
 @section Styles {
@@ -116,14 +127,12 @@
                         <span asp-validation-for="City" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
-                        <span>الحي</span>
-                        <input asp-for="District" form="yqCheckoutForm" type="text" autocomplete="address-level3" />
-                        <span asp-validation-for="District" class="yq-checkout-field__error"></span>
+                        <span>اسم المستلم</span>
+                        <input form="yqCheckoutForm" type="text" name="district" value="@CheckoutValue("district")" autocomplete="address-level3" />
                     </label>
                     <label class="yq-checkout-field">
-                        <span>الشارع</span>
-                        <input asp-for="Street" form="yqCheckoutForm" type="text" autocomplete="street-address" />
-                        <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
+                        <span>رقم جوال المستلم</span>
+                        <input form="yqCheckoutForm" type="text" name="street" value="@CheckoutValue("street")" autocomplete="street-address" />
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
                         <span>ملاحظات إضافية</span>
@@ -262,11 +271,6 @@
         </div>
     </form>
 </div>
-
-@if (!isAuthenticated)
-{
-    await Html.RenderPartialAsync("_CheckoutAuthModal", showAuthModal);
-}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
