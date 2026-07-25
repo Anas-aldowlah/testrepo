@@ -7,6 +7,8 @@
     var isSuccess = TempData["ProfileSuccess"] != null;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
+    var roleLabel = Model.Role == "Admin" ? "مدير" : "زبون";
+    var joinDate = Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "-";
 }
 
 @section Styles {
@@ -21,32 +23,47 @@
         <span>ملفي الشخصي</span>
     </nav>
 
-    <header class="yq-profile-header yq-reveal">
-        <div class="yq-profile-header__avatar">
-            <i class="bi bi-person"></i>
+    <div class="yq-profile-hero yq-reveal">
+        <div class="yq-profile-hero__avatar-wrap">
+            <div class="yq-profile-hero__avatar">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <span class="yq-profile-hero__badge"><i class="bi bi-check-lg"></i></span>
         </div>
-        <div>
-            <h1 class="yq-profile-header__title">مرحباً، @Model.Name</h1>
-            <p class="yq-profile-header__sub">إدارة معلومات حسابك الشخصي</p>
+        <div class="yq-profile-hero__info">
+            <p class="yq-profile-hero__greeting">أهلاً وسهلاً</p>
+            <h1 class="yq-profile-hero__name">@Model.Name</h1>
+            <p class="yq-profile-hero__sub">إدارة معلومات حسابك الشخصي في ياقوت</p>
+            <div class="yq-profile-hero__meta">
+                <span class="yq-profile-hero__chip">
+                    <i class="bi bi-shield-check"></i> @roleLabel
+                </span>
+                <span class="yq-profile-hero__chip">
+                    <i class="bi bi-calendar3"></i> انضم @joinDate
+                </span>
+            </div>
         </div>
-    </header>
+    </div>
 
     @if (isSuccess)
     {
-        <div class="yq-profile-alert yq-profile-alert--success yq-reveal">
-            <i class="bi bi-check-circle"></i> تم تحديث بياناتك بنجاح.
+        <div class="yq-profile-alert yq-profile-alert--success yq-reveal" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            تم تحديث بياناتك بنجاح!
         </div>
     }
 
     <div class="yq-profile-layout">
 
-        <!-- EDIT FORM -->
         <section class="yq-profile-form-wrap yq-glass yq-reveal">
-            <h2 class="yq-profile-form__title"><i class="bi bi-pencil-square"></i> تعديل البيانات</h2>
+            <h2 class="yq-profile-form__title">
+                <i class="bi bi-pencil-square"></i> تعديل البيانات
+            </h2>
 
             <form asp-controller="Account" asp-action="Profile" method="post" data-yq-validate novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Id" />
+
                 <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger"></div>
 
                 <div class="yaqut-form-group">
@@ -81,34 +98,83 @@
             </form>
         </section>
 
-        <!-- ACCOUNT SUMMARY -->
-        <aside class="yq-profile-summary yq-glass yq-reveal">
-            <h2 class="yq-profile-summary__title">معلومات الحساب</h2>
+        <aside class="yq-profile-sidebar">
 
-            <div class="yq-profile-summary__row">
-                <span>نوع الحساب</span>
-                <span class="yq-profile-summary__badge">@(Model.Role == "Admin" ? "مدير" : "زبون")</span>
-            </div>
-            <div class="yq-profile-summary__row">
-                <span>تاريخ الانضمام</span>
-                <span>@(Model.CreatedAt.HasValue? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "-")</span>
+            <div class="yq-profile-stat-card yq-glass yq-reveal">
+                <p class="yq-profile-stat-card__title">معلومات الحساب</p>
+
+                <div class="yq-profile-stat-row">
+                    <div class="yq-profile-stat-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <div class="yq-profile-stat-label">نوع الحساب</div>
+                        <div class="yq-profile-stat-value">@roleLabel</div>
+                    </div>
+                    <span class="yq-profile-stat-badge">@roleLabel</span>
+                </div>
+
+                <div class="yq-profile-stat-row">
+                    <div class="yq-profile-stat-icon">
+                        <i class="bi bi-calendar3"></i>
+                    </div>
+                    <div>
+                        <div class="yq-profile-stat-label">تاريخ الانضمام</div>
+                        <div class="yq-profile-stat-value">@joinDate</div>
+                    </div>
+                </div>
+
+                <div class="yq-profile-stat-row">
+                    <div class="yq-profile-stat-icon">
+                        <i class="bi bi-phone"></i>
+                    </div>
+                    <div>
+                        <div class="yq-profile-stat-label">رقم الجوال</div>
+                        <div class="yq-profile-stat-value">@(customerPhone ?? "-")</div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <div class="yq-profile-stat-row">
+                        <div class="yq-profile-stat-icon">
+                            <i class="bi bi-envelope"></i>
+                        </div>
+                        <div style="min-width:0">
+                            <div class="yq-profile-stat-label">البريد الإلكتروني</div>
+                            <div class="yq-profile-stat-value" style="font-size:0.8rem; overflow-wrap:anywhere;">@Model.Email</div>
+                        </div>
+                    </div>
+                }
             </div>
 
-            <div class="yq-profile-summary__divider"></div>
+            <nav class="yq-profile-nav-card yq-glass yq-reveal">
+                <a asp-controller="Orders" asp-action="Index" class="yq-profile-nav-link">
+                    <i class="bi bi-receipt"></i>
+                    <span>طلباتي</span>
+                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                </a>
+                <a asp-controller="Cart" asp-action="Index" class="yq-profile-nav-link">
+                    <i class="bi bi-bag"></i>
+                    <span>سلتي</span>
+                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                </a>
+                <div class="yq-profile-nav-divider"></div>
+                <a asp-controller="Account" asp-action="RecoveryAccount" class="yq-profile-nav-link">
+                    <i class="bi bi-shield-lock"></i>
+                    <span>تغيير كلمة المرور</span>
+                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                </a>
+                <div class="yq-profile-nav-divider"></div>
+                <a asp-controller="Account" asp-action="Logout" class="yq-profile-nav-link yq-profile-nav-link--danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>تسجيل الخروج</span>
+                </a>
+            </nav>
 
-            <div class="yq-profile-summary__links">
-                <a asp-controller="Orders" asp-action="Index" class="yq-profile-summary__link">
-                    <i class="bi bi-receipt"></i> طلباتي
-                </a>
-                <a asp-controller="Account" asp-action="RecoveryAccount" class="yq-profile-summary__link">
-                    <i class="bi bi-shield-lock"></i> تغيير كلمة المرور
-                </a>
-                <a asp-controller="Account" asp-action="Logout" class="yq-profile-summary__link yq-profile-summary__link--danger">
-                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                </a>
-            </div>
         </aside>
     </div>
+
 </div>
 
 @section Scripts {

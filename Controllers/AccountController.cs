@@ -364,6 +364,11 @@ public class AccountController : Controller
             new(ClaimTypes.Role, role ?? "Customer")
         };
 
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+        }
+
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
         var authProperties = new AuthenticationProperties

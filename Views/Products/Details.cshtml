@@ -3,11 +3,12 @@
     ViewData["Title"] = $"{Model?.Name} | ياقوت للعطور";
     var desc = Model?.Description ?? "";
     var parts = desc.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-    var topNote = parts.Length > 0 ? parts[0] : "حمضيات منعشة وتوابل خفيفة";
-    var heartNote = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "زهور شرقية ومسك راقٍ");
-    var baseNote = parts.Length > 2 ? parts[2] : "عود وعنبر وخشب أرز دافئ";
-    var inStock = Model != null && Model.Stockquantity > 0;
-    var lowStock = Model != null && Model.Stockquantity > 0 && Model.Stockquantity <= 5;
+    var topNote    = parts.Length > 0 ? parts[0] : "";
+    var heartNote  = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "");
+    var baseNote   = parts.Length > 2 ? parts[2] : "";
+    var inStock    = Model != null && Model.Stockquantity > 0;
+    var lowStock   = Model != null && Model.Stockquantity > 0 && Model.Stockquantity <= 5;
+    var hasNotes   = parts.Length >= 2;
 }
 
 @section Styles {
@@ -42,10 +43,13 @@
 
             <!-- GALLERY -->
             <div class="yq-pdp-gallery yq-reveal">
-                <div class="yq-pdp-gallery__frame yq-glass">
+                <div class="yq-pdp-gallery__frame">
+                    <div class="yq-pdp-gallery__glow"></div>
                     @if (inStock)
                     {
-                        <span class="yq-pdp-gallery__badge">متوفر</span>
+                        <span class="yq-pdp-gallery__badge">
+                            <i class="bi bi-stars"></i> متوفر
+                        </span>
                     }
                     <img src="@Model.Imageurl"
                          alt="@Model.Name"
@@ -60,39 +64,54 @@
 
                     @if (Model.Category != null)
                     {
-                        <span class="yq-pdp-category">@Model.Category.Name</span>
+                        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id" class="yq-pdp-category">
+                            <i class="bi bi-flower2"></i> @Model.Category.Name
+                        </a>
                     }
 
                     <h1 class="yq-pdp-title">@Model.Name</h1>
 
-                    <div class="yq-pdp-price">
-                        @Model.Price.ToString("N0") <small>ر.س</small>
+                    <div class="yq-pdp-price-row">
+                        <div class="yq-pdp-price">
+                            @Model.Price.ToString("N0") <small>ر.س</small>
+                        </div>
+                        <!-- WISHLIST BUTTON -->
+                        <button type="button"
+                                class="yq-pdp-wishlist"
+                                id="yqWishlistBtn"
+                                data-product-id="@Model.Id"
+                                aria-label="إضافة إلى المفضلة"
+                                title="إضافة إلى المفضلة">
+                            <i class="bi bi-heart" id="yqWishlistIcon"></i>
+                        </button>
                     </div>
 
                     <div class="yq-pdp-stock">
                         @if (inStock)
                         {
                             <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in">
-                                <i class="bi bi-check-circle"></i> متوفر في المخزون
+                                <i class="bi bi-check-circle-fill"></i> متوفر في المخزون
                             </span>
                             @if (lowStock)
                             {
                                 <span class="yq-pdp-stock__note">
-                                    <i class="bi bi-exclamation-circle"></i> الكمية المتبقية محدودة: @Model.Stockquantity قطعة فقط
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    الكمية المتبقية: <strong>@Model.Stockquantity قطعة فقط</strong>
                                 </span>
                             }
                         }
                         else
                         {
                             <span class="yq-pdp-stock__badge yq-pdp-stock__badge--out">
-                                <i class="bi bi-x-circle"></i> غير متوفر حالياً
+                                <i class="bi bi-x-circle-fill"></i> غير متوفر حالياً
                             </span>
                         }
                     </div>
 
-                    <p class="yq-pdp-summary">
-                        عطر فاخر يجمع بين الأصالة والفخامة، مصنوع من أجود المكونات ليمنحك تجربة حسية استثنائية تدوم طويلاً.
-                    </p>
+                    @if (!string.IsNullOrWhiteSpace(desc) && !hasNotes)
+                    {
+                        <p class="yq-pdp-summary">@(parts.Length > 0 ? parts[0] : desc)</p>
+                    }
 
                     @if (inStock)
                     {
@@ -134,72 +153,113 @@
                         </button>
                     }
 
+                    <!-- TRUST STRIP: Only Authenticity -->
                     <div class="yq-pdp-trust">
-                        <span><i class="bi bi-shield-check"></i> ضمان أصالة المنتج</span>
-                        <span><i class="bi bi-truck"></i> شحن مؤمّن بالكامل</span>
-                        <span><i class="bi bi-gift"></i> تغليف فاخر مجاني</span>
-                        <span><i class="bi bi-arrow-counterclockwise"></i> استرجاع خلال 14 يوماً</span>
+                        <span><i class="bi bi-patch-check-fill"></i> عطر أصيل 100%</span>
+                        <span><i class="bi bi-award-fill"></i> جودة مضمونة</span>
                     </div>
+
                 </div>
             </div>
         </div>
 
-        <!-- DETAILS TABS -->
-        <div class="yq-pdp-details yq-reveal">
-            <div class="yq-pdp-tabs" role="tablist" aria-label="تفاصيل المنتج">
-                <button type="button" class="yq-pdp-tab is-active" data-yq-tab="pyramid" role="tab" aria-selected="true">
-                    <i class="bi bi-layers"></i> الهرم العطري
-                </button>
-                <button type="button" class="yq-pdp-tab" data-yq-tab="description" role="tab" aria-selected="false">
-                    <i class="bi bi-file-text"></i> الوصف
-                </button>
-                <button type="button" class="yq-pdp-tab" data-yq-tab="specs" role="tab" aria-selected="false">
-                    <i class="bi bi-info-circle"></i> المواصفات
-                </button>
-            </div>
+        <!-- FRAGRANCE DETAILS SECTION -->
+        <div class="yq-pdp-details-section yq-reveal">
 
-            <div class="yq-pdp-tab-panel is-active" data-yq-panel="pyramid" role="tabpanel">
-                <div class="yq-pdp-pyramid">
-                    <div class="yq-pdp-pyramid__item yq-glass">
-                        <i class="bi bi-sunrise"></i>
-                        <span class="yq-pdp-pyramid__label">الإفتتاحية</span>
-                        <p>@topNote</p>
+            @if (hasNotes)
+            {
+                <!-- SCENT JOURNEY (replaces "الهرم العطري") -->
+                <div class="yq-pdp-scent-journey">
+                    <div class="yq-pdp-scent-journey__header">
+                        <i class="bi bi-wind"></i>
+                        <h2>رحلة العطر</h2>
+                        <p>كيف يتطور العطر على بشرتك منذ اللحظة الأولى</p>
                     </div>
-                    <div class="yq-pdp-pyramid__item yq-glass">
-                        <i class="bi bi-heart"></i>
-                        <span class="yq-pdp-pyramid__label">قلب العطر</span>
-                        <p>@heartNote</p>
-                    </div>
-                    <div class="yq-pdp-pyramid__item yq-glass">
-                        <i class="bi bi-moon-stars"></i>
-                        <span class="yq-pdp-pyramid__label">القاعدة</span>
-                        <p>@baseNote</p>
+                    <div class="yq-pdp-scent-notes">
+                        <div class="yq-pdp-note yq-pdp-note--top">
+                            <div class="yq-pdp-note__icon-wrap">
+                                <i class="bi bi-sunrise-fill"></i>
+                            </div>
+                            <div class="yq-pdp-note__body">
+                                <span class="yq-pdp-note__stage">النفحة الأولى</span>
+                                <span class="yq-pdp-note__time"><i class="bi bi-clock"></i> أول 15 دقيقة</span>
+                                <p class="yq-pdp-note__text">@topNote</p>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(heartNote))
+                        {
+                            <div class="yq-pdp-note__connector"><i class="bi bi-arrow-down"></i></div>
+                            <div class="yq-pdp-note yq-pdp-note--heart">
+                                <div class="yq-pdp-note__icon-wrap">
+                                    <i class="bi bi-heart-fill"></i>
+                                </div>
+                                <div class="yq-pdp-note__body">
+                                    <span class="yq-pdp-note__stage">قلب العطر</span>
+                                    <span class="yq-pdp-note__time"><i class="bi bi-clock"></i> من 30 دقيقة إلى 3 ساعات</span>
+                                    <p class="yq-pdp-note__text">@heartNote</p>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(baseNote))
+                        {
+                            <div class="yq-pdp-note__connector"><i class="bi bi-arrow-down"></i></div>
+                            <div class="yq-pdp-note yq-pdp-note--base">
+                                <div class="yq-pdp-note__icon-wrap">
+                                    <i class="bi bi-moon-stars-fill"></i>
+                                </div>
+                                <div class="yq-pdp-note__body">
+                                    <span class="yq-pdp-note__stage">البصمة الدائمة</span>
+                                    <span class="yq-pdp-note__time"><i class="bi bi-clock"></i> تبقى على البشرة لساعات</span>
+                                    <p class="yq-pdp-note__text">@baseNote</p>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
-                @if (parts.Length < 2)
+            }
+
+            <!-- PRODUCT INFO GRID (replaces "المواصفات" and "الوصف") -->
+            <div class="yq-pdp-info-grid">
+                @if (!string.IsNullOrWhiteSpace(desc))
                 {
-                    <p class="yq-pdp-hint">
-                        <i class="bi bi-info-circle"></i>
-                        يمكن للمسؤول تنسيق الهرم العطري في الوصف بفاصل | بين الإفتتاحية والقلب والقاعدة.
-                    </p>
+                    <div class="yq-pdp-info-card yq-pdp-info-card--desc">
+                        <div class="yq-pdp-info-card__icon"><i class="bi bi-quote"></i></div>
+                        <h3>عن هذا العطر</h3>
+                        <p>@(hasNotes ? string.Join(" — ", parts) : desc)</p>
+                    </div>
                 }
+                <div class="yq-pdp-info-card">
+                    <div class="yq-pdp-info-card__icon"><i class="bi bi-list-check"></i></div>
+                    <h3>تفاصيل المنتج</h3>
+                    <ul class="yq-pdp-quick-specs">
+                        @if (Model.Category != null)
+                        {
+                            <li>
+                                <span class="yq-pdp-quick-specs__key"><i class="bi bi-tag"></i> التصنيف</span>
+                                <span class="yq-pdp-quick-specs__val">@Model.Category.Name</span>
+                            </li>
+                        }
+                        <li>
+                            <span class="yq-pdp-quick-specs__key"><i class="bi bi-box-seam"></i> الحالة</span>
+                            <span class="yq-pdp-quick-specs__val @(inStock ? "text-green" : "text-red")">
+                                @(inStock ? "متوفر" : "نفذت الكمية")
+                            </span>
+                        </li>
+                        @if (inStock)
+                        {
+                            <li>
+                                <span class="yq-pdp-quick-specs__key"><i class="bi bi-layers"></i> المتوفر</span>
+                                <span class="yq-pdp-quick-specs__val">@Model.Stockquantity قطعة</span>
+                            </li>
+                        }
+                        <li>
+                            <span class="yq-pdp-quick-specs__key"><i class="bi bi-currency-exchange"></i> السعر</span>
+                            <span class="yq-pdp-quick-specs__val yq-pdp-quick-specs__val--gold">@Model.Price.ToString("N0") ر.س</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
-            <div class="yq-pdp-tab-panel" data-yq-panel="description" role="tabpanel" hidden>
-                <p class="yq-pdp-description">@(string.IsNullOrWhiteSpace(desc) ? "لا يوجد وصف تفصيلي لهذا المنتج حالياً." : desc)</p>
-            </div>
-
-            <div class="yq-pdp-tab-panel" data-yq-panel="specs" role="tabpanel" hidden>
-                <dl class="yq-pdp-specs">
-                    @if (Model.Category != null)
-                    {
-                        <div><dt>التصنيف</dt><dd>@Model.Category.Name</dd></div>
-                    }
-                    <div><dt>الحالة</dt><dd>@(inStock ? "متوفر في المخزون" : "غير متوفر حالياً")</dd></div>
-                    <div><dt>الكمية المتاحة</dt><dd>@Model.Stockquantity قطعة</dd></div>
-                    <div><dt>السعر</dt><dd>@Model.Price.ToString("N0") ر.س</dd></div>
-                </dl>
-            </div>
         </div>
 
         <!-- RECENTLY VIEWED -->
@@ -213,7 +273,7 @@
 }
 else
 {
-    <div class="yaqut-empty glass-effect">
+    <div class="yaqut-empty yq-glass">
         <i class="bi bi-exclamation-circle yaqut-empty__icon"></i>
         <p class="yaqut-empty__text">نعتذر، لم يتم العثور على المنتج المطلوب.</p>
         <a asp-action="Index" class="btn-yaqut-gold mt-3">العودة للمنتجات</a>
@@ -222,4 +282,50 @@ else
 
 @section Scripts {
     <script src="~/js/products/details.js" asp-append-version="true"></script>
+    <script>
+        // Wishlist toggle logic using localStorage
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn  = document.getElementById('yqWishlistBtn');
+            var icon = document.getElementById('yqWishlistIcon');
+            if (!btn || !icon) return;
+
+            var productId = btn.dataset.productId;
+            var key = 'yq_wishlist';
+
+            function getWishlist() {
+                try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+            }
+            function saveWishlist(list) {
+                localStorage.setItem(key, JSON.stringify(list));
+            }
+            function updateUI(isWishlisted) {
+                icon.className = isWishlisted ? 'bi bi-heart-fill' : 'bi bi-heart';
+                btn.classList.toggle('is-wishlisted', isWishlisted);
+                btn.setAttribute('aria-label', isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة');
+                btn.title = isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة';
+            }
+
+            // Init state
+            var wishlist = getWishlist();
+            updateUI(wishlist.includes(productId));
+
+            btn.addEventListener('click', function () {
+                var list = getWishlist();
+                var idx = list.indexOf(productId);
+                if (idx === -1) {
+                    list.push(productId);
+                } else {
+                    list.splice(idx, 1);
+                }
+                saveWishlist(list);
+                updateUI(list.includes(productId));
+
+                // Micro animation
+                btn.classList.add('yq-pdp-wishlist--pop');
+                btn.addEventListener('animationend', function () {
+                    btn.classList.remove('yq-pdp-wishlist--pop');
+                }, { once: true });
+            });
+        });
+    </script>
 }

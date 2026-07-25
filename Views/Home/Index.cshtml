@@ -26,7 +26,18 @@
 
     <!-- HERO -->
     <section class="yq-home-hero yq-home-hero--shopping yq-reveal">
-        <div class="yq-home-hero__bg" aria-hidden="true"></div>
+        <div class="yq-home-hero__bg" aria-hidden="true" id="yqHeroBgFader">
+            @if (heroSlides.Any())
+            {
+                @for (var i = 0; i < heroSlides.Count; i++)
+                {
+                    <div class="yq-hero-bg-slide @(i == 0 ? "is-active" : "")">
+                        <img src="@heroSlides[i].Imageurl" alt="" loading="@(i == 0 ? "eager" : "lazy")" />
+                        <div class="yq-hero-bg-overlay"></div>
+                    </div>
+                }
+            }
+        </div>
         <div class="yq-home-hero__inner">
             <div class="yq-home-hero__content">
                 <span class="yq-home-hero__eyebrow"><i class="bi bi-gem"></i> مجموعة العطور الفاخرة</span>
@@ -36,14 +47,14 @@
                     لتجربة فاخرة تأسر حواسك من أول رشة.
                 </p>
                 <div class="yq-home-hero__actions">
-                    <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                    <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold btn-yaqut-gold--lg">
                         <i class="bi bi-stars"></i> تسوّق العطور
                     </a>
                     @if (featuredCategory != null)
                     {
                         <a asp-controller="Products" asp-action="Index"
                            asp-route-categoryId="@featuredCategory.Id"
-                           class="btn-yaqut-outline">
+                           class="btn-yaqut-outline btn-yaqut-outline--lg">
                             <i class="bi bi-flower1"></i> تصفح العائلات
                         </a>
                     }
@@ -52,35 +63,20 @@
 
             @if (heroSlides.Any())
             {
-                <div class="yq-home-hero__spotlight" data-yq-hero-carousel aria-label="أحدث العطور المميزة" aria-live="polite">
-                    <div class="yq-home-hero__spotlight-track">
-                        @for (var i = 0; i < heroSlides.Count; i++)
-                        {
-                            var product = heroSlides[i];
-                            <div class="yq-home-hero__slide @(i == 0 ? "is-active" : "")" data-index="@i">
-                                <span class="yq-home-hero__spotlight-badge">جديد</span>
-                                <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id"
-                                   class="yq-home-hero__spotlight-media">
-                                    <img src="@product.Imageurl" alt="@product.Name"
-                                         data-yaqut-fallback="/images/placeholder-product.svg"
-                                         loading="@(i == 0 ? "eager" : "lazy")" />
-                                </a>
-                                <div class="yq-home-hero__spotlight-info">
-                                    <span class="yq-home-hero__spotlight-name">@product.Name</span>
-                                    <span class="yq-home-hero__spotlight-price">@product.Price.ToString("N0") ر.س</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-
-                    @if (heroSlides.Count > 1)
+                <div class="yq-home-hero__grand-product" id="yqHeroFader">
+                    <div class="yq-grand-product__glow"></div>
+                    @for (var i = 0; i < heroSlides.Count; i++)
                     {
-                        <div class="yq-home-hero__spotlight-dots">
-                            @for (var i = 0; i < heroSlides.Count; i++)
-                            {
-                                <button type="button" class="yq-home-hero__dot @(i == 0 ? "is-active" : "")"
-                                        data-yq-hero-dot="@i" aria-label="عرض المنتج @(i + 1)"></button>
-                            }
+                        var product = heroSlides[i];
+                        var badgeText = i == 0 ? "وصل حديثاً" : (i == 1 ? "الأكثر مبيعاً" : "مختارات ياقوت");
+                        <div class="yq-grand-product__item @(i == 0 ? "is-active" : "")">
+                            <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id" class="yq-grand-product__link">
+                                <img src="@product.Imageurl" alt="@product.Name" data-yaqut-fallback="/images/placeholder-product.svg" class="yq-grand-product__img" loading="@(i == 0 ? "eager" : "lazy")" />
+                            </a>
+                            <div class="yq-grand-product__badge">
+                                <span>@badgeText</span>
+                                <strong>@product.Name</strong>
+                            </div>
                         </div>
                     }
                 </div>
@@ -91,23 +87,26 @@
         </div>
     </section>
 
-    <!-- TRUST STRIP -->
-    <section class="yq-home-trust yq-reveal">
-        <div class="yq-home-trust__item">
-            <i class="bi bi-gem"></i>
-            <span>عطور أصيلة 100%</span>
-        </div>
-        <div class="yq-home-trust__item">
-            <i class="bi bi-truck"></i>
-            <span>شحن مجاني فوق 500 ر.س</span>
-        </div>
-        <div class="yq-home-trust__item">
-            <i class="bi bi-shield-check"></i>
-            <span>ضمان استرجاع 14 يوماً</span>
-        </div>
-        <div class="yq-home-trust__item">
-            <i class="bi bi-lock"></i>
-            <span>دفع وتصفح آمن</span>
+    <!-- BRANDS STRIP -->
+    <section class="yq-home-brands yq-reveal" aria-label="شركات العطور العالمية">
+        <div class="yq-home-brands__track">
+            <!-- First set -->
+            <span class="yq-brand-name yq-brand-name--highlight"><i class="bi bi-gem"></i> ياقوت</span>
+            <span class="yq-brand-name">الماجد للعود</span>
+            <span class="yq-brand-name">عبدالصمد القرشي</span>
+            <span class="yq-brand-name">درعة</span>
+            <span class="yq-brand-name">شانيل</span>
+            <span class="yq-brand-name">ديور</span>
+            <span class="yq-brand-name">توم فورد</span>
+            
+            <!-- Duplicate for infinite scroll -->
+            <span class="yq-brand-name yq-brand-name--highlight"><i class="bi bi-gem"></i> ياقوت</span>
+            <span class="yq-brand-name">الماجد للعود</span>
+            <span class="yq-brand-name">عبدالصمد القرشي</span>
+            <span class="yq-brand-name">درعة</span>
+            <span class="yq-brand-name">شانيل</span>
+            <span class="yq-brand-name">ديور</span>
+            <span class="yq-brand-name">توم فورد</span>
         </div>
     </section>
 
@@ -301,5 +300,22 @@
 </div>
 
 @section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var items = document.querySelectorAll('#yqHeroFader .yq-grand-product__item');
+            var bgItems = document.querySelectorAll('#yqHeroBgFader .yq-hero-bg-slide');
+            if (items.length <= 1) return;
+            var current = 0;
+            setInterval(function () {
+                items[current].classList.remove('is-active');
+                if(bgItems[current]) bgItems[current].classList.remove('is-active');
+                
+                current = (current + 1) % items.length;
+                
+                items[current].classList.add('is-active');
+                if(bgItems[current]) bgItems[current].classList.add('is-active');
+            }, 5000);
+        });
+    </script>
     <script src="~/js/home/index.js" asp-append-version="true"></script>
 }

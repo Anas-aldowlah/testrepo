@@ -56,7 +56,7 @@ public class OrdersController : Controller
             return RedirectToAction("Index", "Cart");
         }
 
-        return View(BuildCheckoutViewModel(cart));
+        return View(await BuildCheckoutViewModelAsync(cart));
     }
 
     [AllowAnonymous]
@@ -88,6 +88,35 @@ public class OrdersController : Controller
         try
         {
             var order = await _orderService.CreateOrderAsync(userId, model);
+            
+            string? receiptUrl = null;
+            if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
+                Directory.CreateDirectory(uploadsFolder);
+                var fileName = $"receipt_{order.Id}_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(model.ReceiptImage.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.ReceiptImage.CopyToAsync(stream);
+                }
+                receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
+            }
+
+            // Construct WhatsApp link
+            var request = HttpContext.Request;
+            var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+            var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
+            
+            var textMessage = $"مرحباً، أود تأكيد طلبي.%0Aرقم الطلب: {order.Id}%0Aرابط الطلب: {orderLink}";
+            if (!string.IsNullOrEmpty(receiptUrl))
+            {
+                textMessage += $"%0Aصورة إيصال الدفع: {baseUrl}{receiptUrl.Replace("~", "")}";
+            }
+            
+            var whatsappUrl = $"https://wa.me/967775458250?text={textMessage}";
+            TempData["WhatsAppUrl"] = whatsappUrl;
+
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (InvalidOperationException ex)
@@ -138,7 +167,7 @@ public class OrdersController : Controller
         return Task.FromResult(1);
     }
 
-    private CheckoutVM BuildCheckoutViewModel(Cart cart)
+    private async Task<CheckoutVM> BuildCheckoutViewModelAsync(Cart cart)
     {
         var model = new CheckoutVM
         {
@@ -150,6 +179,13 @@ public class OrdersController : Controller
             model.CustomerName = User.Identity?.Name ?? string.Empty;
             var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
             model.CustomerPhone = _dealingApiService.DecryptPhone(encryptedPhone);
+
+            // جلب البريد الإلكتروني مباشرة من قاعدة البيانات بدل الـ Claim
+            if (TryResolveUserId(out var uid))
+            {
+                var dbUser = await _dbUser.Users.FindAsync(uid);
+                model.CustomerEmail = dbUser?.Email;
+            }
         }
 
         return model;

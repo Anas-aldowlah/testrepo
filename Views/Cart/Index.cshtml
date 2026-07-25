@@ -119,45 +119,19 @@
             </div>
 
             <!-- ORDER SUMMARY -->
-            <aside class="yq-cart-summary yq-glass yq-reveal">
-                <h2 class="yq-cart-summary__title">ملخص الطلب</h2>
+            <aside class="yq-cart-summary yq-reveal">
+                <div class="yq-cart-summary__content">
+                    <h2 class="yq-cart-summary__title">
+                        <i class="bi bi-receipt"></i> الفاتورة الإجمالية
+                    </h2>
 
-                <div class="yq-cart-summary__row">
-                    <span>المجموع الفرعي</span>
-                    <span>@subtotal.ToString("N0") ر.س</span>
-                </div>
-
-                <div class="yq-cart-summary__row">
-                    <span>الشحن</span>
-                    @if (qualifiesForFreeShipping)
-                    {
-                        <span class="yq-cart-summary__free">مجاني</span>
-                    }
-                    else
-                    {
-                        <span class="yq-cart-summary__tbd">يُحدد عند الدفع</span>
-                    }
-                </div>
-
-                @if (!qualifiesForFreeShipping)
-                {
-                    <p class="yq-cart-summary__shipping-hint">
-                        <i class="bi bi-truck"></i>
-                        أضف عطوراً بقيمة <strong>@remainingForFreeShipping.ToString("N0") ر.س</strong> للحصول على شحن مجاني
-                    </p>
-                }
-                else
-                {
-                    <p class="yq-cart-summary__shipping-hint yq-cart-summary__shipping-hint--success">
-                        <i class="bi bi-check-circle"></i> طلبك مؤهل للشحن المجاني
-                    </p>
-                }
-
-                <div class="yq-cart-summary__divider"></div>
-
-                <div class="yq-cart-summary__row yq-cart-summary__row--total">
-                    <span>الإجمالي</span>
-                    <span>@subtotal.ToString("N0") <small>ر.س</small></span>
+                    <div class="yq-cart-summary__total-box">
+                        <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
+                        <div class="yq-cart-summary__total-value">
+                            <span data-yq-summary-total>@subtotal.ToString("N0")</span>
+                            <small>ر.س</small>
+                        </div>
+                    </div>
                 </div>
 
                 <a asp-controller="Orders"
@@ -173,11 +147,6 @@
                     <i class="bi bi-arrow-left"></i> متابعة التسوق
                 </a>
 
-                <div class="yq-cart-summary__trust">
-                    <span><i class="bi bi-shield-check"></i> دفع آمن</span>
-                    <span><i class="bi bi-gift"></i> تغليف فاخر</span>
-                    <span><i class="bi bi-arrow-counterclockwise"></i> استرجاع 14 يوماً</span>
-                </div>
             </aside>
         </div>
     }

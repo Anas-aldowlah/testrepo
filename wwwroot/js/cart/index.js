@@ -67,9 +67,30 @@
                 if (item.classList.contains('is-removing')) return;
                 event.preventDefault();
                 item.classList.add('is-removing');
-                window.setTimeout(function () {
-                    form.submit();
-                }, 280);
+                
+                // Optimistically remove from UI
+                item.style.display = 'none';
+                calculateAndUpdateTotals();
+
+                // Send request in background
+                var payload = new window.FormData(form);
+                window.fetch(form.action, {
+                    method: 'POST',
+                    body: payload,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function(res) {
+                    if(!res.ok) throw new Error();
+                    item.remove();
+                    // If cart is empty now, we might want to reload to show empty state
+                    if (document.querySelectorAll('[data-yq-cart-item]:not(.is-removing)').length === 0) {
+                        window.location.reload();
+                    }
+                }).catch(function() {
+                    item.style.display = '';
+                    item.classList.remove('is-removing');
+                    calculateAndUpdateTotals();
+                    announce('تعذّر الحذف الآن.');
+                });
             });
         });
     }
@@ -122,29 +143,67 @@
             return;
         }
 
-        currentCart.innerHTML = nextCart.innerHTML;
+        // Instead of replacing the whole innerHTML, we just update what might be out of sync
+        // if we are doing optimistic updates. Actually, for a fully optimistic approach,
+        // we can just silently succeed. Let's just update the badge just in case.
         updateHeaderBadge();
-        initCartPage();
-        announce(message || 'تم تحديث السلة.');
+        
+        // If we want to show a toast message:
+        // announce(message || 'تم تحديث السلة.');
+    }
+
+    function calculateAndUpdateTotals() {
+        var items = toArray(document.querySelectorAll('[data-yq-cart-item]'));
+        var subtotal = 0;
+        
+        items.forEach(function(item) {
+            if (item.classList.contains('is-removing')) return;
+            var input = item.querySelector('input[name="quantity"]');
+            var qty = parseInt(normalizeDigits(input.value), 10) || 0;
+            var priceEl = item.querySelector('.yq-cart-item__unit-price');
+            // Extract numeric price from text like "250 ر.س / للقطعة"
+            var priceText = priceEl ? priceEl.textContent.replace(/[^\d]/g, '') : '0';
+            var price = parseInt(priceText, 10) || 0;
+            
+            var lineTotal = qty * price;
+            subtotal += lineTotal;
+            
+            var lineTotalEl = item.querySelector('.yq-cart-item__line-total');
+            if (lineTotalEl) {
+                lineTotalEl.innerHTML = lineTotal.toLocaleString('en-US') + ' <small>ر.س</small>';
+            }
+        });
+
+        // Update summary
+        var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
+        if (summaryTotalEl) {
+            summaryTotalEl.textContent = subtotal.toLocaleString('en-US');
+        }
+        
+        updateHeaderBadge();
     }
 
     function submitQuantity(form, message) {
-        if (!form || form.classList.contains('is-updating')) return;
+        if (!form) return;
         var input = form.querySelector('input[name="quantity"]');
         var nextValue = clampQuantity(input);
         var previousValue = parseInt(form.getAttribute('data-yq-last-qty') || input.defaultValue || '1', 10);
         var payload = new window.FormData(form);
 
         updateStepState(form);
+        
+        // Optimistic UI update
+        calculateAndUpdateTotals();
+
         if (Number.isFinite(previousValue) && nextValue === previousValue) return;
+        form.setAttribute('data-yq-last-qty', nextValue);
 
-        setFormUpdating(form, true);
-
-        if (!window.fetch || !window.DOMParser) {
+        if (!window.fetch) {
             form.submit();
             return;
         }
 
+        // Send request in background (Optimistic)
         window.fetch(form.action, {
             method: 'POST',
             body: payload,
@@ -156,9 +215,11 @@
             if (!response.ok) throw new Error('cart update failed');
             return response.text();
         }).then(function (html) {
-            refreshCartFromHtml(html, message || 'تم تحديث الكمية.');
+            // Silently succeed
         }).catch(function () {
-            setFormUpdating(form, false);
+            // If failed, revert UI
+            input.value = String(previousValue);
+            calculateAndUpdateTotals();
             announce('تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
         });
     }
@@ -240,6 +301,11 @@
         initQuantityControls(root);
         initCheckoutGuard(root);
         updateHeaderBadge();
+        
+        // Add staggered animation delay
+        root.querySelectorAll('[data-yq-cart-item]').forEach(function (item, index) {
+            item.style.animationDelay = (index * 0.1) + 's';
+        });
     }
 
     function init() {

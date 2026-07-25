@@ -48,9 +48,12 @@ public class OrderService
                 throw new InvalidOperationException($"المنتج '{product?.Name ?? "غير معروف"}' غير متوفر بالكمية المطلوبة");
         }
 
+        int currentOrderId = NextOrderId();
+        int currentOrderItemId = NextOrderItemId();
+
         var order = new Order
         {
-            Id = NextOrderId(),
+            Id = currentOrderId,
             Userid = userId,
             Orderdate = DateTime.UtcNow,
             Status = "Pending",
@@ -58,7 +61,6 @@ public class OrderService
             Trackingnumber = $"YAG-{Guid.NewGuid().ToString()[..8].ToUpper()}"
         };
         _context.Orders.Add(order);
-        _context.SaveChanges(); // حفظ الطلب أولاً للحصول على معرفه
 
         _context.Deliveryorders.Add(new Deliveryorder
         {
@@ -69,33 +71,26 @@ public class OrderService
             City = checkout.City,
             District = checkout.District
         });
-        _context.SaveChanges();
 
-        // إنشاء عناصر الطلب وخصم المخزون
+        // إنشاء عناصر الطلب (بدون Product حتى لا يحاول EF إعادة حفظه)
         foreach (var item in cart.Cartitems)
         {
             _context.Orderitems.Add(new Orderitem
             {
-                Id = NextOrderItemId(),
+                Id = currentOrderItemId++,
                 Orderid = order.Id,
                 Productid = item.Productid,
                 Quantity = item.Quantity,
-                Unitprice = item.Product?.Price ?? 0,
-                Product = item.Product
+                Unitprice = item.Product?.Price ?? 0
+                // لا نضع Product هنا حتى لا يتعارض EF Core مع بيانات المنتجات الموجودة
             });
-            _context.SaveChanges();
-            // خصم المخزون
-            //var product = _context.Products.FirstOrDefault(p => p.Id == item.Productid);
-            //if (product != null) product.Stockquantity -= item.Quantity;
         }
 
-        // تفريغ السلة
-        await _cartService.ClearCartAsync(userId);
-
+        // حفظ الطلب وعناصره وبيانات التوصيل دفعة واحدة
         await _context.SaveChangesAsync();
 
-        // تحميل عناصر الطلب قبل الإرجاع
-        order.Orderitems = await _context.Orderitems.Where(oi => oi.Orderid == order.Id).ToListAsync();
+        // تفريغ السلة بعد حفظ الطلب بنجاح
+        await _cartService.ClearCartAsync(userId);
 
         return order;
     }
