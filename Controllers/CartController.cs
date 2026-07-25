@@ -57,6 +57,12 @@ public class CartController : Controller
             TempData["Message"] = _guestCartService.Message;
         }
 
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            var cart = await GetCurrentCartAsync();
+            return View("Index", cart);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -73,6 +79,12 @@ public class CartController : Controller
         {
             await _guestCartService.RemoveFromCartAsync(productId);
             TempData["Message"] = _guestCartService.Message;
+        }
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            var cart = await GetCurrentCartAsync();
+            return View("Index", cart);
         }
 
         return RedirectToAction(nameof(Index));

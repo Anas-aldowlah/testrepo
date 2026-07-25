@@ -177,7 +177,12 @@
                 <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
             </div>
 
-            <div class="yq-confirm-summary__actions">
+                @if (TempData["WhatsAppUrl"] != null)
+                {
+                    <button type="button" id="yqOpenWaModalBtn" class="btn-yaqut-gold yq-confirm-summary__btn" style="background: #25D366; border-color: #25D366; color: white;">
+                        <i class="bi bi-whatsapp"></i> إرسال الطلب عبر الواتساب
+                    </button>
+                }
                 <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-gold yq-confirm-summary__btn">
                     <i class="bi bi-receipt"></i> عرض طلباتي
                 </a>
@@ -193,6 +198,56 @@
         </aside>
     </div>
 </div>
+
+@if (TempData["WhatsAppUrl"] != null)
+{
+    var waUrl = TempData["WhatsAppUrl"]?.ToString();
+    <!-- WHATSAPP OPTIONAL MODAL -->
+    <div class="yaqut-modal yq-wa-modal" id="waOptionalModal" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity 0.3s ease;">
+        <div class="yaqut-modal-content" style="background:var(--yq-bg, #111); border:1px solid rgba(201,162,75,0.3); border-radius:24px; padding:2rem; width:90%; max-width:400px; text-align:center; transform:translateY(20px); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <div style="width:70px; height:70px; background:rgba(37,211,102,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.2rem; color:#25D366; font-size:2rem;">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <h3 style="font-family:var(--yq-font-display); font-size:1.4rem; font-weight:700; margin-bottom:0.75rem; color:var(--yq-gold);">تأكيد سريع للطلب!</h3>
+            <p style="font-size:0.9rem; color:var(--yq-text-muted, #aaa); line-height:1.6; margin-bottom:1.5rem;">
+                تم تسجيل طلبك بنجاح في النظام.<br />
+                لتسريع عملية التجهيز والتوصيل، نوصي بإرسال نسخة من الطلب لإدارة المتجر عبر الواتساب.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <a href="@waUrl" target="_blank" onclick="closeWaModal()" style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background:#25D366; color:#fff; text-decoration:none; padding:0.85rem; border-radius:12px; font-weight:700; font-size:0.95rem;">
+                    <i class="bi bi-send-fill"></i> إرسال عبر الواتساب الآن
+                </a>
+                <button type="button" onclick="closeWaModal()" style="background:transparent; border:1px solid rgba(255,255,255,0.1); color:var(--yq-text, #fff); padding:0.85rem; border-radius:12px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+                    تخطي والاكتفاء بالطلب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openWaModal() {
+            const modal = document.getElementById('waOptionalModal');
+            if(modal) {
+                modal.style.opacity = '1';
+                modal.style.pointerEvents = 'auto';
+                modal.querySelector('.yaqut-modal-content').style.transform = 'translateY(0)';
+            }
+        }
+        function closeWaModal() {
+            const modal = document.getElementById('waOptionalModal');
+            if(modal) {
+                modal.style.opacity = '0';
+                modal.style.pointerEvents = 'none';
+                modal.querySelector('.yaqut-modal-content').style.transform = 'translateY(20px)';
+            }
+        }
+        // Show automatically after 1 second
+        setTimeout(openWaModal, 1000);
+
+        // Bind the manual button
+        document.getElementById('yqOpenWaModalBtn').addEventListener('click', openWaModal);
+    </script>
+}
 
 @section Scripts {
     <script src="~/js/orders/confirmation.js" asp-append-version="true"></script>

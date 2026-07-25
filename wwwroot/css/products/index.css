@@ -1,4 +1,4 @@
-﻿/* ═══ Products / Index — Shop Page ═══ */
+/* ═══ Products / Index — Shop Page ═══ */
 
 .yq-shop {
     display: flex;
@@ -273,8 +273,21 @@
 /* ── Product Grid ── */
 .yq-shop-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+    .yq-shop-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .yq-shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
 }
 
 .yq-page-hidden {
@@ -523,6 +536,11 @@
 
 /* ── Responsive ── */
 @media (max-width: 576px) {
+    .yq-shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
     .yq-shop-pills {
         flex-wrap: nowrap;
         margin-inline: -1rem;

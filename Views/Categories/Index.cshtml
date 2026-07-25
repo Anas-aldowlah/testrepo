@@ -1,4 +1,4 @@
-﻿@model IEnumerable<YAGOT_2._0.Models.Category>
+@model IEnumerable<YAGOT_2._0.Models.Category>
 @{
     ViewData["Title"] = "العائلات العطرية";
     var categories = Model.ToList();
@@ -11,11 +11,14 @@
 <div class="yq-categories-page">
 
     <header class="yq-categories-header yq-reveal">
-        <span class="yq-categories-header__eyebrow"><i class="bi bi-flower1"></i> تصفح حسب الفئة</span>
-        <h1 class="yq-categories-header__title">العائلات العطرية</h1>
-        <p class="yq-categories-header__sub">
-            اكتشف مجموعاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
-        </p>
+        <div class="yq-categories-header__glow"></div>
+        <div class="yq-categories-header__inner">
+            <span class="yq-categories-header__eyebrow"><i class="bi bi-flower1"></i> تصفح حسب الفئة</span>
+            <h1 class="yq-categories-header__title">العائلات العطرية</h1>
+            <p class="yq-categories-header__sub">
+                اكتشف مجموعاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
+            </p>
+        </div>
     </header>
 
     @if (categories.Any())
@@ -25,8 +28,9 @@
             {
                 var productCount = cat.Products?.Count(p => p.Stockquantity > 0) ?? 0;
                 <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id"
-                   class="yq-cat-tile yq-reveal">
-                    <div class="yq-cat-tile__media">
+                   class="yq-cat-luxury-tile yq-reveal">
+                    
+                    <div class="yq-cat-luxury-tile__bg">
                         @if (!string.IsNullOrEmpty(cat.Imageurl))
                         {
                             <img src="@Url.Content("~/" + cat.Imageurl)" alt="@cat.Name"
@@ -34,22 +38,27 @@
                         }
                         else
                         {
-                            <div class="yq-cat-tile__placeholder"><i class="bi bi-flower2"></i></div>
+                            <div class="yq-cat-luxury-tile__placeholder"><i class="bi bi-flower2"></i></div>
                         }
-                        <span class="yq-cat-tile__count">
-                            <i class="bi bi-box-seam"></i> @productCount @(productCount == 1 ? "منتج" : "منتجات")
-                        </span>
+                        <div class="yq-cat-luxury-tile__overlay-gradient"></div>
                     </div>
 
-                    <div class="yq-cat-tile__body">
-                        <h2 class="yq-cat-tile__name">@cat.Name</h2>
-                        @if (!string.IsNullOrEmpty(cat.Description))
-                        {
-                            <p class="yq-cat-tile__desc">@cat.Description</p>
-                        }
-                        <span class="yq-cat-tile__link">
-                            استكشف المنتجات <i class="bi bi-arrow-left"></i>
-                        </span>
+                    <div class="yq-cat-luxury-tile__content">
+                        <div class="yq-cat-luxury-tile__glass">
+                            <h2 class="yq-cat-luxury-tile__name">@cat.Name</h2>
+                            @if (!string.IsNullOrEmpty(cat.Description))
+                            {
+                                <p class="yq-cat-luxury-tile__desc">@cat.Description</p>
+                            }
+                            <div class="yq-cat-luxury-tile__footer">
+                                <span class="yq-cat-luxury-tile__count">
+                                    <i class="bi bi-box-seam"></i> @productCount @(productCount == 1 ? "منتج" : "منتجات")
+                                </span>
+                                <span class="yq-cat-luxury-tile__action">
+                                    تصفح العطور <i class="bi bi-arrow-left"></i>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </a>
             }

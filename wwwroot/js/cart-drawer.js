@@ -290,10 +290,10 @@
         var card = form.closest('[data-yq-product-card]');
         var productId = form.querySelector('input[name="productId"]');
         var quantityInput = form.querySelector('input[name="quantity"]');
-        var image = card ? card.querySelector('.yaqut-card-img, img') : document.querySelector('.yq-pdp-gallery__img');
-        var nameLink = card ? card.querySelector('.yaqut-product-card__name-link') : null;
-        var price = card ? card.querySelector('.yaqut-product-card__price') : document.querySelector('.yq-pdp-price');
-        var category = card ? card.querySelector('.yaqut-product-card__family') : document.querySelector('.yq-pdp-category');
+        var image = card ? card.querySelector('.yq-pcard__img, .yaqut-card-img, img') : document.querySelector('.yq-pdp-gallery__img');
+        var nameLink = card ? card.querySelector('.yq-pcard__name-link, .yaqut-product-card__name-link') : null;
+        var price = card ? card.querySelector('.yq-pcard__price, .yaqut-product-card__price') : document.querySelector('.yq-pdp-price');
+        var category = card ? card.querySelector('.yq-pcard__family, .yaqut-product-card__family') : document.querySelector('.yq-pdp-category');
         var href = nameLink ? nameLink.href : window.location.href;
         var name = form.getAttribute('data-product-name') || (card ? card.getAttribute('data-product-name') : '') || (nameLink ? nameLink.textContent.trim() : document.title);
         var quantity = quantityInput ? parseInt(normalizeDigits(quantityInput.value), 10) : 1;

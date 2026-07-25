@@ -13,6 +13,7 @@
     var customerName = User.Identity?.Name;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
+    var customerEmail = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     string CheckoutValue(string name, string? fallback = null)
     {
         if (checkoutFormValues != null && checkoutFormValues.TryGetValue(name, out var value))
@@ -64,12 +65,23 @@
     <form asp-controller="Orders"
           asp-action="Checkout"
           method="post"
+          enctype="multipart/form-data"
           id="yqCheckoutForm"
           data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
           data-yq-auth-modal="yqCheckoutAuthModal"
           data-yq-validate
           novalidate>
         @Html.AntiForgeryToken()
+
+        <style>
+            .yq-readonly {
+                background-color: var(--yq-bg-input);
+                opacity: 0.7;
+                cursor: not-allowed;
+                pointer-events: none;
+                color: var(--yq-text-soft);
+            }
+        </style>
 
         @if (hasModelErrors)
         {
@@ -93,17 +105,17 @@
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
                         <span>الاسم الكامل</span>
-                        <input asp-for="CustomerName" form="yqCheckoutForm" type="text" autocomplete="name" />
+                        <input asp-for="CustomerName" form="yqCheckoutForm" type="text" value="@customerName" readonly="readonly" class="yq-readonly" />
                         <span asp-validation-for="CustomerName" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم الجوال</span>
-                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" autocomplete="tel" inputmode="tel" />
+                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone" readonly="readonly" class="yq-readonly" />
                         <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
-                        <span>البريد الإلكتروني <small>اختياري</small></span>
-                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" autocomplete="email" />
+                        <span>البريد الإلكتروني</span>
+                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" value="@Model.CustomerEmail" readonly="readonly" class="yq-readonly" />
                         <span asp-validation-for="CustomerEmail" class="yq-checkout-field__error"></span>
                     </label>
                 </div>
@@ -121,21 +133,47 @@
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
                         <span>المحافظة</span>
-                        <input asp-for="Governorate" form="yqCheckoutForm" type="text" autocomplete="address-level1" />
+                        <input asp-for="Governorate" id="govInput" form="yqCheckoutForm" type="text" autocomplete="address-level1" list="yemen-govs" oninput="this.value = this.value.replace(/[0-9]/g, ''); updateCities();" title="الرجاء إدخال أحرف فقط" />
                         <span asp-validation-for="Governorate" class="yq-checkout-field__error"></span>
+                        <datalist id="yemen-govs">
+                            <option value="حضرموت"></option>
+                            <option value="عدن"></option>
+                            <option value="صنعاء"></option>
+                            <option value="تعز"></option>
+                            <option value="الحديدة"></option>
+                            <option value="المهرة"></option>
+                            <option value="شبوة"></option>
+                            <option value="أبين"></option>
+                            <option value="لحج"></option>
+                            <option value="مأرب"></option>
+                            <option value="إب"></option>
+                            <option value="الضالع"></option>
+                            <option value="البيضاء"></option>
+                            <option value="حجة"></option>
+                            <option value="عمران"></option>
+                            <option value="صعدة"></option>
+                            <option value="المحويت"></option>
+                            <option value="ذمار"></option>
+                            <option value="ريمة"></option>
+                            <option value="الجوف"></option>
+                            <option value="سقطرى"></option>
+                        </datalist>
                     </label>
                     <label class="yq-checkout-field">
                         <span>المدينة</span>
-                        <input asp-for="City" form="yqCheckoutForm" type="text" autocomplete="address-level2" />
+                        <input asp-for="City" id="cityInput" form="yqCheckoutForm" type="text" autocomplete="address-level2" list="yemen-cities" oninput="this.value = this.value.replace(/[0-9]/g, '')" title="الرجاء إدخال أحرف فقط" />
                         <span asp-validation-for="City" class="yq-checkout-field__error"></span>
+                        <datalist id="yemen-cities"></datalist>
                     </label>
                     <label class="yq-checkout-field">
                         <span>اسم المستلم</span>
-                        <input form="yqCheckoutForm" type="text" name="district" value="@CheckoutValue("district")" autocomplete="address-level3" />
+                        <input asp-for="District" form="yqCheckoutForm" type="text" oninput="this.value = this.value.replace(/[0-9]/g, '')" title="الرجاء إدخال أحرف فقط"  />
+                        <span asp-validation-for="District" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم جوال المستلم</span>
-                        <input form="yqCheckoutForm" type="text" name="street" value="@CheckoutValue("street")" autocomplete="street-address" />
+                        <input asp-for="Street" form="yqCheckoutForm" type="tel" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '')" title="يجب إدخال 9 أرقام بالضبط" />
+                        <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
                         <span>ملاحظات إضافية</span>
@@ -200,6 +238,14 @@
                     </label>
                 </div>
                 <span asp-validation-for="PaymentMethod" class="yq-checkout-field__error yq-checkout-field__error--payment"></span>
+
+                <div id="receiptUploadSection" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--yq-border);">
+                    <label class="yq-checkout-field">
+                        <span>صورة إيصال الدفع (اختياري)</span>
+                        <input asp-for="ReceiptImage" form="yqCheckoutForm" type="file" accept="image/*" class="form-control" style="background-color: var(--yq-bg-input); color: var(--yq-text-main); border: 1px solid var(--yq-border); padding: 0.5rem; border-radius: var(--yq-radius-sm);" />
+                        <small style="color: var(--yq-text-soft);">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
+                    </label>
+                </div>
             </section>
         </div>
 
@@ -233,28 +279,9 @@
             <div class="yq-checkout-summary__divider"></div>
 
             <div class="yq-checkout-summary__row">
-                <span>المجموع الفرعي</span>
+                <span>قيمة المنتجات</span>
                 <span>@subtotal.ToString("N0") ر.س</span>
             </div>
-            <div class="yq-checkout-summary__row">
-                <span>الشحن</span>
-                @if (qualifiesForFreeShipping)
-                {
-                    <span class="yq-checkout-summary__free">مجاني</span>
-                }
-                else
-                {
-                    <span class="yq-checkout-summary__tbd">يُحدد عند الدفع</span>
-                }
-            </div>
-
-            @if (!qualifiesForFreeShipping)
-            {
-                <p class="yq-checkout-summary__hint">
-                    <i class="bi bi-truck"></i>
-                    أضف <strong>@remainingForFreeShipping.ToString("N0") ر.س</strong> للحصول على شحن مجاني
-                </p>
-            }
 
             <div class="yq-checkout-summary__divider"></div>
 
@@ -277,5 +304,48 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        const yemenData = {
+            "حضرموت": ["الشحر", "المكلا", "سيئون", "تريم", "غيل باوزير", "الديس الشرقية", "القطن", "دوعن", "الشعب", "حريضة"],
+            "عدن": ["كريتر", "المعلا", "التواهي", "الشيخ عثمان", "المنصورة", "خور مكسر", "دار سعد", "البريقة"],
+            "صنعاء": ["صنعاء القديمة", "السبعين", "الوحدة", "الصافية", "شعوب", "التحرير", "الثورة", "معين", "بني الحارث"],
+            "تعز": ["المظفر", "القاهرة", "صالة", "الشمايتين", "المخا", "التربة"],
+            "الحديدة": ["الميناء", "الحوك", "الحالي", "باجل", "بيت الفقيه", "الخوخة", "الدريهمي"],
+            "شبوة": ["عتق", "بيحان", "عسيلان", "رضوم", "ميفعة", "حبان"],
+            "المهرة": ["الغيضة", "حوف", "سيحوت", "قشن", "شحن"],
+            "أبين": ["زنجبار", "جعار", "لودر", "مودية", "أحور", "المحفد"],
+            "لحج": ["الحوطة", "تبن", "يافع", "المقاطرة", "الوهط", "طور الباحة"],
+            "مأرب": ["مأرب", "حريب", "الجوبة", "العبدية"],
+            "إب": ["إب", "يريم", "جبلة", "القاعدة", "العدين"],
+            "الضالع": ["الضالع", "قعطبة", "دمت", "الحصين", "الشعيب"],
+            "البيضاء": ["البيضاء", "رداع", "مكيراس", "الزاهر"],
+            "حجة": ["حجة", "عبس", "حرض", "ميدي"],
+            "عمران": ["عمران", "خمر", "حوث", "ريدة"],
+            "صعدة": ["صعدة", "رازح", "كتاف", "سحار"],
+            "المحويت": ["المحويت", "الرجم", "شبام كوكبان"],
+            "ذمار": ["ذمار", "معبر", "مدينة الشرق"],
+            "ريمة": ["الجبين", "الجعفرية", "كسمة"],
+            "الجوف": ["الحزم", "الغيل", "خب والشعف"],
+            "سقطرى": ["حديبو", "قلنسية"]
+        };
+
+        function updateCities() {
+            const govInput = document.getElementById("govInput")?.value;
+            const cityList = document.getElementById("yemen-cities");
+            if(!cityList) return;
+            cityList.innerHTML = "";
+            if (yemenData[govInput]) {
+                yemenData[govInput].forEach(city => {
+                    const option = document.createElement("option");
+                    option.value = city;
+                    cityList.appendChild(option);
+                });
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            updateCities();
+        });
+    </script>
     <script src="~/js/orders/checkout.js" asp-append-version="true"></script>
 }

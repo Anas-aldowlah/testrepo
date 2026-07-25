@@ -4,6 +4,7 @@ namespace YAGOT_2._0.Models;
 
 public class CheckoutVM
 {
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public Cart Cart { get; set; } = new();
 
     private string _customerName = string.Empty;
@@ -44,6 +45,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "المحافظة مطلوبة.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "المحافظة مطلوبة.")]
+    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "المحافظة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
     public string Governorate
     {
         get => _governorate;
@@ -54,6 +56,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "المدينة مطلوبة.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "المدينة مطلوبة.")]
+    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "المدينة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
     public string City
     {
         get => _city;
@@ -62,8 +65,9 @@ public class CheckoutVM
 
     private string _district = string.Empty;
 
-    [Required(ErrorMessage = "الحي مطلوب.")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "الحي مطلوب.")]
+    [Required(ErrorMessage = "اسم المستلم مطلوب.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "اسم المستلم مطلوب.")]
+    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "اسم المستلم يجب أن يحتوي على أحرف فقط ولا يقبل أرقاماً.")]
     public string District
     {
         get => _district;
@@ -72,8 +76,9 @@ public class CheckoutVM
 
     private string _street = string.Empty;
 
-    [Required(ErrorMessage = "الشارع أو العنوان مطلوب.")]
-    [StringLength(150, MinimumLength = 2, ErrorMessage = "الشارع أو العنوان مطلوب.")]
+    [Required(ErrorMessage = "رقم جوال المستلم مطلوب.")]
+    [StringLength(9, MinimumLength = 9, ErrorMessage = "رقم الجوال يجب أن يتكون من 9 أرقام بالضبط.")]
+    [RegularExpression(@"^[0-9]{9}$", ErrorMessage = "رقم الجوال يجب أن يحتوي على 9 أرقام فقط.")]
     public string Street
     {
         get => _street;
@@ -102,4 +107,6 @@ public class CheckoutVM
         get => _paymentMethod;
         set => _paymentMethod = value?.Trim().ToLowerInvariant() ?? string.Empty;
     }
+
+    public Microsoft.AspNetCore.Http.IFormFile? ReceiptImage { get; set; }
 }
