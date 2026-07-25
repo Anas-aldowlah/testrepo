@@ -37,6 +37,7 @@ builder.Services.AddControllersWithViews()
     });
 builder.Services.AddHttpClient<DealingAPI>();
 builder.Services.AddScoped<IVisitService, VisitService>();
+builder.Services.AddSingleton<StoreSettingsService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

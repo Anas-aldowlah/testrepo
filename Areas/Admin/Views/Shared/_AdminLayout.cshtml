@@ -93,11 +93,12 @@
 
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">النظام</span>
-                    <span class="yq-admin-nav__link is-disabled" aria-disabled="true" title="قريباً">
+                    <a asp-area="Admin" asp-controller="Settings" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("Settings") ? "is-active" : "")"
+                       aria-current="@(IsActive("Settings") ? "page" : null)" title="الإعدادات">
                         <i class="bi bi-gear"></i>
                         <span>الإعدادات</span>
-                        <small class="yq-admin-nav__soon">قريباً</small>
-                    </span>
+                    </a>
                 </div>
 
             </nav>
