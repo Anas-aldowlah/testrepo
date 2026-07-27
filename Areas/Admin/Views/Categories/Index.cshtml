@@ -1,10 +1,14 @@
-@model YAGOT_2._0.Services.ViewModels
+@model YAGOT_2._0.Models.Admin.AdminCategoriesIndexViewModel
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "إدارة التصنيفات";
 
-    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
-    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
-    var categoriesWithImages = categories.Count(c => !string.IsNullOrWhiteSpace(c.Imageurl));
+    var categories = Model.Categories.Items;
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["RouteValues"] = new Dictionary<string, object?>(),
+        ["Action"] = "Index"
+    };
 }
 
 @section Styles {
@@ -42,21 +46,21 @@
             <span class="yq-categories-stat__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
             <div>
                 <p>إجمالي التصنيفات</p>
-                <strong>@categories.Count</strong>
+                <strong>@Model.TotalCategories</strong>
             </div>
         </article>
         <article class="yq-categories-stat">
             <span class="yq-categories-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
             <div>
                 <p>المنتجات المرتبطة</p>
-                <strong>@products.Count</strong>
+                <strong>@Model.TotalProducts</strong>
             </div>
         </article>
         <article class="yq-categories-stat">
             <span class="yq-categories-stat__icon"><i class="bi bi-image" aria-hidden="true"></i></span>
             <div>
                 <p>تصنيفات بصور</p>
-                <strong>@categoriesWithImages</strong>
+                <strong>@Model.CategoriesWithImages</strong>
             </div>
         </article>
     </section>
@@ -86,9 +90,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var cat in categories)
+                        @foreach (var row in categories)
                         {
-                            var productCount = products.Count(p => p.Categoryid == cat.Id);
+                            var cat = row.Category;
+                            var productCount = row.ProductCount;
                             var imageUrl = string.IsNullOrWhiteSpace(cat.Imageurl)
                                 ? null
                                 : Url.Content(cat.Imageurl.StartsWith("/") ? "~" + cat.Imageurl : "~/" + cat.Imageurl);
@@ -150,6 +155,7 @@
                     </tbody>
                 </table>
             </div>
+            @await Html.PartialAsync("_AdminPager", Model.Categories, pagerViewData)
         }
         else
         {

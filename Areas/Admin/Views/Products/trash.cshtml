@@ -1,17 +1,16 @@
-@model YAGOT_2._0.Services.ViewModels
+@model YAGOT_2._0.Models.Admin.AdminProductTrashViewModel
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "سلة محذوفات المنتجات";
 
-    const string deletedImage = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
     const string fallbackImage = "/images/placeholder-product.svg";
 
-    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
-    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
-    var archivedProducts = products
-        .Where(p => p.Stockquantity == 0 && string.Equals(p.Imageurl, deletedImage, StringComparison.OrdinalIgnoreCase))
-        .OrderByDescending(p => p.Createdat)
-        .ThenBy(p => p.Name)
-        .ToList();
+    var archivedProducts = Model.Products.Items;
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["RouteValues"] = new Dictionary<string, object?>(),
+        ["Action"] = "trash"
+    };
 }
 
 @section Styles {
@@ -54,7 +53,7 @@
             </div>
             <div class="yq-products-filter-note" aria-label="عدد المنتجات المؤرشفة">
                 <i class="bi bi-archive" aria-hidden="true"></i>
-                <span>@archivedProducts.Count منتج مؤرشف</span>
+                <span>@Model.TotalArchivedProducts منتج مؤرشف</span>
             </div>
         </div>
 
@@ -75,7 +74,6 @@
                     <tbody>
                         @foreach (var p in archivedProducts)
                         {
-                            var cat = categories.FirstOrDefault(c => c.Id == p.Categoryid);
                             var imageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? fallbackImage : p.Imageurl;
 
                             <tr>
@@ -89,7 +87,7 @@
                                     </div>
                                 </td>
                                 <td data-label="التصنيف">
-                                    <span class="yq-products-category">@(cat?.Name ?? "-")</span>
+                                    <span class="yq-products-category">@(p.Category?.Name ?? "-")</span>
                                 </td>
                                 <td data-label="السعر">
                                     <div class="yq-products-price">
@@ -116,6 +114,7 @@
                     </tbody>
                 </table>
             </div>
+            @await Html.PartialAsync("_AdminPager", Model.Products, pagerViewData)
         }
         else
         {

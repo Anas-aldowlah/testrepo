@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -25,7 +26,10 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
             var settings = _settingsService.GetSettings();
             
             // Prepare categories for dropdown
-            var categories = _context.Categories.ToList();
+            var categories = _context.Categories
+                .AsNoTracking()
+                .OrderBy(category => category.Name)
+                .ToList();
             ViewBag.Categories = new SelectList(categories, "Id", "Name", settings.FeaturedCategoryId);
             
             return View(settings);
@@ -43,7 +47,10 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
             }
 
             // On error, reload dropdown
-            var categories = _context.Categories.ToList();
+            var categories = _context.Categories
+                .AsNoTracking()
+                .OrderBy(category => category.Name)
+                .ToList();
             ViewBag.Categories = new SelectList(categories, "Id", "Name", settings.FeaturedCategoryId);
             return View(settings);
         }

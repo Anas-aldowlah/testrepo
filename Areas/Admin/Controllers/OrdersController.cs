@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -37,13 +38,15 @@ public class OrdersController : Controller
         _dbUser = dbUser;
     }
 
-    public async Task<IActionResult> Index(string[]? status, string? search)
+    public async Task<IActionResult> Index(string[]? status, string? search, int page = 1, int pageSize = 10)
     {
+        var selectedStatus = status?
+            .Where(s => !string.IsNullOrWhiteSpace(s) && AllowedStatuses.Contains(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? Array.Empty<string>();
+
         IQueryable<Order> query = _context.Orders
-            .AsNoTracking()
-            .Include(o => o.Orderitems)
-                .ThenInclude(oi => oi.Product)
-            .OrderByDescending(o => o.Orderdate);
+            .AsNoTracking();
 
         var searchUserIds = new HashSet<int>();
 
@@ -59,9 +62,9 @@ public class OrdersController : Controller
             searchUserIds = new HashSet<int>(matchedUserIds);
         }
 
-        if (status?.Any() == true)
+        if (selectedStatus.Any())
         {
-            query = query.Where(o => status.Contains(o.Status));
+            query = query.Where(o => selectedStatus.Contains(o.Status));
         }
 
         if (searchUserIds.Count > 0)
@@ -75,12 +78,26 @@ public class OrdersController : Controller
                 o.Trackingnumber.Contains(search));
         }
 
-        ViewBag.SelectedStatus = status ?? Array.Empty<string>();
-        ViewBag.Search = search;
+        var pageQuery = query
+            .Include(o => o.Orderitems)
+                .ThenInclude(oi => oi.Product)
+            .OrderByDescending(o => o.Orderdate);
 
-        var orders = await query.ToListAsync();
-        await PopulateUserDisplayDataAsync(orders);
-        return View(orders);
+        var pagedOrders = await PagedResult<Order>.CreateAsync(pageQuery, page, pageSize);
+        await PopulateUserDisplayDataAsync(pagedOrders.Items);
+
+        var model = new AdminOrdersIndexViewModel
+        {
+            Orders = pagedOrders,
+            SelectedStatus = selectedStatus,
+            Search = search ?? string.Empty,
+            PendingCount = await query.CountAsync(o => o.Status == "Pending"),
+            ActiveCount = await query.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
+            DeliveredCount = await query.CountAsync(o => o.Status == "Delivered"),
+            TotalRevenue = await query.SumAsync(o => (decimal?)o.Totalamount) ?? 0m
+        };
+
+        return View(model);
     }
 
     public async Task<IActionResult> Details(int id)
@@ -125,7 +142,14 @@ public class OrdersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateStatus(int id, string status, bool returnToDetails = false)
+    public async Task<IActionResult> UpdateStatus(
+        int id,
+        string status,
+        bool returnToDetails = false,
+        string[]? filterStatus = null,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
     {
         if (string.IsNullOrWhiteSpace(status))
             return BadRequest();
@@ -145,7 +169,7 @@ public class OrdersController : Controller
 
         // ?? ??? ??? ??? ??? ???? ?????? ?????
         if (order.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
-            return RedirectAfterStatusUpdate(id, returnToDetails);
+            return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
 
         bool wasActive = ActiveStatuses.Contains(order.Status);
         bool willBeActive = ActiveStatuses.Contains(status);
@@ -158,7 +182,7 @@ public class OrdersController : Controller
                 if (!DeductStock(order))
                 {
                     TempData["Error"] = "One or more products do not have sufficient stock.";
-                    return RedirectAfterStatusUpdate(id, returnToDetails);
+                    return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
                 }
             }
 
@@ -180,15 +204,27 @@ public class OrdersController : Controller
             TempData["Error"] = "An unexpected error occurred while updating the order.";
         }
 
-        return RedirectAfterStatusUpdate(id, returnToDetails);
+        return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
     }
 
-    private IActionResult RedirectAfterStatusUpdate(int orderId, bool returnToDetails)
+    private IActionResult RedirectAfterStatusUpdate(
+        int orderId,
+        bool returnToDetails,
+        string[]? filterStatus = null,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
     {
         if (returnToDetails)
             return RedirectToAction(nameof(Details), new { id = orderId });
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new
+        {
+            status = filterStatus,
+            search,
+            page,
+            pageSize
+        });
     }
 
     /// <summary>

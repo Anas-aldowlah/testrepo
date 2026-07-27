@@ -1,20 +1,25 @@
-@model IEnumerable<YAGOT_2._0.Models.Order>
+@model YAGOT_2._0.Models.Admin.AdminOrdersIndexViewModel
 @using YAGOT_2._0.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @using System.Security.Claims
 @inject DealingAPI DealingApiService
 @{
     ViewData["Title"] = "إدارة الطلبات";
 
-    var orders = Model?.ToList() ?? new List<YAGOT_2._0.Models.Order>();
-    var selectedStatus = ViewBag.SelectedStatus as string[] ?? Array.Empty<string>();
-    var search = ViewBag.Search as string;
-    var hasActiveFilters = selectedStatus.Any() || !string.IsNullOrWhiteSpace(search);
-    var pendingCount = orders.Count(o => string.Equals(o.Status, "Pending", StringComparison.OrdinalIgnoreCase));
-    var activeCount = orders.Count(o =>
-        string.Equals(o.Status, "Processed", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(o.Status, "Shipped", StringComparison.OrdinalIgnoreCase));
-    var deliveredCount = orders.Count(o => string.Equals(o.Status, "Delivered", StringComparison.OrdinalIgnoreCase));
-    var totalRevenue = orders.Sum(o => o.Totalamount);
+    var orders = Model.Orders.Items;
+    var selectedStatus = Model.SelectedStatus;
+    var search = Model.Search;
+    var hasActiveFilters = Model.HasActiveFilters;
+    var pagerRouteValues = new Dictionary<string, object?>
+    {
+        ["search"] = search,
+        ["status"] = selectedStatus
+    };
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["RouteValues"] = pagerRouteValues,
+        ["Action"] = "Index"
+    };
 }
 
 @section Styles {
@@ -35,8 +40,8 @@
         </div>
 
         <div class="yq-orders-hero__meta" aria-label="ملخص الطلبات المعروضة">
-            <span>@orders.Count طلب</span>
-            <strong>@totalRevenue.ToString("N0") ر.س</strong>
+            <span>@Model.Orders.TotalItems طلب</span>
+            <strong>@Model.TotalRevenue.ToString("N0") ر.س</strong>
         </div>
     </header>
 
@@ -55,28 +60,28 @@
             <span class="yq-orders-stat__icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
             <div>
                 <p>الطلبات المعروضة</p>
-                <strong>@orders.Count</strong>
+                <strong>@Model.Orders.TotalItems</strong>
             </div>
         </article>
         <article class="yq-orders-stat">
             <span class="yq-orders-stat__icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
             <div>
                 <p>قيد الانتظار</p>
-                <strong>@pendingCount</strong>
+                <strong>@Model.PendingCount</strong>
             </div>
         </article>
         <article class="yq-orders-stat">
             <span class="yq-orders-stat__icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
             <div>
                 <p>قيد التنفيذ</p>
-                <strong>@activeCount</strong>
+                <strong>@Model.ActiveCount</strong>
             </div>
         </article>
         <article class="yq-orders-stat">
             <span class="yq-orders-stat__icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
             <div>
                 <p>تم التوصيل</p>
-                <strong>@deliveredCount</strong>
+                <strong>@Model.DeliveredCount</strong>
             </div>
         </article>
     </section>
@@ -97,6 +102,7 @@
         </div>
 
         <form method="get" class="yq-orders-filter-form">
+            <input type="hidden" name="pageSize" value="@Model.Orders.PageSize" />
             <div class="yq-orders-search">
                 <label for="ordersSearch">البحث</label>
                 <div class="yq-orders-search__control">
@@ -267,6 +273,13 @@
                                         </a>
                                         <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
                                             <input type="hidden" name="Id" value="@order.Id" />
+                                            <input type="hidden" name="search" value="@search" />
+                                            <input type="hidden" name="page" value="@Model.Orders.CurrentPage" />
+                                            <input type="hidden" name="pageSize" value="@Model.Orders.PageSize" />
+                                            @foreach (var filterStatus in selectedStatus)
+                                            {
+                                                <input type="hidden" name="filterStatus" value="@filterStatus" />
+                                            }
                                             <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
                                             <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
                                                 <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
@@ -287,6 +300,7 @@
                     </tbody>
                 </table>
             </div>
+            @await Html.PartialAsync("_AdminPager", Model.Orders, pagerViewData)
         }
         else
         {

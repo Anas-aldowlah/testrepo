@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
 using static YAGOT_2._0.Services.DealingAPI;
 namespace Yagot.Areas.Admin.Controllers;
@@ -21,15 +22,20 @@ public class UsersController : Controller
         _dbUser = User;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
-        var users = await _dbUser.Users
+        var usersPage = await PagedResult<YAGOT_2._0.Models.UsersDatabase.User>.CreateAsync(
+            _dbUser.Users
             .AsNoTracking()
-            .OrderBy(user => user.Id)
-            .ToListAsync();
+            .OrderBy(user => user.Id),
+            page,
+            pageSize);
+
+        var userIds = usersPage.Items.Select(user => user.Id).ToArray();
 
         var userSites = await _context.UserSites
             .AsNoTracking()
+            .Where(us => us.UserId.HasValue && userIds.Contains(us.UserId.Value))
             .ToListAsync();
 
         var roleCache = new Dictionary<int, string?>();
@@ -41,13 +47,19 @@ public class UsersController : Controller
             }
         }
 
-        foreach (var user in users)
+        foreach (var user in usersPage.Items)
         {
             user.Phone = DecryptPhoneOrUnavailable(user.Phone);
             user.Role = roleCache.GetValueOrDefault(user.Id);
         }
 
-        return View(users);
+        var model = new AdminUsersIndexViewModel
+        {
+            Users = usersPage,
+            TotalUsers = await _dbUser.Users.CountAsync()
+        };
+
+        return View(model);
     }
 
     public async Task<IActionResult> Details(int id)

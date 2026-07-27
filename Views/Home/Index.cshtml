@@ -98,7 +98,7 @@
             <span class="yq-brand-name">شانيل</span>
             <span class="yq-brand-name">ديور</span>
             <span class="yq-brand-name">توم فورد</span>
-            
+
             <!-- Duplicate for infinite scroll -->
             <span class="yq-brand-name yq-brand-name--highlight"><i class="bi bi-gem"></i> ياقوت</span>
             <span class="yq-brand-name">الماجد للعود</span>
@@ -285,14 +285,9 @@
                 <p>نضمن أصالة جميع منتجاتنا من أرقى دور العطور العالمية</p>
             </div>
             <div class="yq-home-feature yq-glass">
-                <i class="bi bi-truck"></i>
-                <h3>شحن سريع ومجاني</h3>
-                <p>توصيل مجاني للطلبات فوق 500 ر.س خلال 2-3 أيام عمل</p>
-            </div>
-            <div class="yq-home-feature yq-glass">
-                <i class="bi bi-shield-check"></i>
-                <h3>ضمان الجودة</h3>
-                <p>استبدال أو استرجاع خلال 14 يوماً مع ضمان الرضا الكامل</p>
+                <i class="bi bi-headset"></i>
+                <h3>دعم يليق بك</h3>
+                <p>فريق مخصص لمساعدتك في اختيار العطر الأنسب لشخصيتك</p>
             </div>
         </div>
     </section>
@@ -309,9 +304,9 @@
             setInterval(function () {
                 items[current].classList.remove('is-active');
                 if(bgItems[current]) bgItems[current].classList.remove('is-active');
-                
+
                 current = (current + 1) % items.length;
-                
+
                 items[current].classList.add('is-active');
                 if(bgItems[current]) bgItems[current].classList.add('is-active');
             }, 5000);

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Models.UsersDatabase;
 using YAGOT_2._0.Data;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
@@ -17,12 +19,23 @@ public class DashboardController : Controller
         _context = context;
         _dbUser = user;
     }
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        ViewBag.TotalProducts = _context.Products.Count();
-        ViewBag.TotalOrders = _context.Orders.Count();
-        ViewBag.TotalUsers = _dbUser.Users.Count();
-        ViewBag.TotalRevenue = _context.Orders.Sum(o => o.Totalamount);
-        return View(_context.Orders.ToList());
+        var model = new AdminDashboardViewModel
+        {
+            TotalProducts = await _context.Products.CountAsync(),
+            TotalOrders = await _context.Orders.CountAsync(),
+            TotalUsers = await _dbUser.Users.CountAsync(),
+            TotalRevenue = await _context.Orders.SumAsync(o => (decimal?)o.Totalamount) ?? 0m,
+            PendingOrders = await _context.Orders.CountAsync(o => o.Status == "Pending"),
+            ActiveOrders = await _context.Orders.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
+            RecentOrders = await _context.Orders
+                .AsNoTracking()
+                .OrderByDescending(o => o.Orderdate)
+                .Take(6)
+                .ToListAsync()
+        };
+
+        return View(model);
     }
 }
