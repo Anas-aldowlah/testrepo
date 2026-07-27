@@ -1,6 +1,7 @@
 @model CategoryVW
 @{
     ViewData["Title"] = "إضافة تصنيف جديد";
+    var hasValidationErrors = ViewData.ModelState.ErrorCount > 0;
 }
 
 @section Styles {
@@ -31,7 +32,10 @@
     </header>
 
     <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-category-form">
-        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
+        @if (hasValidationErrors)
+        {
+            <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
+        }
 
         <div class="yq-category-form__layout">
             <div class="yq-category-form__main">
@@ -86,7 +90,7 @@
                                 <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
                                 <span>اختيار صورة</span>
                             </label>
-                            <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" required aria-describedby="ImageFileHelp ImageFileValidation" />
+                            <input asp-for="ImageFile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" aria-describedby="ImageFileHelp ImageFileValidation" />
                             <span id="ImageFileHelp" class="yq-category-help">JPG, PNG, WebP — الحد الأقصى 5MB.</span>
                             <span asp-validation-for="ImageFile" id="ImageFileValidation" class="yq-category-validation"></span>
                         </div>

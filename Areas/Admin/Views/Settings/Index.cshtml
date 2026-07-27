@@ -4,228 +4,222 @@
     ViewData["Title"] = "إعدادات المتجر";
 }
 
-<div class="container-fluid mt-4 mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1"><i class="bi bi-gear-fill me-2 text-warning"></i> إعدادات المتجر</h2>
-            <p class="text-muted mb-0">تحكم بالبيانات العامة والتسويقية وواجهة المتجر بسهولة.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/settings.css" asp-append-version="true" />
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <span>الإعدادات</span>
+}
+
+<section class="yq-settings-admin" aria-labelledby="settingsPageTitle">
+    <header class="yq-settings-hero">
+        <div class="yq-settings-hero__content">
+            <span class="yq-settings-eyebrow">تخصيص المتجر</span>
+            <h2 id="settingsPageTitle">إعدادات المتجر</h2>
+            <p>اضبط هوية الواجهة ووسائل التواصل والدفع والشحن من مكان واحد، مع حفظ مباشر في ملف الإعدادات الحالي.</p>
         </div>
-    </div>
+
+        <div class="yq-settings-hero__meta" aria-label="معلومات الإعدادات">
+            <span>تكوين المتجر</span>
+            <strong>قابل للحفظ</strong>
+        </div>
+    </header>
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="yaqut-alert yaqut-alert--success" role="alert">@TempData["Success"]</div>
     }
 
-    <form asp-action="Index" method="post" class="needs-validation" novalidate>
-        <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <!-- TABS NAV -->
-                <ul class="nav nav-tabs border-bottom-0" id="settingsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold px-4 border-0" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">
-                            <i class="bi bi-globe me-2"></i> إعدادات عامة
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold px-4 border-0 text-muted" id="storefront-tab" data-bs-toggle="tab" data-bs-target="#storefront" type="button" role="tab" aria-controls="storefront" aria-selected="false">
-                            <i class="bi bi-shop me-2"></i> واجهة المتجر
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold px-4 border-0 text-muted" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false">
-                            <i class="bi bi-credit-card me-2"></i> الدفع والشحن
-                        </button>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="card-body p-4 bg-light rounded-bottom-4">
-                <div class="tab-content" id="settingsTabsContent">
-                    
-                    <!-- TAB: GENERAL -->
-                    <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
-                        <div class="row g-4 bg-white p-4 rounded-4 shadow-sm">
-                            <h5 class="fw-bold mb-3 border-bottom pb-2">بيانات التواصل والشبكات الاجتماعية</h5>
-                            
-                            <div class="col-md-6">
-                                <label asp-for="WhatsAppNumber" class="form-label fw-semibold">رقم الواتساب <small class="text-muted">(مع رمز الدولة)</small></label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-whatsapp text-success"></i></span>
-                                    <input asp-for="WhatsAppNumber" class="form-control border-start-0" placeholder="مثال: 966500000000" />
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ContactEmail" class="form-label fw-semibold">البريد الإلكتروني للتواصل</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
-                                    <input asp-for="ContactEmail" type="email" class="form-control border-start-0" placeholder="info@domain.com" />
-                                </div>
-                            </div>
+    @if (TempData["Error"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+    }
 
-                            <div class="col-md-4">
-                                <label asp-for="InstagramLink" class="form-label fw-semibold">رابط الإنستجرام</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-instagram" style="color: #E1306C;"></i></span>
-                                    <input asp-for="InstagramLink" class="form-control border-start-0" dir="ltr" placeholder="https://instagram.com/..." />
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="TwitterLink" class="form-label fw-semibold">رابط تويتر / X</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-twitter-x"></i></span>
-                                    <input asp-for="TwitterLink" class="form-control border-start-0" dir="ltr" placeholder="https://x.com/..." />
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="TikTokLink" class="form-label fw-semibold">رابط تيك توك</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-tiktok"></i></span>
-                                    <input asp-for="TikTokLink" class="form-control border-start-0" dir="ltr" placeholder="https://tiktok.com/@@..." />
-                                </div>
-                            </div>
+    <form asp-action="Index" method="post" class="yq-settings-form">
+        <div class="yq-settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
+            <button class="yq-settings-tab active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general-pane" type="button" role="tab" aria-controls="general-pane" aria-selected="true">
+                <i class="bi bi-globe2" aria-hidden="true"></i>
+                <span>عام</span>
+            </button>
+            <button class="yq-settings-tab" id="storefront-tab" data-bs-toggle="tab" data-bs-target="#storefront-pane" type="button" role="tab" aria-controls="storefront-pane" aria-selected="false">
+                <i class="bi bi-shop" aria-hidden="true"></i>
+                <span>الواجهة</span>
+            </button>
+            <button class="yq-settings-tab" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments-pane" type="button" role="tab" aria-controls="payments-pane" aria-selected="false">
+                <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                <span>الدفع والشحن</span>
+            </button>
+        </div>
+
+        <div class="tab-content yq-settings-panels">
+            <section class="tab-pane fade show active yq-settings-panel" id="general-pane" role="tabpanel" aria-labelledby="general-tab">
+                <div class="yq-settings-panel__head">
+                    <div>
+                        <span class="yq-settings-eyebrow">البيانات الأساسية</span>
+                        <h3>التواصل والحضور الاجتماعي</h3>
+                    </div>
+                    <p>تظهر هذه القيم في الواجهة العامة وقنوات التواصل.</p>
+                </div>
+
+                <div class="yq-settings-grid">
+                    <div class="yq-settings-field">
+                        <label asp-for="WhatsAppNumber" class="form-label">رقم الواتساب</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-whatsapp text-success" aria-hidden="true"></i></span>
+                            <input asp-for="WhatsAppNumber" class="form-control" placeholder="مثال: 966500000000" />
+                        </div>
+                    </div>
+                    <div class="yq-settings-field">
+                        <label asp-for="ContactEmail" class="form-label">البريد الإلكتروني</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope" aria-hidden="true"></i></span>
+                            <input asp-for="ContactEmail" type="email" class="form-control" placeholder="info@domain.com" />
                         </div>
                     </div>
 
-                    <!-- TAB: STOREFRONT -->
-                    <div class="tab-pane fade" id="storefront" role="tabpanel" aria-labelledby="storefront-tab">
-                        <div class="row g-4 bg-white p-4 rounded-4 shadow-sm">
-                            <h5 class="fw-bold mb-3 border-bottom pb-2">تخصيص الواجهة الرئيسية</h5>
-                            
-                            <div class="col-12">
-                                <label asp-for="BrandsMarquee" class="form-label fw-semibold">شريط الماركات العالمية (Brands)</label>
-                                <input asp-for="BrandsMarquee" class="form-control" placeholder="اكتب الماركات مفصولة بفاصلة..." />
-                                <div class="form-text">هذه الماركات ستظهر كشريط متحرك أسفل الهيرو في الصفحة الرئيسية. افصل بينها بفاصلة.</div>
-                            </div>
+                    <div class="yq-settings-field">
+                        <label asp-for="InstagramLink" class="form-label">رابط إنستجرام</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-instagram" aria-hidden="true"></i></span>
+                            <input asp-for="InstagramLink" class="form-control" dir="ltr" placeholder="https://instagram.com/..." />
+                        </div>
+                    </div>
+                    <div class="yq-settings-field">
+                        <label asp-for="TwitterLink" class="form-label">رابط X</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-twitter-x" aria-hidden="true"></i></span>
+                            <input asp-for="TwitterLink" class="form-control" dir="ltr" placeholder="https://x.com/..." />
+                        </div>
+                    </div>
+                    <div class="yq-settings-field yq-settings-field--full">
+                        <label asp-for="TikTokLink" class="form-label">رابط تيك توك</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-tiktok" aria-hidden="true"></i></span>
+                            <input asp-for="TikTokLink" class="form-control" dir="ltr" placeholder="https://tiktok.com/@@..." />
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                            <div class="col-md-6">
-                                <label asp-for="FeaturedCategoryId" class="form-label fw-semibold">العائلة العطرية المميزة (Featured Category)</label>
-                                <select asp-for="FeaturedCategoryId" class="form-select" asp-items="ViewBag.Categories">
-                                    <option value="">-- اختر التصنيف --</option>
-                                </select>
-                                <div class="form-text">سيتم إبراز هذا التصنيف في الصفحة الرئيسية (زر تصفح العائلات يعود إليه).</div>
-                            </div>
+            <section class="tab-pane fade yq-settings-panel" id="storefront-pane" role="tabpanel" aria-labelledby="storefront-tab">
+                <div class="yq-settings-panel__head">
+                    <div>
+                        <span class="yq-settings-eyebrow">الواجهة الرئيسية</span>
+                        <h3>هوية العرض</h3>
+                    </div>
+                    <p>الحقول التالية تضبط النصوص الموجهة للعميل والتمييز البصري.</p>
+                </div>
 
-                            <div class="col-md-12">
-                                <label asp-for="HeroMarketingText" class="form-label fw-semibold">نص البطل الرئيسي (Hero Title)</label>
-                                <input asp-for="HeroMarketingText" class="form-control" placeholder="حيث تولد الروائح كقطع فنية خالدة" />
-                            </div>
+                <div class="yq-settings-grid">
+                    <div class="yq-settings-field yq-settings-field--full">
+                        <label asp-for="BrandsMarquee" class="form-label">شريط الماركات العالمية</label>
+                        <input asp-for="BrandsMarquee" class="form-control" placeholder="اكتب الماركات مفصولة بفاصلة" />
+                        <div class="form-text">افصل بين الماركات بفاصلة ليظهر الشريط بشكل مرتب.</div>
+                    </div>
 
-                            <div class="col-md-12">
-                                <label asp-for="HeroMarketingDesc" class="form-label fw-semibold">الوصف تحت العنوان (Hero Description)</label>
-                                <textarea asp-for="HeroMarketingDesc" class="form-control" rows="3" placeholder="اكتشف عالماً من العطور..."></textarea>
-                            </div>
+                    <div class="yq-settings-field">
+                        <label asp-for="FeaturedCategoryId" class="form-label">التصنيف المميز</label>
+                        <select asp-for="FeaturedCategoryId" class="form-select" asp-items="ViewBag.Categories">
+                            <option value="">-- اختر التصنيف --</option>
+                        </select>
+                    </div>
+
+                    <div class="yq-settings-field yq-settings-field--full">
+                        <label asp-for="HeroMarketingText" class="form-label">عنوان الهيرو</label>
+                        <input asp-for="HeroMarketingText" class="form-control" placeholder="حيث تولد الروائح كقطع فنية خالدة" />
+                    </div>
+
+                    <div class="yq-settings-field yq-settings-field--full">
+                        <label asp-for="HeroMarketingDesc" class="form-label">الوصف أسفل الهيرو</label>
+                        <textarea asp-for="HeroMarketingDesc" class="form-control" rows="4" placeholder="اكتشف عالماً من العطور..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-pane fade yq-settings-panel" id="payments-pane" role="tabpanel" aria-labelledby="payments-tab">
+                <div class="yq-settings-panel__head">
+                    <div>
+                        <span class="yq-settings-eyebrow">الدفع والشحن</span>
+                        <h3>الحسابات والتعليمات</h3>
+                    </div>
+                    <p>يظهر هذا القسم داخل رحلة الدفع وفي سياسات الشحن.</p>
+                </div>
+
+                <div class="yq-settings-grid">
+                    <div class="yq-settings-bank">
+                        <h4><i class="bi bi-cash-coin" aria-hidden="true"></i> شركة العمقي</h4>
+                        <div class="yq-settings-field">
+                            <label asp-for="OmqiAccountName" class="form-label">اسم الحساب</label>
+                            <input asp-for="OmqiAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
+                        </div>
+                        <div class="yq-settings-field">
+                            <label asp-for="OmqiAccountNumber" class="form-label">رقم الحساب</label>
+                            <input asp-for="OmqiAccountNumber" class="form-control" placeholder="رقم الحساب لدى العمقي" />
                         </div>
                     </div>
 
-                    <!-- TAB: PAYMENTS -->
-                    <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
-                        <div class="row g-4 bg-white p-4 rounded-4 shadow-sm">
-                            
-                            <div class="col-12 mb-2">
-                                <h5 class="fw-bold border-bottom pb-2">بيانات حسابات الصرافة (المحلية)</h5>
-                            </div>
-                            
-                            <!-- Al-Omqi -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-success"><i class="bi bi-cash-coin me-1"></i> شركة العمقي</label>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text bg-light text-muted">اسم الحساب</span>
-                                    <input asp-for="OmqiAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
-                                </div>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light text-muted">رقم الحساب</span>
-                                    <input asp-for="OmqiAccountNumber" class="form-control" placeholder="رقم الحساب لدى العمقي" />
-                                </div>
-                            </div>
+                    <div class="yq-settings-bank">
+                        <h4><i class="bi bi-wallet2" aria-hidden="true"></i> شركة البسيري</h4>
+                        <div class="yq-settings-field">
+                            <label asp-for="BusairiAccountName" class="form-label">اسم الحساب</label>
+                            <input asp-for="BusairiAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
+                        </div>
+                        <div class="yq-settings-field">
+                            <label asp-for="BusairiAccountNumber" class="form-label">رقم الحساب</label>
+                            <input asp-for="BusairiAccountNumber" class="form-control" placeholder="رقم الحساب لدى البسيري" />
+                        </div>
+                    </div>
 
-                            <!-- Al-Busairi -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-primary"><i class="bi bi-wallet2 me-1"></i> شركة البسيري</label>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text bg-light text-muted">اسم الحساب</span>
-                                    <input asp-for="BusairiAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
-                                </div>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light text-muted">رقم الحساب</span>
-                                    <input asp-for="BusairiAccountNumber" class="form-control" placeholder="رقم الحساب لدى البسيري" />
-                                </div>
-                            </div>
+                    <div class="yq-settings-bank">
+                        <h4><i class="bi bi-bank" aria-hidden="true"></i> بنك بن دول</h4>
+                        <div class="yq-settings-field">
+                            <label asp-for="BinDowalAccountName" class="form-label">اسم الحساب</label>
+                            <input asp-for="BinDowalAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
+                        </div>
+                        <div class="yq-settings-field">
+                            <label asp-for="BinDowalAccountNumber" class="form-label">رقم الحساب</label>
+                            <input asp-for="BinDowalAccountNumber" class="form-control" placeholder="رقم الحساب لدى بن دول" />
+                        </div>
+                    </div>
 
-                            <!-- Bin Dowal -->
-                            <div class="col-md-6 mt-4">
-                                <label class="form-label fw-bold text-info"><i class="bi bi-bank me-1"></i> بنك بن دول</label>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text bg-light text-muted">اسم الحساب</span>
-                                    <input asp-for="BinDowalAccountName" class="form-control" placeholder="مؤسسة ياقوت" />
-                                </div>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light text-muted">رقم الحساب</span>
-                                    <input asp-for="BinDowalAccountNumber" class="form-control" placeholder="رقم الحساب لدى بن دول" />
-                                </div>
-                            </div>
+                    <div class="yq-settings-bank yq-settings-bank--full">
+                        <h4><i class="bi bi-three-dots" aria-hidden="true"></i> طريقة دفع أخرى</h4>
+                        <div class="yq-settings-field">
+                            <label asp-for="OtherPaymentInstructions" class="form-label">التعليمات</label>
+                            <textarea asp-for="OtherPaymentInstructions" class="form-control" rows="4" placeholder="تعليمات الدفع بالطرق الأخرى..."></textarea>
+                            <div class="form-text">سيظهر هذا النص للعميل عند اختيار طريقة الدفع الأخرى.</div>
+                        </div>
+                    </div>
 
-                            <!-- Other Methods -->
-                            <div class="col-md-6 mt-4">
-                                <label class="form-label fw-bold text-secondary"><i class="bi bi-three-dots me-1"></i> طريقة دفع أخرى</label>
-                                <textarea asp-for="OtherPaymentInstructions" class="form-control" rows="3" placeholder="تعليمات الدفع بالطرق الأخرى..."></textarea>
-                                <div class="form-text">سيظهر هذا النص للعميل كتعليمات في حال اختار (أخرى).</div>
-                            </div>
-
-                            <div class="col-12 mt-5 mb-2">
-                                <h5 class="fw-bold border-bottom pb-2">إعدادات تكلفة الشحن</h5>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ShippingFee" class="form-label fw-semibold">رسوم الشحن الأساسية (ر.س)</label>
+                    <div class="yq-settings-bank yq-settings-bank--full">
+                        <h4><i class="bi bi-truck" aria-hidden="true"></i> إعدادات الشحن</h4>
+                        <div class="yq-settings-grid yq-settings-grid--split">
+                            <div class="yq-settings-field">
+                                <label asp-for="ShippingFee" class="form-label">رسوم الشحن الأساسية</label>
                                 <input asp-for="ShippingFee" type="number" step="0.01" class="form-control" />
                             </div>
-                            <div class="col-md-6">
-                                <label asp-for="FreeShippingThreshold" class="form-label fw-semibold">الحد الأدنى للشحن المجاني (ر.س)</label>
+                            <div class="yq-settings-field">
+                                <label asp-for="FreeShippingThreshold" class="form-label">حد الشحن المجاني</label>
                                 <input asp-for="FreeShippingThreshold" type="number" step="0.01" class="form-control" />
-                                <div class="form-text">الطلبات التي تتجاوز هذا المبلغ ستحصل على شحن مجاني.</div>
+                                <div class="form-text">الطلبات التي تتجاوز هذا المبلغ تحصل على شحن مجاني.</div>
                             </div>
-
                         </div>
                     </div>
-
                 </div>
-            </div>
-
-            <!-- FOOTER BUTTONS -->
-            <div class="card-footer bg-white border-top-0 pt-0 pb-4 px-4 d-flex justify-content-end gap-2">
-                <button type="reset" class="btn btn-light px-4 fw-bold">إلغاء التغييرات</button>
-                <button type="submit" class="btn btn-dark px-5 fw-bold"><i class="bi bi-save me-2"></i> حفظ الإعدادات</button>
-            </div>
+            </section>
         </div>
+
+        <footer class="yq-settings-actions">
+            <button type="reset" class="btn-yaqut-outline">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                <span>إلغاء التغييرات</span>
+            </button>
+            <button type="submit" class="btn-yaqut-gold">
+                <i class="bi bi-save2" aria-hidden="true"></i>
+                <span>حفظ الإعدادات</span>
+            </button>
+        </footer>
     </form>
-</div>
-
-@section Scripts {
-    <script>
-        // Custom JS to style active tabs smoothly
-        document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
-            tab.addEventListener('shown.bs.tab', event => {
-                // reset all tabs style
-                document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(t => {
-                    t.classList.add('text-muted');
-                    t.style.borderBottom = "none";
-                });
-                
-                // activate current
-                event.target.classList.remove('text-muted');
-                event.target.style.borderBottom = "3px solid #111";
-            });
-        });
-
-        // Initialize active tab style on load
-        const activeTab = document.querySelector('.nav-link.active');
-        if(activeTab) {
-            activeTab.classList.remove('text-muted');
-            activeTab.style.borderBottom = "3px solid #111";
-        }
-    </script>
-}
+</section>

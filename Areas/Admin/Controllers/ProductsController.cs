@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
@@ -13,6 +14,9 @@ namespace Yagot.Areas.Admin.Controllers;
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class ProductsController : Controller
 {
+    private const string DeletedProductImagePath = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+    private const string DeletedProductImagePathLegacy = "images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+
     // DI
     private readonly ProductService _productService;
 
@@ -29,28 +33,69 @@ public class ProductsController : Controller
         _imageService = imageService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
     {
-        // عرض كل المنتجات
-        var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
-        var categoriesFromDb = await _context.Categories.ToListAsync();
-        var model = new ViewModels
+        var activeQuery = _context.Products
+            .AsNoTracking()
+            .Where(p => !(p.Stockquantity == 0 &&
+                (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)));
+
+        var filteredQuery = activeQuery;
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            Products = productsFromDb,
-            Categories = categoriesFromDb
+            search = search.Trim();
+            filteredQuery = filteredQuery.Where(p =>
+                p.Name.Contains(search) ||
+                (!string.IsNullOrWhiteSpace(p.Description) && p.Description.Contains(search)) ||
+                (p.Category != null && p.Category.Name.Contains(search)));
+        }
+
+        var model = new AdminProductsIndexViewModel
+        {
+            Products = await PagedResult<Product>.CreateAsync(
+                filteredQuery
+                    .Include(p => p.Category)
+                    .OrderByDescending(p => p.Createdat)
+                    .ThenBy(p => p.Name),
+                page,
+                pageSize),
+            Categories = await _context.Categories
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .ToListAsync(),
+            TotalActiveProducts = await activeQuery.CountAsync(),
+            TotalArchivedProducts = await _context.Products.CountAsync(p =>
+                p.Stockquantity == 0 &&
+                (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
+            LowStockCount = await activeQuery.CountAsync(p => p.Stockquantity > 0 && p.Stockquantity < 5),
+            OutOfStockCount = await activeQuery.CountAsync(p => p.Stockquantity <= 0),
+            Search = search ?? string.Empty
         };
 
         return View(model);
     }
 
-    public async Task<IActionResult> trash()
+    public async Task<IActionResult> trash(int page = 1, int pageSize = 10)
     {
-        var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
-        var categoriesFromDb = await _context.Categories.ToListAsync();
-        var model = new ViewModels
+        var archivedQuery = _context.Products
+            .AsNoTracking()
+            .Where(p => p.Stockquantity == 0 &&
+                (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy));
+
+        var model = new AdminProductTrashViewModel
         {
-            Products = productsFromDb,
-            Categories = categoriesFromDb
+            Products = await PagedResult<Product>.CreateAsync(
+                archivedQuery
+                    .Include(p => p.Category)
+                    .OrderByDescending(p => p.Createdat)
+                    .ThenBy(p => p.Name),
+                page,
+                pageSize),
+            Categories = await _context.Categories
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .ToListAsync(),
+            TotalArchivedProducts = await archivedQuery.CountAsync()
         };
 
         return View(model);
@@ -67,6 +112,7 @@ public class ProductsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> Create(ProductVW productvw)
     {
@@ -136,7 +182,7 @@ public class ProductsController : Controller
             // 2. التحقق مما إذا كان المستخدم قد رفع صورة جديدة
             if (productVW.Imagefile != null && productVW.Imagefile.Length > 0)
             {
-                fileName = await _imageService.UpdateImage(productVW.Imagefile, "products", fileName);
+                fileName = await _imageService.UpdateImage(productVW.Imagefile, "products", fileName ?? string.Empty);
                 product.Imageurl = fileName != null ? "/images/products/" + fileName : "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
             }
 
@@ -146,7 +192,9 @@ public class ProductsController : Controller
             product.Price = productVW.Price;
             product.Stockquantity = productVW.Stockquantity;
             product.Categoryid = productVW.Categoryid;
-            product.Imageurl = fileName;
+            product.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
+                ? "/images/products/" + fileName
+                : fileName;
 
             _context.Update(product);
             await _context.SaveChangesAsync();
@@ -159,6 +207,7 @@ public class ProductsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _productService.GetProductByIdAsync(id);
@@ -168,7 +217,8 @@ public class ProductsController : Controller
         }
         if (!string.IsNullOrEmpty(product.Imageurl))
         {
-            if (product.Imageurl != "images/products/6389130_camera_interface_movie_picture_zoom_icon.png")
+            if (!string.Equals(product.Imageurl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(product.Imageurl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
             {
                 var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
          "images", "products", Path.GetFileName(product.Imageurl));

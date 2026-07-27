@@ -1,20 +1,17 @@
-@model YAGOT_2._0.Services.ViewModels
+@model YAGOT_2._0.Models.Admin.AdminProductsIndexViewModel
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "إدارة المنتجات";
 
-    const string deletedImage = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
     const string fallbackImage = "/images/placeholder-product.svg";
 
-    var products = Model?.Products ?? new List<YAGOT_2._0.Models.Product>();
-    var categories = Model?.Categories ?? new List<YAGOT_2._0.Models.Category>();
-    var activeProducts = products
-        .Where(p => !(p.Stockquantity == 0 && string.Equals(p.Imageurl, deletedImage, StringComparison.OrdinalIgnoreCase)))
-        .OrderByDescending(p => p.Createdat)
-        .ThenBy(p => p.Name)
-        .ToList();
-
-    var lowStockCount = activeProducts.Count(p => p.Stockquantity > 0 && p.Stockquantity < 5);
-    var outOfStockCount = activeProducts.Count(p => p.Stockquantity <= 0);
+    var activeProducts = Model.Products.Items;
+    var categories = Model.Categories;
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["RouteValues"] = new Dictionary<string, object?> { ["search"] = Model.Search },
+        ["Action"] = "Index"
+    };
 }
 
 @section Styles {
@@ -56,7 +53,7 @@
             <span class="yq-products-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
             <div>
                 <p>المنتجات النشطة</p>
-                <strong>@activeProducts.Count</strong>
+                <strong>@Model.TotalActiveProducts</strong>
             </div>
         </article>
         <article class="yq-products-stat">
@@ -70,14 +67,14 @@
             <span class="yq-products-stat__icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
             <div>
                 <p>مخزون منخفض</p>
-                <strong>@lowStockCount</strong>
+                <strong>@Model.LowStockCount</strong>
             </div>
         </article>
         <article class="yq-products-stat">
             <span class="yq-products-stat__icon"><i class="bi bi-slash-circle" aria-hidden="true"></i></span>
             <div>
                 <p>نفد المخزون</p>
-                <strong>@outOfStockCount</strong>
+                <strong>@Model.OutOfStockCount</strong>
             </div>
         </article>
     </section>
@@ -88,10 +85,15 @@
                 <span class="yq-products-eyebrow">قائمة الإدارة</span>
                 <h3 id="productsTableTitle">جميع المنتجات النشطة</h3>
             </div>
-            <div class="yq-products-filter-note" aria-label="الفلاتر المتاحة">
-                <i class="bi bi-funnel" aria-hidden="true"></i>
-                <span>التصنيفات والمخزون معروضة حسب البيانات المتاحة</span>
-            </div>
+            <form method="get" class="yq-admin-list-search" role="search" aria-label="البحث في المنتجات">
+                <input type="hidden" name="pageSize" value="@Model.Products.PageSize" />
+                <label class="visually-hidden" for="productsSearch">البحث في المنتجات</label>
+                <input id="productsSearch" type="search" name="search" value="@Model.Search" placeholder="بحث باسم المنتج أو التصنيف" />
+                <button type="submit" class="btn-yaqut-outline">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <span>بحث</span>
+                </button>
+            </form>
         </div>
 
         @if (activeProducts.Any())
@@ -111,7 +113,6 @@
                     <tbody>
                         @foreach (var p in activeProducts)
                         {
-                            var cat = categories.FirstOrDefault(c => c.Id == p.Categoryid);
                             var imageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? fallbackImage : p.Imageurl;
                             var stockClass = p.Stockquantity <= 0
                                 ? "yq-products-badge--danger"
@@ -135,7 +136,7 @@
                                     </div>
                                 </td>
                                 <td data-label="التصنيف">
-                                    <span class="yq-products-category">@(cat?.Name ?? "-")</span>
+                                    <span class="yq-products-category">@(p.Category?.Name ?? "-")</span>
                                 </td>
                                 <td data-label="السعر">
                                     <div class="yq-products-price">
@@ -171,6 +172,7 @@
                     </tbody>
                 </table>
             </div>
+            @await Html.PartialAsync("_AdminPager", Model.Products, pagerViewData)
         }
         else
         {

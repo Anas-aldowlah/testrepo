@@ -1,0 +1,19 @@
+{
+  "name": "Yaqoot",
+  "short_name": "Yaqoot",
+  "description": "Yaqoot premium perfume storefront and administration dashboard.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0e0c",
+  "theme_color": "#d4af37",
+  "icons": [
+    {
+      "src": "/images/yaqut-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

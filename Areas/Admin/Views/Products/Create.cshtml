@@ -1,6 +1,7 @@
 @model ProductVW
 @{
     ViewData["Title"] = "إضافة منتج جديد";
+    var hasValidationErrors = ViewData.ModelState.ErrorCount > 0;
 }
 
 @section Styles {
@@ -31,7 +32,10 @@
     </header>
 
     <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-product-form">
-        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
+        @if (hasValidationErrors)
+        {
+            <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
+        }
 
         <div class="yq-product-form__layout">
             <div class="yq-product-form__main">
@@ -119,7 +123,7 @@
                                 <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
                                 <span>اختيار صورة</span>
                             </label>
-                            <input asp-for="Imagefile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" required aria-describedby="ImagefileHelp ImagefileValidation" />
+                            <input asp-for="Imagefile" type="file" accept="image/*" id="imageInput" data-yaqut-image-input="imagePreview" aria-describedby="ImagefileHelp ImagefileValidation" />
                             <span id="ImagefileHelp" class="yq-product-help">JPG, PNG, WebP — الحد الأقصى 5MB.</span>
                             <span asp-validation-for="Imagefile" id="ImagefileValidation" class="yq-product-validation"></span>
                         </div>

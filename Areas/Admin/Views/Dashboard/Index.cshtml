@@ -1,19 +1,9 @@
-@model List<YAGOT_2._0.Models.Order>
+@model YAGOT_2._0.Models.Admin.AdminDashboardViewModel
 
 @{
     ViewData["Title"] = "لوحة التحكم";
 
-    var orders = Model ?? new List<YAGOT_2._0.Models.Order>();
-    var recentOrders = orders
-        .OrderByDescending(o => o.Orderdate)
-        .Take(6)
-        .ToList();
-
-    decimal totalRevenue = Convert.ToDecimal(ViewBag.TotalRevenue ?? 0m);
-    int pendingOrders = orders.Count(o => string.Equals(o.Status, "Pending", StringComparison.OrdinalIgnoreCase));
-    int activeOrders = orders.Count(o =>
-        string.Equals(o.Status, "Processed", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(o.Status, "Shipped", StringComparison.OrdinalIgnoreCase));
+    var recentOrders = Model.RecentOrders;
 }
 
 @section Styles {
@@ -45,7 +35,7 @@
             <span class="yq-dashboard-kpi__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
             <div>
                 <p class="yq-dashboard-kpi__label">المنتجات</p>
-                <strong class="yq-dashboard-kpi__value">@ViewBag.TotalProducts</strong>
+                <strong class="yq-dashboard-kpi__value">@Model.TotalProducts</strong>
             </div>
         </article>
 
@@ -53,7 +43,7 @@
             <span class="yq-dashboard-kpi__icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
             <div>
                 <p class="yq-dashboard-kpi__label">الطلبات</p>
-                <strong class="yq-dashboard-kpi__value">@ViewBag.TotalOrders</strong>
+                <strong class="yq-dashboard-kpi__value">@Model.TotalOrders</strong>
             </div>
         </article>
 
@@ -61,7 +51,7 @@
             <span class="yq-dashboard-kpi__icon"><i class="bi bi-people" aria-hidden="true"></i></span>
             <div>
                 <p class="yq-dashboard-kpi__label">المستخدمون</p>
-                <strong class="yq-dashboard-kpi__value">@ViewBag.TotalUsers</strong>
+                <strong class="yq-dashboard-kpi__value">@Model.TotalUsers</strong>
             </div>
         </article>
 
@@ -69,7 +59,7 @@
             <span class="yq-dashboard-kpi__icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
             <div>
                 <p class="yq-dashboard-kpi__label">الإيرادات</p>
-                <strong class="yq-dashboard-kpi__value">@totalRevenue.ToString("N0") <span>ر.س</span></strong>
+                <strong class="yq-dashboard-kpi__value">@Model.TotalRevenue.ToString("N0") <span>ر.س</span></strong>
             </div>
         </article>
     </section>
@@ -151,11 +141,11 @@
                 <div class="yq-dashboard-metrics">
                     <div class="yq-dashboard-metric">
                         <span>قيد الانتظار</span>
-                        <strong>@pendingOrders</strong>
+                        <strong>@Model.PendingOrders</strong>
                     </div>
                     <div class="yq-dashboard-metric">
                         <span>قيد التنفيذ</span>
-                        <strong>@activeOrders</strong>
+                        <strong>@Model.ActiveOrders</strong>
                     </div>
                 </div>
             </section>

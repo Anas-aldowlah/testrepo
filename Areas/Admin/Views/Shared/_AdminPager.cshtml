@@ -1,0 +1,115 @@
+@model dynamic
+@{
+    var routeValues = ViewData["RouteValues"] as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+    var actionName = ViewData["Action"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
+    var totalPages = (int)Model.TotalPages;
+    var currentPage = (int)Model.CurrentPage;
+    var pageItems = new List<int?>();
+
+    if (totalPages <= 7)
+    {
+        for (var page = 1; page <= totalPages; page++)
+        {
+            pageItems.Add(page);
+        }
+    }
+    else
+    {
+        var startPage = Math.Max(2, currentPage - 1);
+        var endPage = Math.Min(totalPages - 1, currentPage + 1);
+
+        if (currentPage <= 3)
+        {
+            startPage = 2;
+            endPage = 4;
+        }
+        else if (currentPage >= totalPages - 2)
+        {
+            startPage = totalPages - 3;
+            endPage = totalPages - 1;
+        }
+
+        pageItems.Add(1);
+
+        if (startPage > 2)
+        {
+            pageItems.Add(null);
+        }
+
+        for (var page = startPage; page <= endPage; page++)
+        {
+            pageItems.Add(page);
+        }
+
+        if (endPage < totalPages - 1)
+        {
+            pageItems.Add(null);
+        }
+
+        pageItems.Add(totalPages);
+    }
+
+    string? PageUrl(int page)
+    {
+        var values = new Dictionary<string, object?>(routeValues)
+        {
+            ["page"] = page,
+            ["pageSize"] = Model.PageSize
+        };
+
+        return Url.Action(actionName, values);
+    }
+}
+
+@if (Model.TotalItems > Model.PageSize)
+{
+    <nav class="yq-admin-pager" aria-label="التنقل بين صفحات النتائج">
+        <p class="yq-admin-pager__summary">
+            عرض @Model.FirstItemNumber-@Model.LastItemNumber من @Model.TotalItems
+            <span>صفحة @Model.CurrentPage من @Model.TotalPages</span>
+        </p>
+
+        <div class="yq-admin-pager__controls">
+            <a href="@PageUrl(Model.CurrentPage - 1)"
+               class="yq-admin-pager__link @(Model.HasPreviousPage ? "" : "is-disabled")"
+               aria-disabled="@(!Model.HasPreviousPage)" tabindex="@(Model.HasPreviousPage ? null : "-1")">
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                <span>السابق</span>
+            </a>
+
+            <ol class="yq-admin-pager__pages" aria-label="أرقام الصفحات">
+                @foreach (var pageItem in pageItems)
+                {
+                    if (pageItem.HasValue)
+                    {
+                        if (pageItem.Value == currentPage)
+                        {
+                            <li>
+                                <span class="yq-admin-pager__page is-current" aria-current="page">@pageItem.Value</span>
+                            </li>
+                        }
+                        else
+                        {
+                            <li>
+                                <a class="yq-admin-pager__page" href="@PageUrl(pageItem.Value)" aria-label="الانتقال إلى صفحة @pageItem.Value">@pageItem.Value</a>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li>
+                            <span class="yq-admin-pager__ellipsis" aria-hidden="true">...</span>
+                        </li>
+                    }
+                }
+            </ol>
+
+            <a href="@PageUrl(Model.CurrentPage + 1)"
+               class="yq-admin-pager__link @(Model.HasNextPage ? "" : "is-disabled")"
+               aria-disabled="@(!Model.HasNextPage)" tabindex="@(Model.HasNextPage ? null : "-1")">
+                <span>التالي</span>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </a>
+        </div>
+    </nav>
+}

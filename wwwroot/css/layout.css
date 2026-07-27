@@ -1357,16 +1357,6 @@ body {
         margin-inline: 0;
     }
 
-    .yaqut-orders-link,
-    .yaqut-admin-link,
-    .yaqut-logout-btn span {
-        display: none;
-    }
-
-    .yaqut-logout-btn {
-        width: 42px;
-        padding-inline: 0;
-    }
 }
 
 @media (max-width: 991.98px) {
@@ -1402,6 +1392,13 @@ body {
     .yaqut-search {
         grid-area: search;
         min-width: 0;
+    }
+
+    .yaqut-nav__mobile {
+        display: block;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--yq-border-sub);
     }
 
     .yaqut-nav {

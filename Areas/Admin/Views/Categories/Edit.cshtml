@@ -11,6 +11,7 @@
             ? existingImage
             : Url.Content(existingImage!.StartsWith("/") ? "~" + existingImage : "~/" + existingImage))
         : Url.Content("~/images/placeholder-product.svg");
+    var hasValidationErrors = ViewData.ModelState.ErrorCount > 0;
 }
 
 @section Styles {
@@ -55,7 +56,10 @@
     </div>
 
     <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-category-form">
-        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
+        @if (hasValidationErrors)
+        {
+            <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
+        }
         <input asp-for="Id" type="hidden" value="@categoryId" />
         <input asp-for="Existingimage" type="hidden" />
 

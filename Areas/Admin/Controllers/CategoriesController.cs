@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
@@ -21,12 +23,23 @@ public class CategoriesController : Controller
         _ImageServes = imageServes;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
-        var model = new ViewModels
+        var categoryQuery = _context.Categories
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .Select(c => new AdminCategoryListItemViewModel
+            {
+                Category = c,
+                ProductCount = _context.Products.Count(p => p.Categoryid == c.Id)
+            });
+
+        var model = new AdminCategoriesIndexViewModel
         {
-            Categories = _context.Categories.ToList(),
-                Products = _context.Products.ToList()
+            Categories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize),
+            TotalCategories = await _context.Categories.CountAsync(),
+            TotalProducts = await _context.Products.CountAsync(),
+            CategoriesWithImages = await _context.Categories.CountAsync(c => !string.IsNullOrWhiteSpace(c.Imageurl))
         };
         
         return View(model);
@@ -38,8 +51,14 @@ public class CategoriesController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CategoryVW categoryVW)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(categoryVW);
+        }
+
         categoryVW.Id = await _categoryService.NextCounter();
 
         string? imageUrl = await _ImageServes.UploadImage(categoryVW.ImageFile, "categories");
@@ -76,19 +95,27 @@ public class CategoriesController : Controller
         return View(categoryVW);
     }
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(CategoryVW categoryVW)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(categoryVW);
+        }
+
         var category = await _categoryService.GetCategoryByID(categoryVW.Id);
         if (category==null) return NotFound();
         string? fileName = categoryVW.Existingimage;
-        if (categoryVW.ImageFile !=null)
+        if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
         {
-            fileName = await _ImageServes.UpdateImage(categoryVW.ImageFile,"categories", categoryVW.Existingimage);
+            fileName = await _ImageServes.UpdateImage(categoryVW.ImageFile, "categories", categoryVW.Existingimage ?? string.Empty);
             category.Imageurl = fileName != null ? "/images/categories/" + fileName : "images/categories/category_8428362.png";
         }
         category.Name = categoryVW.Name;
         category.Description = categoryVW.Description;
-        category.Imageurl = fileName;
+        category.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
+            ? "/images/categories/" + fileName
+            : fileName;
 
         _context.Update(category);
         await _context.SaveChangesAsync();
@@ -97,6 +124,7 @@ public class CategoriesController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
         var category = _context.Categories.FirstOrDefault(c => c.Id == id);
@@ -111,7 +139,8 @@ public class CategoriesController : Controller
             }
             if (!string.IsNullOrEmpty(category.Imageurl))
             {
-                if (category.Imageurl != "images/categories/category_8428362.png")
+                if (!string.Equals(category.Imageurl, "/images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(category.Imageurl, "images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase))
                 {
                     var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
              "images", "categories", Path.GetFileName(category.Imageurl));

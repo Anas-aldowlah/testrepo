@@ -1,8 +1,14 @@
-@model IEnumerable<YAGOT_2._0.Models.UsersDatabase.User>
+@model YAGOT_2._0.Models.Admin.AdminUsersIndexViewModel
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "إدارة المستخدمين";
-    var id = 1;
-    var users = Model.OrderBy(s=> s.Id).ToList();
+    var users = Model.Users.Items;
+    var rowNumber = Model.Users.FirstItemNumber;
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["RouteValues"] = new Dictionary<string, object?>(),
+        ["Action"] = "Index"
+    };
 }
 
 @section Styles {
@@ -18,7 +24,7 @@
         </div>
         <div class="yq-users-hero__meta" aria-label="إجمالي المستخدمين">
             <span>إجمالي الحسابات</span>
-            <strong>@users.Count</strong>
+            <strong>@Model.TotalUsers</strong>
         </div>
     </header>
 
@@ -49,7 +55,7 @@
                         {
                             <tr>
                                 <td data-label="#">
-                                    <span class="yq-users-row-number">@id</span>
+                                    <span class="yq-users-row-number">@rowNumber</span>
                                 </td>
                                 <td data-label="الاسم">
                                     <div class="yq-users-person">
@@ -95,11 +101,12 @@
                                     </a>
                                 </td>
                             </tr>
-                            id += 1;
+                            rowNumber += 1;
                         }
                     </tbody>
                 </table>
             </div>
+            @await Html.PartialAsync("_AdminPager", Model.Users, pagerViewData)
         }
         else
         {
