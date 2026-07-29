@@ -35,7 +35,21 @@ builder.Services.AddControllersWithViews()
     {
         options.MaxModelBindingCollectionSize = 1000;
     });
-builder.Services.AddHttpClient<DealingAPI>();
+
+static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
+{
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration["ExternalApi:BaseUrl"];
+
+    if (string.IsNullOrWhiteSpace(baseUrl))
+    {
+        throw new InvalidOperationException("ExternalApi:BaseUrl is not configured.");
+    }
+
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+}
+
+builder.Services.AddHttpClient<DealingAPI>(ConfigureExternalApiClient);
 builder.Services.AddScoped<IVisitService, VisitService>();
 builder.Services.AddSingleton<StoreSettingsService>();
 
@@ -102,11 +116,9 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
-builder.Services.AddScoped<SiteStatusFilter>();
+builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<SiteStatusFilterAdmin>();
-builder.Services.AddHttpClient<SiteStatusFilterAdmin>();
-builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);
 
 var app = builder.Build();
 

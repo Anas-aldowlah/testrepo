@@ -24,7 +24,7 @@ namespace YAGOT_2._0.Services
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
 
-        public DealingAPI(HttpClient httpClient, IConfiguration configuration = null)
+        public DealingAPI(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _configuration = configuration;
@@ -39,7 +39,7 @@ namespace YAGOT_2._0.Services
             try
             {
               
-                var data = await _httpClient.GetFromJsonAsync<List<SiteDto>>("https://controlpanelsite-assil.onrender.com/SiteAPI/GetSites");
+                var data = await _httpClient.GetFromJsonAsync<List<SiteDto>>("SiteAPI/GetSites");
 
                 var statue = data.Where(s => s.SiteId == siteID).FirstOrDefault();
                  

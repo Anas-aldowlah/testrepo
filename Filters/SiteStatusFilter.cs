@@ -48,7 +48,7 @@ namespace YAGOT_2._0.Filters
                 if (status == StatueSite.ColsePlane && IsAdmin)
                 {
                     var data = await _httpClient.GetFromJsonAsync<List<SiteDtoAdmin>>(
-                        "https://controlpanelsite-assil.onrender.com/SiteAPI/GetSitesAdmin");
+                        "SiteAPI/GetSitesAdmin");
 
                     var statueAdmin = data?.FirstOrDefault(s => s.Siteid == 1);
 
