@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Data;
@@ -104,5 +105,62 @@ public class UsersController : Controller
         {
             return string.Empty;
         }
+    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Developer")]
+    public async Task<IActionResult> ChangeRole(int userId, string newRole)
+    {
+        var userExists = await _dbUser.Users.AnyAsync(u => u.Id == userId);
+        if (!userExists)
+        {
+            return NotFound("المستخدم غير موجود");
+        }
+
+        var allowedRoles = new[] { "Customer", "Admin", "Developer" };
+        if (!allowedRoles.Contains(newRole))
+        {
+            return BadRequest("الدور المحدد غير صالح");
+        }
+
+        bool isCurrentUserDeveloper = User.IsInRole("Developer");
+
+        // 1. حظر المدير من إعطاء دور Developer
+        if (!isCurrentUserDeveloper && newRole == "Developer")
+        {
+            TempData["ErrorMessage"] = "عذراً، لا تملك الصلاحية لترقية الحساب إلى دور مطور.";
+            return RedirectToAction(nameof(Details), new { id = userId });
+        }
+
+        var userSite = await _context.UserSites
+            .FirstOrDefaultAsync(us => us.UserId == userId);
+
+        // 2. حظر المدير من تعديل دور شخص هو بالأساس Developer
+        if (!isCurrentUserDeveloper && userSite != null && userSite.Role == "Developer")
+        {
+            TempData["ErrorMessage"] = "عذراً، لا يمكنك تعديل صلاحيات حسابات المطورين.";
+            return RedirectToAction(nameof(Details), new { id = userId });
+        }
+
+        // إتمام التعديل
+        if (userSite != null)
+        {
+            userSite.Role = newRole;
+            _context.UserSites.Update(userSite);
+        }
+        else
+        {
+            var newUserSite = new YAGOT_2._0.Models.UserSite
+            {
+                UserId = userId,
+                Role = newRole
+            };
+            await _context.UserSites.AddAsync(newUserSite);
+        }
+
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "تم تحديث دور المستخدم بنجاح.";
+
+        return RedirectToAction(nameof(Details), new { id = userId });
     }
 }

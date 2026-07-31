@@ -243,6 +243,7 @@
                     <label class="yq-checkout-field">
                         <span>صورة إيصال الدفع (اختياري)</span>
                         <input asp-for="ReceiptImage" form="yqCheckoutForm" type="file" accept="image/*" class="form-control" style="background-color: var(--yq-bg-input); color: var(--yq-text-main); border: 1px solid var(--yq-border); padding: 0.5rem; border-radius: var(--yq-radius-sm);" />
+                            <span asp-validation-for="ReceiptImage" class="yq-checkout-field__error"></span>
                         <small style="color: var(--yq-text-soft);">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
                     </label>
                 </div>
