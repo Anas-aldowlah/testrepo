@@ -101,7 +101,6 @@ public class CheckoutVM
     private string _paymentMethod = string.Empty;
 
     [Required(ErrorMessage = "طريقة الدفع مطلوبة.")]
-    [RegularExpression("^(al-amqi|bin-dawl|al-basiri|other)$", ErrorMessage = "الرجاء اختيار طريقة دفع صحيحة.")]
     public string PaymentMethod
     {
         get => _paymentMethod;
@@ -109,4 +108,7 @@ public class CheckoutVM
     }
 
     public Microsoft.AspNetCore.Http.IFormFile? ReceiptImage { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
+    public IReadOnlyList<Paymentmethod> PaymentMethods { get; set; } = [];
 }

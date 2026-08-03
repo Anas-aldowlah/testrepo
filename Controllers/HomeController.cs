@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using YAGOT_2._0.Filters;
@@ -13,11 +13,16 @@ public class HomeController : Controller
 {
     private readonly NeondbContext _context;
     private readonly IVisitService _visitService;
+    private readonly StoreSettingsService _storeSettingsService;
 
-    public HomeController(NeondbContext context, IVisitService visitService)
+    public HomeController(
+        NeondbContext context,
+        IVisitService visitService,
+        StoreSettingsService storeSettingsService)
     {
         _context = context;
         _visitService = visitService;
+        _storeSettingsService = storeSettingsService;
     }
 
     public async Task<IActionResult> Index(int? categoryId)
@@ -27,7 +32,8 @@ public class HomeController : Controller
         var model = new ViewModels
         {
             Products = productsFromDb,
-            Categories = categoriesFromDb
+            Categories = categoriesFromDb,
+            StoreSettings = await _storeSettingsService.GetSettingsAsync()
         };
         ViewBag.SelectedCategoryId = categoryId;
 

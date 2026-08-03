@@ -245,6 +245,10 @@
     color: var(--yq-admin-gold-bright, #d4af37);
 }
 
+.theme-light .yq-users-badge--admin { color: #059669; }
+.theme-light .yq-users-badge--developer { color: #2563eb; }
+.theme-light .yq-users-badge--customer { color: #b45309; }
+
 .yq-users-badge--neutral {
     border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
     background: rgba(255, 255, 255, 0.06);
@@ -437,6 +441,21 @@
     color: var(--yq-admin-gold-bright, #d4af37);
 }
 
+.yq-user-detail-stat:nth-child(1) .yq-user-detail-stat__icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+}
+
+.yq-user-detail-stat:nth-child(2) .yq-user-detail-stat__icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: #ffffff;
+}
+
+.yq-user-detail-stat:nth-child(3) .yq-user-detail-stat__icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+}
+
 .yq-user-detail-stat p {
     margin: 0 0 0.2rem;
     color: var(--yq-admin-muted, #b6b1a6);
@@ -605,6 +624,12 @@
     color: #f08a8a;
 }
 
+.theme-light .yq-user-order-status--pending { color: #b45309; }
+.theme-light .yq-user-order-status--processed,
+.theme-light .yq-user-order-status--shipped { color: #2563eb; }
+.theme-light .yq-user-order-status--delivered { color: #059669; }
+.theme-light .yq-user-order-status--cancelled { color: #dc2626; }
+
 .yq-user-order-status--neutral {
     border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
     background: rgba(255, 255, 255, 0.06);
@@ -612,6 +637,7 @@
 }
 
 .yq-users-admin a:focus-visible,
+
 .yq-users-admin button:focus-visible,
 .yq-user-details-admin a:focus-visible,
 .yq-user-details-admin button:focus-visible {
@@ -646,74 +672,290 @@
     .yq-user-info-list div:last-child {
         border-bottom: 0;
     }
+}
+
+@media (max-width: 767.98px) {
+    .yq-users-admin,
+    .yq-user-details-admin {
+        gap: 0.75rem;
+    }
+
+    .yq-users-hero,
+    .yq-users-panel__header,
+    .yq-user-details-hero,
+    .yq-user-detail-card__header {
+        padding: 0.85rem;
+    }
+
+    .yq-users-hero h2,
+    .yq-user-details-hero h2 {
+        font-size: 1.45rem;
+    }
+
+    .yq-users-hero p,
+    .yq-user-details-hero p {
+        font-size: 0.88rem;
+        line-height: 1.65;
+    }
+
+    .yq-users-hero__meta {
+        min-width: 0;
+        padding: 0.78rem;
+    }
+
+    .yq-users-table-wrap,
+    .yq-user-orders-wrap {
+        overflow-x: visible;
+    }
 
     .yq-users-table,
-    .yq-users-table thead,
-    .yq-users-table tbody,
-    .yq-users-table tr,
-    .yq-users-table th,
-    .yq-users-table td,
-    .yq-user-orders-table,
-    .yq-user-orders-table thead,
-    .yq-user-orders-table tbody,
-    .yq-user-orders-table tr,
-    .yq-user-orders-table th,
-    .yq-user-orders-table td {
+    .yq-user-orders-table {
         display: block;
+        width: 100%;
         min-width: 0;
+        border-collapse: separate;
+        border-spacing: 0;
     }
 
     .yq-users-table thead,
     .yq-user-orders-table thead {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
+        display: none;
     }
 
-    .yq-users-table tr,
-    .yq-user-orders-table tr {
-        padding: 0.9rem 1rem;
-        border-bottom: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .yq-users-table tbody tr:last-child,
-    .yq-user-orders-table tbody tr:last-child {
-        border-bottom: 0;
-    }
-
-    .yq-users-table td,
-    .yq-user-orders-table td {
+    .yq-users-table tbody,
+    .yq-user-orders-table tbody {
         display: grid;
-        grid-template-columns: minmax(104px, 0.38fr) minmax(0, 1fr);
-        gap: 1rem;
-        padding: 0.55rem 0;
-        border-bottom: 0;
-        text-align: start;
+        gap: 0.7rem;
     }
 
-    .yq-users-table td::before,
-    .yq-user-orders-table td::before {
+    .yq-users-table tbody tr,
+    .yq-user-orders-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem 0.7rem;
+        margin: 0;
+        padding: 0.82rem 0.9rem;
+        border: 1px solid var(--yq-admin-border);
+        border-radius: 8px;
+        background: var(--yq-admin-surface-solid, #ffffff);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.05);
+    }
+
+    .theme-dark .yq-users-table tbody tr,
+    .theme-dark .yq-user-orders-table tbody tr,
+    .dark-mode .yq-users-table tbody tr,
+    .dark-mode .yq-user-orders-table tbody tr {
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .yq-users-table tbody td,
+    .yq-user-orders-table tbody td {
+        display: grid;
+        min-width: 0;
+        gap: 0.18rem;
+        padding: 0;
+        border: none;
+        text-align: start;
+        white-space: normal;
+    }
+
+    .yq-users-table tbody td::before,
+    .yq-user-orders-table tbody td::before {
         content: attr(data-label);
-        color: var(--yq-admin-muted, #b6b1a6);
-        font-size: 0.76rem;
         font-weight: 900;
+        color: var(--yq-admin-muted);
+        font-size: 0.7rem;
+        line-height: 1.35;
+    }
+
+    .yq-users-table tbody td:last-child,
+    .yq-user-orders-table tbody td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .yq-users-table tbody td:nth-child(1) {
+        grid-column: 1;
+    }
+
+    .yq-users-table tbody td:nth-child(2) {
+        grid-column: 1 / -1;
+    }
+
+    .yq-users-table tbody td:nth-child(3),
+    .yq-users-table tbody td:nth-child(4) {
+        grid-column: span 1;
+    }
+
+    .yq-users-table tbody td:nth-child(5),
+    .yq-users-table tbody td:nth-child(6) {
+        grid-column: 1 / -1;
+    }
+
+    .yq-users-table tbody td[data-label="#"] {
+        align-content: start;
+    }
+
+    .yq-users-table tbody td[data-label="#"]::before {
+        content: "الرقم";
+    }
+
+    .yq-users-table tbody td[data-label="الإجراءات"],
+    .yq-user-orders-table tbody td[data-label="الإجراءات"] {
+        border-top: 1px solid var(--yq-admin-border);
+        padding-top: 0.55rem;
     }
 
     .yq-users-person {
         min-width: 0;
+        justify-content: flex-start;
+    }
+
+    .yq-users-person__avatar {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        font-size: 0.9rem;
+    }
+
+    .yq-users-badge,
+    .yq-user-order-status {
+        justify-content: center;
+        max-width: 100%;
+        min-height: 26px;
+        padding: 0.18rem 0.55rem;
+        font-size: 0.72rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .yq-users-detail-link {
+        width: 100%;
+        min-height: 38px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.76rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    table.yq-users-table {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    table.yq-users-table tbody {
+        display: block;
+    }
+
+    table.yq-users-table tbody tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: 0.6rem 0.75rem;
+        margin-block-end: 0.7rem;
+        padding: 0.8rem;
+        border: 1px solid var(--yq-admin-border);
+        border-radius: 8px;
+        background: var(--yq-admin-surface-solid, #ffffff);
+    }
+
+    table.yq-users-table tbody td {
+        display: grid;
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+        gap: 0.18rem;
+        padding: 0;
+        border: 0;
+        text-align: start;
+        white-space: normal;
+    }
+
+    table.yq-users-table tbody td::before {
+        margin: 0;
+        color: var(--yq-admin-muted);
+        font-size: 0.68rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    table.yq-users-table tbody td[data-label="#"] {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: start;
+        width: 40px;
+        min-width: 40px;
+    }
+
+    table.yq-users-table tbody td[data-label="#"]::before {
+        content: "#";
+        text-align: center;
+    }
+
+    table.yq-users-table tbody td[data-label="#"] .yq-users-row-number {
+        width: 40px;
+        min-width: 40px;
+        min-height: 32px;
+        padding-inline: 0;
+    }
+
+    table.yq-users-table tbody td[data-label="الاسم"] {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
+
+    table.yq-users-table tbody td[data-label="رقم الجوال"],
+    table.yq-users-table tbody td[data-label="الدور"],
+    table.yq-users-table tbody td[data-label="تاريخ التسجيل"] {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    table.yq-users-table tbody td[data-label="رقم الجوال"]::before,
+    table.yq-users-table tbody td[data-label="الدور"]::before,
+    table.yq-users-table tbody td[data-label="تاريخ التسجيل"]::before {
+        min-width: 74px;
+    }
+
+    table.yq-users-table tbody td[data-label="الإجراءات"] {
+        grid-column: 1 / -1;
+        width: 100%;
+        padding-top: 0.55rem;
+        border-top: 1px solid var(--yq-admin-border);
+    }
+
+    table.yq-users-table .yq-users-person {
+        justify-content: flex-start;
+        gap: 0.55rem;
+        min-width: 0;
+    }
+
+    table.yq-users-table .yq-users-person strong,
+    table.yq-users-table .yq-users-phone,
+    table.yq-users-table .yq-users-date {
+        overflow-wrap: anywhere;
+        text-align: start;
+    }
+
+    table.yq-users-table .yq-users-badge {
+        justify-self: start;
+    }
+
+    table.yq-users-table .yq-users-detail-link {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        justify-content: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
 @media (max-width: 520px) {
-    .yq-users-table td,
-    .yq-user-orders-table td {
-        grid-template-columns: 1fr;
-        gap: 0.35rem;
-    }
-
     .yq-users-person strong,
     .yq-users-phone,
     .yq-users-date,
@@ -727,164 +969,5 @@
 
     .yq-user-details-identity {
         align-items: flex-start;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1199.98px) {
-    .yq-users-table,
-    .yq-users-table thead,
-    .yq-users-table tbody,
-    .yq-users-table tr,
-    .yq-users-table th,
-    .yq-users-table td,
-    .yq-user-orders-table,
-    .yq-user-orders-table thead,
-    .yq-user-orders-table tbody,
-    .yq-user-orders-table tr,
-    .yq-user-orders-table th,
-    .yq-user-orders-table td {
-        display: revert;
-        min-width: revert;
-    }
-
-    .yq-users-table thead,
-    .yq-user-orders-table thead {
-        position: static;
-        width: auto;
-        height: auto;
-        overflow: visible;
-        clip: auto;
-        white-space: normal;
-    }
-
-    .yq-users-table tbody,
-    .yq-user-orders-table tbody {
-        display: table-row-group;
-    }
-
-    .yq-users-table tr,
-    .yq-user-orders-table tr {
-        display: table-row;
-    }
-
-    .yq-users-table th,
-    .yq-users-table td,
-    .yq-user-orders-table th,
-    .yq-user-orders-table td {
-        display: table-cell;
-    }
-
-    .yq-users-table td::before,
-    .yq-user-orders-table td::before {
-        content: none;
-    }
-}
-
-@media (max-width: 767.98px) {
-    .yq-users-table-wrap,
-    .yq-user-orders-wrap {
-        overflow-x: visible;
-    }
-
-    .yq-users-table,
-    .yq-users-table thead,
-    .yq-users-table tbody,
-    .yq-users-table tr,
-    .yq-users-table th,
-    .yq-users-table td,
-    .yq-user-orders-table,
-    .yq-user-orders-table thead,
-    .yq-user-orders-table tbody,
-    .yq-user-orders-table tr,
-    .yq-user-orders-table th,
-    .yq-user-orders-table td {
-        display: block;
-        width: 100%;
-        min-width: 0;
-    }
-
-    .yq-users-table thead,
-    .yq-user-orders-table thead {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
-    }
-
-    .yq-users-table tbody,
-    .yq-user-orders-table tbody {
-        display: grid;
-        gap: 0.7rem;
-    }
-
-    .yq-users-table tbody tr,
-    .yq-user-orders-table tbody tr {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 0.45rem 0.7rem;
-        padding: 0.82rem 0.9rem;
-        border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
-        border-radius: 8px;
-        background: var(--yq-admin-surface-solid, #ffffff);
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.05);
-    }
-
-    .theme-dark .yq-users-table tbody tr,
-    .theme-dark .yq-user-orders-table tbody tr,
-    .dark-mode .yq-users-table tbody tr,
-    .dark-mode .yq-user-orders-table tbody tr {
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-    }
-
-    .yq-users-table td,
-    .yq-user-orders-table td {
-        display: grid;
-        min-width: 0;
-        gap: 0.18rem;
-        padding: 0;
-        border: 0;
-        text-align: start;
-        white-space: normal;
-    }
-
-    .yq-users-table td::before,
-    .yq-user-orders-table td::before {
-        color: var(--yq-admin-muted, #b6b1a6);
-        font-size: 0.7rem;
-        font-weight: 900;
-        line-height: 1.35;
-        content: attr(data-label);
-    }
-
-    .yq-users-table td:nth-child(1) { grid-column: 1; }
-    .yq-users-table td:nth-child(2) { grid-column: 2; }
-    .yq-users-table td:nth-child(3) { grid-column: 1; }
-    .yq-users-table td:nth-child(4) { grid-column: 2; }
-    .yq-users-table td:nth-child(5) { grid-column: 1; }
-    .yq-users-table td:nth-child(6) {
-        grid-column: 2;
-        align-self: start;
-    }
-
-    .yq-user-orders-table td:nth-child(1) { grid-column: 1; }
-    .yq-user-orders-table td:nth-child(2) { grid-column: 2; }
-    .yq-user-orders-table td:nth-child(3) { grid-column: 1; }
-    .yq-user-orders-table td:nth-child(4) { grid-column: 2; }
-    .yq-user-orders-table td:nth-child(5) {
-        grid-column: 1 / -1;
-        border-top: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
-        padding-top: 0.55rem;
-    }
-
-    .yq-users-person {
-        min-width: 0;
-    }
-
-    .yq-users-detail-link {
-        width: 100%;
-        max-width: 100%;
-        justify-content: center;
     }
 }

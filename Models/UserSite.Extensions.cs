@@ -16,11 +16,14 @@ public partial class UserSite
     public string? Email { get; set; }
 
     [NotMapped]
-    public User? User { get; set; }
+    public UsersDatabase.User? User { get; set; }
 
+    [NotMapped]
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
+    [NotMapped]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    [NotMapped]
     public virtual ICollection<Securitylog> Securitylogs { get; set; } = new List<Securitylog>();
 }

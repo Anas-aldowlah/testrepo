@@ -17,6 +17,7 @@ public class OrdersController : Controller
     private readonly CartService _cartService;
     private readonly GuestCartService _guestCartService;
     private readonly DealingAPI _dealingApiService;
+    private readonly StoreSettingsService _settingsService;
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
 
@@ -25,6 +26,7 @@ public class OrdersController : Controller
         CartService cartService,
         GuestCartService guestCartService,
         DealingAPI dealingApiService,
+        StoreSettingsService settingsService,
         NeondbContext context,
         UsersDbContext users)
     {
@@ -33,6 +35,7 @@ public class OrdersController : Controller
         _cartService = cartService;
         _guestCartService = guestCartService;
         _dealingApiService = dealingApiService;
+        _settingsService = settingsService;
         _dbUser = users;
     }
 
@@ -76,25 +79,25 @@ public class OrdersController : Controller
 
         if (!ModelState.IsValid)
         {
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
 
         if (!TryResolveUserId(out var userId))
         {
             ViewData["ShowAuthModal"] = true;
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
 
         try
         {
-            var order = await _orderService.CreateOrderAsync(userId, model);
-            
             string? receiptUrl = null;
             if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
                 Directory.CreateDirectory(uploadsFolder);
-                var fileName = $"receipt_{order.Id}_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(model.ReceiptImage.FileName)}";
+                var fileName = $"receipt_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(model.ReceiptImage.FileName)}";
                 var filePath = Path.Combine(uploadsFolder, fileName);
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
@@ -103,25 +106,24 @@ public class OrdersController : Controller
                 receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
             }
 
-            // Construct WhatsApp link
-            var request = HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
-            var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
-            
-            var textMessage = $"مرحباً، أود تأكيد طلبي.%0Aرقم الطلب: {order.Id}%0Aرابط الطلب: {orderLink}";
-            if (!string.IsNullOrEmpty(receiptUrl))
+            var order = await _orderService.CreateOrderAsync(userId, model, receiptUrl);
+
+            var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
+            if (!string.IsNullOrWhiteSpace(whatsappNumber))
             {
-                textMessage += $"%0Aصورة إيصال الدفع: {baseUrl}{receiptUrl.Replace("~", "")}";
+                var request = HttpContext.Request;
+                var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+                var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
+                var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرابط الطلب: {orderLink}");
+                TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
             }
-            
-            var whatsappUrl = $"https://wa.me/967775458250?text={textMessage}";
-            TempData["WhatsAppUrl"] = whatsappUrl;
 
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
     }
@@ -171,7 +173,8 @@ public class OrdersController : Controller
     {
         var model = new CheckoutVM
         {
-            Cart = cart
+            Cart = cart,
+            PaymentMethods = await _settingsService.GetCheckoutPaymentMethodsAsync()
         };
 
         if (User.Identity?.IsAuthenticated == true)
@@ -189,5 +192,15 @@ public class OrdersController : Controller
         }
 
         return model;
+    }
+
+    private async Task PopulateCheckoutPaymentMethodsAsync(CheckoutVM model)
+    {
+        model.PaymentMethods = await _settingsService.GetCheckoutPaymentMethodsAsync();
+    }
+
+    private static string NormalizeWhatsAppNumber(string? value)
+    {
+        return string.Concat((value ?? string.Empty).Where(char.IsDigit));
     }
 }

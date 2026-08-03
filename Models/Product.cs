@@ -21,6 +21,8 @@ public partial class Product
 
     public DateTime? Createdat { get; set; }
 
+    public string? Brand { get; set; }
+
     public virtual ICollection<Cartitem> Cartitems { get; set; } = new List<Cartitem>();
 
     public virtual Category Category { get; set; } = null!;

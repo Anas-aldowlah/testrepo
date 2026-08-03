@@ -262,4 +262,29 @@ public class OrdersController : Controller
             }
         }
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdatePaymentStatus(int id, string paymentStatus, bool returnToDetails = false)
+    {
+        var order = await _context.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+
+        var allowed = new[] { "Unpaid", "Pending", "Paid", "Refunded" };
+        if (!allowed.Contains(paymentStatus))
+        {
+            TempData["Error"] = "حالة الدفع غير صالحة.";
+            return returnToDetails 
+                ? RedirectToAction(nameof(Details), new { id })
+                : RedirectToAction(nameof(Index));
+        }
+
+        order.Paymentstatus = paymentStatus;
+        await _context.SaveChangesAsync();
+        TempData["Success"] = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.";
+
+        return returnToDetails 
+            ? RedirectToAction(nameof(Details), new { id })
+            : RedirectToAction(nameof(Index));
+    }
 }

@@ -19,7 +19,15 @@ public partial class Order
 
     public DateTime? TimeState { get; set; }
 
-    public virtual ICollection<Orderitem> Orderitems { get; set; } = new List<Orderitem>();
+    public string? Notes { get; set; }
 
-    public virtual UserSite User { get; set; } = null!;
+    public string? Paymentmethod { get; set; }
+
+    public string Paymentstatus { get; set; } = null!;
+
+    public string? Receipturl { get; set; }
+
+    public virtual Orderdetail? Orderdetail { get; set; }
+
+    public virtual ICollection<Orderitem> Orderitems { get; set; } = new List<Orderitem>();
 }

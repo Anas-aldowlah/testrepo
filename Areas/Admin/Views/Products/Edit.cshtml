@@ -84,6 +84,14 @@
                             <span asp-validation-for="Name" id="NameValidation" class="yq-product-validation"></span>
                         </div>
 
+                        <div class="yaqut-form-group yq-product-field yq-product-form-group">
+                            <label class="yq-product-form-label yaqut-form-label" for="productBrand">
+                                <i class="bi bi-building" aria-hidden="true"></i> الشركة المنتجة
+                            </label>
+                            <input id="productBrand" name="Brand" type="text" class="yq-product-form-input yaqut-form-input"
+                                   value="@Model?.Brand" placeholder="مثال: ديور، شانيل، توم فورد..." />
+                        </div>
+
                         <div class="yaqut-form-group yq-product-field">
                             <label asp-for="Description" class="yaqut-form-label">الوصف والهرم العطري</label>
                             <textarea asp-for="Description" rows="6" class="yaqut-form-input" placeholder="مثال: برغموت وبرتقال | ياسمين وورد | عود وعنبر" aria-describedby="DescriptionHelp DescriptionValidation"></textarea>

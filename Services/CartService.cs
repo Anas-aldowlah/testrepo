@@ -34,11 +34,10 @@ public class CartService
             await _context.SaveChangesAsync();
         }
 
-        cart.Cartitems = await _context.Cartitems.Where(ci => ci.Cartid == cart.Id).ToListAsync();
-        foreach (var item in cart.Cartitems)
-        {
-            item.Product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.Productid)!;
-        }
+        cart.Cartitems = await _context.Cartitems
+            .Where(ci => ci.Cartid == cart.Id)
+            .Include(ci => ci.Product)
+            .ToListAsync();
 
         return cart;
     }

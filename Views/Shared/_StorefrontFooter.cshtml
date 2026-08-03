@@ -1,118 +1,140 @@
-@{
-    var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
-    var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
-    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    @inject YAGOT_2._0.Services.StoreSettingsService StoreSettingsService
+    @{
+        var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
+        var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
+        var isAuthenticated = User.Identity?.IsAuthenticated == true;
+        var storeSettings = StoreSettingsService.GetSettings();
+        var whatsappNumber = string.Concat((storeSettings.WhatsAppNumber ?? string.Empty).Where(char.IsDigit));
+        var instagramLink = storeSettings.InstagramLink;
+        var twitterLink = storeSettings.TwitterLink;
+        var tikTokLink = storeSettings.TikTokLink;
+        var hasSocialLinks = !string.IsNullOrWhiteSpace(instagramLink)
+            || !string.IsNullOrWhiteSpace(twitterLink)
+            || !string.IsNullOrWhiteSpace(tikTokLink);
 
-    bool IsActive(string controller, string action = "Index")
-        => string.Equals(routeController, controller, StringComparison.OrdinalIgnoreCase)
-           && string.Equals(routeAction, action, StringComparison.OrdinalIgnoreCase);
+        bool IsActive(string controller, string action = "Index")
+            => string.Equals(routeController, controller, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(routeAction, action, StringComparison.OrdinalIgnoreCase);
 
-    var homeActive = IsActive("Home");
-    var productsActive = IsActive("Products");
-    var categoriesActive = IsActive("Categories");
-    var cartActive = IsActive("Cart");
-    var ordersActive = IsActive("Orders");
-    var whatsappNumber = "967775458250";
-}
+        var homeActive = IsActive("Home");
+        var productsActive = IsActive("Products");
+        var categoriesActive = IsActive("Categories");
+        var cartActive = IsActive("Cart");
+        var ordersActive = IsActive("Orders");
+    }
 
-<footer class="yaqut-footer">
-    <div class="yaqut-footer__inner">
-        <section class="yaqut-footer__lead" aria-labelledby="yaqutFooterLeadTitle">
-            <div>
-                <span class="yaqut-footer__eyebrow">Yaqut Perfumes</span>
-                <h2 id="yaqutFooterLeadTitle">عطور مختارة بعناية لتجربة يومية أكثر فخامة</h2>
+    <footer class="yaqut-footer">
+        <div class="yaqut-footer__inner">
+            <section class="yaqut-footer__lead" aria-labelledby="yaqutFooterLeadTitle">
+                <div>
+                    <span class="yaqut-footer__eyebrow">Yaqut Perfumes</span>
+                    <h2 id="yaqutFooterLeadTitle">عطور مختارة بعناية لتجربة يومية أكثر فخامة</h2>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
+                    <i class="bi bi-bag-heart" aria-hidden="true"></i> تسوق المجموعة
+                </a>
+            </section>
+
+            <div class="yaqut-footer__grid">
+                <div class="yaqut-footer__col yaqut-footer__col--brand">
+                    <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
+                        <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
+                    </span>
+                    <p class="yaqut-footer__tagline">وجهة عربية فاخرة لاختيار العطور الشرقية والغربية، بتجربة شراء هادئة وواضحة من أول تصفح حتى وصول الطلب.</p>
+                    @if (hasSocialLinks)
+                    {
+                        <div class="yaqut-footer__social" aria-label="تابعنا على وسائل التواصل الاجتماعي">
+                            @if (!string.IsNullOrWhiteSpace(instagramLink))
+                            {
+                                <a href="@instagramLink" target="_blank" rel="noopener noreferrer" aria-label="إنستغرام"><i class="bi bi-instagram" aria-hidden="true"></i></a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(twitterLink))
+                            {
+                                <a href="@twitterLink" target="_blank" rel="noopener noreferrer" aria-label="X"><i class="bi bi-twitter-x" aria-hidden="true"></i></a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(tikTokLink))
+                            {
+                                <a href="@tikTokLink" target="_blank" rel="noopener noreferrer" aria-label="تيك توك"><i class="bi bi-tiktok" aria-hidden="true"></i></a>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <nav class="yaqut-footer__col" aria-label="روابط سريعة">
+                    <h3 class="yaqut-footer__col-title">روابط سريعة</h3>
+                    <ul>
+                        <li><a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">الرئيسية</a></li>
+                        <li><a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">المجموعة الكاملة</a></li>
+                        <li><a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">التصنيفات</a></li>
+                        <li><a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">سلة المشتريات</a></li>
+                        @if (isAuthenticated)
+                        {
+                            <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
+                        }
+                        else
+                        {
+                            <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
+                        }
+                    </ul>
+                </nav>
             </div>
-            <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
-                <i class="bi bi-bag-heart" aria-hidden="true"></i> تسوق المجموعة
-            </a>
-        </section>
 
-        <div class="yaqut-footer__grid">
-            <div class="yaqut-footer__col yaqut-footer__col--brand">
-                <span class="yaqut-logo-wrap yaqut-logo-wrap--header">
-                    <img src="~/images/yaqut-logo.png" alt="ياقوت YAQUT" class="yaqut-logo" />
-                </span>
-                <p class="yaqut-footer__tagline">وجهة عربية فاخرة لاختيار العطور الشرقية والغربية، بتجربة شراء هادئة وواضحة من أول تصفح حتى وصول الطلب.</p>
-                <div class="yaqut-footer__social" aria-label="تابعنا على وسائل التواصل الاجتماعي">
-                    <a href="#" aria-label="إنستغرام"><i class="bi bi-instagram" aria-hidden="true"></i></a>
-                    <a href="#" aria-label="تويتر"><i class="bi bi-twitter-x" aria-hidden="true"></i></a>
-                    <a href="#" aria-label="تيك توك"><i class="bi bi-tiktok" aria-hidden="true"></i></a>
-                    <a href="#" aria-label="سناب شات"><i class="bi bi-snapchat" aria-hidden="true"></i></a>
+            <div class="yaqut-footer__bottom">
+                <p class="yaqut-footer__copy">&copy; @DateTime.Now.Year ياقوت للعطور الفاخرة. جميع الحقوق محفوظة.</p>
+                <div class="yaqut-footer__badges">
+                    <span><i class="bi bi-shield-lock" aria-hidden="true"></i> تسوق آمن</span>
+                    <span><i class="bi bi-truck" aria-hidden="true"></i> شحن سريع</span>
                 </div>
             </div>
-
-            <nav class="yaqut-footer__col" aria-label="روابط سريعة">
-                <h3 class="yaqut-footer__col-title">روابط سريعة</h3>
-                <ul>
-                    <li><a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">الرئيسية</a></li>
-                    <li><a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">المجموعة الكاملة</a></li>
-                    <li><a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">التصنيفات</a></li>
-                    <li><a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">سلة المشتريات</a></li>
-                    @if (isAuthenticated)
-                    {
-                        <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
-                    }
-                    else
-                    {
-                        <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
-                    }
-                </ul>
-            </nav>
         </div>
+    </footer>
 
-        <div class="yaqut-footer__bottom">
-            <p class="yaqut-footer__copy">&copy; @DateTime.Now.Year ياقوت للعطور الفاخرة. جميع الحقوق محفوظة.</p>
-            <div class="yaqut-footer__badges">
-                <span><i class="bi bi-shield-lock" aria-hidden="true"></i> تسوق آمن</span>
-                <span><i class="bi bi-truck" aria-hidden="true"></i> شحن سريع</span>
-            </div>
-        </div>
-    </div>
-</footer>
-
-<div class="yq-contact-float"
-     data-yq-contact-widget
-     data-yq-contact-number="@whatsappNumber"
-     data-yq-contact-store-name="ياقوت"
-     aria-label="تواصل سريع">
-    <button type="button"
-            class="yq-contact-float__toggle"
-            data-yq-contact-toggle
-            aria-expanded="false"
-            aria-controls="yqContactPanel">
-        <i class="bi bi-whatsapp" aria-hidden="true"></i>
-        <span>تواصل سريع</span>
-    </button>
-
-    <section class="yq-contact-float__panel" id="yqContactPanel" data-yq-contact-panel hidden aria-label="إرسال ملاحظة عبر واتساب">
-        <header class="yq-contact-float__header">
-            <div>
-                <strong>أرسل ملاحظتك</strong>
-                <p>سيفتح واتساب برسالتك جاهزة للإرسال.</p>
-            </div>
-            <button type="button" class="yq-contact-float__close" data-yq-contact-close aria-label="إغلاق">
-                <i class="bi bi-x-lg" aria-hidden="true"></i>
+    @if (!string.IsNullOrWhiteSpace(whatsappNumber))
+    {
+        <div class="yq-contact-float"
+             data-yq-contact-widget
+             data-yq-contact-number="@whatsappNumber"
+             data-yq-contact-store-name="ياقوت"
+             aria-label="تواصل سريع">
+            <button type="button"
+                    class="yq-contact-float__toggle"
+                    data-yq-contact-toggle
+                    aria-expanded="false"
+                    aria-controls="yqContactPanel">
+                <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                <span>تواصل سريع</span>
             </button>
-        </header>
 
-        <form class="yq-contact-float__form" data-yq-contact-form>
-            <label for="yqQuickContactMessage" class="visually-hidden">ملاحظتك</label>
-            <textarea id="yqQuickContactMessage"
-                      class="yq-contact-float__message"
-                      data-yq-contact-message
-                      rows="4"
-                      placeholder="اكتب ملاحظتك هنا"
-                      required></textarea>
+            <section class="yq-contact-float__panel" id="yqContactPanel" data-yq-contact-panel hidden aria-label="إرسال ملاحظة عبر واتساب">
+                <header class="yq-contact-float__header">
+                    <div>
+                        <strong>أرسل ملاحظتك</strong>
+                        <p>سيفتح واتساب برسالتك جاهزة للإرسال.</p>
+                    </div>
+                    <button type="button" class="yq-contact-float__close" data-yq-contact-close aria-label="إغلاق">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                </header>
 
-            <div class="yq-contact-float__actions">
-                <button type="submit" class="btn-yaqut-gold yq-contact-float__send">
-                    <i class="bi bi-send" aria-hidden="true"></i>
-                    <span>إرسال إلى واتساب</span>
-                </button>
-            </div>
+                <form class="yq-contact-float__form" data-yq-contact-form target="_blank">
+                    <label for="yqQuickContactMessage" class="visually-hidden">ملاحظتك</label>
+                    <textarea id="yqQuickContactMessage"
+                              class="yq-contact-float__message"
+                              data-yq-contact-message
+                              rows="4"
+                              placeholder="اكتب ملاحظتك هنا"
+                              required></textarea>
 
-            <p class="yq-contact-float__hint">سنفتح محادثة واتساب جاهزة بالنص الذي كتبته.</p>
-            <div class="yq-contact-float__feedback visually-hidden" data-yq-contact-feedback aria-live="polite"></div>
-        </form>
-    </section>
-</div>
+                    <div class="yq-contact-float__actions">
+                        <button type="submit" class="btn-yaqut-gold yq-contact-float__send">
+                            <i class="bi bi-send" aria-hidden="true"></i>
+                            <span>إرسال إلى واتساب</span>
+                        </button>
+                    </div>
+
+                    <p class="yq-contact-float__hint">سنفتح محادثة واتساب جاهزة بالنص الذي كتبته.</p>
+                    <div class="yq-contact-float__feedback visually-hidden" data-yq-contact-feedback aria-live="polite"></div>
+                </form>
+            </section>
+        </div>
+    }
