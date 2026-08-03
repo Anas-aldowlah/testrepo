@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ياقوت — Products / Index page interactions
  * (Sort + client-side pagination. Filtering/search stays in yaqut-main.js)
  */
@@ -145,9 +145,45 @@
         });
     }
 
+    /* ── Brand filter (client-side) ── */
+    function applyBrandFilter() {
+        var brandCheckboxes = filtersRoot
+            ? filtersRoot.querySelectorAll('input[name="brand"]:checked')
+            : [];
+        var selectedBrands = Array.prototype.slice.call(brandCheckboxes).map(function (cb) {
+            return cb.value.toLowerCase();
+        });
+
+        var items = getItems();
+        var visibleAfterFilter = 0;
+
+        items.forEach(function (item) {
+            if (selectedBrands.length === 0) {
+                item.style.display = '';
+                visibleAfterFilter++;
+            } else {
+                var itemBrand = (item.dataset.brand || '').toLowerCase();
+                var matches = selectedBrands.indexOf(itemBrand) !== -1;
+                item.style.display = matches ? '' : 'none';
+                if (matches) visibleAfterFilter++;
+            }
+        });
+
+        // Update results count
+        var countEl = document.getElementById('yaqutResultsCount');
+        if (countEl) {
+            countEl.textContent = visibleAfterFilter + ' عطر';
+        }
+    }
+
     if (filtersRoot) {
         filtersRoot.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-            cb.addEventListener('change', disablePagination);
+            cb.addEventListener('change', function () {
+                disablePagination();
+                if (cb.name === 'brand') {
+                    applyBrandFilter();
+                }
+            });
         });
     }
 

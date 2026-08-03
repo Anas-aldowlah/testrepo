@@ -294,3 +294,41 @@
         </div>
     </article>
 </div>
+
+<script>
+(function() {
+    var KEY = 'yq-register-draft';
+    var registerForm = document.querySelector('.yq-register-form');
+    var googleBtn = document.querySelector('.yq-register-google');
+    
+    if (!registerForm) return;
+    
+    // Save form data before Google redirect
+    if (googleBtn) {
+        googleBtn.addEventListener('click', function(e) {
+            var data = {};
+            registerForm.querySelectorAll('input:not([type="hidden"])').forEach(function(input) {
+                if (input.name && input.value) {
+                    data[input.name] = input.value;
+                }
+            });
+            try { sessionStorage.setItem(KEY, JSON.stringify(data)); } catch(err) {}
+        });
+    }
+    
+    // Restore form data after return from Google
+    try {
+        var saved = sessionStorage.getItem(KEY);
+        if (saved) {
+            var data = JSON.parse(saved);
+            Object.keys(data).forEach(function(name) {
+                var input = registerForm.querySelector('input[name="' + name + '"]');
+                if (input && !input.value) {
+                    input.value = data[name];
+                }
+            });
+            sessionStorage.removeItem(KEY);
+        }
+    } catch(err) {}
+})();
+</script>

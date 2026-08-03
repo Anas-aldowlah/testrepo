@@ -7,7 +7,6 @@ public class AdminCategoriesIndexViewModel
     public PagedResult<AdminCategoryListItemViewModel> Categories { get; init; } = new();
     public int TotalCategories { get; init; }
     public int TotalProducts { get; init; }
-    public int CategoriesWithImages { get; init; }
 }
 
 public class AdminCategoryListItemViewModel

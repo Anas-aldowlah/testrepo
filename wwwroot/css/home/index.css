@@ -318,7 +318,8 @@
     gap: 4rem;
     align-items: center;
     width: max-content;
-    animation: yqMarquee 30s linear infinite;
+    animation: yqMarquee 22s linear infinite;
+    will-change: transform;
 }
 
     .yq-home-brands__track:hover {
@@ -331,11 +332,14 @@
     }
 
     100% {
-        transform: translateX(-50%);
+        transform: translateX(calc(-100% - 100vw));
     }
 }
 
 .yq-brand-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 1.5rem;
     font-weight: 800;
     font-family: var(--yq-font-display);
@@ -343,13 +347,20 @@
     opacity: 0.6;
     transition: opacity 0.3s ease, color 0.3s ease, transform 0.3s ease;
     white-space: nowrap;
-    cursor: default;
+    cursor: pointer;
+    text-decoration: none;
 }
 
-    .yq-brand-name:hover {
+    .yq-brand-name:hover,
+    .yq-brand-name:focus-visible {
         opacity: 1;
         color: var(--yq-text);
         transform: scale(1.05);
+    }
+
+    .yq-brand-name:focus-visible {
+        outline: 2px solid var(--yq-gold);
+        outline-offset: 0.35rem;
     }
 
 .yq-brand-name--highlight {

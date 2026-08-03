@@ -8,5 +8,6 @@ namespace YAGOT_2._0.Services
        
         public List<Category> Categories { get; set; }
         public List<Product> Products { get; set; }
+        public StoreSettings StoreSettings { get; set; } = new();
     }
 }

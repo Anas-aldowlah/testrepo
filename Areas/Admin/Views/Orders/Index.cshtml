@@ -158,10 +158,7 @@
                 <span class="yq-orders-eyebrow">قائمة الإدارة</span>
                 <h3 id="ordersTableTitle">جميع الطلبات</h3>
             </div>
-            <div class="yq-orders-panel__note">
-                <i class="bi bi-info-circle" aria-hidden="true"></i>
-                <span>حالة الدفع غير متوفرة في بيانات الطلب الحالية</span>
-            </div>
+
         </div>
 
         @if (orders.Any())
@@ -251,7 +248,17 @@
                                     </div>
                                 </td>
                                 <td data-label="حالة الدفع">
-                                    <span class="yq-orders-badge yq-orders-badge--neutral">غير متوفر</span>
+                                    <form asp-action="UpdatePaymentStatus" method="post" class="yq-order-payment-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <select name="paymentStatus" class="yq-order-status-select yq-payment-status-select" 
+                                                onchange="this.form.submit()" aria-label="حالة الدفع">
+                                            <option value="Unpaid" selected="@(order.Paymentstatus == "Unpaid" ? "selected" : null)">غير مدفوع</option>
+                                            <option value="Pending" selected="@(order.Paymentstatus == "Pending" ? "selected" : null)">قيد المراجعة</option>
+                                            <option value="Paid" selected="@(order.Paymentstatus == "Paid" ? "selected" : null)">مدفوع</option>
+                                            <option value="Refunded" selected="@(order.Paymentstatus == "Refunded" ? "selected" : null)">مسترد</option>
+                                        </select>
+                                    </form>
                                 </td>
                                 <td data-label="حالة الطلب">
                                     <span class="yq-orders-badge @statusClass">@statusLabel</span>
@@ -281,17 +288,14 @@
                                                 <input type="hidden" name="filterStatus" value="@filterStatus" />
                                             }
                                             <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
-                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select">
+                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" onchange="this.form.submit()">
                                                 <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
                                                 <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
                                                 <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
                                                 <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
                                                 <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
                                             </select>
-                                            <button type="submit" class="yq-orders-action-button">
-                                                <i class="bi bi-check2" aria-hidden="true"></i>
-                                                <span>تحديث</span>
-                                            </button>
+
                                         </form>
                                     </div>
                                 </td>

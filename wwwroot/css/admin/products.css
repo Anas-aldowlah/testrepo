@@ -1023,3 +1023,78 @@
         min-width: 0;
     }
 }
+
+/* DESKTOP TABLE LAYOUT FIX */
+@media (min-width: 769px) {
+    .yq-products-table {
+        table-layout: fixed;
+    }
+
+    .yq-products-table th:nth-child(1),
+    .yq-products-table td:nth-child(1) {
+        width: 35%;
+    }
+
+    .yq-products-table th:nth-child(2),
+    .yq-products-table td:nth-child(2) {
+        width: 15%;
+    }
+
+    .yq-products-table th:nth-child(3),
+    .yq-products-table td:nth-child(3) {
+        width: 15%;
+    }
+
+    .yq-products-table th:nth-child(4),
+    .yq-products-table td:nth-child(4) {
+        width: 10%;
+    }
+
+    .yq-products-table th:nth-child(5),
+    .yq-products-table td:nth-child(5) {
+        width: 10%;
+    }
+
+    .yq-products-table th:nth-child(6),
+    .yq-products-table td:nth-child(6) {
+        width: 5%;
+    }
+
+    .yq-products-table th:nth-child(7),
+    .yq-products-table td:nth-child(7) {
+        width: 10%;
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .yq-products-table td:nth-child(7),
+    .yq-products-table tbody td[data-label="الإجراءات"] {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+        padding-top: 0.55rem;
+    }
+
+    .yq-products-table tbody td[data-label="الإجراءات"] .yq-products-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .yq-products-table tbody td[data-label="الإجراءات"] .yq-products-actions form {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .yq-products-table tbody td[data-label="الإجراءات"] .yq-products-action {
+        width: 100%;
+        max-width: 100%;
+        min-height: 42px;
+        height: 42px;
+        padding: 0.45rem 0.65rem;
+        flex: 0 0 auto;
+    }
+}

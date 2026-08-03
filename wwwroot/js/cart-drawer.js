@@ -470,18 +470,6 @@
         }
 
         shipping.hidden = false;
-        if (summary.qualifiesForFreeShipping) {
-            shippingLabel.textContent = 'طلبك مؤهل للشحن المجاني';
-            shippingValue.textContent = 'مكتمل';
-            shippingProgress.style.width = '100%';
-            return;
-        }
-
-        var remaining = Math.max(0, threshold - summary.subtotal);
-        var progress = Math.max(0, Math.min(100, (summary.subtotal / threshold) * 100));
-        shippingLabel.textContent = 'اقتربت من الشحن المجاني';
-        shippingValue.textContent = remaining.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' ر.س';
-        shippingProgress.style.width = progress + '%';
     }
 
     function renderCart(doc, options) {

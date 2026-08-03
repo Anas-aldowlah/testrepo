@@ -222,10 +222,20 @@
                         <h3 id="orderNotesTitle">ملاحظات الطلب</h3>
                     </div>
                 </div>
-                <div class="yq-order-details-state-note">
-                    <i class="bi bi-journal-text" aria-hidden="true"></i>
-                    <span>لا يدعم نموذج الطلب الحالي ملاحظات إدارية أو ملاحظات عميل.</span>
-                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                {
+                    <div class="yq-order-details-state-note">
+                        <i class="bi bi-journal-text" aria-hidden="true"></i>
+                        <span>@Model.Notes</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="yq-order-details-state-note">
+                        <i class="bi bi-journal-text" aria-hidden="true"></i>
+                        <span>لا توجد ملاحظات على هذا الطلب.</span>
+                    </div>
+                }
             </section>
         </div>
 
@@ -302,19 +312,6 @@
                 </dl>
             </section>
 
-            <section class="yq-order-detail-card" aria-labelledby="billingInfoTitle">
-                <div class="yq-order-detail-card__header">
-                    <div>
-                        <span class="yq-orders-eyebrow">الفوترة</span>
-                        <h3 id="billingInfoTitle">معلومات الفوترة</h3>
-                    </div>
-                </div>
-                <div class="yq-order-details-state-note">
-                    <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
-                    <span>معلومات الفوترة غير متوفرة في نموذج الطلب الحالي.</span>
-                </div>
-            </section>
-
             <section class="yq-order-detail-card" aria-labelledby="paymentInfoTitle">
                 <div class="yq-order-detail-card__header">
                     <div>
@@ -325,12 +322,37 @@
                 <dl class="yq-order-info-list">
                     <div>
                         <dt>طريقة الدفع</dt>
-                        <dd>غير متوفرة في بيانات الطلب الحالية</dd>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.Paymentmethod) ? "غير متوفرة" : Model.Paymentmethod)</dd>
                     </div>
                     <div>
                         <dt>حالة الدفع</dt>
-                        <dd><span class="yq-orders-badge yq-orders-badge--neutral">غير متوفرة</span></dd>
+                        <dd>
+                            @{
+                                var paymentClass = Model.Paymentstatus switch
+                                {
+                                    "Paid" => "yq-orders-badge--success",
+                                    "Pending" => "yq-orders-badge--warning",
+                                    "Refunded" => "yq-orders-badge--danger",
+                                    _ => "yq-orders-badge--neutral"
+                                };
+                                var paymentLabel = Model.Paymentstatus switch
+                                {
+                                    "Paid" => "مدفوع",
+                                    "Pending" => "قيد المراجعة",
+                                    "Refunded" => "مسترد",
+                                    _ => "غير مدفوع"
+                                };
+                            }
+                            <span class="yq-orders-badge @paymentClass">@paymentLabel</span>
+                        </dd>
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Receipturl))
+                    {
+                        <div>
+                            <dt>إيصال الدفع</dt>
+                            <dd><a href="@Model.Receipturl" target="_blank" rel="noopener noreferrer">عرض الإيصال <i class="bi bi-box-arrow-up-right"></i></a></dd>
+                        </div>
+                    }
                 </dl>
             </section>
 

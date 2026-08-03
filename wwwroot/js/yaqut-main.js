@@ -240,10 +240,10 @@
     /* ═══ FORM VALIDATION (التحقق الفوري والذكي) ═══ */
     function initFormValidation() {
         var forms = document.querySelectorAll('form[data-yq-validate]');
-        
+
         forms.forEach(function (form) {
             var inputs = form.querySelectorAll('input[required], input[minlength], input[type="tel"]');
-            
+
             // التحقق عند الإرسال
             form.addEventListener('submit', function (e) {
                 var isValid = true;
@@ -414,12 +414,7 @@
             if (!supportNumber) return;
             var text = encodeURIComponent(buildMessage(note));
             var url = 'https://wa.me/' + supportNumber + '?text=' + text;
-            var popup = window.open(url, '_blank', 'noopener,noreferrer');
-            if (popup) {
-                popup.opener = null;
-            } else {
-                window.location.href = url;
-            }
+            window.open(url, '_blank');
         }
 
         if (toggle) {

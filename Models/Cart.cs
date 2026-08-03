@@ -12,6 +12,4 @@ public partial class Cart
     public DateTime? Createdat { get; set; }
 
     public virtual ICollection<Cartitem> Cartitems { get; set; } = new List<Cartitem>();
-
-    public virtual UserSite User { get; set; } = null!;
 }

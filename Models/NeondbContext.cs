@@ -25,11 +25,19 @@ public partial class NeondbContext : DbContext
 
     public virtual DbSet<Order> Orders { get; set; }
 
+    public virtual DbSet<Orderdetail> Orderdetails { get; set; }
+
     public virtual DbSet<Orderitem> Orderitems { get; set; }
+
+    public virtual DbSet<Paymentmethod> Paymentmethods { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Securitylog> Securitylogs { get; set; }
+
+    public virtual DbSet<Storesetting> Storesettings { get; set; }
+
+    public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserSite> UserSites { get; set; }
 
@@ -37,7 +45,7 @@ public partial class NeondbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=ep-floral-forest-al2seqtv-pooler.c-3.eu-central-1.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=npg_KPysbZlLh54g;SSL Mode=Require;Trust Server Certificate=true");
+        => optionsBuilder.UseNpgsql("Host=ep-floral-forest-al2seqtv.c-3.eu-central-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_KPysbZlLh54g;SSL Mode=Require;Trust Server Certificate=true");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,11 +61,6 @@ public partial class NeondbContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
             entity.Property(e => e.Userid).HasColumnName("userid");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Carts)
-                .HasForeignKey(d => d.Userid)
-                .HasPrincipalKey(e => e.UserId)
-                .HasConstraintName("fk_user_cart");
         });
 
         modelBuilder.Entity<Cartitem>(entity =>
@@ -130,10 +133,21 @@ public partial class NeondbContext : DbContext
             entity.ToTable("orders");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Notes)
+                .HasMaxLength(500)
+                .HasColumnName("notes");
             entity.Property(e => e.Orderdate)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("orderdate");
+            entity.Property(e => e.Paymentmethod)
+                .HasMaxLength(50)
+                .HasColumnName("paymentmethod");
+            entity.Property(e => e.Paymentstatus)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'Unpaid'::character varying")
+                .HasColumnName("paymentstatus");
+            entity.Property(e => e.Receipturl).HasColumnName("receipturl");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -147,11 +161,58 @@ public partial class NeondbContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("trackingnumber");
             entity.Property(e => e.Userid).HasColumnName("userid");
+        });
 
-            entity.HasOne(d => d.User).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.Userid)
-                .HasPrincipalKey(e => e.UserId)
-                .HasConstraintName("fk_user_order");
+        modelBuilder.Entity<Orderdetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("orderdetails_pkey");
+
+            entity.ToTable("orderdetails");
+
+            entity.HasIndex(e => e.Orderid, "IX_orderdetails_orderid").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Accountname)
+                .HasMaxLength(150)
+                .HasColumnName("accountname");
+            entity.Property(e => e.Accountnumber)
+                .HasMaxLength(100)
+                .HasColumnName("accountnumber");
+            entity.Property(e => e.Createdat)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.District)
+                .HasMaxLength(100)
+                .HasColumnName("district");
+            entity.Property(e => e.Fulladdress).HasColumnName("fulladdress");
+            entity.Property(e => e.Governorate)
+                .HasMaxLength(100)
+                .HasColumnName("governorate");
+            entity.Property(e => e.Orderid).HasColumnName("orderid");
+            entity.Property(e => e.Paymentimagepath).HasColumnName("paymentimagepath");
+            entity.Property(e => e.Paymentmethod)
+                .HasMaxLength(100)
+                .HasColumnName("paymentmethod");
+            entity.Property(e => e.Paymentnotes).HasColumnName("paymentnotes");
+            entity.Property(e => e.Recipientname)
+                .HasMaxLength(150)
+                .HasColumnName("recipientname");
+            entity.Property(e => e.Recipientphone)
+                .HasMaxLength(50)
+                .HasColumnName("recipientphone");
+            entity.Property(e => e.Region)
+                .HasMaxLength(100)
+                .HasColumnName("region");
+            entity.Property(e => e.Transferreferencenumber)
+                .HasMaxLength(100)
+                .HasColumnName("transferreferencenumber");
+            entity.Property(e => e.Updatedat)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updatedat");
+
+            entity.HasOne(d => d.Order).WithOne(p => p.Orderdetail)
+                .HasForeignKey<Orderdetail>(d => d.Orderid)
+                .HasConstraintName("fk_orderdetails_order");
         });
 
         modelBuilder.Entity<Orderitem>(entity =>
@@ -178,6 +239,43 @@ public partial class NeondbContext : DbContext
                 .HasConstraintName("fk_product_order");
         });
 
+        modelBuilder.Entity<Paymentmethod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("paymentmethods_pkey");
+
+            entity.ToTable("paymentmethods");
+
+            entity.HasIndex(e => e.Storesettingsid, "ix_paymentmethods_storesettingsid");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Accountholdername)
+                .HasMaxLength(200)
+                .HasColumnName("accountholdername");
+            entity.Property(e => e.Accountnumber)
+                .HasMaxLength(200)
+                .HasColumnName("accountnumber");
+            entity.Property(e => e.Cardcolor)
+                .HasMaxLength(20)
+                .HasColumnName("cardcolor");
+            entity.Property(e => e.Instructions).HasColumnName("instructions");
+            entity.Property(e => e.Isactive)
+                .HasDefaultValue(true)
+                .HasColumnName("isactive");
+            entity.Property(e => e.Name)
+                .HasMaxLength(200)
+                .HasColumnName("name");
+            entity.Property(e => e.Storesettingsid)
+                .HasDefaultValue(1)
+                .HasColumnName("storesettingsid");
+            entity.Property(e => e.Type)
+                .HasMaxLength(50)
+                .HasColumnName("type");
+
+            entity.HasOne(d => d.Storesettings).WithMany(p => p.Paymentmethods)
+                .HasForeignKey(d => d.Storesettingsid)
+                .HasConstraintName("fk_paymentmethods_storesettings");
+        });
+
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("products_pkey");
@@ -185,6 +283,9 @@ public partial class NeondbContext : DbContext
             entity.ToTable("products");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Brand)
+                .HasMaxLength(150)
+                .HasColumnName("brand");
             entity.Property(e => e.Categoryid).HasColumnName("categoryid");
             entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
@@ -227,12 +328,62 @@ public partial class NeondbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("riskscore");
             entity.Property(e => e.Userid).HasColumnName("userid");
+        });
 
-            entity.HasOne(d => d.User).WithMany(p => p.Securitylogs)
-                .HasForeignKey(d => d.Userid)
-                .HasPrincipalKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_user_logs");
+        modelBuilder.Entity<Storesetting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("storesettings_pkey");
+
+            entity.ToTable("storesettings");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Contactemail)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("contactemail");
+            entity.Property(e => e.Featuredcategoryid).HasColumnName("featuredcategoryid");
+            entity.Property(e => e.Heromarketingdesc)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("heromarketingdesc");
+            entity.Property(e => e.Heromarketingtext)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("heromarketingtext");
+            entity.Property(e => e.Instagramlink)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("instagramlink");
+            entity.Property(e => e.Tiktoklink)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("tiktoklink");
+            entity.Property(e => e.Twitterlink)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("twitterlink");
+            entity.Property(e => e.Whatsappnumber)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("whatsappnumber");
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_pkey");
+
+            entity.ToTable("users");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Createdat)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Email)
+                .HasMaxLength(260)
+                .HasColumnName("email");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+            entity.Property(e => e.Passwordhash).HasColumnName("passwordhash");
+            entity.Property(e => e.Phone).HasColumnName("phone");
+            entity.Property(e => e.Role)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'Customer'::character varying")
+                .HasColumnName("role");
         });
 
         modelBuilder.Entity<UserSite>(entity =>

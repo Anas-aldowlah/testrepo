@@ -1,4 +1,4 @@
-@model YAGOT_2._0.Models.Admin.AdminUsersIndexViewModel
+﻿@model YAGOT_2._0.Models.Admin.AdminUsersIndexViewModel
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "إدارة المستخدمين";
@@ -67,14 +67,7 @@
                                 </td>
                                 <td data-label="رقم الجوال">
                                     <span class="yq-users-phone">
-                                        @if (user.Role == "Developer")
-                                        {
-                                            <span>775458250</span>
-                                        }
-                                        else
-                                        {
-                                            @user.Phone
-                                        }
+                                        @(string.IsNullOrWhiteSpace(user.Phone) ? "غير متوفر" : user.Phone)
                                     </span>
                                 </td>
                                 <td data-label="الدور">

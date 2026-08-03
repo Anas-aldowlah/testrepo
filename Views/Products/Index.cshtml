@@ -3,23 +3,41 @@
     var categories = ViewBag.Categories as List<YAGOT_2._0.Models.Category>;
     int? currentCategoryId = ViewBag.CategoryId as int?;
     var searchTerm = Context.Request.Query["search"].ToString();
+    var selectedBrand = Context.Request.Query["brand"].ToString();
     var isSearchMode = !string.IsNullOrWhiteSpace(searchTerm);
+    var isBrandMode = !string.IsNullOrWhiteSpace(selectedBrand);
     var productList = Model.ToList();
+
+    if (isBrandMode)
+    {
+        productList = productList
+            .Where(p => string.Equals(p.Brand, selectedBrand, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 
     if (isSearchMode)
     {
         productList = productList
             .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                     || (p.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                     || (p.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+                     || (p.Brand?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
     }
 
     ViewData["Title"] = isSearchMode
         ? $"نتائج البحث: {searchTerm}"
-        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور");
+        : (isBrandMode ? $"منتجات: {selectedBrand}"
+        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور"));
 
     var familyNames = categories?.Select(c => c.Name).Distinct().ToList() ?? new List<string>();
-    var hasActiveFilter = ViewBag.CategoryName != null || isSearchMode;
+    var brandNames = productList
+        .Where(p => !string.IsNullOrWhiteSpace(p.Brand))
+        .Select(p => p.Brand!.Trim())
+        .Where(brand => brand != "-")
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(brand => brand)
+        .ToList();
+    var hasActiveFilter = ViewBag.CategoryName != null || isSearchMode || isBrandMode;
 }
 
 @section Styles {
@@ -33,11 +51,11 @@
         <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
             <a asp-controller="Home" asp-action="Index">الرئيسية</a>
             <i class="bi bi-chevron-left"></i>
-            @if (isSearchMode)
+            @if (isSearchMode || isBrandMode)
             {
                 <a asp-action="Index">المجموعة</a>
                 <i class="bi bi-chevron-left"></i>
-                <span>نتائج البحث</span>
+                <span>@(isBrandMode && !isSearchMode ? "الشركة المنتجة" : "نتائج البحث")</span>
             }
             else
             {
@@ -47,19 +65,19 @@
             }
         </nav>
 
-        @if (isSearchMode)
+        @if (isSearchMode || isBrandMode)
         {
             <div class="yq-search-banner">
-                <div class="yq-search-banner__icon"><i class="bi bi-search"></i></div>
+                <div class="yq-search-banner__icon"><i class="bi @(isBrandMode && !isSearchMode ? "bi-building" : "bi-search")"></i></div>
                 <div class="yq-search-banner__text">
-                    <span class="yq-search-banner__label">نتائج البحث عن</span>
-                    <h1 class="yq-search-banner__query">"@searchTerm"</h1>
+                    <span class="yq-search-banner__label">@(isBrandMode && !isSearchMode ? "منتجات الشركة" : "نتائج البحث عن")</span>
+                    <h1 class="yq-search-banner__query">"@(isBrandMode && !isSearchMode ? selectedBrand : searchTerm)"</h1>
                     <p class="yq-search-banner__count">
                         تم العثور على <strong>@productList.Count</strong> @(productList.Count == 1 ? "منتج" : "منتجات")
                     </p>
                 </div>
                 <a asp-action="Index" class="yq-search-banner__clear">
-                    <i class="bi bi-x-circle"></i> إزالة البحث
+                    <i class="bi bi-x-circle"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")
                 </a>
             </div>
         }
@@ -93,13 +111,13 @@
     @if (categories != null && categories.Any())
     {
         <nav class="yq-shop-pills yq-reveal" aria-label="تصفية حسب العائلة العطرية">
-            <a asp-action="Index" asp-route-search="@searchTerm"
+            <a asp-action="Index" asp-route-search="@searchTerm" asp-route-brand="@selectedBrand"
                class="yq-shop-pill @(currentCategoryId == null ? "is-active" : "")">
                 <i class="bi bi-grid"></i> الكل
             </a>
             @foreach (var cat in categories)
             {
-                <a asp-action="Index" asp-route-categoryId="@cat.Id" asp-route-search="@searchTerm"
+                <a asp-action="Index" asp-route-categoryId="@cat.Id" asp-route-search="@searchTerm" asp-route-brand="@selectedBrand"
                    class="yq-shop-pill @(currentCategoryId == cat.Id ? "is-active" : "")">
                     @cat.Name
                 </a>
@@ -170,6 +188,22 @@
                     </div>
                 </div>
             }
+
+            @if (brandNames.Any())
+            {
+                <div class="yq-shop-filter-group">
+                    <span class="yq-shop-filter-group__label">الشركة المنتجة</span>
+                    <div class="yq-shop-filter-options">
+                        @foreach (var brand in brandNames)
+                        {
+                            var isSelectedBrand = string.Equals(brand, selectedBrand, StringComparison.OrdinalIgnoreCase);
+                            <label class="yq-shop-filter-option">
+                                <input type="checkbox" name="brand" value="@brand" @(isSelectedBrand ? "checked" : "") /> @brand
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
         </aside>
 
         <!-- PRODUCT GRID -->
@@ -185,7 +219,8 @@
                         <div class="yq-col-item"
                              data-price="@item.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                              data-created="@createdMs"
-                             data-name="@item.Name">
+                             data-name="@item.Name"
+                             data-brand="@(item.Brand ?? "")">
                             <partial name="_ProductCard" model="item" />
                         </div>
                     }
@@ -198,13 +233,15 @@
                     </button>
                 </div>
             }
-            else if (isSearchMode)
+            else if (isSearchMode || isBrandMode)
             {
                 <div class="yaqut-empty yq-glass yq-search-empty">
                     <i class="bi bi-search yaqut-empty__icon"></i>
-                    <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@searchTerm"</h2>
+                    <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@(isBrandMode && !isSearchMode ? selectedBrand : searchTerm)"</h2>
                     <p class="yaqut-empty__text">
-                        تأكد من كتابة الاسم بشكل صحيح، أو جرّب كلمات بحث أخرى أو أكثر عمومية.
+                        @(isBrandMode && !isSearchMode
+                            ? "لا توجد منتجات مرتبطة بهذه الشركة حالياً. جرّب شركة أخرى أو اعرض جميع العطور."
+                            : "تأكد من كتابة الاسم بشكل صحيح، أو جرّب كلمات بحث أخرى أو أكثر عمومية.")
                     </p>
 
                     @if (categories != null && categories.Any())

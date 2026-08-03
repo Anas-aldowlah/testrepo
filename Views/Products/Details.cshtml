@@ -239,6 +239,15 @@
                                 <span class="yq-pdp-quick-specs__val">@Model.Category.Name</span>
                             </li>
                         }
+                        @if (!string.IsNullOrWhiteSpace(Model.Brand))
+                        {
+                            <li>
+                                <span class="yq-pdp-quick-specs__key"><i class="bi bi-building"></i> الشركة</span>
+                                <span class="yq-pdp-quick-specs__val">
+                                    <a asp-controller="Products" asp-action="Index" asp-route-search="@Model.Brand" style="color:inherit;text-decoration:underline dotted">@Model.Brand</a>
+                                </span>
+                            </li>
+                        }
                         <li>
                             <span class="yq-pdp-quick-specs__key"><i class="bi bi-box-seam"></i> الحالة</span>
                             <span class="yq-pdp-quick-specs__val @(inStock ? "text-green" : "text-red")">

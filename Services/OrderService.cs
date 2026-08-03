@@ -8,14 +8,6 @@ public class OrderService
 {
     private readonly NeondbContext _context;
     private readonly CartService _cartService;
-    private static readonly HashSet<string> AllowedPaymentMethods = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "al-amqi",
-        "bin-dawl",
-        "al-basiri",
-        "other"
-    };
-
     public int NextOrderId()
     {
         return _context.Orders.Any() ? _context.Orders.Max(o => o.Id) + 1 : 1;
@@ -32,7 +24,7 @@ public class OrderService
         _cartService = cartService;
     }
 
-    public async Task<Order> CreateOrderAsync(int userId, CheckoutVM checkout)
+    public async Task<Order> CreateOrderAsync(int userId, CheckoutVM checkout, string? receiptUrl = null)
     {
         ValidateCheckout(checkout);
 
@@ -58,7 +50,11 @@ public class OrderService
             Orderdate = DateTime.UtcNow,
             Status = "Pending",
             Totalamount = cart.Cartitems.Sum(i => i.Quantity * (i.Product?.Price ?? 0)),
-            Trackingnumber = $"YAG-{Guid.NewGuid().ToString()[..8].ToUpper()}"
+            Trackingnumber = $"YAG-{Guid.NewGuid().ToString()[..8].ToUpper()}",
+            Paymentmethod = checkout.PaymentMethod,
+            Paymentstatus = receiptUrl != null ? "Pending" : "Unpaid",
+            Receipturl = receiptUrl,
+            Notes = checkout.DeliveryNotes
         };
         _context.Orders.Add(order);
 
@@ -69,7 +65,8 @@ public class OrderService
             Phonenumber = checkout.CustomerPhone,
             Governorate = checkout.Governorate,
             City = checkout.City,
-            District = checkout.District
+            District = checkout.District,
+            Secondphonenumber = checkout.Street
         });
 
         // إنشاء عناصر الطلب (بدون Product حتى لا يحاول EF إعادة حفظه)
@@ -95,7 +92,7 @@ public class OrderService
         return order;
     }
 
-    private static void ValidateCheckout(CheckoutVM checkout)
+    private void ValidateCheckout(CheckoutVM checkout)
     {
         if (checkout == null)
             throw new ArgumentNullException(nameof(checkout));
@@ -118,8 +115,20 @@ public class OrderService
         if (string.IsNullOrWhiteSpace(checkout.Street))
             throw new InvalidOperationException("الشارع أو العنوان مطلوب.");
 
-        if (string.IsNullOrWhiteSpace(checkout.PaymentMethod) || !AllowedPaymentMethods.Contains(checkout.PaymentMethod))
+        if (string.IsNullOrWhiteSpace(checkout.PaymentMethod) || !IsAllowedPaymentMethod(checkout.PaymentMethod))
             throw new InvalidOperationException("الرجاء اختيار طريقة دفع صحيحة.");
+    }
+
+    private bool IsAllowedPaymentMethod(string paymentMethod)
+    {
+        var normalized = paymentMethod.Trim().ToLowerInvariant();
+        if (normalized is "al-amqi" or "bin-dawl" or "al-basiri" or "other")
+        {
+            return true;
+        }
+
+        return _context.Paymentmethods.Any(method =>
+            method.Isactive && method.Type.ToLower() == normalized);
     }
 
     public Task<IEnumerable<Order>> GetUserOrdersAsync(int userId)

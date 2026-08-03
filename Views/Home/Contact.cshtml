@@ -1,7 +1,15 @@
 ﻿@model YAGOT_2._0.Models.ContactMessageVM
+@inject YAGOT_2._0.Services.StoreSettingsService StoreSettingsService
 @{
     ViewData["Title"] = "تواصل معنا | ياقوت";
     var isSuccess = TempData["ContactSuccess"] != null;
+    var storeSettings = StoreSettingsService.GetSettings();
+    var whatsappNumber = string.Concat((storeSettings.WhatsAppNumber ?? string.Empty).Where(char.IsDigit));
+    var hasContactInfo = !string.IsNullOrWhiteSpace(whatsappNumber)
+        || !string.IsNullOrWhiteSpace(storeSettings.ContactEmail)
+        || !string.IsNullOrWhiteSpace(storeSettings.InstagramLink)
+        || !string.IsNullOrWhiteSpace(storeSettings.TwitterLink)
+        || !string.IsNullOrWhiteSpace(storeSettings.TikTokLink);
 }
 
 @section Styles {
@@ -25,19 +33,52 @@
         <aside class="yq-contact-info yq-reveal">
             <div class="yq-contact-info__card yq-glass">
                 <h2 class="yq-contact-info__title">طرق التواصل</h2>
-                <p class="yq-contact-info__note">
-                    قنوات التواصل المباشرة (الهاتف والبريد الإلكتروني وموقع المتجر) قيد الإضافة قريباً.
-                </p>
+                @if (!hasContactInfo)
+                {
+                    <p class="yq-contact-info__note">
+                        لم تتم إضافة قنوات التواصل بعد.
+                    </p>
+                }
+                else
+                {
+                    @if (!string.IsNullOrWhiteSpace(whatsappNumber))
+                    {
+                        <p class="yq-contact-info__note">
+                            <i class="bi bi-whatsapp"></i>
+                            <a href="https://wa.me/@whatsappNumber" target="_blank" rel="noopener noreferrer">@storeSettings.WhatsAppNumber</a>
+                        </p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(storeSettings.ContactEmail))
+                    {
+                        <p class="yq-contact-info__note">
+                            <i class="bi bi-envelope"></i>
+                            <a href="mailto:@storeSettings.ContactEmail">@storeSettings.ContactEmail</a>
+                        </p>
+                    }
+                }
 
-                <div class="yq-contact-social">
-                    <span class="yq-contact-social__label">تابعنا</span>
-                    <div class="yq-contact-social__links">
-                        <a href="#" aria-label="إنستغرام"><i class="bi bi-instagram"></i></a>
-                        <a href="#" aria-label="تويتر"><i class="bi bi-twitter-x"></i></a>
-                        <a href="#" aria-label="تيك توك"><i class="bi bi-tiktok"></i></a>
-                        <a href="#" aria-label="سناب شات"><i class="bi bi-snapchat"></i></a>
+                @if (!string.IsNullOrWhiteSpace(storeSettings.InstagramLink)
+                    || !string.IsNullOrWhiteSpace(storeSettings.TwitterLink)
+                    || !string.IsNullOrWhiteSpace(storeSettings.TikTokLink))
+                {
+                    <div class="yq-contact-social">
+                        <span class="yq-contact-social__label">تابعنا</span>
+                        <div class="yq-contact-social__links">
+                            @if (!string.IsNullOrWhiteSpace(storeSettings.InstagramLink))
+                            {
+                                <a href="@storeSettings.InstagramLink" target="_blank" rel="noopener noreferrer" aria-label="إنستغرام"><i class="bi bi-instagram"></i></a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(storeSettings.TwitterLink))
+                            {
+                                <a href="@storeSettings.TwitterLink" target="_blank" rel="noopener noreferrer" aria-label="X"><i class="bi bi-twitter-x"></i></a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(storeSettings.TikTokLink))
+                            {
+                                <a href="@storeSettings.TikTokLink" target="_blank" rel="noopener noreferrer" aria-label="تيك توك"><i class="bi bi-tiktok"></i></a>
+                            }
+                        </div>
                     </div>
-                </div>
+                }
             </div>
 
             <div class="yq-contact-info__card yq-glass">

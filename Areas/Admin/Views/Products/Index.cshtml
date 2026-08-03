@@ -104,6 +104,7 @@
                         <tr>
                             <th scope="col">المنتج</th>
                             <th scope="col">التصنيف</th>
+                            <th scope="col">الشركة</th>
                             <th scope="col">السعر</th>
                             <th scope="col">المخزون</th>
                             <th scope="col">الحالة</th>
@@ -137,6 +138,9 @@
                                 </td>
                                 <td data-label="التصنيف">
                                     <span class="yq-products-category">@(p.Category?.Name ?? "-")</span>
+                                </td>
+                                <td data-label="الشركة">
+                                    <span class="yq-products-brand">@(p.Brand ?? "-")</span>
                                 </td>
                                 <td data-label="السعر">
                                     <div class="yq-products-price">

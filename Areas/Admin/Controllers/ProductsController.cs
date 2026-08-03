@@ -47,6 +47,7 @@ public class ProductsController : Controller
             filteredQuery = filteredQuery.Where(p =>
                 p.Name.Contains(search) ||
                 (!string.IsNullOrWhiteSpace(p.Description) && p.Description.Contains(search)) ||
+                (!string.IsNullOrWhiteSpace(p.Brand) && p.Brand.Contains(search)) ||
                 (p.Category != null && p.Category.Name.Contains(search)));
         }
 
@@ -133,6 +134,7 @@ public class ProductsController : Controller
                 Stockquantity = productvw.Stockquantity,
                 Imageurl = filename != null ? "/images/products/" + filename : "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png",
                 Categoryid = productvw.Categoryid,
+                Brand = productvw.Brand,
                 Createdat = DateTime.Now
             };
             // الحفظ في قاعدة البيانات
@@ -159,6 +161,7 @@ public class ProductsController : Controller
             Stockquantity = product.Stockquantity,
             Existingimage = product.Imageurl,
             Categoryid = product.Categoryid,
+            Brand = product.Brand,
         };
 
         ViewBag.Categories = await _productService.GetCategoriesAsync();
@@ -192,6 +195,7 @@ public class ProductsController : Controller
             product.Price = productVW.Price;
             product.Stockquantity = productVW.Stockquantity;
             product.Categoryid = productVW.Categoryid;
+            product.Brand = productVW.Brand;
             product.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
                 ? "/images/products/" + fileName
                 : fileName;

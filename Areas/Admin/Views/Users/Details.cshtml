@@ -72,13 +72,6 @@
                 <strong>@orders.Count</strong>
             </div>
         </article>
-        <article class="yq-user-detail-stat">
-            <span class="yq-user-detail-stat__icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
-            <div>
-                <p>حالة الحساب</p>
-                <strong>غير متوفر</strong>
-            </div>
-        </article>
     </section>
 
     <div class="yq-user-details-layout">
@@ -112,10 +105,7 @@
                         <dt>تاريخ التسجيل</dt>
                         <dd>@(Model.Createdat.HasValue ? Model.Createdat.Value.ToString("dd/MM/yyyy HH:mm") : "غير متوفر")</dd>
                     </div>
-                    <div>
-                        <dt>حالة الحساب</dt>
-                        <dd><span class="yq-users-badge yq-users-badge--neutral">غير متوفر</span></dd>
-                    </div>
+
                 </dl>
             </section>
 
@@ -261,10 +251,7 @@
                         <dt>الدور</dt>
                         <dd>@displayRole</dd>
                     </div>
-                    <div>
-                        <dt>حالة الحساب</dt>
-                        <dd>غير متوفر في نموذج المستخدم الحالي</dd>
-                    </div>
+
                     <div>
                         <dt>طلبات حديثة معروضة</dt>
                         <dd>@orders.Count</dd>

@@ -15,7 +15,18 @@
     var premiumSelection = inStockProducts.OrderByDescending(p => p.Price).Take(8).ToList();
     var heroSlides = newArrivals.Take(5).ToList();
     var storyImageUrl = categories.FirstOrDefault(c => !string.IsNullOrEmpty(c.Imageurl))?.Imageurl;
-    var featuredCategory = categories.FirstOrDefault();
+    var storeSettings = Model.StoreSettings ?? new YAGOT_2._0.Models.StoreSettings();
+    var heroTitle = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingText)
+        ? storeSettings.HeroMarketingText
+        : "حيث تولد الروائح كقطع فنية خالدة";
+    var heroDescription = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingDesc)
+        ? storeSettings.HeroMarketingDesc
+        : "اكتشف عالماً من العطور الشرقية والغربية الأصيلة، المصنوعة بأجود المكونات لتجربة فاخرة تأسر حواسك من أول رشة.";
+    var configuredFeaturedCategory = storeSettings.FeaturedCategoryId.HasValue
+        ? categories.FirstOrDefault(c => c.Id == storeSettings.FeaturedCategoryId.Value)
+        : null;
+    var featuredCategory = configuredFeaturedCategory
+        ?? (categories.Any() ? categories[Random.Shared.Next(categories.Count)] : null);
 }
 
 @section Styles {
@@ -41,11 +52,8 @@
         <div class="yq-home-hero__inner">
             <div class="yq-home-hero__content">
                 <span class="yq-home-hero__eyebrow"><i class="bi bi-gem"></i> مجموعة العطور الفاخرة</span>
-                <h1 class="yq-home-hero__title">حيث تولد الروائح<br />كقطع فنية خالدة</h1>
-                <p class="yq-home-hero__desc">
-                    اكتشف عالماً من العطور الشرقية والغربية الأصيلة، المصنوعة بأجود المكونات
-                    لتجربة فاخرة تأسر حواسك من أول رشة.
-                </p>
+                <h1 class="yq-home-hero__title">@heroTitle</h1>
+                <p class="yq-home-hero__desc">@heroDescription</p>
                 <div class="yq-home-hero__actions">
                     <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold btn-yaqut-gold--lg">
                         <i class="bi bi-stars"></i> تسوّق العطور
@@ -88,27 +96,32 @@
     </section>
 
     <!-- BRANDS STRIP -->
-    <section class="yq-home-brands yq-reveal" aria-label="شركات العطور العالمية">
-        <div class="yq-home-brands__track">
-            <!-- First set -->
-            <span class="yq-brand-name yq-brand-name--highlight"><i class="bi bi-gem"></i> ياقوت</span>
-            <span class="yq-brand-name">الماجد للعود</span>
-            <span class="yq-brand-name">عبدالصمد القرشي</span>
-            <span class="yq-brand-name">درعة</span>
-            <span class="yq-brand-name">شانيل</span>
-            <span class="yq-brand-name">ديور</span>
-            <span class="yq-brand-name">توم فورد</span>
-
-            <!-- Duplicate for infinite scroll -->
-            <span class="yq-brand-name yq-brand-name--highlight"><i class="bi bi-gem"></i> ياقوت</span>
-            <span class="yq-brand-name">الماجد للعود</span>
-            <span class="yq-brand-name">عبدالصمد القرشي</span>
-            <span class="yq-brand-name">درعة</span>
-            <span class="yq-brand-name">شانيل</span>
-            <span class="yq-brand-name">ديور</span>
-            <span class="yq-brand-name">توم فورد</span>
-        </div>
-    </section>
+    @{
+        var brandStripNames = Model.Products?
+            .Where(p => !string.IsNullOrWhiteSpace(p.Brand))
+            .Select(p => p.Brand!.Trim())
+            .Where(brand => brand != "-")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(brand => brand)
+            .ToList() ?? new List<string>();
+    }
+    @if (brandStripNames.Any())
+    {
+        <section class="yq-home-brands yq-reveal" aria-label="شركات العطور العالمية">
+            <div class="yq-home-brands__track">
+                @foreach (var brand in brandStripNames)
+                {
+                    var isYaqut = brand.Contains("ياقوت");
+                    <a asp-controller="Products" asp-action="Index" asp-route-brand="@brand"
+                       class="yq-brand-name @(isYaqut ? "yq-brand-name--highlight" : "")"
+                       aria-label="عرض منتجات @brand">
+                        @if (isYaqut) { <i class="bi bi-gem"></i> }
+                        @brand
+                    </a>
+                }
+            </div>
+        </section>
+    }
 
     <section class="yq-home-discovery yq-home-discovery--shopping yq-reveal" aria-label="طرق سريعة لاكتشاف العطور">
         <a asp-controller="Products" asp-action="Index" class="yq-home-discovery-card">

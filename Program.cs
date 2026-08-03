@@ -10,7 +10,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
-
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +36,9 @@ builder.Services.AddControllersWithViews()
         options.MaxModelBindingCollectionSize = 1000;
     });
 
+// Performance: In-memory cache for SiteStatus
+builder.Services.AddMemoryCache();
+
 static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
 {
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -51,7 +54,7 @@ static void ConfigureExternalApiClient(IServiceProvider services, HttpClient cli
 
 builder.Services.AddHttpClient<DealingAPI>(ConfigureExternalApiClient);
 builder.Services.AddScoped<IVisitService, VisitService>();
-builder.Services.AddSingleton<StoreSettingsService>();
+builder.Services.AddScoped<StoreSettingsService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -84,7 +87,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
 
         options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        
     });
 
 builder.Services.AddCors(options =>
@@ -176,31 +178,6 @@ app.Use(async (context, next) =>
         await next();
         return;
     }
-
-    //if (context.User.Identity?.IsAuthenticated == true)
-    //{
-    //    // الحصول على اسم المستخدم من الـ Cookie
-    //    var userName = context.User.Identity?.Name;
-
-    //    if (!string.IsNullOrEmpty(userName))
-    //    {
-    //        using var scope = app.Services.CreateScope();
-    //        var db = scope.ServiceProvider.GetRequiredService<NeondbContext>();
-
-    //        // التحقق من وجود المستخدم في قاعدة البيانات
-    //        bool exists = await db.Users.AnyAsync(u => u.Name == userName);
-
-    //        if (!exists)
-    //        {
-    //            // حذف الـ Cookie
-    //            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-    //            // إعادة التوجيه إلى صفحة تسجيل الدخول
-    //            context.Response.Redirect("/Account/Auth");
-    //            return;
-    //        }
-    //    }
-    //    }
     // حماية لوحة الإدارة
     if (path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase))
     {
@@ -227,11 +204,21 @@ app.Use(async (context, next) =>
         return;
     }
 
-    var dealingApi = context.RequestServices.GetRequiredService<DealingAPI>();
+    // Performance: Cache site status for 5 minutes to avoid external API call on every request
+    const string cacheKey = "YQ_SiteStatus";
+    var cache = context.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
 
-    var status = await dealingApi.checkDeveloperMode(1);
-
-    context.Items["SiteStatus"] = status;
+    if (!cache.TryGetValue(cacheKey, out object? cachedStatus) || cachedStatus == null)
+    {
+        var dealingApi = context.RequestServices.GetRequiredService<DealingAPI>();
+        var status = await dealingApi.checkDeveloperMode(1);
+        cache.Set(cacheKey, status, TimeSpan.FromMinutes(5));
+        context.Items["SiteStatus"] = status;
+    }
+    else
+    {
+        context.Items["SiteStatus"] = cachedStatus;
+    }
 
     await next();
 });

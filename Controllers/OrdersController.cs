@@ -17,6 +17,7 @@ public class OrdersController : Controller
     private readonly CartService _cartService;
     private readonly GuestCartService _guestCartService;
     private readonly DealingAPI _dealingApiService;
+    private readonly StoreSettingsService _settingsService;
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
 
@@ -25,6 +26,7 @@ public class OrdersController : Controller
         CartService cartService,
         GuestCartService guestCartService,
         DealingAPI dealingApiService,
+        StoreSettingsService settingsService,
         NeondbContext context,
         UsersDbContext users)
     {
@@ -33,6 +35,7 @@ public class OrdersController : Controller
         _cartService = cartService;
         _guestCartService = guestCartService;
         _dealingApiService = dealingApiService;
+        _settingsService = settingsService;
         _dbUser = users;
     }
 
@@ -90,25 +93,25 @@ public class OrdersController : Controller
 
         if (!ModelState.IsValid)
         {
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
 
         if (!TryResolveUserId(out var userId))
         {
             ViewData["ShowAuthModal"] = true;
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
 
         try
         {
-            var order = await _orderService.CreateOrderAsync(userId, model);
-
             string? receiptUrl = null;
             if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
                 Directory.CreateDirectory(uploadsFolder);
-                var fileName = $"receipt_{order.Id}_{Guid.NewGuid().ToString().Substring(0, 8)}{safeExtension}";
+                var fileName = $"receipt_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(model.ReceiptImage.FileName)}";
                 var filePath = Path.Combine(uploadsFolder, fileName);
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
@@ -117,28 +120,24 @@ public class OrdersController : Controller
                 receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
             }
 
-            // Construct WhatsApp link
-            var request = HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+            var order = await _orderService.CreateOrderAsync(userId, model, receiptUrl);
 
-            var textMessage = $"مرحباً، أود تأكيد طلبي.%0Aرقم الطلب: {order.Id}%0Aرقم التتبع: {order.Trackingnumber}";
-            if (!string.IsNullOrEmpty(receiptUrl))
+            var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
+            if (!string.IsNullOrWhiteSpace(whatsappNumber))
             {
-                textMessage += $"%0Aتم رفع سند الدفع: نعم  ";
+                var request = HttpContext.Request;
+                var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+                var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
+                var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرابط الطلب: {orderLink}");
+                TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
             }
-            else
-            {
-                textMessage += $"%0Aتم رفع سند الدفع: لا  ";
-            }
-
-            var whatsappUrl = $"https://wa.me/967775458250?text={textMessage}";
-            TempData["WhatsAppUrl"] = whatsappUrl;
 
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
         }
     }
@@ -188,7 +187,8 @@ public class OrdersController : Controller
     {
         var model = new CheckoutVM
         {
-            Cart = cart
+            Cart = cart,
+            PaymentMethods = await _settingsService.GetCheckoutPaymentMethodsAsync()
         };
 
         if (User.Identity?.IsAuthenticated == true)
@@ -208,58 +208,13 @@ public class OrdersController : Controller
         return model;
     }
 
-    /// <summary>
-    /// دالة فحص أمان واستحقاق الصورة المرفوعة
-    /// </summary>
-    private async Task<(bool IsValid, string ErrorMessage, string SafeExtension)> IsValidImageFileAsync(IFormFile file)
+    private async Task PopulateCheckoutPaymentMethodsAsync(CheckoutVM model)
     {
-        // 1. فحص الحجم الأقصى (5 ميجابايت)
-        const long maxSizeBytes = 5 * 1024 * 1024;
-        if (file.Length > maxSizeBytes)
-        {
-            return (false, "حجم صورة السند كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.", string.Empty);
-        }
+        model.PaymentMethods = await _settingsService.GetCheckoutPaymentMethodsAsync();
+    }
 
-        // 2. فحص الامتداد الظاهري للملف
-        var rawExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-        if (string.IsNullOrEmpty(rawExtension) || !allowedExtensions.Contains(rawExtension))
-        {
-            return (false, "نوع الملف غير مدعوم. يرجى رفع صورة بصيغة (JPG, PNG, WEBP) فقط.", string.Empty);
-        }
-
-        // 3. فحص MIME Type المبعوث مع الطلب
-        var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/webp" };
-        if (!allowedMimeTypes.Contains(file.ContentType.ToLowerInvariant()))
-        {
-            return (false, "الملف المرفوع ليس صورة صالحة.", string.Empty);
-        }
-
-        // 4. قراءة التوقيع الثنائي للهيدر (Magic Bytes)
-        using var stream = file.OpenReadStream();
-        Memory<byte> headerBytes = new byte[8];
-        await stream.ReadAsync(headerBytes);
-
-        var span = headerBytes.Span;
-
-        // JPEG: FF D8 FF
-        if (span[0] == 0xFF && span[1] == 0xD8 && span[2] == 0xFF)
-        {
-            return (true, string.Empty, ".jpg");
-        }
-
-        // PNG: 89 50 4E 47
-        if (span[0] == 0x89 && span[1] == 0x50 && span[2] == 0x4E && span[3] == 0x47)
-        {
-            return (true, string.Empty, ".png");
-        }
-
-        // WEBP: 52 49 46 46 (RIFF)
-        if (span[0] == 0x52 && span[1] == 0x49 && span[2] == 0x46 && span[3] == 0x46)
-        {
-            return (true, string.Empty, ".webp");
-        }
-
-        return (false, "محتوى الملف لا يطابق هيكل الصور. يُرجى رفع صورة سند صحيحة.", string.Empty);
+    private static string NormalizeWhatsAppNumber(string? value)
+    {
+        return string.Concat((value ?? string.Empty).Where(char.IsDigit));
     }
 }

@@ -18,6 +18,4 @@ public partial class Securitylog
     public int? Riskscore { get; set; }
 
     public DateTime? Createdat { get; set; }
-
-    public virtual UserSite? User { get; set; }
 }

@@ -38,8 +38,7 @@ public class CategoriesController : Controller
         {
             Categories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize),
             TotalCategories = await _context.Categories.CountAsync(),
-            TotalProducts = await _context.Products.CountAsync(),
-            CategoriesWithImages = await _context.Categories.CountAsync(c => !string.IsNullOrWhiteSpace(c.Imageurl))
+            TotalProducts = await _context.Products.CountAsync()
         };
         
         return View(model);

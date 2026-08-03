@@ -25,6 +25,43 @@
     }
     var selectedPaymentMethod = CheckoutValue("paymentMethod", "al-amqi");
     var hasModelErrors = !ViewData.ModelState.IsValid;
+    var paymentMethods = Model?.PaymentMethods ?? Array.Empty<YAGOT_2._0.Models.Paymentmethod>();
+    YAGOT_2._0.Models.Paymentmethod PaymentInfo(string code, string name)
+    {
+        return paymentMethods.FirstOrDefault(method => string.Equals(method.Type, code, StringComparison.OrdinalIgnoreCase))
+            ?? new YAGOT_2._0.Models.Paymentmethod
+            {
+                Type = code,
+                Name = name,
+                Accountholdername = string.Empty,
+                Accountnumber = string.Empty,
+                Isactive = true
+            };
+    }
+    var checkoutPaymentMethods = paymentMethods.Any()
+        ? paymentMethods.Where(method => method.Isactive).ToList()
+        : new List<YAGOT_2._0.Models.Paymentmethod> { PaymentInfo("al-amqi", "العمقي") };
+    var selectedPaymentExists = checkoutPaymentMethods.Any(method => string.Equals(method.Type, selectedPaymentMethod, StringComparison.OrdinalIgnoreCase));
+    if (!selectedPaymentExists)
+    {
+        selectedPaymentMethod = checkoutPaymentMethods.First().Type;
+    }
+    var selectedPaymentIndex = checkoutPaymentMethods.FindIndex(method => string.Equals(method.Type, selectedPaymentMethod, StringComparison.OrdinalIgnoreCase));
+    var initialPaymentPage = selectedPaymentIndex >= 0 ? selectedPaymentIndex / 4 : 0;
+    var initialPaymentStart = initialPaymentPage * 4;
+    var initialPaymentEnd = initialPaymentStart + 4;
+    var hasPaymentPages = checkoutPaymentMethods.Count > 4;
+    string PaymentIcon(string type)
+    {
+        return type switch
+        {
+            "al-amqi" => "bi-cash-coin",
+            "bin-dawl" => "bi-bank",
+            "al-basiri" => "bi-wallet2",
+            "other" => "bi-three-dots",
+            _ => "bi-credit-card-2-front"
+        };
+    }
 }
 
 @section Styles {
@@ -196,46 +233,54 @@
                         <p class="yq-checkout-card__desc">اختر البطاقة المناسبة؛ الخيار المحدد سيظهر بإطار ذهبي واضح.</p>
                     </div>
                 </div>
-                <div class="yq-checkout-payment">
-                    <label class="yq-checkout-payment__option @(selectedPaymentMethod == "al-amqi" ? "is-selected" : "")">
-                        <input asp-for="PaymentMethod" id="PaymentMethod-al-amqi" form="yqCheckoutForm" type="radio" value="al-amqi" />
-                        <span class="yq-checkout-payment__icon"><i class="bi bi-cash-coin"></i></span>
-                        <span class="yq-checkout-payment__text">
-                            <strong>العمقي</strong>
-                            <small>خيار دفع محلي جاهز للتأكيد عند التواصل</small>
-                        </span>
-                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
-                    </label>
-
-                    <label class="yq-checkout-payment__option @(selectedPaymentMethod == "bin-dawl" ? "is-selected" : "")">
-                        <input asp-for="PaymentMethod" id="PaymentMethod-bin-dawl" form="yqCheckoutForm" type="radio" value="bin-dawl" />
-                        <span class="yq-checkout-payment__icon"><i class="bi bi-bank"></i></span>
-                        <span class="yq-checkout-payment__text">
-                            <strong>بن دول</strong>
-                            <small>اختره وسيتم تأكيد آلية الدفع مع الطلب</small>
-                        </span>
-                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
-                    </label>
-
-                    <label class="yq-checkout-payment__option @(selectedPaymentMethod == "al-basiri" ? "is-selected" : "")">
-                        <input asp-for="PaymentMethod" id="PaymentMethod-al-basiri" form="yqCheckoutForm" type="radio" value="al-basiri" />
-                        <span class="yq-checkout-payment__icon"><i class="bi bi-wallet2"></i></span>
-                        <span class="yq-checkout-payment__text">
-                            <strong>البسيري</strong>
-                            <small>طريقة دفع سهلة لمتابعة الطلب بعد التأكيد</small>
-                        </span>
-                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
-                    </label>
-
-                    <label class="yq-checkout-payment__option @(selectedPaymentMethod == "other" ? "is-selected" : "")">
-                        <input asp-for="PaymentMethod" id="PaymentMethod-other" form="yqCheckoutForm" type="radio" value="other" />
-                        <span class="yq-checkout-payment__icon"><i class="bi bi-three-dots"></i></span>
-                        <span class="yq-checkout-payment__text">
-                            <strong>أخرى</strong>
-                            <small>سيتم الاتفاق على الطريقة المناسبة قبل التجهيز</small>
-                        </span>
-                        <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
-                    </label>
+                @if (hasPaymentPages)
+                {
+                    <div class="yq-checkout-payment-nav" data-yq-payment-nav>
+                        <span data-yq-payment-status></span>
+                        <div>
+                            <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-prev aria-label="طرق الدفع السابقة">
+                                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-next aria-label="طرق الدفع التالية">
+                                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+                <div class="yq-checkout-payment" data-yq-payment-list data-yq-payment-page="@initialPaymentPage">
+                    @for (var methodIndex = 0; methodIndex < checkoutPaymentMethods.Count; methodIndex++)
+                    {
+                        var method = checkoutPaymentMethods[methodIndex];
+                        var isSelected = string.Equals(selectedPaymentMethod, method.Type, StringComparison.OrdinalIgnoreCase);
+                        var inputId = $"PaymentMethod-{method.Type}";
+                        var isInitialVisible = !hasPaymentPages || (methodIndex >= initialPaymentStart && methodIndex < initialPaymentEnd);
+                        <label class="yq-checkout-payment__option @(isSelected ? "is-selected" : "") @(isInitialVisible ? "" : "is-page-hidden")"
+                               data-yq-payment-option
+                               data-yq-payment-index="@methodIndex">
+                            <input asp-for="PaymentMethod" id="@inputId" form="yqCheckoutForm" type="radio" value="@method.Type" checked="@isSelected" />
+                            <span class="yq-checkout-payment__icon"><i class="bi @PaymentIcon(method.Type)"></i></span>
+                            <span class="yq-checkout-payment__text">
+                                <strong>@method.Name</strong>
+                                <small>@(method.Type == "other" ? "سيتم الاتفاق على الطريقة المناسبة قبل التجهيز" : "اختره وسيتم تأكيد الدفع مع الطلب")</small>
+                                <span class="yq-checkout-payment__details">
+                                    @if (method.Type == "other")
+                                    {
+                                        <span>@(string.IsNullOrWhiteSpace(method.Instructions) ? "لم تتم إضافة تعليمات لهذه الطريقة بعد." : method.Instructions)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>اسم الحساب: @(string.IsNullOrWhiteSpace(method.Accountholdername) ? "غير محدد" : method.Accountholdername)</span>
+                                        <span>رقم الحساب: <b dir="ltr">@(string.IsNullOrWhiteSpace(method.Accountnumber) ? "غير محدد" : method.Accountnumber)</b></span>
+                                        @if (!string.IsNullOrWhiteSpace(method.Instructions))
+                                        {
+                                            <span>@method.Instructions</span>
+                                        }
+                                    }
+                                </span>
+                            </span>
+                            <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
+                        </label>
+                    }
                 </div>
                 <span asp-validation-for="PaymentMethod" class="yq-checkout-field__error yq-checkout-field__error--payment"></span>
 
@@ -246,6 +291,18 @@
                             <span asp-validation-for="ReceiptImage" class="yq-checkout-field__error"></span>
                         <small style="color: var(--yq-text-soft);">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
                     </label>
+                </div>
+
+                <div class="yq-checkout-confirm-bottom" id="confirmBottomSection">
+                    <button type="submit" class="btn-yaqut-gold yq-checkout-submit-btn" id="confirmOrderBottom"
+                            aria-describedby="confirmOrderBottomHelp">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i>
+                        تأكيد الطلب والدفع
+                    </button>
+                    <p id="confirmOrderBottomHelp" class="yq-checkout-submit-hint">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        بالضغط على تأكيد الطلب، أنت توافق على سياسة المتجر
+                    </p>
                 </div>
             </section>
         </div>

@@ -423,6 +423,12 @@
     color: var(--yq-admin-danger, #ff8b8b);
 }
 
+.theme-light .yq-orders-badge--processed,
+.theme-light .yq-orders-badge--shipped { color: #2563eb; }
+.theme-light .yq-orders-badge--delivered { color: #059669; }
+.theme-light .yq-orders-badge--cancelled { color: #dc2626; }
+.theme-light .yq-orders-badge--pending { color: #b45309; }
+
 .yq-orders-badge--neutral {
     border-color: var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     background: var(--yq-admin-surface-soft, #1b1f22);
@@ -484,6 +490,15 @@
     padding: 0.55rem 0.7rem;
 }
 
+.yq-payment-status-select {
+    min-width: 120px;
+    padding: 0.35rem 0.6rem;
+    min-height: 36px;
+    font-size: 0.82rem;
+    border-radius: 6px;
+    font-weight: 800;
+}
+
 .yq-orders-action-button {
     display: inline-flex;
     align-items: center;
@@ -506,6 +521,53 @@
     border-color: var(--yq-admin-gold-bright, #d4af37);
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 20%, var(--yq-admin-surface-soft, #1b1f22));
     transform: translateY(-1px);
+}
+
+.yq-orders-hero__meta {
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--yq-admin-gold, #b8942e) 12%, transparent), transparent 64%),
+        var(--yq-admin-surface, #151719);
+}
+
+@media (min-width: 768px) {
+    .yq-orders-table {
+        min-width: 0;
+        table-layout: auto;
+    }
+
+    .yq-orders-table th,
+    .yq-orders-table td {
+        padding: 0.72rem 0.78rem;
+    }
+
+    .yq-orders-table th:nth-child(7),
+    .yq-orders-table td:nth-child(7) {
+        width: 255px;
+    }
+
+    .yq-orders-action-stack {
+        justify-content: flex-start;
+        gap: 0.45rem;
+    }
+
+    .yq-orders-actions {
+        flex: 0 0 128px;
+        min-width: 0;
+        width: 128px;
+    }
+
+    .yq-orders-status-select {
+        min-width: 0;
+        width: 128px;
+        min-height: 38px;
+        padding: 0.42rem 0.58rem;
+        font-size: 0.82rem;
+    }
+
+    .yq-orders-detail-link {
+        min-height: 38px;
+        padding: 0.48rem 0.7rem;
+    }
 }
 
 .yq-orders-empty {
@@ -574,50 +636,6 @@
         grid-template-columns: 1fr;
     }
 
-    .yq-orders-table,
-    .yq-orders-table thead,
-    .yq-orders-table tbody,
-    .yq-orders-table tr,
-    .yq-orders-table th,
-    .yq-orders-table td {
-        display: block;
-        min-width: 0;
-    }
-
-    .yq-orders-table thead {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
-    }
-
-    .yq-orders-table tr {
-        padding: 0.9rem 1rem;
-        border-bottom: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .yq-orders-table tbody tr:last-child {
-        border-bottom: 0;
-    }
-
-    .yq-orders-table td {
-        display: grid;
-        grid-template-columns: minmax(104px, 0.38fr) minmax(0, 1fr);
-        gap: 1rem;
-        padding: 0.55rem 0;
-        border-bottom: 0;
-        text-align: start;
-    }
-
-    .yq-orders-table td::before {
-        content: attr(data-label);
-        color: var(--yq-admin-muted, #b6b1a6);
-        font-size: 0.76rem;
-        font-weight: 900;
-    }
-
     .yq-orders-actions,
     .yq-orders-customer {
         min-width: 0;
@@ -631,11 +649,6 @@
 
     .yq-orders-status-filter label {
         flex: 1 1 140px;
-    }
-
-    .yq-orders-table td {
-        grid-template-columns: 1fr;
-        gap: 0.35rem;
     }
 
     .yq-orders-actions {
@@ -791,6 +804,21 @@
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 16%, var(--yq-admin-surface-soft, #1b1f22));
     color: var(--yq-admin-gold-bright, #d4af37);
     font-size: 1.2rem;
+}
+
+.yq-order-detail-card--summary:nth-child(1) .yq-order-detail-card__icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+}
+
+.yq-order-detail-card--summary:nth-child(2) .yq-order-detail-card__icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: #ffffff;
+}
+
+.yq-order-detail-card--summary:nth-child(3) .yq-order-detail-card__icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
 }
 
 .yq-order-detail-card--summary p {

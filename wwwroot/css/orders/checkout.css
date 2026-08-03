@@ -1,4 +1,4 @@
-﻿/* ═══ Orders / Checkout — Checkout Page ═══ */
+/* ═══ Orders / Checkout — Checkout Page ═══ */
 
 .yq-checkout {
     display: flex;
@@ -342,6 +342,47 @@
     gap: 1rem;
 }
 
+.yq-checkout-payment-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+    color: var(--yq-text-soft);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.yq-checkout-payment-nav > div {
+    display: inline-flex;
+    gap: 0.45rem;
+}
+
+.yq-checkout-payment-nav__btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--yq-border);
+    border-radius: 50%;
+    background: var(--yq-bg-elevated);
+    color: var(--yq-gold);
+    transition: border-color var(--yq-ease), background var(--yq-ease), transform var(--yq-ease);
+}
+
+.yq-checkout-payment-nav__btn:hover:not(:disabled),
+.yq-checkout-payment-nav__btn:focus-visible:not(:disabled) {
+    border-color: var(--yq-gold);
+    background: rgba(212, 175, 55, 0.12);
+    transform: translateY(-1px);
+}
+
+.yq-checkout-payment-nav__btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
 .yq-checkout-payment__option {
     display: flex;
     align-items: flex-start;
@@ -355,6 +396,18 @@
     position: relative;
     background: var(--yq-bg-elevated);
     transition: all var(--yq-ease);
+}
+
+.yq-checkout-payment__option.is-page-hidden {
+    display: none;
+}
+
+.yq-checkout-payment__option.is-slide-left {
+    animation: yq-payment-slide-left 0.24s ease-out both;
+}
+
+.yq-checkout-payment__option.is-slide-right {
+    animation: yq-payment-slide-right 0.24s ease-out both;
 }
 
     .yq-checkout-payment__option input {
@@ -419,6 +472,33 @@
         font-size: 0.8rem;
         color: var(--yq-text-soft);
     }
+
+.yq-checkout-payment__details {
+    display: none;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 8px;
+    background: rgba(212, 175, 55, 0.08);
+    color: var(--yq-text);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.yq-checkout-payment__details span {
+    display: block;
+    color: inherit;
+}
+
+.yq-checkout-payment__details b {
+    font-weight: 900;
+    color: var(--yq-gold);
+}
+
+.yq-checkout-payment__option.is-selected .yq-checkout-payment__details {
+    display: grid;
+}
 
 .yq-checkout-payment__check {
     color: var(--yq-gold);
@@ -759,4 +839,81 @@
     .yq-checkout-summary__secure {
         align-items: flex-start;
     }
+}
+
+/* Bottom Confirm Button */
+.yq-checkout-confirm-bottom {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(184,148,46,0.08), rgba(184,148,46,0.03));
+    border: 1px solid rgba(184,148,46,0.2);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.yq-checkout-confirm-bottom .yq-checkout-submit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.yq-checkout-confirm-bottom .yq-checkout-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(184,148,46,0.3);
+}
+
+.yq-checkout-confirm-bottom .yq-checkout-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.yq-checkout-submit-hint {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--yq-text-muted, #888);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+@keyframes yq-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes yq-payment-slide-left {
+    from {
+        opacity: 0;
+        transform: translateX(-14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes yq-payment-slide-right {
+    from {
+        opacity: 0;
+        transform: translateX(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+.yq-spin {
+    animation: yq-spin 1s linear infinite;
+}
+
+.dark-mode .yq-checkout-confirm-bottom {
+    background: linear-gradient(135deg, rgba(184,148,46,0.12), rgba(184,148,46,0.05));
+    border-color: rgba(184,148,46,0.25);
 }
