@@ -971,3 +971,91 @@
         align-items: flex-start;
     }
 }
+
+/* ==========================================================================
+   Role Management Card Component
+   ========================================================================== */
+.yq-role-card-body {
+    padding: 1rem;
+}
+
+.yq-role-change-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.yq-role-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+    .yq-role-select-group label {
+        color: var(--yq-admin-muted, #b6b1a6);
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+.yq-role-select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+    border-radius: 8px;
+    background: var(--yq-admin-surface-soft, #1b1f22);
+    color: var(--yq-admin-text, #f8f5ee);
+    font-size: 0.88rem;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.18s ease;
+}
+
+    .yq-role-select:focus {
+        border-color: var(--yq-admin-gold-bright, #d4af37);
+    }
+
+.yq-role-btn-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 38px;
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--yq-admin-gold-bright, #d4af37);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 22%, transparent);
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.85rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .yq-role-btn-submit:hover {
+        background: var(--yq-admin-gold-bright, #d4af37);
+        color: #151719;
+        transform: translateY(-1px);
+    }
+.yq-role-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 10%, var(--yq-admin-surface-soft, #1b1f22));
+    color: var(--yq-admin-text, #f8f5ee);
+}
+
+    .yq-role-notice i {
+        color: var(--yq-admin-gold-bright, #d4af37);
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .yq-role-notice p {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1.5;
+    }

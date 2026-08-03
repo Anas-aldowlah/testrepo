@@ -188,6 +188,53 @@
         </div>
 
         <aside class="yq-user-details-side" aria-label="معلومات الحساب">
+
+            <!-- بطاقة التحكم بالصلاحيات -->
+            <section class="yq-user-detail-card" aria-labelledby="roleManagementTitle">
+                <div class="yq-user-detail-card__header">
+                    <div>
+                        <span class="yq-users-eyebrow">الصلاحيات</span>
+                        <h3 id="roleManagementTitle">تغيير دور الحساب</h3>
+                    </div>
+                </div>
+                <div class="yq-role-card-body">
+                    @if (Model.Role == "Developer" && !User.IsInRole("Developer"))
+                    {
+                        <!-- رسالة توضيحية للمدير عند فتح حساب مطور -->
+                        <div class="yq-role-notice">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <p>حسابات المطورين محمية ولا يمكن تعديل صلاحياتها إلا من قبل مطور النظام.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="ChangeRole" method="post" class="yq-role-change-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+
+                            <div class="yq-role-select-group">
+                                <label for="newRoleSelect">اختر الدور الجديد:</label>
+                                <select id="newRoleSelect" name="newRole" class="yq-role-select">
+                                    <option value="Customer" selected="@(Model.Role == "Customer")">زبون (Customer)</option>
+                                    <option value="Admin" selected="@(Model.Role == "Admin")">مدير (Admin)</option>
+
+                                    @* خيار المطور يظهر فقط للمطورين *@
+                                    @if (User.IsInRole("Developer"))
+                                    {
+                                        <option value="Developer" selected="@(Model.Role == "Developer")">مطور (Developer)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <button type="submit" class="yq-role-btn-submit">
+                                <i class="bi bi-shield-lock-fill"></i>
+                                <span>تحديث الدور</span>
+                            </button>
+                        </form>
+                    }
+                </div>
+            </section>
+
             <section class="yq-user-detail-card" aria-labelledby="accountInfoTitle">
                 <div class="yq-user-detail-card__header">
                     <div>

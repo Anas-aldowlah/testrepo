@@ -406,9 +406,7 @@
                 'عندي ملاحظة بخصوص ' + storeName + ':',
                 '',
                 note,
-                '',
-                'الصفحة: ' + (pageTitle || document.title),
-                'الرابط: ' + window.location.href
+                ''
             ].join('\n');
         }
 

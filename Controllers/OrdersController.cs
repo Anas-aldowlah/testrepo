@@ -77,6 +77,20 @@ public class OrdersController : Controller
 
         model.Cart = cart;
 
+        // 1. التحقق من أمان الصورة والامتداد قبل إتمام الطلب
+        string safeExtension = string.Empty;
+        if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
+        {
+            var (isValid, errorMessage, detectedExtension) = await IsValidImageFileAsync(model.ReceiptImage);
+            if (!isValid)
+            {
+                ModelState.AddModelError("ReceiptImage", errorMessage);
+                return View("Checkout", model);
+            }
+
+            safeExtension = detectedExtension;
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateCheckoutPaymentMethodsAsync(model);
