@@ -4,18 +4,16 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using YAGOT_2._0.Models;
-using YAGOT_2._0.Models.UsersDatabase;
-using YAGOT_2._0.Data;
-
-
 using System.Security.Cryptography;
 using System.Text;
-
-using Microsoft.Extensions.Configuration;
+using System.Text;
+using YAGOT_2._0.Data;
+using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.UsersDatabase;
 using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Controllers;
@@ -217,6 +215,18 @@ public class AccountController : Controller
             Role = _db.UserSites.Where(s => s.UserId == user.Id).Select(f => f.Role).FirstOrDefault() ?? "Customer",
             CreatedAt = user.Createdat
         };
+        if (model.Role == "Admin")
+        {
+            model.Role = "مدير";
+        }
+        else if (model.Role == "Developer")
+        {
+            model.Role = "مطور";
+        }
+        else
+        {
+            model.Role = "زبون";
+        }
 
         return View(model);
     }
