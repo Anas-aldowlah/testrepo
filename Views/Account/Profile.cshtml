@@ -7,7 +7,19 @@
     var isSuccess = TempData["ProfileSuccess"] != null;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
-    var roleLabel = Model.Role == "Admin" ? "مدير" : "زبون";
+    var roleLabel = Model.Role;
+    if (roleLabel == "Admin")
+    {
+        roleLabel = "مدير";
+    }
+    else if (roleLabel == "Developer")
+    {
+        roleLabel = "مطور";
+    }
+    else
+    {
+        roleLabel = "زبون";
+    }
     var joinDate = Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "-";
 }
 
