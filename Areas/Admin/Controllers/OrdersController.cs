@@ -287,4 +287,17 @@ public class OrdersController : Controller
             ? RedirectToAction(nameof(Details), new { id })
             : RedirectToAction(nameof(Index));
     }
+    private Task<(bool isValid, string errorMessage, string detectedExtension)> IsValidImageFileAsync(IFormFile file)
+{
+    if (file == null || file.Length == 0)
+        return Task.FromResult((false, "لم يتم رفع أي صورة.", string.Empty));
+
+    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+    if (!allowedExtensions.Contains(extension))
+        return Task.FromResult((false, "صيغة الملف غير مدعومة.", extension));
+
+    return Task.FromResult((true, string.Empty, extension));
+}
 }
