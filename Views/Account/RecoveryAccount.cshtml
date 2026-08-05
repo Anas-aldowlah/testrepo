@@ -1,4 +1,4 @@
-﻿@model RecoveryModel;
+@model RecoveryModel;
 @{
     Layout = "_AuthLayout";
     ViewData["Title"] = "تغيير كلمة المرور";
@@ -8,7 +8,7 @@
 }
 
 <div class="yaqut-auth-page">
-    <article class="yaqut-auth-card">
+    <article class="yaqut-auth-card" style="grid-template-columns: 1fr; max-width: 550px; margin: 0 auto;">
         <div class="yaqut-auth-card__shine" aria-hidden="true"></div>
         <div class="yaqut-auth-card__body">
 
@@ -113,9 +113,14 @@
 
                     <hr />
 
-                    <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
-                        <i class="bi bi-stars"></i>تعديل كلمة المرور
-                    </button>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
+                            <i class="bi bi-stars"></i>تعديل كلمة المرور
+                        </button>
+                        <a href="javascript:history.back()" class="btn-yaqut-outline yaqut-auth-submit" style="text-decoration: none;">
+                            <i class="bi bi-arrow-right"></i>الرجوع للصفحة السابقة
+                        </a>
+                    </div>
                 </form>
             </div>
 
