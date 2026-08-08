@@ -7,31 +7,39 @@ public class CartService
 {
     private const int CartLockNamespace = 149745236;
     private readonly NeondbContext _context;
+    private readonly ILogger<CartService> _logger;
 
     public string? MESSAGE = null;
 
-    public CartService(NeondbContext context)
+    public CartService(NeondbContext context, ILogger<CartService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<Cart> GetCartAsync(int userId)
     {
-        var cart = await _context.Carts
-            .AsNoTracking()
-            .Include(c => c.Cartitems)
-                .ThenInclude(ci => ci.Product)
-                    .ThenInclude(p => p.Category)
-            .SingleOrDefaultAsync(c => c.Userid == userId);
-
-        if (cart == null)
+        try
         {
+            var cart = await _context.Carts
+                .AsNoTracking()
+                .Include(c => c.Cartitems)
+                    .ThenInclude(ci => ci.Product)
+                        .ThenInclude(p => p.Category)
+                .SingleOrDefaultAsync(c => c.Userid == userId);
+
             // Reading an empty cart must not write to the database. The persisted
             // cart is created only when the user actually adds an item.
-            cart = new Cart { Userid = userId };
+            return cart ?? new Cart { Userid = userId };
         }
-
-        return cart;
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Could not load cart for user {UserId}; returning an empty cart.",
+                userId);
+            return new Cart { Userid = userId };
+        }
     }
 
     public async Task AddToCartAsync(int userId, int productId, int quantity)

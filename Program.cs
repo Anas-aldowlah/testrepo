@@ -177,6 +177,12 @@ builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<NeondbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders =
