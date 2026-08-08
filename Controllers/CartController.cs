@@ -39,6 +39,8 @@ public class CartController : Controller
             TempData["Message"] = _guestCartService.Message;
         }
 
+        // Keep the redirect for AJAX too. For guest carts, the cookie is written
+        // to this response and is only visible when fetch follows the redirect.
         return RedirectToAction(nameof(Index));
     }
 
@@ -57,7 +59,7 @@ public class CartController : Controller
             TempData["Message"] = _guestCartService.Message;
         }
 
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        if (IsAjaxRequest())
         {
             var cart = await GetCurrentCartAsync();
             return View("Index", cart);
@@ -81,7 +83,7 @@ public class CartController : Controller
             TempData["Message"] = _guestCartService.Message;
         }
 
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        if (IsAjaxRequest())
         {
             var cart = await GetCurrentCartAsync();
             return View("Index", cart);
@@ -101,5 +103,13 @@ public class CartController : Controller
     {
         var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return int.TryParse(userIdVal, out userId);
+    }
+
+    private bool IsAjaxRequest()
+    {
+        return string.Equals(
+            Request.Headers["X-Requested-With"],
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase);
     }
 }

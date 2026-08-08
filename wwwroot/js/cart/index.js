@@ -40,7 +40,7 @@
         var badge = document.querySelector('[data-yq-cart-count]');
         if (!badge) return;
 
-        var total = toArray(document.querySelectorAll('[data-yq-cart-page] input[name="quantity"]'))
+        var total = toArray(document.querySelectorAll('[data-yq-cart-page] [data-yq-cart-qty-value]'))
             .reduce(function (sum, input) {
                 var value = parseInt(normalizeDigits(input.value), 10);
                 return sum + (Number.isFinite(value) ? value : 0);
@@ -109,28 +109,39 @@
         return value;
     }
 
-    function updateStepState(form) {
-        var input = form.querySelector('input[name="quantity"]');
-        var value = clampQuantity(input);
-        var max = parseInt(input.getAttribute('max') || '', 10);
-        var minus = form.querySelector('[data-yq-cart-qty-step="-1"]');
-        var plus = form.querySelector('[data-yq-cart-qty-step="1"]');
-        var isUpdating = form.classList.contains('is-updating');
+    function setQuantityValue(form, quantity) {
+        var valueInput = form.querySelector('[data-yq-cart-qty-value]');
+        if (valueInput) valueInput.value = String(quantity);
+    }
 
-        if (minus) minus.disabled = isUpdating || value <= 1;
-        if (plus) plus.disabled = isUpdating || (Number.isFinite(max) && value >= max);
+    function syncQuantitySelector(form, quantity) {
+        var select = form.querySelector('[data-yq-cart-qty-select]');
+        var customInput = form.querySelector('[data-yq-cart-qty-custom]');
+        if (!select || !customInput) return;
+
+        setQuantityValue(form, quantity);
+        if (quantity <= 5) {
+            select.value = String(quantity);
+            select.classList.remove('d-none');
+            customInput.classList.add('d-none');
+        } else {
+            select.value = 'custom';
+            select.classList.add('d-none');
+            customInput.value = String(quantity);
+            customInput.classList.remove('d-none');
+        }
     }
 
     function setFormUpdating(form, isUpdating) {
         var item = form.closest('[data-yq-cart-item]');
+        var spinner = form.querySelector('[data-yq-cart-qty-spinner]');
         form.classList.toggle('is-updating', isUpdating);
         if (item) item.classList.toggle('is-updating', isUpdating);
+        if (spinner) spinner.hidden = !isUpdating;
 
-        toArray(form.querySelectorAll('button, input[name="quantity"]')).forEach(function (control) {
+        toArray(form.querySelectorAll('[data-yq-cart-qty-select], [data-yq-cart-qty-custom]')).forEach(function (control) {
             control.disabled = isUpdating;
         });
-
-        if (!isUpdating) updateStepState(form);
     }
 
     function refreshCartFromHtml(html, message) {
@@ -158,7 +169,7 @@
         
         items.forEach(function(item) {
             if (item.classList.contains('is-removing')) return;
-            var input = item.querySelector('input[name="quantity"]');
+            var input = item.querySelector('[data-yq-cart-qty-value]');
             var qty = parseInt(normalizeDigits(input.value), 10) || 0;
             var priceEl = item.querySelector('.yq-cart-item__unit-price');
             // Extract numeric price from text like "250 ر.س / للقطعة"
@@ -184,26 +195,25 @@
     }
 
     function submitQuantity(form, message) {
-        if (!form) return;
-        var input = form.querySelector('input[name="quantity"]');
-        var nextValue = clampQuantity(input);
-        var previousValue = parseInt(form.getAttribute('data-yq-last-qty') || input.defaultValue || '1', 10);
-        var payload = new window.FormData(form);
+        if (!form || form.classList.contains('is-updating')) return;
+        var valueInput = form.querySelector('[data-yq-cart-qty-value]');
+        var nextValue = parseInt(normalizeDigits(valueInput ? valueInput.value : '1'), 10);
+        var previousValue = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
 
-        updateStepState(form);
-        
-        // Optimistic UI update
+        if (!Number.isFinite(nextValue) || nextValue < 1) nextValue = 1;
+        setQuantityValue(form, nextValue);
         calculateAndUpdateTotals();
 
         if (Number.isFinite(previousValue) && nextValue === previousValue) return;
-        form.setAttribute('data-yq-last-qty', nextValue);
 
         if (!window.fetch) {
             form.submit();
             return;
         }
 
-        // Send request in background (Optimistic)
+        var payload = new window.FormData(form);
+        setFormUpdating(form, true);
+
         window.fetch(form.action, {
             method: 'POST',
             body: payload,
@@ -215,12 +225,26 @@
             if (!response.ok) throw new Error('cart update failed');
             return response.text();
         }).then(function (html) {
-            // Silently succeed
+            var doc = new window.DOMParser().parseFromString(html, 'text/html');
+            var cartItemId = form.querySelector('input[name="cartItemId"]').value;
+            var matchingForm = toArray(doc.querySelectorAll('[data-yq-cart-qty-form]')).find(function (candidate) {
+                var candidateId = candidate.querySelector('input[name="cartItemId"]');
+                return candidateId && candidateId.value === cartItemId;
+            });
+            var serverValue = matchingForm && matchingForm.querySelector('[data-yq-cart-qty-value]');
+            var savedQuantity = parseInt(serverValue ? serverValue.value : nextValue, 10);
+
+            if (!Number.isFinite(savedQuantity) || savedQuantity < 1) savedQuantity = nextValue;
+            form.setAttribute('data-yq-last-qty', String(savedQuantity));
+            syncQuantitySelector(form, savedQuantity);
+            calculateAndUpdateTotals();
+            announce(message);
         }).catch(function () {
-            // If failed, revert UI
-            input.value = String(previousValue);
+            syncQuantitySelector(form, previousValue);
             calculateAndUpdateTotals();
             announce('تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
+        }).finally(function () {
+            setFormUpdating(form, false);
         });
     }
 
@@ -229,45 +253,46 @@
             if (form.dataset.yqQtyBound) return;
             form.dataset.yqQtyBound = '1';
 
-            var input = form.querySelector('input[name="quantity"]');
-            if (!input) return;
+            var valueInput = form.querySelector('[data-yq-cart-qty-value]');
+            var select = form.querySelector('[data-yq-cart-qty-select]');
+            var customInput = form.querySelector('[data-yq-cart-qty-custom]');
+            if (!valueInput || !select || !customInput) return;
 
-            clampQuantity(input);
-            form.setAttribute('data-yq-last-qty', input.value);
-            updateStepState(form);
+            var initialQuantity = parseInt(valueInput.value, 10) || 1;
+            form.setAttribute('data-yq-last-qty', String(initialQuantity));
+            syncQuantitySelector(form, initialQuantity);
 
             form.addEventListener('submit', function (event) {
                 event.preventDefault();
                 submitQuantity(form, 'تم تحديث الكمية.');
             });
 
-            form.querySelectorAll('[data-yq-cart-qty-step]').forEach(function (button) {
-                button.addEventListener('click', function () {
-                    if (form.classList.contains('is-updating')) return;
-                    var step = parseInt(button.getAttribute('data-yq-cart-qty-step'), 10);
-                    var current = clampQuantity(input);
-                    input.value = String(current + (Number.isFinite(step) ? step : 0));
-                    clampQuantity(input);
-                    updateStepState(form);
-                    submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
-                });
-            });
+            select.addEventListener('change', function () {
+                if (select.value === 'custom') {
+                    var current = parseInt(valueInput.value, 10) || 1;
+                    customInput.value = String(Math.max(6, current));
+                    select.classList.add('d-none');
+                    customInput.classList.remove('d-none');
+                    customInput.focus();
+                    customInput.select();
+                    return;
+                }
 
-            input.addEventListener('change', function () {
-                clampQuantity(input);
-                updateStepState(form);
+                setQuantityValue(form, parseInt(select.value, 10) || 1);
                 submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
             });
 
-            input.addEventListener('input', function () {
-                if (normalizeDigits(input.value) === '0') input.value = '1';
-                updateStepState(form);
+            customInput.addEventListener('blur', function () {
+                if (form.classList.contains('is-updating')) return;
+                var quantity = clampQuantity(customInput);
+                setQuantityValue(form, quantity);
+                submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
             });
 
-            input.addEventListener('keydown', function (event) {
+            customInput.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
+                    customInput.blur();
                 }
             });
         });

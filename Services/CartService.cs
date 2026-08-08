@@ -5,6 +5,7 @@ namespace YAGOT_2._0.Services;
 
 public class CartService
 {
+    private const int CartLockNamespace = 149745236;
     private readonly NeondbContext _context;
 
     public string? MESSAGE = null;
@@ -16,150 +17,198 @@ public class CartService
 
     public async Task<Cart> GetCartAsync(int userId)
     {
-        var cart = await _context.Carts.FirstOrDefaultAsync(c => c.Userid == userId);
+        var cart = await _context.Carts
+            .AsNoTracking()
+            .Include(c => c.Cartitems)
+                .ThenInclude(ci => ci.Product)
+                    .ThenInclude(p => p.Category)
+            .SingleOrDefaultAsync(c => c.Userid == userId);
+
         if (cart == null)
         {
+            // Reading an empty cart must not write to the database. The persisted
+            // cart is created only when the user actually adds an item.
             cart = new Cart { Userid = userId };
-            await _context.Carts.AddAsync(cart);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                // A concurrent request may have created the user's one allowed cart.
-                _context.Entry(cart).State = EntityState.Detached;
-                var concurrentCart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
-                if (concurrentCart == null)
-                    throw;
-
-                cart = concurrentCart;
-            }
         }
-
-        cart.Cartitems = await _context.Cartitems
-            .Where(ci => ci.Cartid == cart.Id)
-            .Include(ci => ci.Product)
-            .ToListAsync();
 
         return cart;
     }
 
     public async Task AddToCartAsync(int userId, int productId, int quantity)
     {
-        MESSAGE = null;
-        quantity = Math.Max(1, quantity);
+        var quantityToAdd = Math.Max(1, quantity);
 
-        var cart = await GetCartAsync(userId);
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
-        if (product == null || product.Stockquantity <= 0)
+        await ExecuteInCartTransactionAsync(async () =>
         {
-            MESSAGE = "هذا المنتج غير متوفر حالياً.";
-            return;
-        }
+            MESSAGE = null;
+            await LockUserCartAsync(userId);
 
-        var existingItem = await _context.Cartitems.FirstOrDefaultAsync(i => i.Cartid == cart.Id && i.Productid == productId);
-        if (existingItem != null)
+            var cart = await GetOrCreateCartAsync(userId);
+            var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == productId);
+            if (product == null || product.Stockquantity <= 0)
+            {
+                MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                return;
+            }
+
+            var existingItem = await _context.Cartitems
+                .SingleOrDefaultAsync(i => i.Cartid == cart.Id && i.Productid == productId);
+            if (existingItem != null)
+            {
+                var requestedQuantity = existingItem.Quantity + quantityToAdd;
+                existingItem.Quantity = Math.Min(requestedQuantity, product.Stockquantity);
+                if (requestedQuantity > product.Stockquantity)
+                {
+                    MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
+                }
+
+                await _context.SaveChangesAsync();
+                return;
+            }
+
+            var quantityToSave = quantityToAdd;
+            if (quantityToSave > product.Stockquantity)
+            {
+                MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
+                quantityToSave = product.Stockquantity;
+            }
+
+            _context.Cartitems.Add(new Cartitem
+            {
+                Cartid = cart.Id,
+                Productid = productId,
+                Quantity = quantityToSave
+            });
+            await _context.SaveChangesAsync();
+        });
+    }
+
+    public async Task UpdateQuantityAsync(int userId, int cartItemId, int quantity)
+    {
+        await ExecuteInCartTransactionAsync(async () =>
         {
-            var requestedQuantity = existingItem.Quantity + quantity;
-            existingItem.Quantity = Math.Min(requestedQuantity, product.Stockquantity);
-            if (requestedQuantity > product.Stockquantity)
+            MESSAGE = null;
+            await LockUserCartAsync(userId);
+
+            var item = await _context.Cartitems
+                .Include(i => i.Product)
+                .SingleOrDefaultAsync(i => i.Id == cartItemId && i.Cart.Userid == userId);
+            if (item == null)
+            {
+                MESSAGE = "العنصر غير موجود في سلتك";
+                return;
+            }
+
+            if (quantity <= 0)
+            {
+                _context.Cartitems.Remove(item);
+                await _context.SaveChangesAsync();
+                MESSAGE = "تم حذف العنصر بنجاح";
+                return;
+            }
+
+            var product = item.Product;
+            if (product == null || product.Stockquantity <= 0)
+            {
+                _context.Cartitems.Remove(item);
+                await _context.SaveChangesAsync();
+                MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                return;
+            }
+
+            item.Quantity = Math.Min(quantity, product.Stockquantity);
+            if (quantity > product.Stockquantity)
             {
                 MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
             }
 
             await _context.SaveChangesAsync();
-            return;
-        }
-
-        if (quantity > product.Stockquantity)
-        {
-            MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-            quantity = product.Stockquantity;
-        }
-
-        _context.Cartitems.Add(new Cartitem
-        {
-            Cartid = cart.Id,
-            Productid = productId,
-            Quantity = quantity,
-            Product = product
         });
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task UpdateQuantityAsync(int userId, int cartItemId, int quantity)
-    {
-        MESSAGE = null;
-
-        var cart = await GetCartAsync(userId);
-        var item = await _context.Cartitems.FirstOrDefaultAsync(i => i.Id == cartItemId && i.Cartid == cart.Id);
-        if (item == null)
-        {
-            MESSAGE = "العنصر غير موجود في سلتك";
-            return;
-        }
-
-        if (quantity <= 0)
-        {
-            _context.Cartitems.Remove(item);
-            await _context.SaveChangesAsync();
-            MESSAGE = "تم حذف العنصر بنجاح";
-            return;
-        }
-
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.Productid);
-        if (product == null || product.Stockquantity <= 0)
-        {
-            _context.Cartitems.Remove(item);
-            await _context.SaveChangesAsync();
-            MESSAGE = "هذا المنتج غير متوفر حالياً.";
-            return;
-        }
-
-        item.Quantity = Math.Min(quantity, product.Stockquantity);
-        if (quantity > product.Stockquantity)
-        {
-            MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-        }
-
-        await _context.SaveChangesAsync();
     }
 
     public async Task RemoveFromCartAsync(int userId, int cartItemId)
     {
-        var cart = await GetCartAsync(userId);
-        var item = await _context.Cartitems.FindAsync(cartItemId);
-        if (item != null && item.Cartid == cart.Id)
+        await ExecuteInCartTransactionAsync(async () =>
         {
-            _context.Cartitems.Remove(item);
-            try
-            {
-                await _context.SaveChangesAsync();
-                MESSAGE = "تم حذف العنصر بنجاح";
-            }
-            catch (Exception ex)
-            {
-                _context.ChangeTracker.Clear();
-                MESSAGE = $"فشلت عملية الحذف: {ex.Message}";
-            }
-        }
-        else
-        {
-            MESSAGE = "العنصر غير موجود في سلتك";
-        }
+            MESSAGE = null;
+            await LockUserCartAsync(userId);
+
+            var deleted = await _context.Cartitems
+                .Where(i => i.Id == cartItemId && i.Cart.Userid == userId)
+                .ExecuteDeleteAsync();
+
+            MESSAGE = deleted > 0
+                ? "تم حذف العنصر بنجاح"
+                : "العنصر غير موجود في سلتك";
+        });
     }
 
     public async Task ClearCartAsync(int userId)
     {
-        var cart = await GetCartAsync(userId);
-        var items = _context.Cartitems.Where(ci => ci.Cartid == cart.Id).ToList();
-
-        foreach (var item in items)
+        await ExecuteInCartTransactionAsync(async () =>
         {
-            _context.Cartitems.Remove(item);
-        }
+            await LockUserCartAsync(userId);
+            await _context.Cartitems
+                .Where(ci => ci.Cart.Userid == userId)
+                .ExecuteDeleteAsync();
+        });
+    }
 
+    private async Task<Cart> GetOrCreateCartAsync(int userId)
+    {
+        var cart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
+        if (cart != null)
+            return cart;
+
+        cart = new Cart { Userid = userId };
+        _context.Carts.Add(cart);
         await _context.SaveChangesAsync();
+        return cart;
+    }
+
+    private async Task LockUserCartAsync(int userId)
+    {
+        // Serialize cart mutations for this user even before a cart row exists.
+        // This avoids entity tracking/composable SQL issues and does not depend on
+        // a UserSite row being materialized merely to acquire a lock.
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock({CartLockNamespace}, {userId})");
+    }
+
+    private async Task ExecuteInCartTransactionAsync(Func<Task> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await operation();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch
+                {
+                    // Preserve the original exception if rollback also fails.
+                }
+
+                _context.ChangeTracker.Clear();
+                try
+                {
+                    await _context.Database.CloseConnectionAsync();
+                }
+                catch
+                {
+                    // A broken Npgsql connector is already discarded by the pool.
+                }
+
+                throw;
+            }
+        });
     }
 }

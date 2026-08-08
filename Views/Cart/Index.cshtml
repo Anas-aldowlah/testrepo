@@ -77,30 +77,37 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <input type="hidden" name="productId" value="@item.Productid" />
+                                    <input type="hidden" name="quantity" value="@item.Quantity" data-yq-cart-qty-value />
                                     <span class="yq-cart-item__qty-label">الكمية</span>
                                     <div class="yq-cart-item__qty-control">
-                                        <button type="button"
-                                                class="yq-cart-item__qty-step"
-                                                data-yq-cart-qty-step="-1"
-                                                aria-label="تقليل كمية @item.Product?.Name"
-                                                @(item.Quantity <= 1 ? "disabled" : null)>
-                                            <i class="bi bi-dash" aria-hidden="true"></i>
-                                        </button>
+                                        <select class="yq-cart-item__qty-select"
+                                                data-yq-cart-qty-select
+                                                aria-label="كمية @item.Product?.Name">
+                                            @for (var quantityOption = 1; quantityOption <= 5; quantityOption++)
+                                            {
+                                                <option value="@quantityOption"
+                                                        selected="@(item.Quantity == quantityOption)"
+                                                        disabled="@(quantityOption > (item.Product?.Stockquantity ?? item.Quantity))">
+                                                    @quantityOption
+                                                </option>
+                                            }
+                                            <option value="custom" selected="@(item.Quantity > 5)"
+                                                    disabled="@((item.Product?.Stockquantity ?? item.Quantity) <= 5)">
+                                                أكثر من 5 (5+)
+                                            </option>
+                                        </select>
                                         <input type="number"
-                                               name="quantity"
                                                value="@item.Quantity"
                                                min="1"
                                                max="@(item.Product?.Stockquantity ?? item.Quantity)"
-                                               class="yq-cart-item__qty-input"
+                                               class="yq-cart-item__qty-input @(item.Quantity <= 5 ? "d-none" : null)"
+                                               data-yq-cart-qty-custom
                                                inputmode="numeric"
                                                aria-label="كمية @item.Product?.Name" />
-                                        <button type="button"
-                                                class="yq-cart-item__qty-step"
-                                                data-yq-cart-qty-step="1"
-                                                aria-label="زيادة كمية @item.Product?.Name"
-                                                @(item.Quantity >= (item.Product?.Stockquantity ?? item.Quantity) ? "disabled" : null)>
-                                            <i class="bi bi-plus" aria-hidden="true"></i>
-                                        </button>
+                                        <span class="yq-cart-item__qty-spinner spinner-border spinner-border-sm"
+                                              data-yq-cart-qty-spinner hidden
+                                              role="status"
+                                              aria-label="جاري تحديث الكمية"></span>
                                     </div>
                                 </form>
 

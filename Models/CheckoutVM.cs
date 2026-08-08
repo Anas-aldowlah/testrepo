@@ -78,7 +78,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "رقم جوال المستلم مطلوب.")]
     [StringLength(9, MinimumLength = 9, ErrorMessage = "رقم الجوال يجب أن يتكون من 9 أرقام بالضبط.")]
-    [RegularExpression(@"^[0-9]{9}$", ErrorMessage = "رقم الجوال يجب أن يحتوي على 9 أرقام فقط.")]
+    [RegularExpression(@"^7[01378][0-9]{7}$", ErrorMessage = "رقم الجوال يجب أن يتكون من 9 أرقام ويبدأ بـ 70 أو 71 أو 73 أو 77 أو 78.")]
     public string Street
     {
         get => _street;
