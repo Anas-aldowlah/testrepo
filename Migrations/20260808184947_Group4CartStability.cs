@@ -10,30 +10,10 @@ namespace YAGOT_2._0.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Remove legacy duplicates before PostgreSQL validates the unique index.
+            // The schema uses lowercase identifiers; retain the newest row (highest id).
             migrationBuilder.Sql(
-                """
-                WITH duplicate_groups AS (
-                    SELECT
-                        cartid,
-                        productid,
-                        MIN(id) AS retained_id,
-                        LEAST(SUM(quantity)::bigint, 2147483647)::integer AS total_quantity
-                    FROM cartitems
-                    GROUP BY cartid, productid
-                    HAVING COUNT(*) > 1
-                ), updated_rows AS (
-                    UPDATE cartitems AS retained
-                    SET quantity = duplicate_groups.total_quantity
-                    FROM duplicate_groups
-                    WHERE retained.id = duplicate_groups.retained_id
-                    RETURNING retained.id
-                )
-                DELETE FROM cartitems AS duplicate
-                USING duplicate_groups
-                WHERE duplicate.cartid = duplicate_groups.cartid
-                  AND duplicate.productid = duplicate_groups.productid
-                  AND duplicate.id <> duplicate_groups.retained_id;
-                """);
+                "DELETE FROM cartitems a USING cartitems b WHERE a.id < b.id AND a.cartid = b.cartid AND a.productid = b.productid;");
 
             migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_cartitems_cartid\";");
 
