@@ -39,6 +39,16 @@ builder.Services.AddControllersWithViews()
 // Performance: In-memory cache for SiteStatus
 builder.Services.AddMemoryCache();
 
+// Registration Session & OTP Service
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = "YAGOT.RegSession";
+});
+builder.Services.AddScoped<IOtpService, OtpService>();
+
 static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
 {
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -159,7 +169,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAll");
-
+app.UseSession();
 app.UseAuthentication();
 
 app.Use(async (context, next) =>
