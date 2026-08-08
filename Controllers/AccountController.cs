@@ -251,7 +251,17 @@ public class AccountController : Controller
             TempData.Remove("GoogleLoginErrorTitle");
             TempData.Remove("RegistrationNotice");
             await SignInUserAsync(existingUser, existingUser.Id);
-            await _guestCartService.MergeIntoUserCartAsync(existingUser.Id);
+            try
+            {
+                await _guestCartService.MergeIntoUserCartAsync(existingUser.Id);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Could not merge the guest cart for Google user {UserId}; continuing with an empty cart.",
+                    existingUser.Id);
+            }
             TempData["UserName"] = existingUser.Name;
             await _visitService.SaveVisitAsync(HttpContext, existingUser.Name);
             ClearRegistrationState();
