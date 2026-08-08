@@ -106,7 +106,6 @@
           id="yqCheckoutForm"
           data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
           data-yq-auth-modal="yqCheckoutAuthModal"
-          data-yq-validate
           novalidate>
         @Html.AntiForgeryToken()
 
@@ -147,7 +146,8 @@
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم الجوال</span>
-                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone" readonly="readonly" class="yq-readonly" />
+                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone"
+                               readonly="readonly" class="yq-readonly" />
                         <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
@@ -209,7 +209,12 @@
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم جوال المستلم</span>
-                        <input asp-for="Street" form="yqCheckoutForm" type="tel" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '')" title="يجب إدخال 9 أرقام بالضبط" />
+                        <input asp-for="Street" form="yqCheckoutForm" type="tel" minlength="9" maxlength="9"
+                               inputmode="numeric" autocomplete="tel"
+                               required
+                               pattern="7[01378][0-9]{7}"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               title="أدخل 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78" />
                         <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
@@ -297,7 +302,7 @@
                     <button type="submit" class="btn-yaqut-gold yq-checkout-submit-btn" id="confirmOrderBottom"
                             aria-describedby="confirmOrderBottomHelp">
                         <i class="bi bi-check-circle" aria-hidden="true"></i>
-                        تأكيد الطلب والدفع
+                        تأكيد الطلب
                     </button>
                     <p id="confirmOrderBottomHelp" class="yq-checkout-submit-hint">
                         <i class="bi bi-shield-check" aria-hidden="true"></i>
@@ -349,7 +354,7 @@
             </div>
 
             <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
-                <i class="bi bi-shield-check"></i> تأكيد الطلب والدفع
+                <i class="bi bi-shield-check"></i> تأكيد الطلب
             </button>
 
             <p class="yq-checkout-summary__secure">

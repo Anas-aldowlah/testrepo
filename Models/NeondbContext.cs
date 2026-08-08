@@ -44,8 +44,14 @@ public partial class NeondbContext : DbContext
     public virtual DbSet<Visit> Visits { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=ep-floral-forest-al2seqtv.c-3.eu-central-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_KPysbZlLh54g;SSL Mode=Require;Trust Server Certificate=true");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql(
+                "Host=ep-floral-forest-al2seqtv.c-3.eu-central-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_KPysbZlLh54g;SSL Mode=Require;Trust Server Certificate=true;KeepAlive=30;TcpKeepAlive=true;Timeout=30;CommandTimeout=60",
+                npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +82,9 @@ public partial class NeondbContext : DbContext
             entity.HasKey(e => e.Id).HasName("cartitems_pkey");
 
             entity.ToTable("cartitems");
+
+            entity.HasIndex(e => new { e.Cartid, e.Productid }, "ux_cartitems_cartid_productid")
+                .IsUnique();
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Cartid).HasColumnName("cartid");

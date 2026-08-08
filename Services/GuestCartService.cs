@@ -9,17 +9,16 @@ namespace YAGOT_2._0.Services;
 public class GuestCartService
 {
     private const string CookieName = "YAGOT.GuestCart";
+    private const int CartLockNamespace = 149745236;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly NeondbContext _context;
-    private readonly CartService _cartService;
 
     public string? Message { get; private set; }
 
-    public GuestCartService(IHttpContextAccessor httpContextAccessor, NeondbContext context, CartService cartService)
+    public GuestCartService(IHttpContextAccessor httpContextAccessor, NeondbContext context)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
-        _cartService = cartService;
     }
 
     public async Task<Cart> GetCartAsync()
@@ -27,15 +26,16 @@ public class GuestCartService
         var guestItems = ReadItems();
         var productIds = guestItems.Select(i => i.ProductId).ToList();
         var products = await _context.Products
+            .AsNoTracking()
             .Include(p => p.Category)
             .Where(p => productIds.Contains(p.Id))
             .ToListAsync();
+        var productsById = products.ToDictionary(p => p.Id);
 
         var cartItems = guestItems
             .Select(item =>
             {
-                var product = products.FirstOrDefault(p => p.Id == item.ProductId);
-                if (product == null) return null;
+                if (!productsById.TryGetValue(item.ProductId, out var product)) return null;
 
                 return new Cartitem
                 {
@@ -148,13 +148,86 @@ public class GuestCartService
 
     public async Task MergeIntoUserCartAsync(int userId)
     {
-        var items = ReadItems();
-        if (!items.Any()) return;
+        var guestItems = ReadItems();
+        if (guestItems.Count == 0) return;
 
-        foreach (var item in items)
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await _cartService.AddToCartAsync(userId, item.ProductId, item.Quantity);
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock({CartLockNamespace}, {userId})");
+
+                var cart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
+                if (cart == null)
+                {
+                    cart = new Cart { Userid = userId };
+                    _context.Carts.Add(cart);
+                }
+
+                var productIds = guestItems.Select(i => i.ProductId).Distinct().ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id);
+
+                var existingItems = cart.Id == 0
+                    ? new Dictionary<int, Cartitem>()
+                    : await _context.Cartitems
+                        .Where(i => i.Cartid == cart.Id && productIds.Contains(i.Productid))
+                        .ToDictionaryAsync(i => i.Productid);
+
+                foreach (var guestItem in guestItems)
+                {
+                    if (!products.TryGetValue(guestItem.ProductId, out var product) || product.Stockquantity <= 0)
+                        continue;
+
+                    if (existingItems.TryGetValue(guestItem.ProductId, out var existingItem))
+                    {
+                        existingItem.Quantity = Math.Min(
+                            existingItem.Quantity + guestItem.Quantity,
+                            product.Stockquantity);
+                        continue;
+                    }
+
+                    var newItem = new Cartitem
+                    {
+                        Cart = cart,
+                        Productid = guestItem.ProductId,
+                        Quantity = Math.Min(guestItem.Quantity, product.Stockquantity)
+                    };
+                    _context.Cartitems.Add(newItem);
+                    existingItems.Add(guestItem.ProductId, newItem);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch
+                {
+                    // Preserve the original exception if rollback also fails.
+                }
+
+                _context.ChangeTracker.Clear();
+                try
+                {
+                    await _context.Database.CloseConnectionAsync();
+                }
+                catch
+                {
+                    // A broken Npgsql connector is already discarded by the pool.
+                }
+
+                throw;
+            }
+        });
 
         Clear();
     }
