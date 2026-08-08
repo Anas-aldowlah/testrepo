@@ -8,7 +8,7 @@ using YAGOT_2._0.Models.Admin;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize]
+[Authorize(Roles = "Admin,Developer")]
 public class OrdersController : Controller
 {
     private readonly NeondbContext _context;

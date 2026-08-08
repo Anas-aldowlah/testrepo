@@ -176,11 +176,12 @@ public class OrdersController : Controller
     private Task<int> ResolveUserIdAsync()
     {
         var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(userIdVal, out var userId))
+        if (int.TryParse(userIdVal, out var userId) && userId > 0)
         {
             return Task.FromResult(userId);
         }
-        return Task.FromResult(1);
+
+        throw new UnauthorizedAccessException("The authenticated user has no valid user identifier claim.");
     }
 
     private async Task<CheckoutVM> BuildCheckoutViewModelAsync(Cart cart)
