@@ -1,30 +1,34 @@
+@using YAGOT_2._0.Models
 @{
     Layout = "_AuthLayout";
-    ViewData["Title"] = "بوابة الدخول";
+    ViewData["Title"] = "بوابة الدخول وإنشاء الحساب";
     var returnUrl = ViewData["ReturnUrl"] as string ?? "/Home/Index";
     var showRegisterPanel = (ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true;
+    var regState = ViewData["RegState"] as RegistrationSessionState ?? new RegistrationSessionState();
+    var initialStep = regState.Step > 0 ? regState.Step : 1;
 }
 
 <div class="yaqut-auth-page yq-login-view @(showRegisterPanel ? "is-register-active" : "is-login-active")" data-yq-auth-root data-yq-auth-initial="@(showRegisterPanel ? "register" : "login")">
     <article class="yaqut-auth-card yq-login-card" aria-labelledby="authPageTitle">
         <div class="yaqut-auth-card__shine" aria-hidden="true"></div>
+        
         <aside class="yaqut-auth-card__visual yq-login-visual" aria-label="تجربة حساب ياقوت">
             <div class="yq-login-visual__brand" aria-hidden="true">
                 <img src="~/images/yaqut-logo.png" alt="" />
             </div>
             <div class="yq-login-visual__content">
-                <span class="yaqut-auth-card__eyebrow">Yaqut Private Access</span>
-                <h2>دخول هادئ لتجربة عطور أكثر خصوصية</h2>
-                <p>تابع الطلبات، احفظ بياناتك بأمان، وعد إلى رحلتك الشرائية من النقطة نفسها.</p>
+                <span class="yaqut-auth-card__eyebrow">Yaqut Luxury Access</span>
+                <h2>عالم أنيق لعطور أكثر تميزاً وخصوصية</h2>
+                <p>تتبع طلباتك، احفظ تفضيلاتك العطرية، واستمتع بتجربة تسوق سريعة ومحمية.</p>
             </div>
             <div class="yaqut-auth-perks" aria-label="مزايا الحساب">
-                <span><i class="bi bi-shield-check" aria-hidden="true"></i> جلسة محمية</span>
+                <span><i class="bi bi-shield-check" aria-hidden="true"></i> توثيق آمن 100%</span>
                 <span><i class="bi bi-bag-heart" aria-hidden="true"></i> سلة محفوظة</span>
-                <span><i class="bi bi-stars" aria-hidden="true"></i> تجربة مخصصة</span>
+                <span><i class="bi bi-stars" aria-hidden="true"></i> عروض حصرية</span>
             </div>
         </aside>
-        <div class="yaqut-auth-card__body">
 
+        <div class="yaqut-auth-card__body">
             <div class="yaqut-auth-logo">
                 <div class="yaqut-logo-wrap yaqut-logo-wrap--auth">
                     <img src="~/images/yaqut-logo.png" alt="ياقوت" class="yaqut-logo" />
@@ -34,7 +38,7 @@
             <header class="yaqut-auth-heading">
                 <span class="yq-login-kicker">حساب العملاء في LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" style="width:1rem" /></span>
                 <h1 id="authPageTitle" class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
-                <p class="yaqut-auth-subtitle">سجّل الدخول بحساب LogiCore أو أنشئ واحدًا جديدًا، واستخدمه في جميع مواقع وخدماتنا.</p>
+                <p class="yaqut-auth-subtitle">سجّل الدخول بحسابك أو أنشئ حساباً جديداً بخطوات بسيطة وآمنة.</p>
             </header>
 
             <div class="yaqut-auth-tabs" role="tablist" aria-label="اختيار نوع الدخول">
@@ -45,7 +49,7 @@
                         aria-controls="loginPanel"
                         aria-selected="@(showRegisterPanel ? "false" : "true")"
                         tabindex="@(showRegisterPanel ? "-1" : "0")">
-                    <i class="bi bi-box-arrow-in-left" aria-hidden="true"></i> الدخول بحساب LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" style="width:1rem" />
+                    <i class="bi bi-box-arrow-in-left" aria-hidden="true"></i> تسجيل الدخول
                 </button>
                 <button type="button"
                         class="yaqut-auth-tab @(showRegisterPanel ? "is-active" : "")"
@@ -54,7 +58,7 @@
                         aria-controls="registerPanel"
                         aria-selected="@(showRegisterPanel ? "true" : "false")"
                         tabindex="@(showRegisterPanel ? "0" : "-1")">
-                    <i class="bi bi-person-plus" aria-hidden="true"></i> انشاء حساب LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" style="width:1rem" />
+                    <i class="bi bi-person-plus" aria-hidden="true"></i> إنشاء حساب جديد
                 </button>
             </div>
 
@@ -69,12 +73,53 @@
                 </div>
             }
 
+            <!-- PANEL 1: LOGIN -->
             <div id="loginPanel"
                  class="auth-panel @(showRegisterPanel ? "d-none" : "")"
                  role="tabpanel"
                  aria-labelledby="loginToggle"
                  aria-hidden="@(showRegisterPanel ? "true" : "false")"
                  tabindex="0">
+
+                <!-- GOOGLE LOGIN BUTTON AT TOP OF LOGIN PANEL -->
+                <div class="yaqut-auth-google-login-wrap mb-3 text-center">
+                    <a asp-controller="Account"
+                       asp-action="GoogleLogin"
+                       asp-route-isRegister="false"
+                       asp-route-returnUrl="@returnUrl"
+                       class="google-btn-rect yq-login-google w-100 justify-content-center py-3">
+                        <div class="google-icon-wrapper">
+                            <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" />
+                            </svg>
+                        </div>
+                        <span class="google-btn-text fw-bold fs-6">المتابعة باستخدام Google</span>
+                    </a>
+                </div>
+
+                <!-- UNLINKED GOOGLE ACCOUNT ALERT BANNER -->
+                @if (TempData["GoogleLoginError"] != null)
+                {
+                    <div class="yq-google-unlinked-alert p-3 rounded-3 mb-3" role="alert">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                            <h5 class="mb-0 fw-bold fs-6">حساب Google غير مرتبط</h5>
+                        </div>
+                        <p class="mb-2 small">@TempData["GoogleLoginError"]</p>
+                        <button type="button" class="btn btn-sm btn-yaqut-gold w-100" id="btnSwitchToRegisterFromAlert">
+                            <i class="bi bi-person-plus-fill"></i> إنشاء حساب جديد الآن
+                        </button>
+                    </div>
+                }
+
+                <!-- OR DIVIDER -->
+                <div class="yq-auth-divider my-3">
+                    <span>أو عبر رقم الجوال</span>
+                </div>
+
                 <form asp-controller="Account" asp-action="Login" method="post" class="yaqut-auth-form" data-yq-validate novalidate>
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
@@ -84,7 +129,7 @@
                         <div class="yaqut-input-wrap">
                             <i class="bi bi-phone" aria-hidden="true"></i>
                             <input id="loginPhone" name="Phone" type="tel" class="yaqut-form-input"
-                                   placeholder="ادخل رقم الجوال"
+                                   placeholder="ادخل رقم الجوال (9 أرقام)"
                                    required
                                    autocomplete="tel"
                                    inputmode="numeric"
@@ -93,7 +138,7 @@
                                    maxlength="9"
                                    aria-describedby="loginPhoneHint loginPhoneError" />
                         </div>
-                        <p id="loginPhoneHint" class="yq-field-hint">استخدم رقم الجوال المكوّن من 9 أرقام.</p>
+                        <p id="loginPhoneHint" class="yq-field-hint">ادخل رقم الجوال المكون من 9 أرقام بدون صفر في البداية.</p>
                         <div id="loginPhoneError" class="yq-field-error" data-yq-error-for="loginPhone" aria-live="polite"></div>
                     </div>
 
@@ -107,6 +152,9 @@
                                    autocomplete="current-password"
                                    minlength="6"
                                    aria-describedby="loginPasswordError" />
+                            <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
+                                <i class="bi bi-eye"></i>
+                            </button>
                         </div>
                         <div id="loginPasswordError" class="yq-field-error" data-yq-error-for="loginPassword" aria-live="polite"></div>
                     </div>
@@ -117,218 +165,516 @@
                 </form>
                 <div class="yaqut-auth-help">
                     <span><i class="bi bi-question-circle" aria-hidden="true"></i> تحتاج لاستعادة الوصول؟</span>
-                    <a asp-controller="Account" asp-action="RecoveryAccount">نسيت أو تريد تغيير كلمة المرور</a>
+                    <a asp-controller="Account" asp-action="RecoveryAccount">نسيت كلمة المرور</a>
                 </div>
             </div>
 
+            <!-- PANEL 2: REDESIGNED 3-STEP REGISTER WIZARD -->
             <div id="registerPanel"
                  class="auth-panel yq-register-panel @(showRegisterPanel ? "" : "d-none")"
                  role="tabpanel"
                  aria-labelledby="registerToggle"
                  aria-hidden="@(showRegisterPanel ? "false" : "true")"
                  tabindex="0">
-                <form asp-controller="Account" asp-action="Register" method="post" class="yaqut-auth-form yq-register-form" data-yq-validate novalidate>
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-                    <input name="Email" value='@TempData["Email"]' type="hidden" />
 
-                    <div class="yq-register-intro" aria-labelledby="registerIntroTitle">
-                        <span class="yq-register-intro__icon" aria-hidden="true">
-                            <i class="bi bi-person-hearts"></i>
-                        </span>
+                <!-- STEP PROGRESS BAR -->
+                <div class="yq-stepper-container" aria-label="خطوات التسجيل">
+                    <div class="yq-stepper-progress">
+                        <div class="yq-stepper-progress-bar" id="stepperProgressBar" style="width: @(initialStep == 1 ? "0%" : initialStep == 2 ? "50%" : "100%")"></div>
+                    </div>
+                    <div class="yq-stepper-steps">
+                        <div class="yq-step-item @(initialStep >= 1 ? "is-active" : "") @(initialStep > 1 || regState.IsGoogleVerified ? "is-completed" : "")" data-step="1">
+                            <div class="yq-step-badge">
+                                <span class="yq-step-num">1</span>
+                                <i class="bi bi-check-lg yq-step-check"></i>
+                            </div>
+                            <span class="yq-step-label">التوثيق عبر Google</span>
+                        </div>
+                        <div class="yq-step-item @(initialStep >= 2 ? "is-active" : "") @(initialStep > 2 || !string.IsNullOrEmpty(regState.PhoneNumber) ? "is-completed" : "")" data-step="2">
+                            <div class="yq-step-badge">
+                                <span class="yq-step-num">2</span>
+                                <i class="bi bi-check-lg yq-step-check"></i>
+                            </div>
+                            <span class="yq-step-label">البيانات والجوال</span>
+                        </div>
+                        <div class="yq-step-item @(initialStep >= 3 ? "is-active" : "")" data-step="3">
+                            <div class="yq-step-badge">
+                                <span class="yq-step-num">3</span>
+                                <i class="bi bi-check-lg yq-step-check"></i>
+                            </div>
+                            <span class="yq-step-label">حماية الحساب</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="regGlobalAlert" class="yaqut-alert yaqut-alert--danger d-none" role="alert"></div>
+
+                <!-- STEP 1: GOOGLE VERIFICATION -->
+                <div id="regStep1" class="yq-reg-step-panel @(initialStep == 1 ? "is-current" : "d-none")">
+                    <div class="yq-step-intro">
+                        <div class="yq-step-intro__icon">
+                            <i class="bi bi-google"></i>
+                        </div>
                         <div>
-                            <h2 id="registerIntroTitle">أنشئ حسابك بخطوات واضحة</h2>
-                            <p>املأ البيانات الأساسية، اربط بريدك عبر Google، ثم اختر كلمة مرور آمنة لإكمال التسجيل.</p>
+                            <h2>الخطوة الأولى: التوثيق السريع عبر Google</h2>
+                            <p>قم بالربط الفوري مع حسابك في Google لتوثيق ملكية البريد الإلكتروني دون الحاجة لإدخاله يدوياً.</p>
                         </div>
                     </div>
 
-                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--identity" aria-labelledby="registerIdentityTitle">
-                        <h2 id="registerIdentityTitle" class="yaqut-auth-form-section__title">
-                            <i class="bi bi-person-vcard" aria-hidden="true"></i> بيانات الحساب
-                        </h2>
-                        <p class="yq-register-section__note">سنستخدم هذه البيانات لتجربة شراء أسرع ومتابعة الطلبات بدقة.</p>
+                    @if (regState.IsGoogleVerified && !string.IsNullOrEmpty(regState.GoogleEmail))
+                    {
+                        <div class="yq-google-verified-card">
+                            <div class="yq-g-card-header">
+                                <i class="bi bi-check-circle-fill yq-text-gold fs-3"></i>
+                                <div>
+                                    <h4 class="mb-1 fw-bold">تم التوثيق بنجاح عبر Google</h4>
+                                    <p class="mb-0 text-muted">@regState.GoogleEmail</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-start">
+                                <button type="button" class="btn-yaqut-gold w-100" id="btnContinueToStep2">
+                                    المتابعة للخطوة التالية <i class="bi bi-arrow-left"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="yq-google-connect-card text-center p-4">
+                            <p class="yq-step-desc mb-4">اضغط على الزر أدناه للمتابعة باستخدام حساب Google الخاص بك:</p>
+                            <a asp-controller="Account"
+                               asp-action="GoogleLogin"
+                               asp-route-returnUrl="@returnUrl"
+                               class="google-btn-rect yq-register-google w-100 justify-content-center py-3">
+                                <div class="google-icon-wrapper">
+                                    <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" />
+                                    </svg>
+                                </div>
+                                <span class="google-btn-text fw-bold fs-6">المتابعة باستخدام Google</span>
+                            </a>
+                        </div>
+                    }
+                </div>
+
+                <!-- STEP 2: BASIC INFORMATION -->
+                <div id="regStep2" class="yq-reg-step-panel @(initialStep == 2 ? "is-current" : "d-none")">
+                    <div class="yq-step-intro">
+                        <div class="yq-step-intro__icon">
+                            <i class="bi bi-person-vcard"></i>
+                        </div>
+                        <div>
+                            <h2>الخطوة الثانية: البيانات الأساسية ورقم الجوال</h2>
+                            <p>تحقق من اسمك وبريدك الإلكتروني، ثم ادخل رقم الجوال الخاص بحسابك.</p>
+                        </div>
+                    </div>
+
+                    <form id="formStep2" novalidate onsubmit="return false;">
+                        @Html.AntiForgeryToken()
 
                         <div class="yaqut-form-group">
-                            <label class="yaqut-form-label" for="regName">الاسم الكامل <span class="yq-required-mark">مطلوب</span></label>
+                            <label class="yaqut-form-label" for="regFullName">الاسم الكامل <span class="yq-required-mark">مطلوب</span></label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-person" aria-hidden="true"></i>
-                                <input id="regName" name="Name" type="text" class="yaqut-form-input"
+                                <input id="regFullName" type="text" class="yaqut-form-input"
                                        placeholder="اسمك الكامل"
-                                       required
-                                       autocomplete="name"
-                                       minlength="2"
-                                       aria-describedby="regNameHint regNameError" />
+                                       value="@(regState.FullName ?? regState.GoogleName)"
+                                       required minlength="2" />
                             </div>
-                            <p id="regNameHint" class="yq-field-hint">اكتب الاسم كما تفضّل أن يظهر في حسابك وطلباتك.</p>
-                            <div id="regNameError" class="yq-field-error" data-yq-error-for="regName" aria-live="polite"></div>
+                            <div class="yq-field-error" id="regFullNameError"></div>
                         </div>
 
-                        <div class="yaqut-auth-field-row">
-                            <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regPhone">رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
-                                <div class="yaqut-input-wrap">
-                                    <i class="bi bi-phone" aria-hidden="true"></i>
-                                    <input id="regPhone" name="Phone" type="tel" class="yaqut-form-input"
-                                           placeholder="ادخل رقم الجوال"
-                                           required
-                                           autocomplete="tel"
-                                           inputmode="numeric"
-                                           pattern="[0-9]{9}"
-                                           minlength="9"
-                                           maxlength="9"
-                                           aria-describedby="regPhoneHint regPhoneError" />
-                                </div>
-                                <p id="regPhoneHint" class="yq-field-hint">9 أرقام فقط بدون مفتاح الدولة أو مسافات.</p>
-                                <div id="regPhoneError" class="yq-field-error" data-yq-error-for="regPhone" aria-live="polite"></div>
+                        <div class="yaqut-form-group">
+                            <label class="yaqut-form-label" for="regGoogleEmail">البريد الإلكتروني (مؤكد عبر Google)</label>
+                            <div class="yaqut-input-wrap is-readonly">
+                                <i class="bi bi-envelope-check text-success" aria-hidden="true"></i>
+                                <input id="regGoogleEmail" type="email" class="yaqut-form-input"
+                                       value="@regState.GoogleEmail" readonly />
                             </div>
-
-                            <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regConfirmPhone">تأكيد رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
-                                <div class="yaqut-input-wrap">
-                                    <i class="bi bi-phone-flip" aria-hidden="true"></i>
-                                    <input id="regConfirmPhone" name="ConfirmPhone" type="tel" class="yaqut-form-input"
-                                           placeholder="أعد كتابة رقم الجوال"
-                                           required
-                                           autocomplete="tel"
-                                           inputmode="numeric"
-                                           pattern="[0-9]{9}"
-                                           minlength="9"
-                                           maxlength="9"
-                                           aria-describedby="regConfirmPhoneHint regConfirmPhoneError" />
-                                </div>
-                                <p id="regConfirmPhoneHint" class="yq-field-hint">يساعدنا التأكيد على منع أخطاء التواصل والتوصيل.</p>
-                                <div id="regConfirmPhoneError" class="yq-field-error" data-yq-error-for="regConfirmPhone" aria-live="polite"></div>
-                            </div>
+                            <p class="yq-field-hint text-success"><i class="bi bi-shield-check"></i> تم جلب البريد وتأكيده تلقائياً من Google.</p>
                         </div>
-                    </section>
 
-                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--email" aria-labelledby="registerEmailTitle">
-                        <h2 id="registerEmailTitle" class="yaqut-auth-form-section__title">
-                            <i class="bi bi-envelope-check" aria-hidden="true"></i> البريد الإلكتروني
-                        </h2>
-                        <p class="yq-register-section__note">ربط البريد يؤكد ملكية الحساب ويجعل استعادته أسهل عند الحاجة.</p>
-                        <a asp-controller="Account"
-                           asp-action="GoogleLogin"
-                           class="google-btn-rect yq-register-google"
-                           aria-describedby="registerEmailHelp">
-                            <div class="google-icon-wrapper">
-                                <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" />
-                                </svg>
+                        <div class="yaqut-form-group">
+                            <label class="yaqut-form-label" for="regPhone">رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-phone" aria-hidden="true"></i>
+                                <input id="regPhone" type="tel" class="yaqut-form-input"
+                                       placeholder="5xxxxxxxx (9 أرقام)"
+                                       value="@regState.PhoneNumber"
+                                       required pattern="[0-9]{9}" minlength="9" maxlength="9" inputmode="numeric" />
                             </div>
-                            <span class="google-btn-text">ربط البريد بواسطة Google</span>
-                        </a>
-                        @{
-                            if (TempData["Email"] == null)
-                            {
-                                <p id="registerEmailHelp" class="yaqut-auth-email-status yaqut-auth-email-status--error">
-                                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i> اربط البريد بواسطة Google قبل إنشاء الحساب.
-                                </p>
-                            }
-                            else
-                            {
-                                <p id="registerEmailHelp" class="yaqut-auth-email-status yaqut-auth-email-status--success">
-                                    <i class="bi bi-check-circle" aria-hidden="true"></i> @TempData["Email"]
-                                </p>
-                            }
-                        }
-                    </section>
-
-                    <section class="yaqut-auth-form-section yq-register-section yq-register-section--security" aria-labelledby="registerSecurityTitle">
-                        <h2 id="registerSecurityTitle" class="yaqut-auth-form-section__title">
-                            <i class="bi bi-shield-lock" aria-hidden="true"></i> حماية الحساب
-                        </h2>
-                        <p class="yq-register-section__note">اختر كلمة مرور لا تقل عن 6 أحرف، ويفضل أن تجمع بين حروف وأرقام.</p>
-                        <div class="yaqut-auth-field-row">
-                            <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regPassword">كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
-                                <div class="yaqut-input-wrap">
-                                    <i class="bi bi-shield-lock" aria-hidden="true"></i>
-                                    <input id="regPassword" name="Password" type="password" class="yaqut-form-input"
-                                           placeholder="6 أحرف على الأقل"
-                                           required
-                                           autocomplete="new-password"
-                                           minlength="6"
-                                           aria-describedby="regPasswordHint regPasswordError" />
-                                </div>
-                                <p id="regPasswordHint" class="yq-field-hint">استخدم كلمة مرور يسهل عليك تذكرها ويصعب تخمينها.</p>
-                                <div id="regPasswordError" class="yq-field-error" data-yq-error-for="regPassword" aria-live="polite"></div>
-                            </div>
-
-                            <div class="yaqut-form-group">
-                                <label class="yaqut-form-label" for="regConfirm">تأكيد كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
-                                <div class="yaqut-input-wrap">
-                                    <i class="bi bi-shield-check" aria-hidden="true"></i>
-                                    <input id="regConfirm" name="ConfirmPassword" type="password" class="yaqut-form-input"
-                                           placeholder="أعد كتابة كلمة المرور"
-                                           required
-                                           autocomplete="new-password"
-                                           minlength="6"
-                                           aria-describedby="regConfirmHint regConfirmError" />
-                                </div>
-                                <p id="regConfirmHint" class="yq-field-hint">أعد كتابة كلمة المرور للتأكد من عدم وجود خطأ.</p>
-                                <div id="regConfirmError" class="yq-field-error" data-yq-error-for="regConfirm" aria-live="polite"></div>
-                            </div>
+                            <p class="yq-field-hint">أدخل رقم الجوال المكون من 9 أرقام (بدون مفتاح الدولة أو صفر بالبداية).</p>
+                            <div class="yq-field-error" id="regPhoneError"></div>
                         </div>
-                    </section>
 
-                    <div class="yq-register-actions">
-                        <p>
-                            <i class="bi bi-lock" aria-hidden="true"></i>
-                            بالمتابعة سيتم إنشاء حساب آمن وربطه بسلة التسوق وطلباتك القادمة.
-                        </p>
-                        <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
-                            <i class="bi bi-stars" aria-hidden="true"></i> إنشاء حساب
-                        </button>
+                        <div class="d-flex gap-2 justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary px-4 yq-btn-back" data-back-to="1">
+                                <i class="bi bi-arrow-right"></i> السابق
+                            </button>
+                            <button type="button" class="btn-yaqut-gold px-4" id="btnStep2Next">
+                                التالي <i class="bi bi-arrow-left"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- STEP 3: ACCOUNT SECURITY -->
+                <div id="regStep3" class="yq-reg-step-panel @(initialStep == 3 ? "is-current" : "d-none")">
+                    <div class="yq-step-intro">
+                        <div class="yq-step-intro__icon">
+                            <i class="bi bi-shield-lock"></i>
+                        </div>
+                        <div>
+                            <h2>الخطوة الثالثة: حماية الحساب وكلمة المرور</h2>
+                            <p>اختر كلمة مرور قوية لحماية حسابك واستخدامها عند تسجيل الدخول لاحقاً.</p>
+                        </div>
                     </div>
-                </form>
+
+                    <form id="formStep3" novalidate onsubmit="return false;">
+                        @Html.AntiForgeryToken()
+
+                        <div class="yaqut-form-group">
+                            <label class="yaqut-form-label" for="regPassword">كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                                <input id="regPassword" type="password" class="yaqut-form-input"
+                                       placeholder="6 أحرف على الأقل"
+                                       required minlength="6" autocomplete="new-password" />
+                                <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <!-- PASSWORD STRENGTH METER -->
+                            <div class="yq-pwd-meter mt-2">
+                                <div class="yq-pwd-meter-bar">
+                                    <div class="yq-pwd-meter-fill" id="pwdStrengthFill"></div>
+                                </div>
+                                <span class="yq-pwd-meter-label small text-muted mt-1 d-block" id="pwdStrengthText">قوة كلمة المرور</span>
+                            </div>
+                            <div class="yq-field-error" id="regPasswordError"></div>
+                        </div>
+
+                        <div class="yaqut-form-group">
+                            <label class="yaqut-form-label" for="regConfirmPassword">تأكيد كلمة المرور <span class="yq-required-mark">مطلوب</span></label>
+                            <div class="yaqut-input-wrap">
+                                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                                <input id="regConfirmPassword" type="password" class="yaqut-form-input"
+                                       placeholder="أعد كتابة كلمة المرور"
+                                       required minlength="6" autocomplete="new-password" />
+                                <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="yq-field-error" id="regConfirmPasswordError"></div>
+                        </div>
+
+                        <div class="yq-summary-box p-3 rounded-3 mb-4">
+                            <h5 class="fw-bold mb-2 fs-6"><i class="bi bi-card-checklist yq-text-gold"></i> ملخص بيانات التسجيل</h5>
+                            <div class="small">
+                                <div><strong>البريد الإلكتروني:</strong> <span id="summaryEmail">@regState.GoogleEmail</span></div>
+                                <div><strong>رقم الجوال:</strong> <span id="summaryPhone">@regState.PhoneNumber</span></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary px-4 yq-btn-back" data-back-to="2">
+                                <i class="bi bi-arrow-right"></i> السابق
+                            </button>
+                            <button type="button" class="btn-yaqut-gold px-4" id="btnCompleteRegistration">
+                                <i class="bi bi-stars"></i> إنشاء الحساب
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
             </div>
 
             <p class="yaqut-auth-footnote">
                 <i class="bi bi-shield-lock" aria-hidden="true"></i>
-                جلستك محمية وتتجدد تلقائياً لمدة يوم
+                جلستك محمية وتخضع لسياسات الأمان والتشفير الخاصة بـ LogiCore.
             </p>
         </div>
     </article>
 </div>
 
+<!-- CLIENT JAVASCRIPT FOR WIZARD -->
 <script>
-(function() {
-    var KEY = 'yq-register-draft';
-    var registerForm = document.querySelector('.yq-register-form');
-    var googleBtn = document.querySelector('.yq-register-google');
-    
-    if (!registerForm) return;
-    
-    // Save form data before Google redirect
-    if (googleBtn) {
-        googleBtn.addEventListener('click', function(e) {
-            var data = {};
-            registerForm.querySelectorAll('input:not([type="hidden"])').forEach(function(input) {
-                if (input.name && input.value) {
-                    data[input.name] = input.value;
-                }
-            });
-            try { sessionStorage.setItem(KEY, JSON.stringify(data)); } catch(err) {}
+document.addEventListener('DOMContentLoaded', function () {
+    var currentStep = @initialStep;
+
+    // Password Toggle Listeners
+    document.querySelectorAll('.yq-toggle-pwd-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var input = btn.previousElementSibling;
+            if (input && (input.type === 'password' || input.type === 'text')) {
+                var isPwd = input.type === 'password';
+                input.type = isPwd ? 'text' : 'password';
+                btn.querySelector('i').className = isPwd ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+        });
+    });
+
+    // Helper: AntiForgeryToken
+    function getCsrfToken() {
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    // Show Alert helper
+    function showAlert(msg) {
+        var alertEl = document.getElementById('regGlobalAlert');
+        if (alertEl) {
+            alertEl.textContent = msg;
+            alertEl.classList.remove('d-none');
+        }
+    }
+    function hideAlert() {
+        var alertEl = document.getElementById('regGlobalAlert');
+        if (alertEl) alertEl.classList.add('d-none');
+    }
+
+    // Step Switching Logic
+    function updateStepUI(step) {
+        currentStep = step;
+        hideAlert();
+
+        // Update Stepper progress bar width & badges
+        var bar = document.getElementById('stepperProgressBar');
+        if (bar) {
+            bar.style.width = step === 1 ? '0%' : step === 2 ? '50%' : '100%';
+        }
+
+        document.querySelectorAll('.yq-step-item').forEach(function(item) {
+            var s = parseInt(item.getAttribute('data-step'));
+            item.classList.toggle('is-active', s <= step);
+            if (s < step) item.classList.add('is-completed');
+        });
+
+        // Hide/Show Panels
+        document.querySelectorAll('.yq-reg-step-panel').forEach(function(panel) {
+            panel.classList.add('d-none');
+            panel.classList.remove('is-current');
+        });
+
+        var activePanel = document.getElementById('regStep' + step);
+        if (activePanel) {
+            activePanel.classList.remove('d-none');
+            activePanel.classList.add('is-current');
+        }
+
+        // Notify server of step change for session state
+        fetch('/Account/SetRegisterStep?step=' + step, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
     }
-    
-    // Restore form data after return from Google
-    try {
-        var saved = sessionStorage.getItem(KEY);
-        if (saved) {
-            var data = JSON.parse(saved);
-            Object.keys(data).forEach(function(name) {
-                var input = registerForm.querySelector('input[name="' + name + '"]');
-                if (input && !input.value) {
-                    input.value = data[name];
+
+    // Button Step 1 -> Step 2
+    var btnStep2 = document.getElementById('btnContinueToStep2');
+    if (btnStep2) {
+        btnStep2.addEventListener('click', function() {
+            updateStepUI(2);
+        });
+    }
+
+    // Back Buttons
+    document.querySelectorAll('.yq-btn-back').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var targetStep = parseInt(btn.getAttribute('data-back-to'));
+            if (targetStep >= 1 && targetStep <= 3) {
+                updateStepUI(targetStep);
+            }
+        });
+    });
+
+    // Step 2 Next Button (Validates Name & Phone and advances to Step 3)
+    var btnStep2Next = document.getElementById('btnStep2Next');
+    if (btnStep2Next) {
+        btnStep2Next.addEventListener('click', function() {
+            var fullName = (document.getElementById('regFullName').value || '').trim();
+            var phone = (document.getElementById('regPhone').value || '').trim();
+
+            var nameErr = document.getElementById('regFullNameError');
+            var phoneErr = document.getElementById('regPhoneError');
+            nameErr.textContent = '';
+            phoneErr.textContent = '';
+
+            if (!fullName || fullName.length < 2) {
+                nameErr.textContent = 'الاسم الكامل مطلوب (حرفين على الأقل).';
+                return;
+            }
+
+            if (!phone || !/^\d{9}$/.test(phone)) {
+                phoneErr.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام بالضبط.';
+                return;
+            }
+
+            btnStep2Next.disabled = true;
+            btnStep2Next.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التحقق...';
+
+            fetch('/Account/SaveStep2Info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: JSON.stringify({ Phone: phone, FullName: fullName })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                btnStep2Next.disabled = false;
+                btnStep2Next.innerHTML = 'التالي <i class="bi bi-arrow-left"></i>';
+
+                if (data.success) {
+                    document.getElementById('summaryPhone').textContent = phone;
+                    updateStepUI(3);
+                } else {
+                    phoneErr.textContent = data.message;
                 }
+            })
+            .catch(function() {
+                btnStep2Next.disabled = false;
+                btnStep2Next.innerHTML = 'التالي <i class="bi bi-arrow-left"></i>';
+                showAlert('حدث خطأ بالاتصال بالسيرفر. يرجى المحاولة مرة أخرى.');
             });
-            sessionStorage.removeItem(KEY);
+        });
+    }
+
+    // Password Strength Meter
+    var pwdInput = document.getElementById('regPassword');
+    if (pwdInput) {
+        pwdInput.addEventListener('input', function() {
+            var val = pwdInput.value;
+            var fill = document.getElementById('pwdStrengthFill');
+            var text = document.getElementById('pwdStrengthText');
+            if (!fill || !text) return;
+
+            var score = 0;
+            if (val.length >= 6) score += 1;
+            if (val.length >= 10) score += 1;
+            if (/[A-Z]/.test(val) || /[0-9]/.test(val)) score += 1;
+            if (/[^A-Za-z0-9]/.test(val)) score += 1;
+
+            if (val.length < 6) {
+                fill.style.width = '20%';
+                fill.style.backgroundColor = '#dc3545';
+                text.textContent = 'ضعيفة (أقل من 6 أحرف)';
+            } else if (score <= 2) {
+                fill.style.width = '50%';
+                fill.style.backgroundColor = '#ffc107';
+                text.textContent = 'متوسطة';
+            } else {
+                fill.style.width = '100%';
+                fill.style.backgroundColor = '#198754';
+                text.textContent = 'قوية وسليمة ✓';
+            }
+            if (confirmPwdInput && confirmPwdInput.value) {
+                checkPasswordMatch();
+            }
+        });
+    }
+
+    // Real-time Password Match Validation
+    var confirmPwdInput = document.getElementById('regConfirmPassword');
+    function checkPasswordMatch() {
+        if (!pwdInput || !confirmPwdInput) return;
+        var pwd = pwdInput.value;
+        var confirmPwd = confirmPwdInput.value;
+        var errConf = document.getElementById('regConfirmPasswordError');
+        if (!errConf) return;
+
+        if (!confirmPwd) {
+            errConf.textContent = '';
+            errConf.className = 'yq-field-error';
+            confirmPwdInput.classList.remove('is-invalid', 'is-valid');
+            return;
         }
-    } catch(err) {}
-})();
+
+        if (pwd === confirmPwd) {
+            errConf.textContent = '✓ كلمتا المرور متطابقتان';
+            errConf.className = 'yq-field-error text-success fw-bold mt-1 d-block';
+            confirmPwdInput.classList.remove('is-invalid');
+            confirmPwdInput.classList.add('is-valid');
+        } else {
+            errConf.textContent = 'كلمة المرور وتأكيدها غير متطابقين.';
+            errConf.className = 'yq-field-error text-danger mt-1 d-block';
+            confirmPwdInput.classList.remove('is-valid');
+            confirmPwdInput.classList.add('is-invalid');
+        }
+    }
+
+    if (confirmPwdInput) {
+        confirmPwdInput.addEventListener('input', checkPasswordMatch);
+        confirmPwdInput.addEventListener('blur', checkPasswordMatch);
+    }
+
+    // Complete Registration Handler
+    var btnComplete = document.getElementById('btnCompleteRegistration');
+    if (btnComplete) {
+        btnComplete.addEventListener('click', function() {
+            var fullName = (document.getElementById('regFullName').value || '').trim();
+            var password = document.getElementById('regPassword').value;
+            var confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            var errPwd = document.getElementById('regPasswordError');
+            var errConf = document.getElementById('regConfirmPasswordError');
+            errPwd.textContent = '';
+            errConf.textContent = '';
+
+            if (!password || password.length < 6) {
+                errPwd.textContent = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+                return;
+            }
+            if (password !== confirmPassword) {
+                errConf.textContent = 'كلمة المرور وتأكيدها غير متطابقين.';
+                return;
+            }
+
+            btnComplete.disabled = true;
+            btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري إنشاء الحساب...';
+
+            fetch('/Account/CompleteRegistration?returnUrl=' + encodeURIComponent('@returnUrl'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    FullName: fullName,
+                    Password: password,
+                    ConfirmPassword: confirmPassword
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                btnComplete.disabled = false;
+                btnComplete.innerHTML = '<i class="bi bi-stars"></i> إنشاء الحساب';
+
+                if (data.success) {
+                    window.location.href = data.redirectUrl || '/Home/Index';
+                } else {
+                    showAlert(data.message);
+                }
+            })
+            .catch(function() {
+                btnComplete.disabled = false;
+                btnComplete.innerHTML = '<i class="bi bi-stars"></i> إنشاء الحساب';
+                showAlert('حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.');
+            });
+        });
+    }
+
+    // Switch to Register tab from unlinked Google account alert banner
+    var btnSwitchReg = document.getElementById('btnSwitchToRegisterFromAlert');
+    if (btnSwitchReg) {
+        btnSwitchReg.addEventListener('click', function() {
+            var regToggle = document.getElementById('registerToggle');
+            if (regToggle) regToggle.click();
+        });
+    }
+});
 </script>
