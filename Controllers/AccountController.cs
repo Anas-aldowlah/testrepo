@@ -395,7 +395,7 @@ public class AccountController : Controller
             Name = fullName,
             Phone = hashedPhone,
             Passwordhash = HashPassword(model.Password),
-            Email = state.GoogleEmail.Trim(),
+            Email = state.GoogleEmail.Trim().ToLowerInvariant(),
             Createdat = DateTime.UtcNow
         };
 

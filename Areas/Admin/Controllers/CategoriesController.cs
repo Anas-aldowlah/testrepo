@@ -60,13 +60,10 @@ public class CategoriesController : Controller
             return View(categoryVW);
         }
 
-        categoryVW.Id = await _categoryService.NextCounter();
-
         string? imageUrl = await _ImageServes.UploadImage(categoryVW.ImageFile, "categories");
 
         var model = new Category
         {
-            Id = categoryVW.Id,
             Name = categoryVW.Name,
             Description = categoryVW.Description,
             Imageurl = imageUrl != null ? "images/categories/" +imageUrl : "images/categories/category_8428362.png",

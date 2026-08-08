@@ -129,7 +129,6 @@ public class ProductsController : Controller
             // انشاء منتج جديد
             var newProduct = new Product
             {
-                Id = await _productService.NextCounter(), // تجيب ID جديد
                 Name = productvw.Name,
                 Description = productvw.Description,
                 Price = productvw.Price,

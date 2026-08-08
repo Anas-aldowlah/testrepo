@@ -10,6 +10,7 @@
         "Processed" => "تم الدفع",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
+        "Refunded" => "مرتجع",
         _ => "ملغي"
     };
 
@@ -123,7 +124,7 @@
             {
                 var items = order.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
                 var itemCount = items.Sum(i => i.Quantity);
-                var isCancelled = order.Status == "Cancelled";
+                var isCancelled = order.Status is "Cancelled" or "Refunded";
                 var searchBlob = ($"{order.Trackingnumber} " + string.Join(" ", items.Select(i => i.Product?.Name))).ToLower();
                 var thumbs = items.Take(4).ToList();
                 var extraCount = items.Count - thumbs.Count;

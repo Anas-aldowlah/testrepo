@@ -55,12 +55,20 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("carts");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.HasIndex(e => e.Userid, "ux_carts_userid").IsUnique();
+
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
             entity.Property(e => e.Userid).HasColumnName("userid");
+
+            entity.HasOne<UserSite>().WithMany(e => e.Carts)
+                .HasForeignKey(e => e.Userid)
+                .HasPrincipalKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_user_cart");
         });
 
         modelBuilder.Entity<Cartitem>(entity =>
@@ -69,7 +77,7 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("cartitems");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Cartid).HasColumnName("cartid");
             entity.Property(e => e.Productid).HasColumnName("productid");
             entity.Property(e => e.Quantity)
@@ -91,7 +99,7 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("categories");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Imageurl).HasColumnName("imageurl");
             entity.Property(e => e.Name)
@@ -132,7 +140,7 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("orders");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Notes)
                 .HasMaxLength(500)
                 .HasColumnName("notes");
@@ -151,6 +159,9 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
+            entity.Property(e => e.Stockdeducted)
+                .HasDefaultValue(false)
+                .HasColumnName("stockdeducted");
             entity.Property(e => e.TimeState)
                 .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
                 .HasColumnType("timestamp without time zone");
@@ -161,6 +172,12 @@ public partial class NeondbContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("trackingnumber");
             entity.Property(e => e.Userid).HasColumnName("userid");
+
+            entity.HasOne<UserSite>().WithMany(e => e.Orders)
+                .HasForeignKey(e => e.Userid)
+                .HasPrincipalKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_user_order");
         });
 
         modelBuilder.Entity<Orderdetail>(entity =>
@@ -171,7 +188,7 @@ public partial class NeondbContext : DbContext
 
             entity.HasIndex(e => e.Orderid, "IX_orderdetails_orderid").IsUnique();
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Accountname)
                 .HasMaxLength(150)
                 .HasColumnName("accountname");
@@ -221,7 +238,7 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("orderitems");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Orderid).HasColumnName("orderid");
             entity.Property(e => e.Productid).HasColumnName("productid");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
@@ -282,7 +299,7 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("products");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Brand)
                 .HasMaxLength(150)
                 .HasColumnName("brand");
@@ -328,6 +345,12 @@ public partial class NeondbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("riskscore");
             entity.Property(e => e.Userid).HasColumnName("userid");
+
+            entity.HasOne<UserSite>().WithMany(e => e.Securitylogs)
+                .HasForeignKey(e => e.Userid)
+                .HasPrincipalKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_user_logs");
         });
 
         modelBuilder.Entity<Storesetting>(entity =>
@@ -367,6 +390,9 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("users");
 
+            entity.HasIndex(e => e.Email, "ux_users_email").IsUnique();
+            entity.HasIndex(e => e.Phone, "ux_users_phone").IsUnique();
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -391,6 +417,8 @@ public partial class NeondbContext : DbContext
             entity.HasKey(e => e.Id).HasName("UserSite_pkey");
 
             entity.ToTable("UserSite");
+
+            entity.HasAlternateKey(e => e.UserId).HasName("AK_UserSite_UserID");
 
             entity.Property(e => e.Id)
                 .UseIdentityAlwaysColumn()

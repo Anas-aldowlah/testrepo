@@ -30,7 +30,10 @@ public partial class UsersDbContext : DbContext
 
             entity.ToTable("users");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.HasIndex(e => e.Email, "ux_users_email").IsUnique();
+            entity.HasIndex(e => e.Phone, "ux_users_phone").IsUnique();
+
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
