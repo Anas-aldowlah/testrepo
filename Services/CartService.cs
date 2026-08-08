@@ -52,7 +52,9 @@ public class CartService
             }
 
             var existingItem = await _context.Cartitems
-                .SingleOrDefaultAsync(i => i.Cartid == cart.Id && i.Productid == productId);
+                .Where(i => i.Cartid == cart.Id && i.Productid == productId)
+                .OrderByDescending(i => i.Id)
+                .FirstOrDefaultAsync();
             if (existingItem != null)
             {
                 var requestedQuantity = existingItem.Quantity + quantityToAdd;

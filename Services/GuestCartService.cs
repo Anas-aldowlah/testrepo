@@ -148,7 +148,14 @@ public class GuestCartService
 
     public async Task MergeIntoUserCartAsync(int userId)
     {
-        var guestItems = ReadItems();
+        var guestItems = ReadItems()
+            .GroupBy(item => item.ProductId)
+            .Select(group => new GuestCartItem
+            {
+                ProductId = group.Key,
+                Quantity = group.Sum(item => item.Quantity)
+            })
+            .ToList();
         if (guestItems.Count == 0) return;
 
         var strategy = _context.Database.CreateExecutionStrategy();
@@ -172,11 +179,20 @@ public class GuestCartService
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id);
 
-                var existingItems = cart.Id == 0
-                    ? new Dictionary<int, Cartitem>()
+                var existingCartItems = cart.Id == 0
+                    ? []
                     : await _context.Cartitems
                         .Where(i => i.Cartid == cart.Id && productIds.Contains(i.Productid))
-                        .ToDictionaryAsync(i => i.Productid);
+                        .OrderByDescending(i => i.Id)
+                        .ToListAsync();
+                var existingItems = new Dictionary<int, Cartitem>();
+                foreach (var group in existingCartItems.GroupBy(item => item.Productid))
+                {
+                    var retainedItem = group.First();
+                    retainedItem.Quantity = group.Sum(item => item.Quantity);
+                    existingItems.Add(group.Key, retainedItem);
+                    _context.Cartitems.RemoveRange(group.Skip(1));
+                }
 
                 foreach (var guestItem in guestItems)
                 {
