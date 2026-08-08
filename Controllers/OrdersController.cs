@@ -43,7 +43,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> Index()
     {
         var userId = await ResolveUserIdAsync();
-        var orders = await _orderService.GetUserOrdersAsync(userId);
+        var orders = await _orderService.GetUserOrdersAsync(userId, HttpContext.RequestAborted);
         return View(orders);
     }
 
@@ -120,7 +120,11 @@ public class OrdersController : Controller
                 receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
             }
 
-            var order = await _orderService.CreateOrderAsync(userId, model, receiptUrl);
+            var order = await _orderService.CreateOrderAsync(
+                userId,
+                model,
+                receiptUrl,
+                HttpContext.RequestAborted);
 
             var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
             if (!string.IsNullOrWhiteSpace(whatsappNumber))
@@ -146,7 +150,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> Confirmation(int id)
     {
         var userId = await ResolveUserIdAsync();
-        var order = await _orderService.GetOrderByIdAsync(id);
+        var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
     }
@@ -155,7 +159,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var userId = await ResolveUserIdAsync();
-        var order = await _orderService.GetOrderByIdAsync(id);
+        var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
     }

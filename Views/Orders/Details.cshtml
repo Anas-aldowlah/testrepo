@@ -15,7 +15,7 @@
 
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
-    var isCancelled = Model.Status == "Cancelled";
+    var isCancelled = Model.Status is "Cancelled" or "Refunded";
     if (currentStepIndex < 0) currentStepIndex = 0;
 
     var stepLabels = new Dictionary<string, string>
@@ -32,6 +32,7 @@
         "Processed" => "تم الدفع",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
+        "Refunded" => "مرتجع",
         _ => "ملغي"
     };
     var badgeClass = Model.Status.ToLower() switch

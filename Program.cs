@@ -177,22 +177,6 @@ builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient
 
 var app = builder.Build();
 
-// Drop old database foreign key constraints pointing to the deleted users table
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<NeondbContext>();
-    try
-    {
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE carts DROP CONSTRAINT IF EXISTS fk_user_cart;");
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE orders DROP CONSTRAINT IF EXISTS fk_user_order;");
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE securitylogs DROP CONSTRAINT IF EXISTS fk_user_logs;");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error dropping constraints: {ex.Message}");
-    }
-}
-
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders =

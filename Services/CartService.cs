@@ -14,24 +14,27 @@ public class CartService
         _context = context;
     }
 
-    public int nextCartId()
-    {
-        return _context.Carts.Any() ? _context.Carts.Max(c => c.Id) + 1 : 1;
-    }
-
-    public int nextCartItemId()
-    {
-        return _context.Cartitems.Any() ? _context.Cartitems.Max(ci => ci.Id) + 1 : 1;
-    }
-
     public async Task<Cart> GetCartAsync(int userId)
     {
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.Userid == userId);
         if (cart == null)
         {
-            cart = new Cart { Id = nextCartId(), Userid = userId };
+            cart = new Cart { Userid = userId };
             await _context.Carts.AddAsync(cart);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // A concurrent request may have created the user's one allowed cart.
+                _context.Entry(cart).State = EntityState.Detached;
+                var concurrentCart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
+                if (concurrentCart == null)
+                    throw;
+
+                cart = concurrentCart;
+            }
         }
 
         cart.Cartitems = await _context.Cartitems
@@ -77,7 +80,6 @@ public class CartService
 
         _context.Cartitems.Add(new Cartitem
         {
-            Id = nextCartItemId(),
             Cartid = cart.Id,
             Productid = productId,
             Quantity = quantity,

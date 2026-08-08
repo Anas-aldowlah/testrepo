@@ -15,6 +15,8 @@ public partial class Order
 
     public string Status { get; set; } = null!;
 
+    public bool Stockdeducted { get; set; }
+
     public string? Trackingnumber { get; set; }
 
     public DateTime? TimeState { get; set; }

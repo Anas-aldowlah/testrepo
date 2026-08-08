@@ -14,13 +14,6 @@ public class ProductService
         _context = context;
     }
 
-    public Task<int> NextCounter()
-    {
-        int nextId = _context.Products.Any() ? _context.Products.Max(p => p.Id) + 1 : 1;
-        return Task.FromResult(nextId);
-    }
-
-
     public Task<IEnumerable<Product>> GetAllProductsAsync()
     {
         return Task.FromResult(_context.Products.AsEnumerable());
