@@ -10,6 +10,7 @@ using static YAGOT_2._0.Services.DealingAPI;
 namespace Yagot.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class UsersController : Controller
 {

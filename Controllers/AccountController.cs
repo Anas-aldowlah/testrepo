@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,7 +27,9 @@ public class AccountController : Controller
     private readonly IConfiguration _configuration;
     private readonly IVisitService _visitService;
     private readonly GuestCartService _guestCartService;
-    private readonly IOtpService _otpService;
+    private readonly IPasswordResetEmailSender _passwordResetEmailSender;
+    private readonly ITimeLimitedDataProtector _passwordResetProtector;
+    private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         NeondbContext db,
@@ -34,14 +37,20 @@ public class AccountController : Controller
         IVisitService visitService,
         UsersDbContext user,
         GuestCartService guestCartService,
-        IOtpService otpService)
+        IPasswordResetEmailSender passwordResetEmailSender,
+        IDataProtectionProvider dataProtectionProvider,
+        ILogger<AccountController> logger)
     {
         _db = db;
         _configuration = configuration;
         _visitService = visitService;
         _dbUser = user;
         _guestCartService = guestCartService;
-        _otpService = otpService;
+        _passwordResetEmailSender = passwordResetEmailSender;
+        _passwordResetProtector = dataProtectionProvider
+            .CreateProtector("YAGOT.PasswordReset.v1")
+            .ToTimeLimitedDataProtector();
+        _logger = logger;
     }
 
     #region Registration Session State Helpers
@@ -101,13 +110,6 @@ public class AccountController : Controller
         return View("Auth");
     }
 
-    public IActionResult RecoveryAccountTem(string? returnUrl = null, string? email = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        TempData["Email"] = email;
-        return View("RecoveryAccount");
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
@@ -155,41 +157,18 @@ public class AccountController : Controller
         return LocalRedirect(GetRedirectUrl(returnUrl));
     }
 
-    #region Direct Email Login & Google Login Actions
+    #region Google Login Actions
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EmailLogin(string email, string? returnUrl = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            TempData["GoogleLoginError"] = "يرجى إدخال البريد الإلكتروني.";
-            return RedirectToAction("Auth", "Account", new { returnUrl });
-        }
-
-        var cleanEmail = email.Trim();
-        var existingUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Email == cleanEmail);
-        if (existingUser != null)
-        {
-            // Account exists -> Log in immediately without Google 2FA prompt
-            await SignInUserAsync(existingUser, existingUser.Id);
-            await _guestCartService.MergeIntoUserCartAsync(existingUser.Id);
-            TempData["UserName"] = existingUser.Name;
-            await _visitService.SaveVisitAsync(HttpContext, existingUser.Name);
-            ClearRegistrationState();
-            return LocalRedirect(GetRedirectUrl(returnUrl));
-        }
-
-        // Account does not exist in DB
-        TempData["GoogleLoginError"] = "لم يتم العثور على حساب مرتبط بهذا البريد الإلكتروني. يرجى إنشاء حساب أولاً.";
-        return RedirectToAction("Auth", "Account", new { returnUrl });
-    }
-
+    [AllowAnonymous]
     [HttpGet]
-    public IActionResult GoogleLogin(string? returnUrl = null, bool isRegister = false)
+    public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
     {
+        TempData.Remove("GoogleLoginError");
+        TempData.Remove("GoogleLoginErrorTitle");
+        TempData.Remove("RegistrationNotice");
+        ClearRegistrationState();
+        await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+
         var properties = new AuthenticationProperties
         {
             RedirectUri = Url.Action(nameof(GoogleResponse), new { returnUrl, isRegister })
@@ -202,41 +181,75 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> GoogleResponse(string? returnUrl = null, bool isRegister = false)
     {
-        if (!(User.Identity?.IsAuthenticated ?? false))
+        var externalResult = await HttpContext.AuthenticateAsync(AuthenticationSchemes.External);
+        if (!externalResult.Succeeded || externalResult.Principal == null)
         {
-            if (isRegister)
-            {
-                return RedirectToAction("Auth", "Account", new { register = true, returnUrl });
-            }
+            _logger.LogWarning(
+                externalResult.Failure,
+                "Google external authentication ticket could not be read. Succeeded={Succeeded}.",
+                externalResult.Succeeded);
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            TempData["GoogleLoginErrorTitle"] = "تعذر تسجيل الدخول عبر Google";
             TempData["GoogleLoginError"] = "تعذر إكمال المصادقة بواسطة Google.";
             return RedirectToAction("Auth", "Account", new { returnUrl });
         }
 
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        var name = User.FindFirst(ClaimTypes.Name)?.Value;
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var picture = User.FindFirst("picture")?.Value ?? User.FindFirst("urn:google:picture")?.Value;
+        var externalPrincipal = externalResult.Principal;
+        var googleClaims = externalPrincipal.Claims.ToList();
+        _logger.LogInformation("Google callback received {ClaimCount} claims.", googleClaims.Count);
+        foreach (var claim in googleClaims)
+        {
+            _logger.LogInformation(
+                "Google raw claim: Type={ClaimType}, Value={ClaimValue}, Issuer={Issuer}.",
+                claim.Type,
+                claim.Value,
+                claim.Issuer);
+        }
+
+        var email = externalPrincipal.FindFirst(ClaimTypes.Email)?.Value
+            ?? externalPrincipal.FindFirst("email")?.Value;
+        var name = externalPrincipal.FindFirst(ClaimTypes.Name)?.Value
+            ?? externalPrincipal.FindFirst("name")?.Value;
+        var sub = externalPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? externalPrincipal.FindFirst("sub")?.Value
+            ?? externalPrincipal.FindFirst("id")?.Value;
+        var emailVerifiedClaim = externalPrincipal.FindFirst("google_email_verified")?.Value
+            ?? externalPrincipal.FindFirst("email_verified")?.Value;
+        var picture = externalPrincipal.FindFirst("picture")?.Value
+            ?? externalPrincipal.FindFirst("urn:google:picture")?.Value;
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            if (isRegister)
-            {
-                return RedirectToAction("Auth", "Account", new { register = true, returnUrl });
-            }
+            _logger.LogWarning("Google callback did not contain an email claim. Available claim types: {ClaimTypes}.",
+                string.Join(", ", googleClaims.Select(claim => claim.Type)));
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            TempData["GoogleLoginErrorTitle"] = "حساب Google غير مرتبط";
             TempData["GoogleLoginError"] = "تعذر الحصول على البريد الإلكتروني من Google.";
             return RedirectToAction("Auth", "Account", new { returnUrl });
         }
 
         email = email.Trim();
+        var normalizedEmail = email.ToLowerInvariant();
+        var hasVerifiedClaim = bool.TryParse(emailVerifiedClaim, out var isEmailVerified);
+        _logger.LogInformation(
+            "Google identity resolved. Email={Email}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, Subject={Subject}.",
+            email,
+            hasVerifiedClaim && isEmailVerified,
+            hasVerifiedClaim,
+            sub ?? "<missing>");
 
-        // Sign out temporary google auth cookie so principal is clean until session is set
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        // The external identity has now been read and must never become the app identity.
+        await HttpContext.SignOutAsync(AuthenticationSchemes.External);
 
         // Check if Google email already belongs to an existing user
-        var existingUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var existingUser = await _dbUser.Users.FirstOrDefaultAsync(
+            u => u.Email != null && u.Email.ToLower() == normalizedEmail);
         if (existingUser != null)
         {
             // User exists -> perform login & account linking immediately
+            TempData.Remove("GoogleLoginError");
+            TempData.Remove("GoogleLoginErrorTitle");
+            TempData.Remove("RegistrationNotice");
             await SignInUserAsync(existingUser, existingUser.Id);
             await _guestCartService.MergeIntoUserCartAsync(existingUser.Id);
             TempData["UserName"] = existingUser.Name;
@@ -245,25 +258,23 @@ public class AccountController : Controller
             return LocalRedirect(GetRedirectUrl(returnUrl));
         }
 
-        // IF USER DOES NOT EXIST IN DATABASE:
-        if (!isRegister)
+        // A verified Google identity without a local account starts registration.
+        // It is not issued an application cookie until registration completes.
+        var state = new RegistrationSessionState
         {
-            // Flow originated from Login page -> Do NOT create account automatically!
-            TempData["GoogleLoginError"] = "حساب Google هذا غير مرتبط بحساب في ياقوت. يرجى إنشاء حساب أولاً.";
-            return RedirectToAction("Auth", "Account", new { returnUrl });
-        }
-
-        // Flow originated from Registration page -> Populate session state & advance to Step 2
-        var state = GetRegistrationState();
-        state.GoogleSubjectId = sub;
-        state.GoogleEmail = email;
-        state.GoogleName = name;
-        state.GooglePicture = picture;
-        state.IsGoogleVerified = true;
-        state.FullName = name ?? state.FullName;
-        state.Step = 2; // Auto advance to step 2
+            GoogleSubjectId = sub ?? normalizedEmail,
+            GoogleEmail = email,
+            GoogleName = name,
+            GooglePicture = picture,
+            IsGoogleVerified = true,
+            FullName = name,
+            Step = 2
+        };
 
         SaveRegistrationState(state);
+        TempData.Remove("GoogleLoginError");
+        TempData.Remove("GoogleLoginErrorTitle");
+        TempData["RegistrationNotice"] = "هذا البريد غير مسجل، يرجى استكمال بيانات الحساب أولاً.";
 
         return RedirectToAction("Auth", "Account", new { register = true, returnUrl });
     }
@@ -280,13 +291,13 @@ public class AccountController : Controller
             isGoogleVerified = state.IsGoogleVerified,
             fullName = state.FullName,
             phoneNumber = state.PhoneNumber,
-            isPhoneVerified = state.IsPhoneVerified
+            isPhoneStepCompleted = state.IsPhoneStepCompleted
         });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SaveStep2Info([FromBody] SendOtpRequest request)
+    public async Task<IActionResult> SaveStep2Info([FromBody] Step2InfoRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Phone))
         {
@@ -306,7 +317,10 @@ public class AccountController : Controller
         }
 
         var state = GetRegistrationState();
-        if (!state.IsGoogleVerified)
+        if (!state.IsGoogleVerified
+            || string.IsNullOrWhiteSpace(state.GoogleSubjectId)
+            || string.IsNullOrWhiteSpace(state.GoogleEmail)
+            || state.Step != 2)
         {
             return Json(new { success = false, message = "يرجى إكمال المصادقة عبر Google أولاً." });
         }
@@ -320,36 +334,12 @@ public class AccountController : Controller
 
         state.FullName = fullName;
         state.PhoneNumber = phone;
-        state.IsPhoneVerified = true;
+        state.IsPhoneStepCompleted = true;
         state.Step = 3;
 
         SaveRegistrationState(state);
 
         return Json(new { success = true, nextStep = 3 });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendPhoneOtp([FromBody] SendOtpRequest request)
-    {
-        return await SaveStep2Info(request);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> VerifyPhoneOtp([FromBody] VerifyOtpRequest request)
-    {
-        var state = GetRegistrationState();
-        if (!state.IsGoogleVerified)
-        {
-            return Json(new { success = false, message = "جلسة التسجيل غير صالحة. يرجى البدء من الخطوة الأولى." });
-        }
-
-        state.IsPhoneVerified = true;
-        state.Step = 3;
-        SaveRegistrationState(state);
-
-        return Json(new { success = true, message = "تم حفظ رقم الجوال بنجاح.", nextStep = 3 });
     }
 
     [HttpPost]
@@ -362,7 +352,11 @@ public class AccountController : Controller
         }
 
         var state = GetRegistrationState();
-        if (!state.IsGoogleVerified || string.IsNullOrWhiteSpace(state.GoogleEmail))
+        if (!state.IsGoogleVerified
+            || string.IsNullOrWhiteSpace(state.GoogleSubjectId)
+            || string.IsNullOrWhiteSpace(state.GoogleEmail)
+            || !state.IsPhoneStepCompleted
+            || state.Step != 3)
         {
             return Json(new { success = false, message = "يرجى التحقق عبر Google أولاً." });
         }
@@ -428,10 +422,11 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult SetRegisterStep(int step)
     {
         var state = GetRegistrationState();
-        if (step == 3 && (!state.IsGoogleVerified || string.IsNullOrWhiteSpace(state.PhoneNumber)))
+        if (step == 3 && (!state.IsGoogleVerified || !state.IsPhoneStepCompleted || string.IsNullOrWhiteSpace(state.PhoneNumber)))
         {
             return Json(new { success = false, message = "لا يمكن الانتقال للخطوة 3 قبل إدخال رقم الجوال في الخطوة 2." });
         }
@@ -450,6 +445,7 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult ResetRegistration()
     {
         ClearRegistrationState();
@@ -532,7 +528,9 @@ public class AccountController : Controller
         }
 
         currentUser.Name = model.Name.Trim();
-        currentUser.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+        // Email is an authentication identifier established through Google.
+        // It must only change through a future verified email-linking flow.
+        model.Email = currentUser.Email;
 
         await _dbUser.SaveChangesAsync();
 
@@ -549,18 +547,98 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
-        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(u =>
-            u.Email == model.Email || u.Phone == HashPhone(model.Phone));
+        var email = model.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            ModelState.AddModelError(nameof(model.Email), "يرجى إدخال بريد إلكتروني صالح.");
+            return View(model);
+        }
+
+        var normalizedEmail = email.ToLower();
+        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(
+            u => u.Email != null && u.Email.ToLower() == normalizedEmail);
+
+        if (accountUser != null)
+        {
+            var payload = JsonSerializer.Serialize(new PasswordResetTokenPayload(
+                accountUser.Id,
+                ComputePasswordFingerprint(accountUser.Passwordhash)));
+            var token = _passwordResetProtector.Protect(payload, TimeSpan.FromMinutes(15));
+            var resetUrl = Url.Action(
+                nameof(ResetPassword),
+                "Account",
+                new { token },
+                Request.Scheme)!;
+
+            try
+            {
+                await _passwordResetEmailSender.SendResetLinkAsync(
+                    accountUser.Email!,
+                    resetUrl,
+                    HttpContext.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                // Do not reveal account existence or mail configuration details.
+                _logger.LogError(ex, "Failed to send a password reset email.");
+            }
+        }
+
+        TempData["RecoveryMessage"] = "إذا كان البريد مرتبطاً بحساب، فسيصلك رابط صالح لمدة 15 دقيقة.";
+        return RedirectToAction(nameof(RecoveryAccount));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ResetPassword(string? token)
+    {
+        var payload = await ValidatePasswordResetTokenAsync(token);
+        if (payload == null)
+        {
+            ViewData["ResetError"] = "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.";
+        }
+
+        return View(new ResetPasswordModel { Token = token ?? string.Empty });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
+    {
+        if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
+        {
+            ModelState.AddModelError(nameof(model.Password), "كلمة المرور يجب أن تكون 6 أحرف على الأقل.");
+        }
+        if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(nameof(model.ConfirmPassword), "كلمتا المرور غير متطابقتين.");
+        }
+
+        var payload = await ValidatePasswordResetTokenAsync(model.Token);
+        if (payload == null)
+        {
+            ModelState.AddModelError(string.Empty, "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.");
+        }
+
+        if (!ModelState.IsValid || payload == null)
+        {
+            return View(model);
+        }
+
+        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == payload.UserId);
         if (accountUser == null)
         {
-            ModelState.AddModelError(string.Empty, "لم يتم العثور على حساب بهذا البريد الإلكتروني أو رقم الجوال.");
-            return View("RecoveryAccount");
+            ModelState.AddModelError(string.Empty, "الحساب المرتبط بالرابط لم يعد موجوداً.");
+            return View(model);
         }
+
         accountUser.Passwordhash = HashPassword(model.Password);
         await _dbUser.SaveChangesAsync();
-        return View("Auth");
+
+        TempData["PasswordResetSuccess"] = "تم تغيير كلمة المرور. يمكنك تسجيل الدخول الآن.";
+        return RedirectToAction(nameof(Auth));
     }
 
     private static string GetRedirectUrl(string? returnUrl)
@@ -570,32 +648,54 @@ public class AccountController : Controller
             : returnUrl!;
     }
 
-    public IActionResult GoogleLoginRecovery()
+    private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)
     {
-        var properties = new AuthenticationProperties
+        if (string.IsNullOrWhiteSpace(token))
         {
-            RedirectUri = Url.Action(nameof(GoogleResponseRecovery))
-        };
-
-        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-    }
-
-    [AllowAnonymous]
-    [HttpGet]
-    public IActionResult GoogleResponseRecovery()
-    {
-        if (!(User.Identity?.IsAuthenticated ?? false))
-        {
-            return RedirectToAction("RecoveryAccountTem", "Account");
+            return null;
         }
 
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        try
+        {
+            var json = _passwordResetProtector.Unprotect(token, out _);
+            var payload = JsonSerializer.Deserialize<PasswordResetTokenPayload>(json);
+            if (payload == null || payload.UserId <= 0)
+            {
+                return null;
+            }
 
-        return RedirectToAction("RecoveryAccountTem", "Account", new { email = email });
+            var accountUser = await _dbUser.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == payload.UserId);
+            if (accountUser == null)
+            {
+                return null;
+            }
+
+            return string.Equals(
+                payload.PasswordFingerprint,
+                ComputePasswordFingerprint(accountUser.Passwordhash),
+                StringComparison.Ordinal)
+                ? payload
+                : null;
+        }
+        catch (Exception ex) when (ex is CryptographicException or JsonException or FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string ComputePasswordFingerprint(string passwordHash)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(passwordHash)));
     }
 
     private async Task SignInUserAsync(Models.UsersDatabase.User user, int Id)
     {
+        if (Id <= 0 || user.Id != Id)
+        {
+            throw new UnauthorizedAccessException("Cannot issue an application cookie without a valid linked user identifier.");
+        }
+
         var userSite = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == Id);
         if (userSite == null)
         {
@@ -682,16 +782,10 @@ public class AccountController : Controller
         public string Password { get; set; } = string.Empty;
     }
 
-    public sealed class SendOtpRequest
+    public sealed class Step2InfoRequest
     {
         public string Phone { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
-    }
-
-    public sealed class VerifyOtpRequest
-    {
-        public string Phone { get; set; } = string.Empty;
-        public string Code { get; set; } = string.Empty;
     }
 
     public sealed class CompleteRegistrationModel
@@ -700,4 +794,6 @@ public class AccountController : Controller
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
     }
+
+    private sealed record PasswordResetTokenPayload(int UserId, string PasswordFingerprint);
 }

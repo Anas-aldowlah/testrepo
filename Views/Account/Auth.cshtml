@@ -100,13 +100,18 @@
                     </a>
                 </div>
 
+                @if (TempData["PasswordResetSuccess"] is string passwordResetSuccess)
+                {
+                    <div class="yaqut-alert yaqut-alert--success mb-3" role="status">@passwordResetSuccess</div>
+                }
+
                 <!-- UNLINKED GOOGLE ACCOUNT ALERT BANNER -->
                 @if (TempData["GoogleLoginError"] != null)
                 {
                     <div class="yq-google-unlinked-alert p-3 rounded-3 mb-3" role="alert">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
-                            <h5 class="mb-0 fw-bold fs-6">حساب Google غير مرتبط</h5>
+                            <h5 class="mb-0 fw-bold fs-6">@(TempData["GoogleLoginErrorTitle"] ?? "تعذر تسجيل الدخول عبر Google")</h5>
                         </div>
                         <p class="mb-2 small">@TempData["GoogleLoginError"]</p>
                         <button type="button" class="btn btn-sm btn-yaqut-gold w-100" id="btnSwitchToRegisterFromAlert">
@@ -208,6 +213,13 @@
                 </div>
 
                 <div id="regGlobalAlert" class="yaqut-alert yaqut-alert--danger d-none" role="alert"></div>
+
+                @if (TempData["RegistrationNotice"] is string registrationNotice)
+                {
+                    <div class="yaqut-alert yaqut-alert--success mb-3" role="status">
+                        <i class="bi bi-info-circle me-1"></i> @registrationNotice
+                    </div>
+                }
 
                 <!-- STEP 1: GOOGLE VERIFICATION -->
                 <div id="regStep1" class="yq-reg-step-panel @(initialStep == 1 ? "is-current" : "d-none")">
@@ -469,7 +481,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // Notify server of step change for session state
         fetch('/Account/SetRegisterStep?step=' + step, {
             method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'RequestVerificationToken': getCsrfToken()
+            }
         });
     }
 
@@ -491,31 +506,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Step 2 Next Button (Validates Name & Phone and advances to Step 3)
+    // Step 2 stores the profile and phone information, then advances directly
+    // to password/account security. Google already verified the email address.
     var btnStep2Next = document.getElementById('btnStep2Next');
     if (btnStep2Next) {
         btnStep2Next.addEventListener('click', function() {
             var fullName = (document.getElementById('regFullName').value || '').trim();
             var phone = (document.getElementById('regPhone').value || '').trim();
-
             var nameErr = document.getElementById('regFullNameError');
             var phoneErr = document.getElementById('regPhoneError');
             nameErr.textContent = '';
             phoneErr.textContent = '';
 
             if (!fullName || fullName.length < 2) {
-                nameErr.textContent = 'الاسم الكامل مطلوب (حرفين على الأقل).';
+                nameErr.textContent = 'الاسم الكامل مطلوب (حرفان على الأقل).';
                 return;
             }
-
-            if (!phone || !/^\d{9}$/.test(phone)) {
+            if (!/^\d{9}$/.test(phone)) {
                 phoneErr.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام بالضبط.';
                 return;
             }
 
             btnStep2Next.disabled = true;
-            btnStep2Next.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التحقق...';
-
             fetch('/Account/SaveStep2Info', {
                 method: 'POST',
                 headers: {
@@ -523,22 +535,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     'RequestVerificationToken': getCsrfToken()
                 },
                 body: JSON.stringify({ Phone: phone, FullName: fullName })
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
+            }).then(function(res) { return res.json(); }).then(function(data) {
                 btnStep2Next.disabled = false;
-                btnStep2Next.innerHTML = 'التالي <i class="bi bi-arrow-left"></i>';
-
-                if (data.success) {
-                    document.getElementById('summaryPhone').textContent = phone;
-                    updateStepUI(3);
-                } else {
+                if (!data.success) {
                     phoneErr.textContent = data.message;
+                    return;
                 }
-            })
-            .catch(function() {
+
+                document.getElementById('summaryPhone').textContent = phone;
+                updateStepUI(data.nextStep || 3);
+            }).catch(function() {
                 btnStep2Next.disabled = false;
-                btnStep2Next.innerHTML = 'التالي <i class="bi bi-arrow-left"></i>';
                 showAlert('حدث خطأ بالاتصال بالسيرفر. يرجى المحاولة مرة أخرى.');
             });
         });
