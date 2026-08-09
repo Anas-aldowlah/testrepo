@@ -9,6 +9,7 @@ public class OrderService
 {
     private readonly NeondbContext _context;
     private readonly CartLockService _cartLock;
+    private readonly ILogger<OrderService> _logger;
 
     private static readonly HashSet<string> FulfillingStatuses =
         new(StringComparer.OrdinalIgnoreCase) { "Processed", "Shipped", "Delivered" };
@@ -16,10 +17,14 @@ public class OrderService
     private static readonly HashSet<string> ReleasingStatuses =
         new(StringComparer.OrdinalIgnoreCase) { "Pending", "Cancelled", "Refunded" };
 
-    public OrderService(NeondbContext context, CartLockService cartLock)
+    public OrderService(
+        NeondbContext context,
+        CartLockService cartLock,
+        ILogger<OrderService> logger)
     {
         _context = context;
         _cartLock = cartLock;
+        _logger = logger;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -110,18 +115,36 @@ public class OrderService
                 await transaction.CommitAsync(cancellationToken);
                 return order;
             }
-            catch
+            catch (Exception exception)
             {
                 try
                 {
                     await transaction.RollbackAsync(CancellationToken.None);
                 }
-                catch
+                catch (Exception rollbackException)
                 {
-                    // Preserve the original checkout failure if rollback also fails.
+                    _logger.LogWarning(
+                        rollbackException,
+                        "Rollback failed after checkout for user {UserId}.",
+                        userId);
                 }
 
                 _context.ChangeTracker.Clear();
+                if (exception is InvalidOperationException or CartConcurrencyException)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "Checkout was rejected for user {UserId}.",
+                        userId);
+                }
+                else
+                {
+                    _logger.LogError(
+                        exception,
+                        "Checkout failed for user {UserId}.",
+                        userId);
+                }
+
                 throw;
             }
         });
@@ -228,10 +251,12 @@ public class OrderService
             ?? throw new ArgumentException("Invalid order status.", nameof(requestedStatus));
 
         var strategy = _context.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(async () =>
+        try
         {
-            _context.ChangeTracker.Clear();
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            return await strategy.ExecuteAsync(async () =>
+            {
+                _context.ChangeTracker.Clear();
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             // Serialize status changes for this order so two administrators cannot
             // independently deduct or restore the same stock.
@@ -285,10 +310,20 @@ public class OrderService
             if (paymentStatus != null)
                 order.Paymentstatus = paymentStatus;
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return true;
-        });
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Updating order {OrderId} to status {Status} failed.",
+                orderId,
+                status);
+            throw;
+        }
     }
 
     private async Task<Dictionary<int, Product>> LockProductsAsync(IEnumerable<Orderitem> orderItems)

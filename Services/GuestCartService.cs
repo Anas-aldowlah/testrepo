@@ -9,16 +9,23 @@ namespace YAGOT_2._0.Services;
 public class GuestCartService
 {
     private const string CookieName = "YAGOT.GuestCart";
-    private const int CartLockNamespace = 149745236;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly NeondbContext _context;
+    private readonly CartLockService _cartLock;
+    private readonly ILogger<GuestCartService> _logger;
 
     public string? Message { get; private set; }
 
-    public GuestCartService(IHttpContextAccessor httpContextAccessor, NeondbContext context)
+    public GuestCartService(
+        IHttpContextAccessor httpContextAccessor,
+        NeondbContext context,
+        CartLockService cartLock,
+        ILogger<GuestCartService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
+        _cartLock = cartLock;
+        _logger = logger;
     }
 
     public async Task<Cart> GetCartAsync()
@@ -164,8 +171,7 @@ public class GuestCartService
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"SELECT pg_advisory_xact_lock({CartLockNamespace}, {userId})");
+                await _cartLock.AcquireAsync(userId);
 
                 var cart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
                 if (cart == null)
@@ -220,25 +226,35 @@ public class GuestCartService
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
-            catch
+            catch (Exception exception)
             {
                 try
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(CancellationToken.None);
                 }
-                catch
+                catch (Exception rollbackException)
                 {
-                    // Preserve the original exception if rollback also fails.
+                    _logger.LogWarning(
+                        rollbackException,
+                        "Rollback failed while merging a guest cart for user {UserId}.",
+                        userId);
                 }
 
                 _context.ChangeTracker.Clear();
+                _logger.LogError(
+                    exception,
+                    "Merging the guest cart failed for user {UserId}.",
+                    userId);
                 try
                 {
                     await _context.Database.CloseConnectionAsync();
                 }
-                catch
+                catch (Exception closeException)
                 {
-                    // A broken Npgsql connector is already discarded by the pool.
+                    _logger.LogWarning(
+                        closeException,
+                        "Closing the database connection failed after merging the guest cart for user {UserId}.",
+                        userId);
                 }
 
                 throw;
@@ -267,13 +283,15 @@ public class GuestCartService
                 .Select(g => new GuestCartItem { ProductId = g.Key, Quantity = g.Sum(i => i.Quantity) })
                 .ToList() ?? [];
         }
-        catch (FormatException)
+        catch (FormatException exception)
         {
+            _logger.LogWarning(exception, "Discarding a malformed guest-cart cookie.");
             Clear();
             return [];
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
+            _logger.LogWarning(exception, "Discarding an invalid guest-cart cookie payload.");
             Clear();
             return [];
         }

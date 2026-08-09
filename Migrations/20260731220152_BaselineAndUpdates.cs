@@ -1,17 +1,25 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using YAGOT_2._0.Models;
 
 #nullable disable
 
 namespace YAGOT_2._0.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(NeondbContext))]
+    [Migration("20260731220152_BaselineAndUpdates")]
     public partial class BaselineAndUpdates : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+#if false
+            // Production history contains the later duplicate baseline but not this
+            // earlier ID. Keep this migration discoverable as a no-op compatibility
+            // marker so existing databases can advance without recreating tables.
             migrationBuilder.CreateTable(
                 name: "categories",
                 columns: table => new
@@ -301,11 +309,14 @@ namespace YAGOT_2._0.Migrations
                 name: "IX_securitylogs_userid",
                 table: "securitylogs",
                 column: "userid");
+#endif
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+#if false
+            // Up is intentionally a no-op compatibility marker.
             migrationBuilder.DropTable(
                 name: "cartitems");
 
@@ -338,6 +349,7 @@ namespace YAGOT_2._0.Migrations
 
             migrationBuilder.DropTable(
                 name: "categories");
+#endif
         }
     }
 }
