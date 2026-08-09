@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
@@ -38,11 +40,11 @@ public class CartService
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(
+            _logger.LogError(
                 exception,
-                "Could not load cart for user {UserId}; returning an empty cart.",
+                "Could not load cart for user {UserId}.",
                 userId);
-            return new Cart { Userid = userId };
+            throw;
         }
     }
 
@@ -50,7 +52,7 @@ public class CartService
     {
         var quantityToAdd = Math.Max(1, quantity);
 
-        await ExecuteInCartTransactionAsync(async () =>
+        await ExecuteInCartTransactionAsync(userId, "add item", async () =>
         {
             MESSAGE = null;
             await _cartLock.AcquireAsync(userId);
@@ -97,9 +99,13 @@ public class CartService
         });
     }
 
-    public async Task UpdateQuantityAsync(int userId, int cartItemId, int quantity)
+    public async Task UpdateQuantityAsync(
+        int userId,
+        int cartItemId,
+        int quantity,
+        int? expectedQuantity = null)
     {
-        await ExecuteInCartTransactionAsync(async () =>
+        await ExecuteInCartTransactionAsync(userId, "update quantity", async () =>
         {
             MESSAGE = null;
             await _cartLock.AcquireAsync(userId);
@@ -109,8 +115,14 @@ public class CartService
                 .SingleOrDefaultAsync(i => i.Id == cartItemId && i.Cart.Userid == userId);
             if (item == null)
             {
-                MESSAGE = "العنصر غير موجود في سلتك";
-                return;
+                throw new CartConcurrencyException(
+                    "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
+            }
+
+            if (expectedQuantity.HasValue && item.Quantity != expectedQuantity.Value)
+            {
+                throw new CartConcurrencyException(
+                    "تم تعديل كمية المنتج في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
             }
 
             if (quantity <= 0)
@@ -142,7 +154,7 @@ public class CartService
 
     public async Task RemoveFromCartAsync(int userId, int cartItemId)
     {
-        await ExecuteInCartTransactionAsync(async () =>
+        await ExecuteInCartTransactionAsync(userId, "remove item", async () =>
         {
             MESSAGE = null;
             await _cartLock.AcquireAsync(userId);
@@ -151,15 +163,17 @@ public class CartService
                 .Where(i => i.Id == cartItemId && i.Cart.Userid == userId)
                 .ExecuteDeleteAsync();
 
-            MESSAGE = deleted > 0
-                ? "تم حذف العنصر بنجاح"
-                : "العنصر غير موجود في سلتك";
+            if (deleted == 0)
+                throw new CartConcurrencyException(
+                    "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
+
+            MESSAGE = "تم حذف العنصر بنجاح";
         });
     }
 
     public async Task ClearCartAsync(int userId)
     {
-        await ExecuteInCartTransactionAsync(async () =>
+        await ExecuteInCartTransactionAsync(userId, "clear cart", async () =>
         {
             await _cartLock.AcquireAsync(userId);
             await _context.Cartitems
@@ -180,7 +194,10 @@ public class CartService
         return cart;
     }
 
-    private async Task ExecuteInCartTransactionAsync(Func<Task> operation)
+    private async Task ExecuteInCartTransactionAsync(
+        int userId,
+        string operationName,
+        Func<Task> operation)
     {
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
@@ -191,29 +208,96 @@ public class CartService
                 await operation();
                 await transaction.CommitAsync();
             }
-            catch
+            catch (DbUpdateConcurrencyException exception)
             {
-                try
-                {
-                    await transaction.RollbackAsync();
-                }
-                catch
-                {
-                    // Preserve the original exception if rollback also fails.
-                }
-
+                await RollbackAsync(transaction, userId, operationName);
                 _context.ChangeTracker.Clear();
-                try
-                {
-                    await _context.Database.CloseConnectionAsync();
-                }
-                catch
-                {
-                    // A broken Npgsql connector is already discarded by the pool.
-                }
-
+                _logger.LogWarning(
+                    exception,
+                    "Cart concurrency conflict while attempting to {OperationName} for user {UserId}.",
+                    operationName,
+                    userId);
+                throw new CartConcurrencyException(
+                    "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
+                    exception);
+            }
+            catch (DbUpdateException exception) when (IsUniqueConstraintConflict(exception))
+            {
+                await RollbackAsync(transaction, userId, operationName);
+                _context.ChangeTracker.Clear();
+                _logger.LogWarning(
+                    exception,
+                    "Cart uniqueness conflict while attempting to {OperationName} for user {UserId}.",
+                    operationName,
+                    userId);
+                throw new CartConcurrencyException(
+                    "تم تعديل السلة بالتزامن من نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
+                    exception);
+            }
+            catch (CartConcurrencyException exception)
+            {
+                await RollbackAsync(transaction, userId, operationName);
+                _context.ChangeTracker.Clear();
+                _logger.LogWarning(
+                    exception,
+                    "Cart state changed while attempting to {OperationName} for user {UserId}.",
+                    operationName,
+                    userId);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                await RollbackAsync(transaction, userId, operationName);
+                _context.ChangeTracker.Clear();
+                _logger.LogError(
+                    exception,
+                    "Cart operation {OperationName} failed for user {UserId}.",
+                    operationName,
+                    userId);
+                await CloseConnectionAfterFailureAsync(userId, operationName);
                 throw;
             }
         });
     }
+
+    private async Task RollbackAsync(
+        IDbContextTransaction transaction,
+        int userId,
+        string operationName)
+    {
+        try
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+        catch (Exception rollbackException)
+        {
+            _logger.LogWarning(
+                rollbackException,
+                "Rollback failed after cart operation {OperationName} for user {UserId}.",
+                operationName,
+                userId);
+        }
+    }
+
+    private async Task CloseConnectionAfterFailureAsync(int userId, string operationName)
+    {
+        try
+        {
+            await _context.Database.CloseConnectionAsync();
+        }
+        catch (Exception closeException)
+        {
+            _logger.LogWarning(
+                closeException,
+                "Closing the database connection failed after cart operation {OperationName} for user {UserId}.",
+                operationName,
+                userId);
+        }
+    }
+
+    private static bool IsUniqueConstraintConflict(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation
+        };
 }

@@ -236,6 +236,8 @@
 
             if (!Number.isFinite(savedQuantity) || savedQuantity < 1) savedQuantity = nextValue;
             form.setAttribute('data-yq-last-qty', String(savedQuantity));
+            var expectedInput = form.querySelector('[data-yq-cart-qty-expected]');
+            if (expectedInput) expectedInput.value = String(savedQuantity);
             syncQuantitySelector(form, savedQuantity);
             calculateAndUpdateTotals();
             announce(message);
