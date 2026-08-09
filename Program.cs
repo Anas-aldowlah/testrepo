@@ -166,6 +166,7 @@ builder.Services.AddDbContext<UsersDbContext>(options =>
 
 //  انشاء كائن object (Dependency Injection - DI) كل مايتم انشاء HTTP Request
 builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
