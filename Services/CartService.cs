@@ -5,16 +5,20 @@ namespace YAGOT_2._0.Services;
 
 public class CartService
 {
-    private const int CartLockNamespace = 149745236;
     private readonly NeondbContext _context;
     private readonly ILogger<CartService> _logger;
+    private readonly CartLockService _cartLock;
 
     public string? MESSAGE = null;
 
-    public CartService(NeondbContext context, ILogger<CartService> logger)
+    public CartService(
+        NeondbContext context,
+        ILogger<CartService> logger,
+        CartLockService cartLock)
     {
         _context = context;
         _logger = logger;
+        _cartLock = cartLock;
     }
 
     public async Task<Cart> GetCartAsync(int userId)
@@ -49,7 +53,7 @@ public class CartService
         await ExecuteInCartTransactionAsync(async () =>
         {
             MESSAGE = null;
-            await LockUserCartAsync(userId);
+            await _cartLock.AcquireAsync(userId);
 
             var cart = await GetOrCreateCartAsync(userId);
             var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == productId);
@@ -98,7 +102,7 @@ public class CartService
         await ExecuteInCartTransactionAsync(async () =>
         {
             MESSAGE = null;
-            await LockUserCartAsync(userId);
+            await _cartLock.AcquireAsync(userId);
 
             var item = await _context.Cartitems
                 .Include(i => i.Product)
@@ -141,7 +145,7 @@ public class CartService
         await ExecuteInCartTransactionAsync(async () =>
         {
             MESSAGE = null;
-            await LockUserCartAsync(userId);
+            await _cartLock.AcquireAsync(userId);
 
             var deleted = await _context.Cartitems
                 .Where(i => i.Id == cartItemId && i.Cart.Userid == userId)
@@ -157,7 +161,7 @@ public class CartService
     {
         await ExecuteInCartTransactionAsync(async () =>
         {
-            await LockUserCartAsync(userId);
+            await _cartLock.AcquireAsync(userId);
             await _context.Cartitems
                 .Where(ci => ci.Cart.Userid == userId)
                 .ExecuteDeleteAsync();
@@ -174,15 +178,6 @@ public class CartService
         _context.Carts.Add(cart);
         await _context.SaveChangesAsync();
         return cart;
-    }
-
-    private async Task LockUserCartAsync(int userId)
-    {
-        // Serialize cart mutations for this user even before a cart row exists.
-        // This avoids entity tracking/composable SQL issues and does not depend on
-        // a UserSite row being materialized merely to acquire a lock.
-        await _context.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({CartLockNamespace}, {userId})");
     }
 
     private async Task ExecuteInCartTransactionAsync(Func<Task> operation)

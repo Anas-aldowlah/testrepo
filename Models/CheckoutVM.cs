@@ -7,6 +7,11 @@ public class CheckoutVM
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public Cart Cart { get; set; } = new();
 
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
+    public List<CheckoutCartItemSnapshot> SubmittedCartItems { get; set; } = [];
+
+    public decimal SubmittedCartTotal { get; set; }
+
     private string _customerName = string.Empty;
 
     [Required(ErrorMessage = "اسم العميل مطلوب.")]
@@ -111,4 +116,13 @@ public class CheckoutVM
 
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public IReadOnlyList<Paymentmethod> PaymentMethods { get; set; } = [];
+}
+
+public sealed class CheckoutCartItemSnapshot
+{
+    public int ProductId { get; set; }
+
+    public int Quantity { get; set; }
+
+    public decimal UnitPrice { get; set; }
 }

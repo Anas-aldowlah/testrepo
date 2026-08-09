@@ -108,6 +108,13 @@
           data-yq-auth-modal="yqCheckoutAuthModal"
           novalidate>
         @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="SubmittedCartTotal" value="@subtotal" />
+        @for (var snapshotIndex = 0; snapshotIndex < items.Count; snapshotIndex++)
+        {
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].ProductId" value="@items[snapshotIndex].Productid" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].Quantity" value="@items[snapshotIndex].Quantity" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@(items[snapshotIndex].Product?.Price ?? 0)" />
+        }
 
         <style>
             .yq-readonly {
