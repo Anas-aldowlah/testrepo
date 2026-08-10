@@ -11,6 +11,10 @@ public partial class SaleItem
 
     public int ProductId { get; set; }
 
+    public int? RetailPriceId { get; set; }
+
+    public int? RetailSizeMl { get; set; }
+
     public string? ProductName { get; set; }
 
     public int Quantity { get; set; }
@@ -24,4 +28,6 @@ public partial class SaleItem
     public virtual Sale Sale { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
+
+    public virtual ProductRetailPrice? RetailPrice { get; set; }
 }

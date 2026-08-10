@@ -192,7 +192,19 @@ namespace YAGOT_2._0.Services
                 .Where(method => method.Isactive && !IsBuiltInPaymentMethod(method))
                 .ToList();
 
-            return builtInMethods.Concat(additionalMethods).ToList();
+            var otherMethod = builtInMethods.FirstOrDefault(method =>
+                string.Equals(method.Type, "other", StringComparison.OrdinalIgnoreCase));
+            var orderedMethods = builtInMethods
+                .Where(method => !string.Equals(method.Type, "other", StringComparison.OrdinalIgnoreCase))
+                .Concat(additionalMethods)
+                .ToList();
+
+            if (otherMethod != null)
+            {
+                orderedMethods.Add(otherMethod);
+            }
+
+            return orderedMethods;
         }
 
         private static StoreSettings ToModel(Storesetting entity)

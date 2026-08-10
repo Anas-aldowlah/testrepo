@@ -73,13 +73,18 @@ namespace YAGOT_2._0.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("quantity");
 
+                    b.Property<int?>("RetailPriceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("retail_price_id");
+
                     b.HasKey("Id")
                         .HasName("cartitems_pkey");
 
                     b.HasIndex("Productid");
 
-                    b.HasIndex(new[] { "Cartid", "Productid" }, "ux_cartitems_cartid_productid")
-                        .IsUnique();
+                    b.HasIndex("RetailPriceId");
+
+                    b.HasIndex(new[] { "Cartid", "Productid", "RetailPriceId" }, "ix_cartitems_cart_product_retail");
 
                     b.ToTable("cartitems", (string)null);
                 });
@@ -347,6 +352,14 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
+                    b.Property<int?>("RetailPriceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("retail_price_id");
+
+                    b.Property<int?>("RetailSizeMl")
+                        .HasColumnType("integer")
+                        .HasColumnName("retail_size_ml");
+
                     b.Property<decimal>("Unitprice")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
@@ -358,6 +371,8 @@ namespace YAGOT_2._0.Migrations
                     b.HasIndex("Orderid");
 
                     b.HasIndex("Productid");
+
+                    b.HasIndex("RetailPriceId");
 
                     b.ToTable("orderitems", (string)null);
                 });
@@ -456,6 +471,12 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("text")
                         .HasColumnName("imageurl");
 
+                    b.Property<bool>("IsRetailEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_retail_enabled");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -467,16 +488,77 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price");
 
+                    b.Property<string>("StockUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("Piece")
+                        .HasColumnName("stock_unit");
+
                     b.Property<int>("Stockquantity")
                         .HasColumnType("integer")
                         .HasColumnName("stockquantity");
+
+                    b.Property<int?>("VolumeMl")
+                        .HasColumnType("integer")
+                        .HasColumnName("volume_ml");
 
                     b.HasKey("Id")
                         .HasName("products_pkey");
 
                     b.HasIndex("Categoryid");
 
-                    b.ToTable("products", (string)null);
+                    b.ToTable("products", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_products_retail_requires_ml", "(is_retail_enabled = false) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
+
+                            t.HasCheckConstraint("ck_products_stock_unit", "stock_unit IN ('Piece', 'Ml')");
+
+                            t.HasCheckConstraint("ck_products_volume_for_ml", "(stock_unit = 'Piece' AND volume_ml IS NULL) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
+                        });
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.ProductRetailPrice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("SizeMl")
+                        .HasColumnType("integer")
+                        .HasColumnName("size_ml");
+
+                    b.HasKey("Id")
+                        .HasName("product_retail_prices_pkey");
+
+                    b.HasIndex(new[] { "ProductId", "SizeMl" }, "ux_product_retail_prices_product_size")
+                        .IsUnique();
+
+                    b.ToTable("product_retail_prices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_product_retail_prices_price_positive", "price > 0");
+
+                            t.HasCheckConstraint("ck_product_retail_prices_size_positive", "size_ml > 0");
+                        });
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
@@ -601,6 +683,14 @@ namespace YAGOT_2._0.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("quantity");
 
+                    b.Property<int?>("RetailPriceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("retail_price_id");
+
+                    b.Property<int?>("RetailSizeMl")
+                        .HasColumnType("integer")
+                        .HasColumnName("retail_size_ml");
+
                     b.Property<int>("SaleId")
                         .HasColumnType("integer")
                         .HasColumnName("sale_id");
@@ -621,6 +711,8 @@ namespace YAGOT_2._0.Migrations
 
                     b.HasKey("Id")
                         .HasName("sale_items_pkey");
+
+                    b.HasIndex("RetailPriceId");
 
                     b.HasIndex(new[] { "ProductId" }, "ix_sale_items_product_id");
 
@@ -1051,9 +1143,17 @@ namespace YAGOT_2._0.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_product_cart");
 
+                    b.HasOne("YAGOT_2._0.Models.ProductRetailPrice", "RetailPrice")
+                        .WithMany("Cartitems")
+                        .HasForeignKey("RetailPriceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_cartitems_retail_price");
+
                     b.Navigation("Cart");
 
                     b.Navigation("Product");
+
+                    b.Navigation("RetailPrice");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Order", b =>
@@ -1095,9 +1195,17 @@ namespace YAGOT_2._0.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_product_order");
 
+                    b.HasOne("YAGOT_2._0.Models.ProductRetailPrice", "RetailPrice")
+                        .WithMany("Orderitems")
+                        .HasForeignKey("RetailPriceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_orderitems_retail_price");
+
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+
+                    b.Navigation("RetailPrice");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Paymentmethod", b =>
@@ -1124,6 +1232,18 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.ProductRetailPrice", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Product", "Product")
+                        .WithMany("RetailPrices")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_product_retail_prices_product");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
                 {
                     b.HasOne("YAGOT_2._0.Models.SalesDay", "SalesDay")
@@ -1145,6 +1265,12 @@ namespace YAGOT_2._0.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_sale_items_product");
 
+                    b.HasOne("YAGOT_2._0.Models.ProductRetailPrice", "RetailPrice")
+                        .WithMany("SaleItems")
+                        .HasForeignKey("RetailPriceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_sale_items_retail_price");
+
                     b.HasOne("YAGOT_2._0.Models.Sale", "Sale")
                         .WithMany("SaleItems")
                         .HasForeignKey("SaleId")
@@ -1153,6 +1279,8 @@ namespace YAGOT_2._0.Migrations
                         .HasConstraintName("fk_sale_items_sale");
 
                     b.Navigation("Product");
+
+                    b.Navigation("RetailPrice");
 
                     b.Navigation("Sale");
                 });
@@ -1211,6 +1339,17 @@ namespace YAGOT_2._0.Migrations
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Product", b =>
+                {
+                    b.Navigation("Cartitems");
+
+                    b.Navigation("Orderitems");
+
+                    b.Navigation("RetailPrices");
+
+                    b.Navigation("SaleItems");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.ProductRetailPrice", b =>
                 {
                     b.Navigation("Cartitems");
 

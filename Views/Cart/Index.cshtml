@@ -3,7 +3,18 @@
 @{
     ViewData["Title"] = "سلة المشتريات";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
-    decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
+    decimal UnitPrice(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.Price ?? item.Product?.Price ?? 0;
+    int MaxUnits(YAGOT_2._0.Models.Cartitem item)
+    {
+        if (item.Product == null) return item.Quantity;
+        if (item.RetailPrice?.SizeMl > 0) return item.Product.Stockquantity / item.RetailPrice.SizeMl;
+        if (item.Product.StockUnit == "Ml" && item.Product.VolumeMl is > 0) return item.Product.Stockquantity / item.Product.VolumeMl.Value;
+        return item.Product.Stockquantity;
+    }
+    string UnitLabel(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.SizeMl > 0
+        ? $"{item.RetailPrice.SizeMl} ml"
+        : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "للقطعة");
+    decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
@@ -43,7 +54,8 @@
             <div class="yq-cart-items yq-reveal">
                 @foreach (var item in items)
                 {
-                    var lineTotal = item.Quantity * (item.Product?.Price ?? 0);
+                    var lineTotal = item.Quantity * UnitPrice(item);
+                    var maxUnits = MaxUnits(item);
                     <article class="yq-cart-item yq-glass" data-yq-cart-item>
                         <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Product?.Id"
                            class="yq-cart-item__media">
@@ -66,6 +78,7 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <input type="hidden" name="productId" value="@item.Productid" />
+                                    <input type="hidden" name="retailPriceId" value="@item.RetailPriceId" />
                                     <button type="submit" class="yq-cart-item__remove" aria-label="إزالة @item.Product?.Name من السلة">
                                         <i class="bi bi-trash3"></i>
                                     </button>
@@ -77,6 +90,7 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <input type="hidden" name="productId" value="@item.Productid" />
+                                    <input type="hidden" name="retailPriceId" value="@item.RetailPriceId" />
                                     <input type="hidden" name="quantity" value="@item.Quantity" data-yq-cart-qty-value />
                                     <input type="hidden" name="expectedQuantity" value="@item.Quantity" data-yq-cart-qty-expected />
                                     <span class="yq-cart-item__qty-label">الكمية</span>
@@ -88,19 +102,19 @@
                                             {
                                                 <option value="@quantityOption"
                                                         selected="@(item.Quantity == quantityOption)"
-                                                        disabled="@(quantityOption > (item.Product?.Stockquantity ?? item.Quantity))">
+                                                        disabled="@(quantityOption > maxUnits)">
                                                     @quantityOption
                                                 </option>
                                             }
                                             <option value="custom" selected="@(item.Quantity > 5)"
-                                                    disabled="@((item.Product?.Stockquantity ?? item.Quantity) <= 5)">
+                                                    disabled="@(maxUnits <= 5)">
                                                 أكثر من 5 (5+)
                                             </option>
                                         </select>
                                         <input type="number"
                                                value="@item.Quantity"
                                                min="1"
-                                               max="@(item.Product?.Stockquantity ?? item.Quantity)"
+                                               max="@maxUnits"
                                                class="yq-cart-item__qty-input @(item.Quantity <= 5 ? "d-none" : null)"
                                                data-yq-cart-qty-custom
                                                inputmode="numeric"
@@ -114,7 +128,7 @@
 
                                 <div class="yq-cart-item__pricing">
                                     <span class="yq-cart-item__unit-price">
-                                        @((item.Product?.Price ?? 0).ToString("N0")) ر.س / للقطعة
+                                        @UnitPrice(item).ToString("N0") ر.س / @UnitLabel(item)
                                     </span>
                                     <span class="yq-cart-item__line-total">
                                         @lineTotal.ToString("N0") <small>ر.س</small>

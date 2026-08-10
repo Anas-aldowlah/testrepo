@@ -7,8 +7,13 @@
     var heartNote  = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "");
     var baseNote   = parts.Length > 2 ? parts[2] : "";
     var inStock    = Model != null && Model.Stockquantity > 0;
-    var lowStock   = Model != null && Model.Stockquantity > 0 && Model.Stockquantity <= 5;
     var hasNotes   = parts.Length >= 2;
+    var isMlProduct = Model?.StockUnit == "Ml" && Model.VolumeMl is > 0;
+    var pieceAvailableUnits = Model?.Stockquantity ?? 0;
+    var fullAvailableUnits = isMlProduct ? (Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
+    var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} عبوة" : $"{pieceAvailableUnits:N0} قطعة";
+    var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
+    var retailPrices = Model?.RetailPrices?.Where(price => price.IsActive).OrderBy(price => price.SizeMl).ToList() ?? new();
 }
 
 @section Styles {
@@ -105,7 +110,7 @@
                             {
                                 <span class="yq-pdp-stock__note">
                                     <i class="bi bi-exclamation-triangle-fill"></i>
-                                    الكمية المتبقية: <strong>@Model.Stockquantity قطعة فقط</strong>
+                                    الكمية المتبقية: <strong>@availableStockText فقط</strong>
                                 </span>
                             }
                         }
@@ -133,6 +138,32 @@
                               data-product-name="@Model.Name">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="productId" value="@Model.Id" />
+                            <input type="hidden" name="retailPriceId" id="yqRetailPriceId" value="" />
+
+                            @if (isMlProduct && Model.IsRetailEnabled && retailPrices.Any())
+                            {
+                                <fieldset class="yq-pdp-retail-options" aria-label="اختيار الحجم">
+                                    <legend class="yq-pdp-qty__label">الحجم</legend>
+                                    <label class="yq-pdp-retail-option">
+                                        <input type="radio" name="retailChoice" value="" checked data-price="@Model.Price" data-max="@fullAvailableUnits" />
+                                        <span class="yq-pdp-retail-option__body">
+                                            <span>عبوة كاملة @Model.VolumeMl مل</span>
+                                            <strong>@Model.Price.ToString("N0") ر.س</strong>
+                                        </span>
+                                    </label>
+
+                                        @foreach (var price in retailPrices)
+                                        {
+                                            <label class="yq-pdp-retail-option">
+                                                <input type="radio" name="retailChoice" value="@price.Id" data-price="@price.Price" data-max="@(Model.Stockquantity / price.SizeMl)" />
+                                                <span class="yq-pdp-retail-option__body">
+                                                    <span>@price.SizeMl مل</span>
+                                                    <strong>@price.Price.ToString("N0") ر.س</strong>
+                                                </span>
+                                            </label>
+                                        }
+                                </fieldset>
+                            }
 
                             <div class="yq-pdp-qty">
                                 <span class="yq-pdp-qty__label">الكمية</span>
@@ -141,7 +172,7 @@
                                         <i class="bi bi-dash"></i>
                                     </button>
                                     <input type="number" name="quantity" id="yqQtyInput" value="1"
-                                           min="1" max="@Model.Stockquantity"
+                                           min="1" max="@Math.Max(1, fullAvailableUnits)"
                                            class="yq-pdp-qty__input" aria-label="الكمية المطلوبة" />
                                     <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية">
                                         <i class="bi bi-plus"></i>
@@ -267,7 +298,7 @@
                         {
                             <li>
                                 <span class="yq-pdp-quick-specs__key"><i class="bi bi-layers"></i> المتوفر</span>
-                                <span class="yq-pdp-quick-specs__val">@Model.Stockquantity قطعة</span>
+                                <span class="yq-pdp-quick-specs__val">@availableStockText</span>
                             </li>
                         }
                         <li>
@@ -303,6 +334,30 @@ else
     <script>
         // Wishlist toggle logic using localStorage
         document.addEventListener('DOMContentLoaded', function () {
+            var choices = document.querySelectorAll('input[name="retailChoice"]');
+            var retailInput = document.getElementById('yqRetailPriceId');
+            var qtyInput = document.getElementById('yqQtyInput');
+            var priceBox = document.querySelector('.yq-pdp-price');
+            if (choices.length && retailInput && qtyInput && priceBox) {
+                function syncRetailChoice(selected) {
+                    retailInput.value = selected.value || '';
+                    var max = parseInt(selected.dataset.max || '1', 10);
+                    qtyInput.max = Math.max(1, max).toString();
+                    if ((parseInt(qtyInput.value || '1', 10) || 1) > max) qtyInput.value = Math.max(1, max);
+                    var price = parseFloat(selected.dataset.price || '0') || 0;
+                    priceBox.innerHTML = price.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+                }
+
+                choices.forEach(function (choice) {
+                    choice.addEventListener('change', function () {
+                        if (choice.checked) syncRetailChoice(choice);
+                    });
+                });
+
+                var checkedChoice = document.querySelector('input[name="retailChoice"]:checked');
+                if (checkedChoice) syncRetailChoice(checkedChoice);
+            }
+
             var btn  = document.getElementById('yqWishlistBtn');
             var icon = document.getElementById('yqWishlistIcon');
             if (!btn || !icon) return;

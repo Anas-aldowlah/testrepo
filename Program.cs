@@ -174,6 +174,7 @@ builder.Services.AddDbContext<UsersDbContext>(options =>
 builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();

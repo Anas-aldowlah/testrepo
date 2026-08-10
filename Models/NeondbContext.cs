@@ -33,6 +33,8 @@ public partial class NeondbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<ProductRetailPrice> ProductRetailPrices { get; set; }
+
     public virtual DbSet<Securitylog> Securitylogs { get; set; }
 
     public virtual DbSet<Storesetting> Storesettings { get; set; }
@@ -91,12 +93,12 @@ public partial class NeondbContext : DbContext
 
             entity.ToTable("cartitems");
 
-            entity.HasIndex(e => new { e.Cartid, e.Productid }, "ux_cartitems_cartid_productid")
-                .IsUnique();
+            entity.HasIndex(e => new { e.Cartid, e.Productid, e.RetailPriceId }, "ix_cartitems_cart_product_retail");
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Cartid).HasColumnName("cartid");
             entity.Property(e => e.Productid).HasColumnName("productid");
+            entity.Property(e => e.RetailPriceId).HasColumnName("retail_price_id");
             entity.Property(e => e.Quantity)
                 .HasDefaultValue(1)
                 .HasColumnName("quantity");
@@ -108,6 +110,11 @@ public partial class NeondbContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.Cartitems)
                 .HasForeignKey(d => d.Productid)
                 .HasConstraintName("fk_product_cart");
+
+            entity.HasOne(d => d.RetailPrice).WithMany(p => p.Cartitems)
+                .HasForeignKey(d => d.RetailPriceId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_cartitems_retail_price");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -258,6 +265,8 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Orderid).HasColumnName("orderid");
             entity.Property(e => e.Productid).HasColumnName("productid");
+            entity.Property(e => e.RetailPriceId).HasColumnName("retail_price_id");
+            entity.Property(e => e.RetailSizeMl).HasColumnName("retail_size_ml");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.Unitprice)
                 .HasPrecision(10, 2)
@@ -271,6 +280,11 @@ public partial class NeondbContext : DbContext
                 .HasForeignKey(d => d.Productid)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_product_order");
+
+            entity.HasOne(d => d.RetailPrice).WithMany(p => p.Orderitems)
+                .HasForeignKey(d => d.RetailPriceId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_orderitems_retail_price");
         });
 
         modelBuilder.Entity<Paymentmethod>(entity =>
@@ -314,7 +328,12 @@ public partial class NeondbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("products_pkey");
 
-            entity.ToTable("products");
+            entity.ToTable("products", t =>
+            {
+                t.HasCheckConstraint("ck_products_stock_unit", "stock_unit IN ('Piece', 'Ml')");
+                t.HasCheckConstraint("ck_products_volume_for_ml", "(stock_unit = 'Piece' AND volume_ml IS NULL) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
+                t.HasCheckConstraint("ck_products_retail_requires_ml", "(is_retail_enabled = false) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
+            });
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Brand)
@@ -333,11 +352,47 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Price)
                 .HasPrecision(10, 2)
                 .HasColumnName("price");
+            entity.Property(e => e.StockUnit)
+                .HasMaxLength(10)
+                .HasDefaultValue("Piece")
+                .HasColumnName("stock_unit");
+            entity.Property(e => e.VolumeMl).HasColumnName("volume_ml");
+            entity.Property(e => e.IsRetailEnabled)
+                .HasDefaultValue(false)
+                .HasColumnName("is_retail_enabled");
             entity.Property(e => e.Stockquantity).HasColumnName("stockquantity");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.Categoryid)
                 .HasConstraintName("fk_category");
+        });
+
+        modelBuilder.Entity<ProductRetailPrice>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("product_retail_prices_pkey");
+
+            entity.ToTable("product_retail_prices", t =>
+            {
+                t.HasCheckConstraint("ck_product_retail_prices_size_positive", "size_ml > 0");
+                t.HasCheckConstraint("ck_product_retail_prices_price_positive", "price > 0");
+            });
+
+            entity.HasIndex(e => new { e.ProductId, e.SizeMl }, "ux_product_retail_prices_product_size").IsUnique();
+
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.SizeMl).HasColumnName("size_ml");
+            entity.Property(e => e.Price)
+                .HasPrecision(10, 2)
+                .HasColumnName("price");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.RetailPrices)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_product_retail_prices_product");
         });
 
         modelBuilder.Entity<Securitylog>(entity =>
@@ -604,6 +659,8 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.SaleId).HasColumnName("sale_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.RetailPriceId).HasColumnName("retail_price_id");
+            entity.Property(e => e.RetailSizeMl).HasColumnName("retail_size_ml");
             entity.Property(e => e.ProductName)
                 .HasMaxLength(255)
                 .HasColumnName("product_name");
@@ -632,6 +689,11 @@ public partial class NeondbContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_sale_items_product");
+
+            entity.HasOne(d => d.RetailPrice).WithMany(p => p.SaleItems)
+                .HasForeignKey(d => d.RetailPriceId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_sale_items_retail_price");
         });
 
         modelBuilder.Entity<SalePayment>(entity =>

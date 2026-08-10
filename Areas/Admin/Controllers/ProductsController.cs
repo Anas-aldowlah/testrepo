@@ -2,11 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
-using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
 namespace Yagot.Areas.Admin.Controllers;
@@ -19,19 +17,14 @@ public class ProductsController : Controller
     private const string DeletedProductImagePath = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
     private const string DeletedProductImagePathLegacy = "images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
 
-    // DI
     private readonly ProductService _productService;
-
     private readonly NeondbContext _context;
-    private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly Image _imageService;
 
     public ProductsController(ProductService productService, NeondbContext context, IWebHostEnvironment webHostEnvironment, Image imageService)
     {
         _productService = productService;
-
         _context = context;
-        _webHostEnvironment = webHostEnvironment;
         _imageService = imageService;
     }
 
@@ -62,15 +55,15 @@ public class ProductsController : Controller
                     .ThenBy(p => p.Name),
                 page,
                 pageSize),
-            Categories = await _context.Categories
-                .AsNoTracking()
-                .OrderBy(c => c.Name)
-                .ToListAsync(),
+            Categories = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(),
             TotalActiveProducts = await activeQuery.CountAsync(),
             TotalArchivedProducts = await _context.Products.CountAsync(p =>
                 p.Stockquantity == 0 &&
                 (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
-            LowStockCount = await activeQuery.CountAsync(p => p.Stockquantity > 0 && p.Stockquantity < 5),
+            LowStockCount = await activeQuery.CountAsync(p =>
+                p.Stockquantity > 0 &&
+                ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
+                 (p.StockUnit != "Ml" && p.Stockquantity < 5))),
             OutOfStockCount = await activeQuery.CountAsync(p => p.Stockquantity <= 0),
             Search = search ?? string.Empty
         };
@@ -88,16 +81,10 @@ public class ProductsController : Controller
         var model = new AdminProductTrashViewModel
         {
             Products = await PagedResult<Product>.CreateAsync(
-                archivedQuery
-                    .Include(p => p.Category)
-                    .OrderByDescending(p => p.Createdat)
-                    .ThenBy(p => p.Name),
+                archivedQuery.Include(p => p.Category).OrderByDescending(p => p.Createdat).ThenBy(p => p.Name),
                 page,
                 pageSize),
-            Categories = await _context.Categories
-                .AsNoTracking()
-                .OrderBy(c => c.Name)
-                .ToListAsync(),
+            Categories = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(),
             TotalArchivedProducts = await archivedQuery.CountAsync()
         };
 
@@ -107,11 +94,12 @@ public class ProductsController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        //  تعرض الصفحة لاضافة المنتج
-        var categories = _context.Categories.ToList();
-        ViewBag.Categoryid = new SelectList(categories, "Id", "Name");
-
-        return View();
+        ViewBag.Categoryid = new SelectList(_context.Categories.ToList(), "Id", "Name");
+        return View(new ProductVW
+        {
+            StockUnit = "Piece",
+            RetailPrices = []
+        });
     }
 
     [HttpPost]
@@ -119,52 +107,63 @@ public class ProductsController : Controller
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> Create(ProductVW productvw)
     {
-        //  تحفظ المنتج الذي تم اضافته
+        NormalizeRetailRows(productvw);
+        try
+        {
+            ValidateProductConfiguration(productvw, isCreate: true, existingProduct: null);
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
 
         if (ModelState.IsValid)
         {
-            // رفع الصورة
             string? filename = await _imageService.UploadImage(productvw.Imagefile, "products");
+            var stockQuantity = CalculateInitialStock(productvw);
 
-            // انشاء منتج جديد
             var newProduct = new Product
             {
                 Name = productvw.Name,
                 Description = productvw.Description,
                 Price = productvw.Price,
-                Stockquantity = productvw.Stockquantity,
-                Imageurl = filename != null ? "/images/products/" + filename : "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png",
+                Stockquantity = stockQuantity,
+                StockUnit = NormalizeStockUnit(productvw.StockUnit),
+                VolumeMl = NormalizeStockUnit(productvw.StockUnit) == "Ml" ? productvw.VolumeMl : null,
+                IsRetailEnabled = NormalizeStockUnit(productvw.StockUnit) == "Ml" && productvw.IsRetailEnabled,
+                Imageurl = filename != null ? "/images/products/" + filename : DeletedProductImagePath,
                 Categoryid = productvw.Categoryid,
                 Brand = productvw.Brand,
                 Createdat = DateTime.Now
             };
-            // الحفظ في قاعدة البيانات
+
+            foreach (var price in ActiveRetailRows(productvw))
+            {
+                newProduct.RetailPrices.Add(new ProductRetailPrice
+                {
+                    SizeMl = price.SizeMl,
+                    Price = price.Price,
+                    IsActive = price.IsActive
+                });
+            }
+
             _context.Products.Add(newProduct);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-        // بعد الحفظ ترسل البيانات للـ view وترجع المستخدم لصفحة المنتجات
+
         ViewBag.Categoryid = new SelectList(_context.Categories, "Id", "Name", productvw.Categoryid);
         return View(productvw);
     }
 
     public async Task<IActionResult> Edit(int id)
     {
-        // عرض الصفحة
-        var product = await _productService.GetProductByIdAsync(id);
+        var product = await _context.Products
+            .Include(p => p.RetailPrices)
+            .SingleOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
 
-        ProductVW model = new ProductVW()
-        {
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.Price,
-            Stockquantity = product.Stockquantity,
-            Existingimage = product.Imageurl,
-            Categoryid = product.Categoryid,
-            Brand = product.Brand,
-        };
-
+        var model = ToProductViewModel(product);
         ViewBag.Categories = await _productService.GetCategoriesAsync();
         return View(model);
     }
@@ -173,42 +172,75 @@ public class ProductsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ProductVW productVW)
     {
-        // حفظ المنتجات بعد التعديل
+        var product = await _context.Products
+            .Include(p => p.RetailPrices)
+            .SingleOrDefaultAsync(p => p.Id == productVW.Id);
+        if (product == null) return NotFound();
+
+        NormalizeRetailRows(productVW);
+        try
+        {
+            ValidateProductConfiguration(productVW, isCreate: false, existingProduct: product);
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+
         if (ModelState.IsValid)
         {
-            // 1. جلب المنتج من قاعدة البيانات بشكل غير متزامن
-            var product = await _context.Products.FindAsync(productVW.Id);
-            if (product == null) return NotFound();
-
-            // احتفظ باسم الملف الحالي (القديم)
             string? fileName = productVW.Existingimage;
-
-            // 2. التحقق مما إذا كان المستخدم قد رفع صورة جديدة
             if (productVW.Imagefile != null && productVW.Imagefile.Length > 0)
             {
                 fileName = await _imageService.UpdateImage(productVW.Imagefile, "products", fileName ?? string.Empty);
-                product.Imageurl = fileName != null ? "/images/products/" + fileName : "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+                product.Imageurl = fileName != null ? "/images/products/" + fileName : DeletedProductImagePath;
             }
 
-            // 4. تحديث بيانات المنتج
+            var stockUnit = NormalizeStockUnit(productVW.StockUnit);
             product.Name = productVW.Name;
             product.Description = productVW.Description;
             product.Price = productVW.Price;
-            product.Stockquantity = productVW.Stockquantity;
             product.Categoryid = productVW.Categoryid;
             product.Brand = productVW.Brand;
+            product.StockUnit = stockUnit;
+            product.VolumeMl = stockUnit == "Ml" ? productVW.VolumeMl : null;
+            product.IsRetailEnabled = stockUnit == "Ml" && productVW.IsRetailEnabled;
             product.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
                 ? "/images/products/" + fileName
                 : fileName;
 
-            _context.Update(product);
+            SyncRetailPrices(product, productVW);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        // إذا فشل الموديل أو حدث خطأ، أعد تحميل التصنيفات
-        ViewBag.Categoryid = _context.Categories.ToList();
+        ViewBag.Categories = await _productService.GetCategoriesAsync();
+        productVW.Stockquantity = product.Stockquantity;
+        productVW.Existingimage = product.Imageurl;
         return View(productVW);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddStock(ProductVW input)
+    {
+        var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == input.Id);
+        if (product == null) return NotFound();
+
+        var amount = product.StockUnit == "Ml"
+            ? input.AddedBottleCount * (product.VolumeMl ?? 0)
+            : input.AddedStockQuantity;
+
+        if (amount <= 0)
+        {
+            TempData["Error"] = "أدخل كمية مخزون صحيحة.";
+            return RedirectToAction(nameof(Edit), new { id = input.Id });
+        }
+
+        product.Stockquantity += amount;
+        await _context.SaveChangesAsync();
+        TempData["Message"] = "تمت إضافة المخزون بنجاح.";
+        return RedirectToAction(nameof(Edit), new { id = input.Id });
     }
 
     [HttpPost]
@@ -216,26 +248,150 @@ public class ProductsController : Controller
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _productService.GetProductByIdAsync(id);
-        if (product == null)
+        if (product == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(product.Imageurl) &&
+            !string.Equals(product.Imageurl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(product.Imageurl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
         {
-            return NotFound();
+            var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products", Path.GetFileName(product.Imageurl));
+            if (System.IO.File.Exists(imagePath))
+                System.IO.File.Delete(imagePath);
         }
-        if (!string.IsNullOrEmpty(product.Imageurl))
-        {
-            if (!string.Equals(product.Imageurl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(product.Imageurl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
-            {
-                var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
-         "images", "products", Path.GetFileName(product.Imageurl));
-                if (System.IO.File.Exists(imagePath))
-                {
-                    System.IO.File.Delete(imagePath);
-                }
-            }
-        }
-        product.Imageurl = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";
+
+        product.Imageurl = DeletedProductImagePath;
         product.Stockquantity = 0;
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
+
+    private static ProductVW ToProductViewModel(Product product) => new()
+    {
+        Id = product.Id,
+        Name = product.Name,
+        Description = product.Description,
+        Price = product.Price,
+        Stockquantity = product.Stockquantity,
+        StockUnit = product.StockUnit,
+        VolumeMl = product.VolumeMl,
+        IsRetailEnabled = product.IsRetailEnabled,
+        Existingimage = product.Imageurl,
+        Categoryid = product.Categoryid,
+        Brand = product.Brand,
+        RetailPrices = product.RetailPrices
+            .OrderBy(price => price.SizeMl)
+            .Select(price => new ProductRetailPriceInput
+            {
+                Id = price.Id,
+                SizeMl = price.SizeMl,
+                Price = price.Price,
+                IsActive = price.IsActive
+            })
+            .ToList()
+    };
+
+    private static void ValidateProductConfiguration(ProductVW model, bool isCreate, Product? existingProduct)
+    {
+        model.StockUnit = NormalizeStockUnit(model.StockUnit);
+
+        if (model.StockUnit != "Ml" && model.IsRetailEnabled)
+            throw new InvalidOperationException("لا يمكن تفعيل التجزئة إلا للمنتجات التي وحدتها مل.");
+
+        if (model.StockUnit == "Ml")
+        {
+            if (model.VolumeMl is not > 0)
+                throw new InvalidOperationException("VolumeMl is required for ml products.");
+
+            if (!isCreate &&
+                existingProduct != null &&
+                existingProduct.Stockquantity > 0 &&
+                !string.Equals(existingProduct.StockUnit, model.StockUnit, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("لا يمكن تغيير وحدة المخزون لمنتج لديه رصيد قائم. أنشئ منتجاً جديداً أو استخدم تسوية مخزون واضحة.");
+            }
+
+            if (!isCreate &&
+                existingProduct?.StockUnit == "Ml" &&
+                existingProduct.Stockquantity > 0 &&
+                existingProduct.VolumeMl != model.VolumeMl)
+            {
+                throw new InvalidOperationException("لا يمكن تغيير حجم العبوة لمنتج لديه مخزون قائم. أنشئ منتجاً جديداً أو استخدم تسوية مخزون واضحة.");
+            }
+        }
+        else
+        {
+            if (!isCreate &&
+                existingProduct != null &&
+                existingProduct.Stockquantity > 0 &&
+                !string.Equals(existingProduct.StockUnit, model.StockUnit, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("لا يمكن تغيير وحدة المخزون لمنتج لديه رصيد قائم. أنشئ منتجاً جديداً أو استخدم تسوية مخزون واضحة.");
+            }
+
+            model.VolumeMl = null;
+            model.IsRetailEnabled = false;
+        }
+    }
+
+    private static int CalculateInitialStock(ProductVW model)
+    {
+        if (NormalizeStockUnit(model.StockUnit) == "Ml")
+            return model.Stockquantity * (model.VolumeMl ?? 0);
+
+        return model.Stockquantity;
+    }
+
+    private static void NormalizeRetailRows(ProductVW model)
+    {
+        model.RetailPrices = model.RetailPrices
+            .Where(price => price.SizeMl > 0 || price.Price > 0 || price.Id.HasValue)
+            .ToList();
+    }
+
+    private static IEnumerable<ProductRetailPriceInput> ActiveRetailRows(ProductVW model)
+    {
+        if (NormalizeStockUnit(model.StockUnit) != "Ml" || !model.IsRetailEnabled)
+            return [];
+
+        return model.RetailPrices
+            .Where(price => price.SizeMl > 0 && price.Price > 0)
+            .GroupBy(price => price.SizeMl)
+            .Select(group => group.Last());
+    }
+
+    private static void SyncRetailPrices(Product product, ProductVW model)
+    {
+        var activeInputs = ActiveRetailRows(model).ToList();
+        var seenIds = activeInputs.Where(input => input.Id.HasValue).Select(input => input.Id!.Value).ToHashSet();
+
+        foreach (var existing in product.RetailPrices)
+            existing.IsActive = seenIds.Contains(existing.Id) && activeInputs.Any(input => input.Id == existing.Id && input.IsActive);
+
+        foreach (var input in activeInputs)
+        {
+            var existing = input.Id.HasValue
+                ? product.RetailPrices.FirstOrDefault(price => price.Id == input.Id.Value)
+                : product.RetailPrices.FirstOrDefault(price => price.SizeMl == input.SizeMl);
+
+            if (existing == null)
+            {
+                product.RetailPrices.Add(new ProductRetailPrice
+                {
+                    SizeMl = input.SizeMl,
+                    Price = input.Price,
+                    IsActive = input.IsActive
+                });
+            }
+            else
+            {
+                existing.SizeMl = input.SizeMl;
+                existing.Price = input.Price;
+                existing.IsActive = input.IsActive;
+            }
+        }
+    }
+
+    private static string NormalizeStockUnit(string? stockUnit) =>
+        string.Equals(stockUnit, "Ml", StringComparison.OrdinalIgnoreCase) ? "Ml" : "Piece";
+
 }

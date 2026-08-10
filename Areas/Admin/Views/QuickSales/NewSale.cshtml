@@ -267,11 +267,15 @@
             <text>
             initialModelItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SaleItems.Select(si => new {
                 productId = si.ProductId,
+                retailPriceId = si.RetailPriceId,
+                retailSizeMl = si.RetailSizeMl,
                 productName = si.ProductName ?? si.Product?.Name ?? "",
                 quantity = si.Quantity,
                 unitPrice = si.UnitPrice,
                 discount = si.Discount,
                 stock = si.Product?.Stockquantity ?? 99,
+                stockUnit = si.Product?.StockUnit ?? "Piece",
+                volumeMl = si.Product?.VolumeMl,
                 imageUrl = string.IsNullOrWhiteSpace(si.Product?.Imageurl) ? "/images/yaqut-logo.png" : si.Product.Imageurl
             })));
             </text>
@@ -453,11 +457,17 @@
             var pDisc = itemData ? itemData.discount : 0;
             var pStock = itemData ? itemData.stock : 0;
             var pImg = itemData ? itemData.imageUrl : '/images/yaqut-logo.png';
+            var pRetailId = itemData && itemData.retailPriceId ? itemData.retailPriceId : '';
+            var pRetailSize = itemData && itemData.retailSizeMl ? itemData.retailSizeMl : '';
 
             tr.innerHTML = `
                 <td class="text-center text-muted fw-bold pos-row-num">1</td>
                 <td class="pos-cell-search">
                     <input type="hidden" class="pos-product-id" value="${pId}" />
+                    <input type="hidden" class="pos-retail-price-id" value="${pRetailId}" />
+                    <input type="hidden" class="pos-retail-size-ml" value="${pRetailSize}" />
+                    <input type="hidden" class="pos-stock-unit" value="${itemData && itemData.stockUnit ? itemData.stockUnit : 'Piece'}" />
+                    <input type="hidden" class="pos-volume-ml" value="${itemData && itemData.volumeMl ? itemData.volumeMl : ''}" />
                     <input type="hidden" class="pos-product-stock" value="${pStock}" />
                     <input type="text" class="form-control pos-product-search-input" value="${pName}" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" />
                     <div class="pos-autocomplete-dropdown"></div>
@@ -491,10 +501,31 @@
             `;
 
             tbody.appendChild(tr);
+            ensureRetailSelect(tr, itemData);
 
             bindRowEvents(tr);
             updateRowNumbers();
             calculateTotals();
+        }
+
+        function ensureRetailSelect(tr, itemData) {
+            var searchCell = tr.querySelector('.pos-cell-search');
+            if (!searchCell || tr.querySelector('.pos-retail-select')) return;
+
+            var select = document.createElement('select');
+            select.className = 'form-select form-select-sm mt-1 pos-retail-select';
+            select.innerHTML = '<option value="" data-size="" data-price="' + (itemData?.unitPrice || 0) + '">كامل</option>';
+            searchCell.appendChild(select);
+
+            select.addEventListener('change', function() {
+                var option = select.options[select.selectedIndex];
+                tr.querySelector('.pos-retail-price-id').value = option.value || '';
+                tr.querySelector('.pos-retail-size-ml').value = option.dataset.size || '';
+                var price = parseFloat(option.dataset.price || '0') || 0;
+                if (price > 0) tr.querySelector('.pos-price-input').value = price.toFixed(2);
+                calculateTotals();
+                scheduleAutoSave();
+            });
         }
 
         function bindRowEvents(tr) {
@@ -647,7 +678,26 @@
             tr.querySelector('.pos-product-search-input').value = product.name;
             tr.querySelector('.pos-price-input').value = product.price.toFixed(2);
             tr.querySelector('.pos-product-stock').value = product.stock;
+            tr.querySelector('.pos-retail-price-id').value = '';
+            tr.querySelector('.pos-retail-size-ml').value = '';
+            tr.querySelector('.pos-stock-unit').value = product.stockUnit || 'Piece';
+            tr.querySelector('.pos-volume-ml').value = product.volumeMl || '';
             tr.querySelector('.pos-product-thumb').src = product.imageUrl;
+
+            var retailSelect = tr.querySelector('.pos-retail-select');
+            if (retailSelect) {
+                retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">كامل' + (product.volumeMl ? ' - ' + product.volumeMl + ' ml' : '') + '</option>';
+                if (product.isRetailEnabled && product.retailPrices && product.retailPrices.length) {
+                    product.retailPrices.forEach(function(price) {
+                        var option = document.createElement('option');
+                        option.value = price.id;
+                        option.dataset.size = price.sizeMl;
+                        option.dataset.price = price.price;
+                        option.textContent = price.sizeMl + ' ml - ' + Number(price.price).toFixed(2);
+                        retailSelect.appendChild(option);
+                    });
+                }
+            }
 
             var hint = tr.querySelector('.pos-stock-hint');
             if (hint) {
@@ -666,18 +716,26 @@
             });
         }
 
+        function getDeductionUnit(row) {
+            var retailSize = parseInt(row.querySelector('.pos-retail-size-ml')?.value || '0') || 0;
+            if (retailSize > 0) return retailSize;
+            var stockUnit = row.querySelector('.pos-stock-unit')?.value || 'Piece';
+            var volumeMl = parseInt(row.querySelector('.pos-volume-ml')?.value || '0') || 0;
+            return stockUnit === 'Ml' && volumeMl > 0 ? volumeMl : 1;
+        }
+
         function calculateTotals() {
             var rows = document.querySelectorAll('.pos-item-row');
             var subtotal = 0;
             var validItemsCount = 0;
 
-            // Map total quantities per product ID for accurate remaining stock across duplicate rows
+            // Map total stock consumption per product ID for accurate remaining stock across duplicate rows
             var productQtySums = {};
             rows.forEach(function(row) {
                 var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
                 var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
                 if (pId > 0) {
-                    productQtySums[pId] = (productQtySums[pId] || 0) + qty;
+                    productQtySums[pId] = (productQtySums[pId] || 0) + (qty * getDeductionUnit(row));
                 }
             });
 
@@ -773,6 +831,8 @@
             rows.forEach(function(row) {
                 var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
                 var pName = row.querySelector('.pos-product-search-input').value.trim();
+                var retailPriceId = parseInt(row.querySelector('.pos-retail-price-id')?.value || '0') || null;
+                var retailSizeMl = parseInt(row.querySelector('.pos-retail-size-ml')?.value || '0') || null;
                 var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
                 var price = parseFloat(row.querySelector('.pos-price-input').value) || 0;
                 var disc = parseFloat(row.querySelector('.pos-discount-input').value) || 0;
@@ -780,6 +840,8 @@
                 if (pId > 0 && qty > 0) {
                     items.push({
                         productId: pId,
+                        retailPriceId: retailPriceId,
+                        retailSizeMl: retailSizeMl,
                         productName: pName,
                         quantity: qty,
                         unitPrice: price,

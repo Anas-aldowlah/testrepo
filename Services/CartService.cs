@@ -10,17 +10,20 @@ public class CartService
     private readonly NeondbContext _context;
     private readonly ILogger<CartService> _logger;
     private readonly CartLockService _cartLock;
+    private readonly IInventoryService _inventoryService;
 
     public string? MESSAGE = null;
 
     public CartService(
         NeondbContext context,
         ILogger<CartService> logger,
-        CartLockService cartLock)
+        CartLockService cartLock,
+        IInventoryService inventoryService)
     {
         _context = context;
         _logger = logger;
         _cartLock = cartLock;
+        _inventoryService = inventoryService;
     }
 
     public async Task<Cart> GetCartAsync(int userId)
@@ -32,23 +35,20 @@ public class CartService
                 .Include(c => c.Cartitems)
                     .ThenInclude(ci => ci.Product)
                         .ThenInclude(p => p.Category)
+                .Include(c => c.Cartitems)
+                    .ThenInclude(ci => ci.RetailPrice)
                 .SingleOrDefaultAsync(c => c.Userid == userId);
 
-            // Reading an empty cart must not write to the database. The persisted
-            // cart is created only when the user actually adds an item.
             return cart ?? new Cart { Userid = userId };
         }
         catch (Exception exception)
         {
-            _logger.LogError(
-                exception,
-                "Could not load cart for user {UserId}.",
-                userId);
+            _logger.LogError(exception, "Could not load cart for user {UserId}.", userId);
             throw;
         }
     }
 
-    public async Task AddToCartAsync(int userId, int productId, int quantity)
+    public async Task AddToCartAsync(int userId, int productId, int quantity, int? retailPriceId = null)
     {
         var quantityToAdd = Math.Max(1, quantity);
 
@@ -65,34 +65,41 @@ public class CartService
                 return;
             }
 
+            var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, retailPriceId);
+            var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
+            if (maxUnits <= 0)
+            {
+                MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                return;
+            }
+
             var existingItem = await _context.Cartitems
-                .Where(i => i.Cartid == cart.Id && i.Productid == productId)
+                .Where(i => i.Cartid == cart.Id &&
+                            i.Productid == productId &&
+                            i.RetailPriceId == retailPriceId)
                 .OrderByDescending(i => i.Id)
                 .FirstOrDefaultAsync();
+
             if (existingItem != null)
             {
                 var requestedQuantity = existingItem.Quantity + quantityToAdd;
-                existingItem.Quantity = Math.Min(requestedQuantity, product.Stockquantity);
-                if (requestedQuantity > product.Stockquantity)
-                {
-                    MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-                }
+                existingItem.Quantity = Math.Min(requestedQuantity, maxUnits);
+                if (requestedQuantity > maxUnits)
+                    MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
 
                 await _context.SaveChangesAsync();
                 return;
             }
 
-            var quantityToSave = quantityToAdd;
-            if (quantityToSave > product.Stockquantity)
-            {
-                MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-                quantityToSave = product.Stockquantity;
-            }
+            var quantityToSave = Math.Min(quantityToAdd, maxUnits);
+            if (quantityToAdd > maxUnits)
+                MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
 
             _context.Cartitems.Add(new Cartitem
             {
                 Cartid = cart.Id,
                 Productid = productId,
+                RetailPriceId = retailPriceId,
                 Quantity = quantityToSave
             });
             await _context.SaveChangesAsync();
@@ -112,6 +119,7 @@ public class CartService
 
             var item = await _context.Cartitems
                 .Include(i => i.Product)
+                .Include(i => i.RetailPrice)
                 .SingleOrDefaultAsync(i => i.Id == cartItemId && i.Cart.Userid == userId);
             if (item == null)
             {
@@ -142,11 +150,10 @@ public class CartService
                 return;
             }
 
-            item.Quantity = Math.Min(quantity, product.Stockquantity);
-            if (quantity > product.Stockquantity)
-            {
-                MESSAGE = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-            }
+            var maxUnits = _inventoryService.GetAvailableSaleUnits(product, item.RetailPrice?.SizeMl);
+            item.Quantity = Math.Min(quantity, maxUnits);
+            if (quantity > maxUnits)
+                MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
 
             await _context.SaveChangesAsync();
         });
@@ -212,58 +219,35 @@ public class CartService
             {
                 await RollbackAsync(transaction, userId, operationName);
                 _context.ChangeTracker.Clear();
-                _logger.LogWarning(
-                    exception,
-                    "Cart concurrency conflict while attempting to {OperationName} for user {UserId}.",
-                    operationName,
-                    userId);
-                throw new CartConcurrencyException(
-                    "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
-                    exception);
+                _logger.LogWarning(exception, "Cart concurrency conflict while attempting to {OperationName} for user {UserId}.", operationName, userId);
+                throw new CartConcurrencyException("تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.", exception);
             }
             catch (DbUpdateException exception) when (IsUniqueConstraintConflict(exception))
             {
                 await RollbackAsync(transaction, userId, operationName);
                 _context.ChangeTracker.Clear();
-                _logger.LogWarning(
-                    exception,
-                    "Cart uniqueness conflict while attempting to {OperationName} for user {UserId}.",
-                    operationName,
-                    userId);
-                throw new CartConcurrencyException(
-                    "تم تعديل السلة بالتزامن من نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
-                    exception);
+                _logger.LogWarning(exception, "Cart uniqueness conflict while attempting to {OperationName} for user {UserId}.", operationName, userId);
+                throw new CartConcurrencyException("تم تعديل السلة بالتزامن من نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.", exception);
             }
             catch (CartConcurrencyException exception)
             {
                 await RollbackAsync(transaction, userId, operationName);
                 _context.ChangeTracker.Clear();
-                _logger.LogWarning(
-                    exception,
-                    "Cart state changed while attempting to {OperationName} for user {UserId}.",
-                    operationName,
-                    userId);
+                _logger.LogWarning(exception, "Cart state changed while attempting to {OperationName} for user {UserId}.", operationName, userId);
                 throw;
             }
             catch (Exception exception)
             {
                 await RollbackAsync(transaction, userId, operationName);
                 _context.ChangeTracker.Clear();
-                _logger.LogError(
-                    exception,
-                    "Cart operation {OperationName} failed for user {UserId}.",
-                    operationName,
-                    userId);
+                _logger.LogError(exception, "Cart operation {OperationName} failed for user {UserId}.", operationName, userId);
                 await CloseConnectionAfterFailureAsync(userId, operationName);
                 throw;
             }
         });
     }
 
-    private async Task RollbackAsync(
-        IDbContextTransaction transaction,
-        int userId,
-        string operationName)
+    private async Task RollbackAsync(IDbContextTransaction transaction, int userId, string operationName)
     {
         try
         {
@@ -271,11 +255,7 @@ public class CartService
         }
         catch (Exception rollbackException)
         {
-            _logger.LogWarning(
-                rollbackException,
-                "Rollback failed after cart operation {OperationName} for user {UserId}.",
-                operationName,
-                userId);
+            _logger.LogWarning(rollbackException, "Rollback failed after cart operation {OperationName} for user {UserId}.", operationName, userId);
         }
     }
 
@@ -287,11 +267,7 @@ public class CartService
         }
         catch (Exception closeException)
         {
-            _logger.LogWarning(
-                closeException,
-                "Closing the database connection failed after cart operation {OperationName} for user {UserId}.",
-                operationName,
-                userId);
+            _logger.LogWarning(closeException, "Closing the database connection failed after cart operation {OperationName} for user {UserId}.", operationName, userId);
         }
     }
 

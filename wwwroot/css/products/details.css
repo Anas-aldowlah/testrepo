@@ -309,6 +309,67 @@
     .yq-pdp-qty__input::-webkit-outer-spin-button,
     .yq-pdp-qty__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
+.yq-pdp-retail-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.yq-pdp-retail-options .yq-pdp-qty__label {
+    grid-column: 1 / -1;
+}
+
+.yq-pdp-retail-option {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+
+.yq-pdp-retail-option input {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    accent-color: var(--yq-gold);
+}
+
+.yq-pdp-retail-option__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 74px;
+    padding: 0.75rem 2.35rem 0.75rem 0.85rem;
+    border: 1.5px solid var(--yq-border);
+    border-radius: var(--yq-radius-sm);
+    background: var(--yq-bg-elevated);
+    color: var(--yq-text);
+    transition: border-color var(--yq-ease), box-shadow var(--yq-ease), background var(--yq-ease);
+}
+
+.yq-pdp-retail-option__body span {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--yq-text-soft);
+}
+
+.yq-pdp-retail-option__body strong {
+    font-size: 1rem;
+    color: var(--yq-gold);
+}
+
+.yq-pdp-retail-option input:checked + .yq-pdp-retail-option__body {
+    border-color: var(--yq-gold);
+    box-shadow: var(--yq-shadow-gold);
+    background: color-mix(in srgb, var(--yq-gold) 8%, var(--yq-bg-elevated));
+}
+
 .yq-pdp-add-btn {
     flex: 1;
     min-width: 200px;
@@ -632,6 +693,10 @@
     .yq-pdp-info-grid {
         grid-template-columns: 1fr;
     }
+
+    .yq-pdp-retail-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 992px) {
@@ -663,6 +728,11 @@
 
     .yq-pdp-purchase {
         flex-direction: column;
+    }
+
+    .yq-pdp-retail-options {
+        width: 100%;
+        grid-template-columns: 1fr;
     }
 
     .yq-pdp-add-btn { min-width: 100%; }

@@ -33,6 +33,8 @@ public class SaveDraftRequestModel
 public class SaveDraftItemModel
 {
     public int ProductId { get; set; }
+    public int? RetailPriceId { get; set; }
+    public int? RetailSizeMl { get; set; }
     public string? ProductName { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
@@ -46,7 +48,18 @@ public class ProductSearchResultDto
     public string? Brand { get; set; }
     public decimal Price { get; set; }
     public int Stock { get; set; }
+    public string StockUnit { get; set; } = "Piece";
+    public int? VolumeMl { get; set; }
+    public bool IsRetailEnabled { get; set; }
+    public List<ProductRetailPriceDto> RetailPrices { get; set; } = new();
     public string ImageUrl { get; set; } = null!;
+}
+
+public class ProductRetailPriceDto
+{
+    public int Id { get; set; }
+    public int SizeMl { get; set; }
+    public decimal Price { get; set; }
 }
 
 public class CompleteSaleRequestModel
@@ -145,6 +158,7 @@ public class ProductSalesSummaryDto
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
     public string? Brand { get; set; }
+    public int? RetailSizeMl { get; set; }
     public int TotalQuantitySold { get; set; }
     public decimal TotalRevenue { get; set; }
 }
