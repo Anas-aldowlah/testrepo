@@ -28,6 +28,8 @@
     var peekAutoCloseTimer = null;
     var peekOpenedAt = 0;
     var flightLayer = null;
+    var toastEl = null;
+    var toastAutoHideTimer = null;
 
     function toArray(list) {
         return Array.prototype.slice.call(list || []);
@@ -96,6 +98,87 @@
         flightLayer.setAttribute('aria-hidden', 'true');
         document.body.appendChild(flightLayer);
         return flightLayer;
+    }
+
+    function ensureToastEl() {
+        if (toastEl) return toastEl;
+        toastEl = document.createElement('div');
+        toastEl.className = 'yq-cart-toast';
+        toastEl.setAttribute('role', 'status');
+        toastEl.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toastEl);
+        return toastEl;
+    }
+
+    function hideCartToast() {
+        if (toastAutoHideTimer) {
+            window.clearTimeout(toastAutoHideTimer);
+            toastAutoHideTimer = null;
+        }
+        if (!toastEl) return;
+        toastEl.classList.add('is-hiding');
+        toastEl.classList.remove('is-visible');
+        window.setTimeout(function () {
+            if (toastEl) toastEl.classList.remove('is-hiding');
+        }, 350);
+    }
+
+    function showCartToast(snapshot, totalText) {
+        var el = ensureToastEl();
+        var autoHideDuration = 3500;
+        var imgSrc = escapeAttr(snapshot.imageSrc || '/images/placeholder-product.svg');
+        var name = escapeHtml(snapshot.name || 'منتج');
+        var total = escapeHtml(totalText || '');
+
+        el.innerHTML = [
+            '<img class="yq-cart-toast__img" src="' + imgSrc + '" alt="" />',
+            '<div class="yq-cart-toast__body">',
+            '  <p class="yq-cart-toast__title">',
+            '    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>',
+            '    <span class="yq-cart-toast__name">' + name + '</span>',
+            '  </p>',
+            '  <div class="yq-cart-toast__meta">',
+            '    <span>أُضيف إلى السلة</span>',
+            total ? '    <span class="yq-cart-toast__total">الإجمالي: ' + total + '</span>' : '',
+            '  </div>',
+            '</div>',
+            '<button type="button" class="yq-cart-toast__close" aria-label="إغلاق"><i class="bi bi-x" aria-hidden="true"></i></button>',
+            '<span class="yq-cart-toast__progress" style="transition-duration: ' + autoHideDuration + 'ms"></span>'
+        ].join('');
+
+        // close button
+        var closeBtn = el.querySelector('.yq-cart-toast__close');
+        if (closeBtn) {
+            closeBtn.onclick = function () { hideCartToast(); };
+        }
+
+        // reset and show
+        el.classList.remove('is-hiding', 'is-visible');
+        window.requestAnimationFrame(function () {
+            el.classList.add('is-visible');
+        });
+
+        // auto hide
+        if (toastAutoHideTimer) window.clearTimeout(toastAutoHideTimer);
+        toastAutoHideTimer = window.setTimeout(function () {
+            hideCartToast();
+        }, autoHideDuration);
+    }
+
+    function updateToastTotal(totalText) {
+        if (!toastEl) return;
+        var totalSpan = toastEl.querySelector('.yq-cart-toast__total');
+        if (totalSpan) {
+            totalSpan.textContent = 'الإجمالي: ' + totalText;
+        } else {
+            var meta = toastEl.querySelector('.yq-cart-toast__meta');
+            if (meta) {
+                var span = document.createElement('span');
+                span.className = 'yq-cart-toast__total';
+                span.textContent = 'الإجمالي: ' + totalText;
+                meta.appendChild(span);
+            }
+        }
     }
 
     function clearPeekAutoCloseTimer() {
@@ -201,20 +284,38 @@
 
     function getSummary(doc) {
         var summary = doc.querySelector('.yq-cart-summary');
-        var totalText = '0 ر.س';
-        var subtotalText = '0 ر.س';
+        var totalText = '';
+        var subtotalText = '';
         var shippingText = '';
         var qualifiesForFreeShipping = false;
 
         if (summary) {
-            var rows = toArray(summary.querySelectorAll('.yq-cart-summary__row'));
-            if (rows[0]) {
-                var subtotalNode = rows[0].querySelector('span:last-child');
-                subtotalText = subtotalNode ? subtotalNode.textContent.trim() : subtotalText;
+            // Try the new cart structure first: data-yq-summary-total + sibling <small>
+            var summaryTotalEl = summary.querySelector('[data-yq-summary-total]');
+            if (summaryTotalEl) {
+                var totalBox = summaryTotalEl.closest('.yq-cart-summary__total-value, .yq-cart-summary__total-box');
+                if (totalBox) {
+                    // Grab the number + the currency text from <small>
+                    var numText = summaryTotalEl.textContent.trim();
+                    var smallEl = totalBox.querySelector('small');
+                    var currency = smallEl ? smallEl.textContent.trim() : 'ر.س';
+                    totalText = numText + ' ' + currency;
+                } else {
+                    totalText = summaryTotalEl.textContent.trim();
+                }
+                subtotalText = totalText;
             }
 
-            var totalNode = summary.querySelector('.yq-cart-summary__row--total span:last-child');
-            totalText = totalNode ? totalNode.textContent.trim() : subtotalText;
+            // Fallback: old drawer structure using rows
+            if (!totalText) {
+                var rows = toArray(summary.querySelectorAll('.yq-cart-summary__row'));
+                if (rows[0]) {
+                    var subtotalNode = rows[0].querySelector('span:last-child');
+                    subtotalText = subtotalNode ? subtotalNode.textContent.trim() : '';
+                }
+                var totalNode = summary.querySelector('.yq-cart-summary__row--total span:last-child');
+                totalText = totalNode ? totalNode.textContent.trim() : subtotalText;
+            }
 
             var shippingHint = summary.querySelector('.yq-cart-summary__shipping-hint');
             if (shippingHint) {
@@ -224,7 +325,7 @@
         }
 
         return {
-            subtotal: parseMoney(subtotalText),
+            subtotal: parseMoney(totalText || subtotalText),
             totalText: totalText,
             shippingText: shippingText,
             qualifiesForFreeShipping: qualifiesForFreeShipping
@@ -669,37 +770,39 @@
         form.dataset.yqBusy = 'true';
         setAddButtonState(form, 'loading');
         animateProductFlight(snapshot);
-        renderInstantAdd(snapshot);
         setBadge(previousBadgeCount + snapshot.quantity);
         animateBadgeNudge();
-        showNotice('', false);
         announce('تمت إضافة ' + productName + ' إلى السلة');
-        openDrawer(form.querySelector('button[type="submit"]'), false);
+
+        // Show compact toast without total — real total comes from server
+        showCartToast(snapshot, '');
 
         submitForm(form)
             .then(function (doc) {
-                var result = syncCartMeta(doc, {
-                    announcement: 'تمت إضافة ' + productName + ' إلى السلة'
-                });
-                var message = result.message;
-                var failed = result.hasError;
+                // Sync drawer data in background (don't open it)
+                cachedCartDoc = doc;
+                var items = extractItems(doc);
+                var totalQuantity = items.reduce(function (sum, item) { return sum + item.quantity; }, 0);
+                var summary = getSummary(doc);
+                var message = getCartMessage(doc);
+                var failed = isErrorMessage(message);
+
+                setBadge(totalQuantity);
 
                 if (failed) {
-                    renderAddError(message || 'تعذّرت الإضافة. حاول مرة أخرى.', {
-                        hasItems: result.items.length > 0,
-                        totalText: result.summary ? result.summary.totalText : ''
-                    });
                     setAddButtonState(form, 'error', message || 'تعذّرت الإضافة. حاول مرة أخرى.');
+                    hideCartToast();
                 } else {
                     animateBadgeNudge();
                     setAddButtonState(form, 'success', message ? 'تم تحديث السلة' : 'تمت الإضافة');
+                    // Update toast with real cart total from server
+                    if (summary.totalText) updateToastTotal(summary.totalText);
                 }
             })
             .catch(function () {
                 setBadge(previousBadgeCount);
-                renderAddError('تعذّرت الإضافة. حاول مرة أخرى.', { hasItems: previousBadgeCount > 0 });
                 setAddButtonState(form, 'error', 'تعذّرت الإضافة. حاول مرة أخرى.');
-                showNotice('تعذّرت الإضافة. حاول مرة أخرى.', true);
+                hideCartToast();
                 announce('تعذّرت الإضافة. حاول مرة أخرى.');
             })
             .finally(function () {

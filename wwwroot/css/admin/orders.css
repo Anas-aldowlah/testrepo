@@ -806,21 +806,6 @@
     font-size: 1.2rem;
 }
 
-.yq-order-detail-card--summary:nth-child(1) .yq-order-detail-card__icon {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #ffffff;
-}
-
-.yq-order-detail-card--summary:nth-child(2) .yq-order-detail-card__icon {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    color: #ffffff;
-}
-
-.yq-order-detail-card--summary:nth-child(3) .yq-order-detail-card__icon {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #ffffff;
-}
-
 .yq-order-detail-card--summary p {
     margin: 0 0 0.22rem;
     color: var(--yq-admin-muted, #b6b1a6);
@@ -1398,4 +1383,61 @@
     .yq-order-product {
         min-width: 0;
     }
+}
+
+/* Quick Info Buttons */
+.yq-orders-quick-info {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+/* Custom Popover for Dark Theme */
+.yq-popover-dark {
+    background-color: var(--yq-admin-surface-soft, #1b1f22);
+    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    color: var(--yq-admin-text, #f8f5ee);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    max-width: 300px;
+}
+
+.yq-popover-dark .popover-header {
+    background-color: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-weight: 600;
+    text-align: right;
+    padding: 0.5rem 0.75rem;
+}
+
+.yq-popover-dark .popover-body {
+    color: var(--yq-admin-text, #f8f5ee);
+    padding: 0.75rem;
+    text-align: right;
+    font-size: 0.85rem;
+}
+
+.yq-popover-dark .popover-arrow::after {
+    border-top-color: var(--yq-admin-surface-soft, #1b1f22);
+}
+
+.yq-popover-grid div {
+    margin-bottom: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.2rem;
+}
+.yq-popover-grid div:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.yq-popover-grid span {
+    color: var(--yq-admin-muted, #b6b1a6);
+}
+
+.yq-popover-image .popover-body {
+    padding: 0.25rem;
 }

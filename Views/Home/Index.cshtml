@@ -1,6 +1,7 @@
 @model YAGOT_2._0.Services.ViewModels
 @{
     ViewData["Title"] = "الرئيسية | ياقوت";
+    ViewData["IsHomePage"] = true;
 
     var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
     var inStockProducts = Model.Products?.Where(p => p.Stockquantity > 0).ToList()
@@ -95,6 +96,8 @@
         </div>
     </section>
 
+    <div class="yaqut-container">
+
     <!-- BRANDS STRIP -->
     @{
         var brandStripNames = Model.Products?
@@ -134,9 +137,9 @@
         @if (featuredCategory != null)
         {
             <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@featuredCategory.Id" class="yq-home-discovery-card">
-                <span class="yq-home-discovery-card__icon"><i class="bi bi-flower2"></i></span>
+                <span class="yq-home-discovery-card__icon"><i class="bi bi-tags"></i></span>
                 <span>
-                    <strong>اختر حسب العائلة العطرية</strong>
+                    <strong>اختر حسب التصنيف</strong>
                     <small>@featuredCategory.Name</small>
                 </span>
             </a>
@@ -305,6 +308,7 @@
         </div>
     </section>
 
+    </div>
 </div>
 
 @section Scripts {

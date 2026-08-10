@@ -128,7 +128,7 @@ public class OrdersController : Controller
                 var request = HttpContext.Request;
                 var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
                 var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
-                var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرابط الطلب: {orderLink}");
+                var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرقم التتبع: {orderLink}\nتم رفع سند الدفع: {(string.IsNullOrEmpty(receiptUrl) ? "لا" : "نعم")}");
                 TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
             }
 

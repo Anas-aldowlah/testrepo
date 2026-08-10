@@ -6,6 +6,8 @@
 .yq-products-admin {
     display: grid;
     gap: clamp(1rem, 1.8vw, 1.5rem);
+    max-width: 980px;
+    margin: 0 auto;
 }
 
 .yq-products-hero,

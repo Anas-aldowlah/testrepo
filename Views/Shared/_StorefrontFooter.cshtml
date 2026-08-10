@@ -31,7 +31,7 @@
                     <h2 id="yaqutFooterLeadTitle">عطور مختارة بعناية لتجربة يومية أكثر فخامة</h2>
                 </div>
                 <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold">
-                    <i class="bi bi-bag-heart" aria-hidden="true"></i> تسوق المجموعة
+                    <i class="bi bi-bag-heart" aria-hidden="true"></i> تسوق المنتجات
                 </a>
             </section>
 
@@ -62,18 +62,48 @@
 
                 <nav class="yaqut-footer__col" aria-label="روابط سريعة">
                     <h3 class="yaqut-footer__col-title">روابط سريعة</h3>
-                    <ul>
-                        <li><a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">الرئيسية</a></li>
-                        <li><a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">المجموعة الكاملة</a></li>
-                        <li><a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">التصنيفات</a></li>
-                        <li><a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">سلة المشتريات</a></li>
+                    <ul class="yaqut-footer-links">
+                        <li>
+                            <a asp-controller="Home" asp-action="Index" class="@(homeActive ? "is-active" : null)" aria-current="@(homeActive ? "page" : null)">
+                                <i class="bi bi-house-door" aria-hidden="true"></i>
+                                <span>الرئيسية</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">
+                                <i class="bi bi-stars" aria-hidden="true"></i>
+                                <span>جميع المنتجات</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">
+                                <i class="bi bi-grid" aria-hidden="true"></i>
+                                <span>التصنيفات</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">
+                                <i class="bi bi-bag" aria-hidden="true"></i>
+                                <span>سلة المشتريات</span>
+                            </a>
+                        </li>
                         @if (isAuthenticated)
                         {
-                            <li><a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">طلباتي</a></li>
+                            <li>
+                                <a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
+                                    <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                    <span>طلباتي</span>
+                                </a>
+                            </li>
                         }
                         else
                         {
-                            <li><a asp-controller="Account" asp-action="Auth">تسجيل الدخول / حساب جديد</a></li>
+                            <li>
+                                <a asp-controller="Account" asp-action="Auth">
+                                    <i class="bi bi-person" aria-hidden="true"></i>
+                                    <span>تسجيل الدخول</span>
+                                </a>
+                            </li>
                         }
                     </ul>
                 </nav>

@@ -27,7 +27,7 @@
     ViewData["Title"] = isSearchMode
         ? $"نتائج البحث: {searchTerm}"
         : (isBrandMode ? $"منتجات: {selectedBrand}"
-        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "مجموعة العطور"));
+        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "جميع المنتجات"));
 
     var familyNames = categories?.Select(c => c.Name).Distinct().ToList() ?? new List<string>();
     var brandNames = productList
@@ -53,14 +53,14 @@
             <i class="bi bi-chevron-left"></i>
             @if (isSearchMode || isBrandMode)
             {
-                <a asp-action="Index">المجموعة</a>
+                <a asp-action="Index">المنتجات</a>
                 <i class="bi bi-chevron-left"></i>
                 <span>@(isBrandMode && !isSearchMode ? "الشركة المنتجة" : "نتائج البحث")</span>
             }
             else
             {
                 <span>
-                    @(ViewBag.CategoryName != null ? ViewBag.CategoryName : "المجموعة الكاملة")
+                    @(ViewBag.CategoryName != null ? ViewBag.CategoryName : "جميع المنتجات")
                 </span>
             }
         </nav>
@@ -86,9 +86,9 @@
             <div class="yq-shop-header__row">
                 <div>
                     <h1 class="yq-shop-header__title">
-                        <span>@(ViewBag.CategoryName != null ? ViewBag.CategoryName : "التشكيلة الكاملة")</span>
+                        <span>@(ViewBag.CategoryName != null ? ViewBag.CategoryName : "جميع المنتجات")</span>
                     </h1>
-                    <p class="yq-shop-header__sub">تصفّح تشكيلتنا الفاخرة من العطور الأصيلة</p>
+                    <p class="yq-shop-header__sub">تصفّح منتجاتنا الفاخرة والأصيلة</p>
                 </div>
 
                 @if (hasActiveFilter)
@@ -110,7 +110,7 @@
     <!-- CATEGORY PILLS -->
     @if (categories != null && categories.Any())
     {
-        <nav class="yq-shop-pills yq-reveal" aria-label="تصفية حسب العائلة العطرية">
+        <nav class="yq-shop-pills yq-reveal" aria-label="تصفية حسب التصنيف">
             <a asp-action="Index" asp-route-search="@searchTerm" asp-route-brand="@selectedBrand"
                class="yq-shop-pill @(currentCategoryId == null ? "is-active" : "")">
                 <i class="bi bi-grid"></i> الكل
@@ -151,7 +151,7 @@
         <!-- FILTERS SIDEBAR -->
         <aside id="yaqutFilters" class="yq-shop-filters yq-glass">
             <div class="yq-shop-filters__head">
-                <h3><i class="bi bi-sliders"></i> تصفية العطور</h3>
+                <h3><i class="bi bi-sliders"></i> تصفية المنتجات</h3>
                 <button type="button" class="yq-shop-filters__close" id="yqFiltersClose" aria-label="إغلاق الفلاتر">
                     <i class="bi bi-x-lg"></i>
                 </button>
@@ -177,7 +177,7 @@
             @if (familyNames.Any())
             {
                 <div class="yq-shop-filter-group">
-                    <span class="yq-shop-filter-group__label">العائلة العطرية</span>
+                    <span class="yq-shop-filter-group__label">التصنيف</span>
                     <div class="yq-shop-filter-options">
                         @foreach (var family in familyNames)
                         {
@@ -240,14 +240,14 @@
                     <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@(isBrandMode && !isSearchMode ? selectedBrand : searchTerm)"</h2>
                     <p class="yaqut-empty__text">
                         @(isBrandMode && !isSearchMode
-                            ? "لا توجد منتجات مرتبطة بهذه الشركة حالياً. جرّب شركة أخرى أو اعرض جميع العطور."
+                            ? "لا توجد منتجات مرتبطة بهذه الشركة حالياً. جرّب شركة أخرى أو اعرض جميع المنتجات."
                             : "تأكد من كتابة الاسم بشكل صحيح، أو جرّب كلمات بحث أخرى أو أكثر عمومية.")
                     </p>
 
                     @if (categories != null && categories.Any())
                     {
                         <div class="yq-search-empty__categories">
-                            <span>أو تصفّح حسب العائلة العطرية</span>
+                            <span>أو تصفّح حسب التصنيف</span>
                             <div class="yq-search-empty__pills">
                                 @foreach (var cat in categories.Take(6))
                                 {
@@ -258,7 +258,7 @@
                     }
 
                     <a asp-action="Index" class="btn-yaqut-gold mt-3">
-                        <i class="bi bi-stars"></i> عرض جميع العطور
+                        <i class="bi bi-stars"></i> عرض جميع المنتجات
                     </a>
                 </div>
             }
@@ -266,9 +266,9 @@
             {
                 <div class="yaqut-empty yq-glass yq-shop-empty">
                     <i class="bi bi-search yaqut-empty__icon"></i>
-                    <h2 class="yq-shop-empty__title">لا توجد عطور تطابق معايير البحث</h2>
+                    <h2 class="yq-shop-empty__title">لا توجد منتجات تطابق معايير البحث</h2>
                     <p class="yaqut-empty__text">جرّب تعديل الفلاتر أو البحث بكلمات مختلفة.</p>
-                    <a asp-action="Index" class="btn-yaqut-gold mt-3">عرض جميع العطور</a>
+                    <a asp-action="Index" class="btn-yaqut-gold mt-3">عرض جميع المنتجات</a>
                 </div>
             }
         </div>

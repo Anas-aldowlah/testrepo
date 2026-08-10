@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ياقوت للعطور الفاخرة - اكتشف مجموعة من أرقى العطور الشرقية والغربية في المملكة." />
+    <meta name="description" content="ياقوت للعطور الفاخرة - اكتشف منتجاتنا من أرقى العطور الشرقية والغربية في المملكة." />
     <title>@ViewData["Title"] - ياقوت</title>
     <link rel="icon" type="image/svg+xml" href="~/images/شعار ياقوت.svg" asp-append-version="true" />
     <link rel="apple-touch-icon" href="~/images/yaqut-logo.png" asp-append-version="true" />
@@ -21,7 +21,11 @@
 
     <partial name="_StorefrontHeader" />
 
-    <main class="yaqut-container" id="yaqutMain" role="main">
+    @{
+        var isHomePage = ViewData["IsHomePage"] as bool? == true;
+        var mainClass = isHomePage ? "yaqut-main-full" : "yaqut-container";
+    }
+    <main class="@mainClass" id="yaqutMain" role="main">
         @RenderBody()
     </main>
 

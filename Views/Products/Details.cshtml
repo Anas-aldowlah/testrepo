@@ -28,7 +28,7 @@
         <nav class="yq-pdp-breadcrumb" aria-label="مسار التصفح">
             <a asp-controller="Home" asp-action="Index">الرئيسية</a>
             <i class="bi bi-chevron-left"></i>
-            <a asp-controller="Products" asp-action="Index">المجموعة</a>
+            <a asp-controller="Products" asp-action="Index">المنتجات</a>
             @if (Model.Category != null)
             {
                 <i class="bi bi-chevron-left"></i>
@@ -62,12 +62,21 @@
             <div class="yq-pdp-info yq-reveal">
                 <div class="yq-pdp-info__sticky">
 
-                    @if (Model.Category != null)
-                    {
-                        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id" class="yq-pdp-category">
-                            <i class="bi bi-flower2"></i> @Model.Category.Name
-                        </a>
-                    }
+                    <div class="yq-pdp-meta-tags">
+                        @if (Model.Category != null)
+                        {
+                            <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id" class="yq-pdp-category" title="تصفح جميع منتجات هذا التصنيف">
+                                <i class="bi bi-flower2"></i> @Model.Category.Name
+                            </a>
+                        }
+                        
+                        @if (!string.IsNullOrWhiteSpace(Model.Brand))
+                        {
+                            <a asp-controller="Products" asp-action="Index" asp-route-brand="@Model.Brand" class="yq-pdp-brand-tag" title="تصفح جميع منتجات هذه الشركة">
+                                <i class="bi bi-building"></i> @Model.Brand
+                            </a>
+                        }
+                    </div>
 
                     <h1 class="yq-pdp-title">@Model.Name</h1>
 

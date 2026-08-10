@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ياقوت — Shared Layout (Header / Navigation / Footer)
  */
 (function (window, document) {
@@ -6,15 +6,32 @@
 
     var COLLAPSED_NAV_QUERY = window.matchMedia('(max-width: 991.98px)');
 
+    /* ── History panel state ──────────────────────
+       Strategy:
+         - When a panel opens  → pushState (adds a fake entry so "Back" hits us first)
+         - When popstate fires  → if a panel is open, close it and do NOT push again
+                                  so the next "Back" navigates normally
+    ──────────────────────────────────────────── */
+    function pushPanelState() {
+        window.history.pushState({ yqPanel: true }, '');
+    }
+
+    /* ────────────────────────────────────────────
+       Header scroll effect
+    ──────────────────────────────────────────── */
     function initHeaderScroll() {
         var header = document.getElementById('yaqutHeader');
         if (!header) return;
 
         var ticking = false;
+
         function update() {
-            header.classList.toggle('is-scrolled', window.scrollY > 24);
+            var currentY = window.scrollY;
+            // Add is-scrolled class for background/shadow styling
+            header.classList.toggle('is-scrolled', currentY > 24);
             ticking = false;
         }
+
         function onScroll() {
             if (!ticking) {
                 window.requestAnimationFrame(update);
@@ -26,6 +43,9 @@
         update();
     }
 
+    /* ────────────────────────────────────────────
+       Mobile nav toggle + back-button intercept
+    ──────────────────────────────────────────── */
     function syncNavState(nav, btn, isOpen) {
         nav.classList.toggle('is-open', isOpen);
         nav.setAttribute('aria-hidden', isOpen || !COLLAPSED_NAV_QUERY.matches ? 'false' : 'true');
@@ -35,6 +55,7 @@
     function initMenuToggleAria() {
         var btn = document.querySelector('[data-yq-nav-toggle]');
         var nav = document.getElementById('yaqutNav');
+        var header = document.getElementById('yaqutHeader');
         if (!btn || !nav) return;
 
         function closeNav(restoreFocus) {
@@ -43,38 +64,41 @@
                 btn.setAttribute('aria-expanded', 'false');
                 return;
             }
-
             syncNavState(nav, btn, false);
+            header && header.classList.remove('has-nav-open');
             if (restoreFocus) btn.focus();
         }
 
         function openNav() {
             syncNavState(nav, btn, true);
+            header && header.classList.add('has-nav-open');
+            pushPanelState(); // fake history entry so Back closes nav first
             var firstLink = nav.querySelector('a');
             if (firstLink) firstLink.focus();
         }
 
         btn.addEventListener('click', function () {
-            var shouldOpen = !nav.classList.contains('is-open');
-            shouldOpen ? openNav() : closeNav(false);
+            nav.classList.contains('is-open') ? closeNav(false) : openNav();
         });
 
+        // Close when a nav link is clicked (normal navigation)
         nav.querySelectorAll('a').forEach(function (link) {
-            link.addEventListener('click', function () {
-                closeNav(false);
-            });
+            link.addEventListener('click', function () { closeNav(false); });
         });
 
+        // Close on outside click
         document.addEventListener('click', function (e) {
             if (!nav.classList.contains('is-open')) return;
             if (nav.contains(e.target) || btn.contains(e.target)) return;
             closeNav(false);
         });
 
+        // Close on Escape
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeNav(true);
         });
 
+        // Handle viewport resize
         var onViewportChange = function () {
             if (!COLLAPSED_NAV_QUERY.matches) {
                 closeNav(false);
@@ -83,7 +107,6 @@
                 nav.setAttribute('aria-hidden', 'true');
             }
         };
-
         if (COLLAPSED_NAV_QUERY.addEventListener) {
             COLLAPSED_NAV_QUERY.addEventListener('change', onViewportChange);
         } else if (COLLAPSED_NAV_QUERY.addListener) {
@@ -91,11 +114,56 @@
         }
 
         nav.setAttribute('aria-hidden', COLLAPSED_NAV_QUERY.matches ? 'true' : 'false');
+
+        // Back button: close nav instead of navigating away.
+        // Do NOT re-push after closing — the consumed fake entry is gone,
+        // so the very next Back press will navigate normally.
+        window.addEventListener('popstate', function (e) {
+            if (nav.classList.contains('is-open')) {
+                closeNav(true);
+                // stop here — no pushPanelState, so next Back navigates away
+            }
+        });
     }
 
+    /* ────────────────────────────────────────────
+       Cart drawer back-button intercept
+       Watches class changes via MutationObserver
+    ──────────────────────────────────────────── */
+    function initCartDrawerBackIntercept() {
+        var drawer = document.querySelector('[data-yq-cart-drawer]');
+        if (!drawer) return;
+
+        var wasOpen = false;
+
+        // Push a fake history entry the moment the drawer opens
+        var observer = new MutationObserver(function () {
+            var isNowOpen = drawer.classList.contains('is-open');
+            if (isNowOpen && !wasOpen) {
+                pushPanelState();
+            }
+            wasOpen = isNowOpen;
+        });
+        observer.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+
+        // Back button: close drawer instead of navigating away.
+        // Same rule — do NOT re-push after closing.
+        window.addEventListener('popstate', function (e) {
+            if (drawer.classList.contains('is-open')) {
+                var closeBtn = drawer.querySelector('[data-yq-cart-close]');
+                if (closeBtn) closeBtn.click();
+                // stop here — next Back navigates normally
+            }
+        });
+    }
+
+    /* ────────────────────────────────────────────
+       Boot
+    ──────────────────────────────────────────── */
     function init() {
         initHeaderScroll();
         initMenuToggleAria();
+        initCartDrawerBackIntercept();
     }
 
     if (document.readyState === 'loading') {

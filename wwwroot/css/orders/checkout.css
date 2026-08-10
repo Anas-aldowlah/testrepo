@@ -764,7 +764,7 @@
 
     .yq-checkout-summary {
         position: static;
-        order: -1;
+        /* تمت إزالة order: -1 لكي تظهر تفاصيل التوصيل والعميل أولاً في الجوال */
     }
 }
 

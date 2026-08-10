@@ -292,22 +292,25 @@
             <section class="yq-order-detail-card" aria-labelledby="shippingInfoTitle">
                 <div class="yq-order-detail-card__header">
                     <div>
-                        <span class="yq-orders-eyebrow">الشحن</span>
-                        <h3 id="shippingInfoTitle">معلومات الشحن</h3>
+                        <h3 id="shippingInfoTitle">معلومات التوصيل والمستلم</h3>
                     </div>
                 </div>
                 <dl class="yq-order-info-list">
                     <div>
-                        <dt>رقم التتبع</dt>
-                        <dd>@(!string.IsNullOrWhiteSpace(Model.Trackingnumber) ? Model.Trackingnumber : "غير متوفر")</dd>
+                        <dt>اسم المستلم</dt>
+                        <dd>@(Model.Orderdetail?.Recipientname ?? customerName)</dd>
                     </div>
                     <div>
-                        <dt>حالة التنفيذ</dt>
-                        <dd><span class="yq-orders-badge @statusClass">@statusLabel</span></dd>
+                        <dt>رقم الجوال</dt>
+                        <dd>@(Model.Orderdetail?.Recipientphone ?? customerPhone ?? "غير متوفر")</dd>
                     </div>
                     <div>
-                        <dt>عنوان الشحن</dt>
-                        <dd>غير متوفر في بيانات الطلب الحالية</dd>
+                        <dt>المحافظة</dt>
+                        <dd>@(Model.Orderdetail?.Governorate ?? "غير متوفر")</dd>
+                    </div>
+                    <div>
+                        <dt>المنطقة</dt>
+                        <dd>@(Model.Orderdetail?.Region ?? "غير متوفر")</dd>
                     </div>
                 </dl>
             </section>
@@ -315,7 +318,6 @@
             <section class="yq-order-detail-card" aria-labelledby="paymentInfoTitle">
                 <div class="yq-order-detail-card__header">
                     <div>
-                        <span class="yq-orders-eyebrow">الدفع</span>
                         <h3 id="paymentInfoTitle">معلومات الدفع</h3>
                     </div>
                 </div>
@@ -324,36 +326,22 @@
                         <dt>طريقة الدفع</dt>
                         <dd>@(string.IsNullOrWhiteSpace(Model.Paymentmethod) ? "غير متوفرة" : Model.Paymentmethod)</dd>
                     </div>
-                    <div>
-                        <dt>حالة الدفع</dt>
-                        <dd>
-                            @{
-                                var paymentClass = Model.Paymentstatus switch
-                                {
-                                    "Paid" => "yq-orders-badge--success",
-                                    "Pending" => "yq-orders-badge--warning",
-                                    "Refunded" => "yq-orders-badge--danger",
-                                    _ => "yq-orders-badge--neutral"
-                                };
-                                var paymentLabel = Model.Paymentstatus switch
-                                {
-                                    "Paid" => "مدفوع",
-                                    "Pending" => "قيد المراجعة",
-                                    "Refunded" => "مسترد",
-                                    _ => "غير مدفوع"
-                                };
-                            }
-                            <span class="yq-orders-badge @paymentClass">@paymentLabel</span>
-                        </dd>
-                    </div>
+                </dl>
+                <div style="margin-top: 1rem;">
                     @if (!string.IsNullOrWhiteSpace(Model.Receipturl))
                     {
-                        <div>
-                            <dt>إيصال الدفع</dt>
-                            <dd><a href="@Model.Receipturl" target="_blank" rel="noopener noreferrer">عرض الإيصال <i class="bi bi-box-arrow-up-right"></i></a></dd>
+                        <a href="@Model.Receipturl" target="_blank" class="yq-order-receipt-link" style="display: block; text-align: center;">
+                            <img src="@Model.Receipturl" alt="إيصال الدفع" class="img-fluid rounded" style="max-height: 200px; object-fit: contain; border: 1px solid var(--yq-admin-border, rgba(255,255,255,0.08));" />
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="yq-order-details-empty" role="status" style="text-align: center; padding: 1.5rem; background: var(--yq-admin-surface-soft, #1b1f22); border-radius: 8px; border: 1px solid var(--yq-admin-border, rgba(255,255,255,0.08));">
+                            <i class="bi bi-image" aria-hidden="true" style="font-size: 1.8rem; color: var(--yq-admin-muted, #b6b1a6);"></i>
+                            <p style="margin-top: 0.5rem; color: var(--yq-admin-text, #f8f5ee); font-size: 0.9rem; margin-bottom: 0;">لم يتم رفع صورة اشعار الدفع</p>
                         </div>
                     }
-                </dl>
+                </div>
             </section>
 
             <section class="yq-order-detail-card" aria-labelledby="orderTotalsTitle">

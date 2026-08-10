@@ -580,9 +580,48 @@
     function initMobileFilters() {
         var toggle = document.getElementById('yaqutFilterToggle');
         var filters = document.getElementById('yaqutFilters');
+        var closeBtn = document.getElementById('yqFiltersClose');
         if (!toggle || !filters) return;
+
+        function openFilters() {
+            filters.classList.add('is-open');
+            // Push fake history entry so Back closes the sidebar first
+            window.history.pushState({ yqPanel: true }, '');
+        }
+
+        function closeFilters(restoreFocus) {
+            filters.classList.remove('is-open');
+            if (restoreFocus) toggle.focus();
+        }
+
         toggle.addEventListener('click', function () {
-            filters.classList.toggle('is-open');
+            filters.classList.contains('is-open') ? closeFilters(false) : openFilters();
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                closeFilters(true);
+            });
+        }
+
+        // Close on outside click
+        document.addEventListener('click', function (e) {
+            if (!filters.classList.contains('is-open')) return;
+            if (filters.contains(e.target) || toggle.contains(e.target)) return;
+            closeFilters(false);
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && filters.classList.contains('is-open')) closeFilters(true);
+        });
+
+        // Back button: close sidebar instead of navigating away
+        window.addEventListener('popstate', function () {
+            if (filters.classList.contains('is-open')) {
+                closeFilters(true);
+                // Do NOT re-push — consumed fake entry gone, next Back navigates normally
+            }
         });
     }
 

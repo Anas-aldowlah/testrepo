@@ -441,21 +441,6 @@
     color: var(--yq-admin-gold-bright, #d4af37);
 }
 
-.yq-user-detail-stat:nth-child(1) .yq-user-detail-stat__icon {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #ffffff;
-}
-
-.yq-user-detail-stat:nth-child(2) .yq-user-detail-stat__icon {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    color: #ffffff;
-}
-
-.yq-user-detail-stat:nth-child(3) .yq-user-detail-stat__icon {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #ffffff;
-}
-
 .yq-user-detail-stat p {
     margin: 0 0 0.2rem;
     color: var(--yq-admin-muted, #b6b1a6);
@@ -536,6 +521,12 @@
 
 .yq-user-info-list--compact div:last-child {
     border-bottom: 0;
+}
+
+@media (min-width: 768px) {
+    .yq-user-info-list--5fields .full-width-field {
+        grid-column: 1 / -1;
+    }
 }
 
 .yq-user-info-list dt {

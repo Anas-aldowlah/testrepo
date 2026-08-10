@@ -81,10 +81,17 @@ public class OrdersController : Controller
         var pageQuery = query
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
+            .Include(o => o.Orderdetail)
             .OrderByDescending(o => o.Orderdate);
 
         var pagedOrders = await PagedResult<Order>.CreateAsync(pageQuery, page, pageSize);
         await PopulateUserDisplayDataAsync(pagedOrders.Items);
+
+        var orderIds = pagedOrders.Items.Select(o => o.Id).ToList();
+        var deliveryOrders = await _context.Deliveryorders
+            .Where(d => orderIds.Contains(d.Orderid))
+            .ToDictionaryAsync(d => d.Orderid);
+        ViewData["DeliveryOrders"] = deliveryOrders;
 
         var model = new AdminOrdersIndexViewModel
         {
@@ -106,6 +113,7 @@ public class OrdersController : Controller
             .AsNoTracking()
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
+            .Include(o => o.Orderdetail)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null)
@@ -152,12 +160,20 @@ public class OrdersController : Controller
         int pageSize = 10)
     {
         if (string.IsNullOrWhiteSpace(status))
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "Invalid status." });
             return BadRequest();
+        }
 
         status = status.Trim();
 
         if (!AllowedStatuses.Contains(status))
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "Invalid order status." });
             return BadRequest("Invalid order status.");
+        }
 
         var order = await _context.Orders
             .Include(o => o.Orderitems)
@@ -165,11 +181,19 @@ public class OrdersController : Controller
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "Order not found." });
             return NotFound();
+        }
 
         // ?? ??? ??? ??? ??? ???? ?????? ?????
         if (order.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, message = "Status is already up to date.", status = order.Status });
             return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
+        }
 
         bool wasActive = ActiveStatuses.Contains(order.Status);
         bool willBeActive = ActiveStatuses.Contains(status);
@@ -181,6 +205,8 @@ public class OrdersController : Controller
             {
                 if (!DeductStock(order))
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                        return Json(new { success = false, message = "One or more products do not have sufficient stock." });
                     TempData["Error"] = "One or more products do not have sufficient stock.";
                     return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
                 }
@@ -197,10 +223,15 @@ public class OrdersController : Controller
 
             await _context.SaveChangesAsync();
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, message = "Order status updated successfully.", status = order.Status, timeState = order.TimeState.Value.ToString("dd-MM-yyyy") });
+
             TempData["Success"] = "Order status updated successfully.";
         }
         catch
         {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "An unexpected error occurred while updating the order." });
             TempData["Error"] = "An unexpected error occurred while updating the order.";
         }
 
@@ -268,11 +299,18 @@ public class OrdersController : Controller
     public async Task<IActionResult> UpdatePaymentStatus(int id, string paymentStatus, bool returnToDetails = false)
     {
         var order = await _context.Orders.FindAsync(id);
-        if (order == null) return NotFound();
+        if (order == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "Order not found." });
+            return NotFound();
+        }
 
         var allowed = new[] { "Unpaid", "Pending", "Paid", "Refunded" };
         if (!allowed.Contains(paymentStatus))
         {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "حالة الدفع غير صالحة." });
             TempData["Error"] = "حالة الدفع غير صالحة.";
             return returnToDetails 
                 ? RedirectToAction(nameof(Details), new { id })
@@ -281,6 +319,10 @@ public class OrdersController : Controller
 
         order.Paymentstatus = paymentStatus;
         await _context.SaveChangesAsync();
+        
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            return Json(new { success = true, message = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.", status = order.Paymentstatus });
+
         TempData["Success"] = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.";
 
         return returnToDetails 

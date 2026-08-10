@@ -1,6 +1,6 @@
 @model IEnumerable<YAGOT_2._0.Models.Category>
 @{
-    ViewData["Title"] = "العائلات العطرية";
+    ViewData["Title"] = "التصنيفات";
     var categories = Model.ToList();
 }
 
@@ -14,9 +14,9 @@
         <div class="yq-categories-header__glow"></div>
         <div class="yq-categories-header__inner">
             <span class="yq-categories-header__eyebrow"><i class="bi bi-flower1"></i> تصفح حسب الفئة</span>
-            <h1 class="yq-categories-header__title">العائلات العطرية</h1>
+            <h1 class="yq-categories-header__title">التصنيفات</h1>
             <p class="yq-categories-header__sub">
-                اكتشف مجموعاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
+                اكتشف تصنيفاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
             </p>
         </div>
     </header>
@@ -54,9 +54,9 @@
                                 <span class="yq-cat-luxury-tile__count">
                                     <i class="bi bi-box-seam"></i> @productCount @(productCount == 1 ? "منتج" : "منتجات")
                                 </span>
-                                <span class="yq-cat-luxury-tile__action">
-                                    تصفح العطور <i class="bi bi-arrow-left"></i>
-                                </span>
+                                <div class="yq-category-card__action">
+                                    تصفح المنتجات <i class="bi bi-arrow-left"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -68,10 +68,10 @@
     {
         <div class="yaqut-empty yq-glass yq-categories-empty yq-reveal">
             <i class="bi bi-flower1 yaqut-empty__icon"></i>
-            <h2 class="yq-categories-empty__title">لا توجد عائلات عطرية متاحة حالياً</h2>
+            <h2 class="yq-categories-empty__title">لا توجد تصنيفات متاحة حالياً</h2>
             <p class="yaqut-empty__text">عُد قريباً لاكتشاف تصنيفاتنا الجديدة.</p>
             <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold mt-3">
-                <i class="bi bi-stars"></i> تصفح جميع العطور
+                <i class="bi bi-stars"></i> تصفح جميع المنتجات
             </a>
         </div>
     }
