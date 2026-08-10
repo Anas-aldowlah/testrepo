@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
+using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
@@ -17,10 +18,12 @@ namespace YAGOT_2._0.Areas.Admin.Controllers;
 public class QuickSalesController : Controller
 {
     private readonly NeondbContext _context;
+    private readonly IInventoryService _inventoryService;
 
-    public QuickSalesController(NeondbContext context)
+    public QuickSalesController(NeondbContext context, IInventoryService inventoryService)
     {
         _context = context;
+        _inventoryService = inventoryService;
     }
 
     // 1. MAIN QUICK SALES DASHBOARD / STATE ROUTE
@@ -192,6 +195,7 @@ public class QuickSalesController : Controller
 
         var products = await _context.Products
             .AsNoTracking()
+            .Include(p => p.RetailPrices)
             .Where(p => p.Name.ToLower().Contains(query) || (p.Brand != null && p.Brand.ToLower().Contains(query)))
             .OrderBy(p => p.Name)
             .Take(12)
@@ -202,6 +206,19 @@ public class QuickSalesController : Controller
                 Brand = p.Brand,
                 Price = p.Price,
                 Stock = p.Stockquantity,
+                StockUnit = p.StockUnit,
+                VolumeMl = p.VolumeMl,
+                IsRetailEnabled = p.IsRetailEnabled,
+                RetailPrices = p.RetailPrices
+                    .Where(price => price.IsActive)
+                    .OrderBy(price => price.SizeMl)
+                    .Select(price => new ProductRetailPriceDto
+                    {
+                        Id = price.Id,
+                        SizeMl = price.SizeMl,
+                        Price = price.Price
+                    })
+                    .ToList(),
                 ImageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? "/images/yaqut-logo.png" : p.Imageurl
             })
             .ToListAsync();
@@ -234,6 +251,7 @@ public class QuickSalesController : Controller
 
         var productIds = model.Items.Select(i => i.ProductId).Distinct().ToList();
         var dbProducts = await _context.Products
+            .Include(p => p.RetailPrices)
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
@@ -314,7 +332,8 @@ public class QuickSalesController : Controller
                 foreach (var item in model.Items)
                 {
                     var product = dbProducts[item.ProductId];
-                    var unitPrice = product.Price;
+                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
+                    var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
                     var lineDiscount = item.Discount >= 0 ? item.Discount : 0m;
                     var lineTotal = Math.Max(0m, (unitPrice * item.Quantity) - lineDiscount);
 
@@ -323,6 +342,8 @@ public class QuickSalesController : Controller
                     newItems.Add(new SaleItem
                     {
                         ProductId = product.Id,
+                        RetailPriceId = item.RetailPriceId,
+                        RetailSizeMl = retailPrice?.SizeMl,
                         ProductName = product.Name,
                         Quantity = item.Quantity,
                         UnitPrice = unitPrice,
@@ -599,6 +620,7 @@ public class QuickSalesController : Controller
 
                 // Fetch products from DB
                 var dbProducts = await _context.Products
+                    .Include(p => p.RetailPrices)
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id);
 
@@ -619,11 +641,13 @@ public class QuickSalesController : Controller
                         return Json(new CompleteSaleResponseDto { Success = false, Message = $"كمية المنتج ({product.Name}) يجب أن تكون أكبر من 0." });
                     }
 
-                    // 5. Atomic PostgreSQL Stock Verification & Conditional Deduction
-                    int affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync(
-                        $"UPDATE products SET stockquantity = stockquantity - {item.Quantity} WHERE id = {product.Id} AND stockquantity >= {item.Quantity}");
-
-                    if (affectedRows == 0)
+                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
+                    var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
+                    try
+                    {
+                        await _inventoryService.DeductStockAsync(product.Id, deductionAmount);
+                    }
+                    catch (InvalidOperationException)
                     {
                         await transaction.RollbackAsync();
                         return Json(new CompleteSaleResponseDto
@@ -634,7 +658,7 @@ public class QuickSalesController : Controller
                     }
 
                     // Compute Trusted Prices & Totals
-                    var unitPrice = product.Price; // Trusted DB price
+                    var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
                     var lineDiscount = Math.Max(0m, item.Discount);
                     var lineTotal = Math.Max(0m, (unitPrice * item.Quantity) - lineDiscount);
 
@@ -643,6 +667,8 @@ public class QuickSalesController : Controller
                     newSaleItems.Add(new SaleItem
                     {
                         ProductId = product.Id,
+                        RetailPriceId = item.RetailPriceId,
+                        RetailSizeMl = retailPrice?.SizeMl,
                         ProductName = product.Name,
                         Quantity = item.Quantity,
                         UnitPrice = unitPrice,
@@ -853,6 +879,7 @@ public class QuickSalesController : Controller
             {
                 productId = si.ProductId,
                 productName = si.ProductName,
+                retailSizeMl = si.RetailSizeMl,
                 quantity = si.Quantity,
                 unitPrice = si.UnitPrice,
                 discount = si.Discount,
@@ -1039,11 +1066,12 @@ public class QuickSalesController : Controller
         var topProducts = await _context.SaleItems
             .AsNoTracking()
             .Where(si => si.Sale.Status == "Completed" && si.Sale.SalesDay.Date >= start && si.Sale.SalesDay.Date <= end)
-            .GroupBy(si => new { si.ProductId, si.ProductName })
+            .GroupBy(si => new { si.ProductId, si.ProductName, si.RetailSizeMl })
             .Select(g => new ProductSalesSummaryDto
             {
                 ProductId = g.Key.ProductId,
                 ProductName = g.Key.ProductName,
+                RetailSizeMl = g.Key.RetailSizeMl,
                 TotalQuantitySold = g.Sum(x => x.Quantity),
                 TotalRevenue = g.Sum(x => x.Total)
             })

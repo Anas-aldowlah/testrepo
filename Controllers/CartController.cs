@@ -49,18 +49,18 @@ public class CartController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Add(int productId, int quantity)
+    public async Task<IActionResult> Add(int productId, int quantity, int? retailPriceId)
     {
         try
         {
             if (TryResolveUserId(out var userId))
             {
-                await _cartService.AddToCartAsync(userId, productId, quantity);
+                await _cartService.AddToCartAsync(userId, productId, quantity, retailPriceId);
                 TempData["Message"] = _cartService.MESSAGE;
             }
             else
             {
-                await _guestCartService.AddToCartAsync(productId, quantity);
+                await _guestCartService.AddToCartAsync(productId, quantity, retailPriceId);
                 TempData["Message"] = _guestCartService.Message;
             }
 
@@ -84,6 +84,7 @@ public class CartController : Controller
         int cartItemId,
         int productId,
         int quantity,
+        int? retailPriceId,
         int? expectedQuantity)
     {
         try
@@ -99,7 +100,7 @@ public class CartController : Controller
             }
             else
             {
-                await _guestCartService.UpdateQuantityAsync(productId, quantity);
+                await _guestCartService.UpdateQuantityAsync(productId, quantity, retailPriceId);
                 TempData["Message"] = _guestCartService.Message;
             }
 
@@ -123,7 +124,7 @@ public class CartController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Remove(int cartItemId, int productId)
+    public async Task<IActionResult> Remove(int cartItemId, int productId, int? retailPriceId)
     {
         try
         {
@@ -134,7 +135,7 @@ public class CartController : Controller
             }
             else
             {
-                await _guestCartService.RemoveFromCartAsync(productId);
+                await _guestCartService.RemoveFromCartAsync(productId, retailPriceId);
                 TempData["Message"] = _guestCartService.Message;
             }
 

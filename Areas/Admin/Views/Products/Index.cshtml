@@ -115,14 +115,19 @@
                         @foreach (var p in activeProducts)
                         {
                             var imageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? fallbackImage : p.Imageurl;
+                            var isMlStock = string.Equals(p.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase) && p.VolumeMl is > 0;
+                            var availableUnits = isMlStock ? p.Stockquantity / (decimal)p.VolumeMl!.Value : p.Stockquantity;
+                            var stockDisplayValue = availableUnits % 1 == 0 ? availableUnits.ToString("N0") : availableUnits.ToString("N2");
+                            var stockDisplayText = isMlStock ? $"{stockDisplayValue} عبوة" : $"{stockDisplayValue} وحدة";
+                            var lowStockLimit = isMlStock ? 5 : 5;
                             var stockClass = p.Stockquantity <= 0
                                 ? "yq-products-badge--danger"
-                                : p.Stockquantity < 5
+                                : availableUnits < lowStockLimit
                                     ? "yq-products-badge--warning"
                                     : "yq-products-badge--success";
                             var stockLabel = p.Stockquantity <= 0
                                 ? "نفد المخزون"
-                                : p.Stockquantity < 5
+                                : availableUnits < lowStockLimit
                                     ? "مخزون منخفض"
                                     : "متوفر";
 
@@ -151,7 +156,7 @@
                                 <td data-label="المخزون">
                                     <div class="yq-products-stock">
                                         <span class="yq-products-badge @stockClass">@stockLabel</span>
-                                        <small>@p.Stockquantity وحدة</small>
+                                        <small>@stockDisplayText</small>
                                     </div>
                                 </td>
                                 <td data-label="الحالة">

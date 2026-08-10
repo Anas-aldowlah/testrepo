@@ -122,6 +122,10 @@ public sealed class CheckoutCartItemSnapshot
 {
     public int ProductId { get; set; }
 
+    public int? RetailPriceId { get; set; }
+
+    public int? RetailSizeMl { get; set; }
+
     public int Quantity { get; set; }
 
     public decimal UnitPrice { get; set; }

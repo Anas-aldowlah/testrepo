@@ -1,6 +1,5 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
-
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
@@ -9,6 +8,7 @@ public class OrderService
 {
     private readonly NeondbContext _context;
     private readonly CartLockService _cartLock;
+    private readonly IInventoryService _inventoryService;
     private readonly ILogger<OrderService> _logger;
 
     private static readonly HashSet<string> FulfillingStatuses =
@@ -20,10 +20,12 @@ public class OrderService
     public OrderService(
         NeondbContext context,
         CartLockService cartLock,
+        IInventoryService inventoryService,
         ILogger<OrderService> logger)
     {
         _context = context;
         _cartLock = cartLock;
+        _inventoryService = inventoryService;
         _logger = logger;
     }
 
@@ -48,6 +50,7 @@ public class OrderService
 
                 var cart = await _context.Carts
                     .Include(c => c.Cartitems)
+                        .ThenInclude(item => item.RetailPrice)
                     .SingleOrDefaultAsync(c => c.Userid == userId, cancellationToken);
 
                 if (cart == null || cart.Cartitems.Count == 0)
@@ -59,17 +62,12 @@ public class OrderService
 
                 ValidateSubmittedCart(checkout, cart.Cartitems, products);
 
-                var requiredQuantities = cart.Cartitems
-                    .GroupBy(item => item.Productid)
-                    .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
-                foreach (var quantity in requiredQuantities)
-                {
-                    var product = products[quantity.Key];
-                    if (product.Stockquantity < quantity.Value)
-                        throw new InvalidOperationException($"المنتج '{product.Name}' غير متوفر بالكمية المطلوبة");
+                var deductionByProduct = BuildCartDeductions(cart.Cartitems, products);
+                foreach (var deduction in deductionByProduct)
+                    await _inventoryService.DeductStockAsync(deduction.Key, deduction.Value, cancellationToken);
 
-                    product.Stockquantity -= quantity.Value;
-                }
+                var orderTotal = cart.Cartitems.Sum(item =>
+                    item.Quantity * _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice));
 
                 var order = new Order
                 {
@@ -77,7 +75,7 @@ public class OrderService
                     Orderdate = DateTime.UtcNow,
                     Status = "Pending",
                     Stockdeducted = true,
-                    Totalamount = cart.Cartitems.Sum(i => i.Quantity * products[i.Productid].Price),
+                    Totalamount = orderTotal,
                     Trackingnumber = $"YAG-{Guid.NewGuid().ToString()[..8].ToUpper()}",
                     Paymentmethod = checkout.PaymentMethod,
                     Paymentstatus = receiptUrl != null ? "Pending" : "Unpaid",
@@ -105,8 +103,10 @@ public class OrderService
                     {
                         Orderid = order.Id,
                         Productid = item.Productid,
+                        RetailPriceId = item.RetailPriceId,
+                        RetailSizeMl = item.RetailPrice?.SizeMl,
                         Quantity = item.Quantity,
-                        Unitprice = products[item.Productid].Price
+                        Unitprice = _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice)
                     });
                 }
 
@@ -123,27 +123,14 @@ public class OrderService
                 }
                 catch (Exception rollbackException)
                 {
-                    _logger.LogWarning(
-                        rollbackException,
-                        "Rollback failed after checkout for user {UserId}.",
-                        userId);
+                    _logger.LogWarning(rollbackException, "Rollback failed after checkout for user {UserId}.", userId);
                 }
 
                 _context.ChangeTracker.Clear();
                 if (exception is InvalidOperationException or CartConcurrencyException)
-                {
-                    _logger.LogWarning(
-                        exception,
-                        "Checkout was rejected for user {UserId}.",
-                        userId);
-                }
+                    _logger.LogWarning(exception, "Checkout was rejected for user {UserId}.", userId);
                 else
-                {
-                    _logger.LogError(
-                        exception,
-                        "Checkout failed for user {UserId}.",
-                        userId);
-                }
+                    _logger.LogError(exception, "Checkout failed for user {UserId}.", userId);
 
                 throw;
             }
@@ -160,8 +147,7 @@ public class OrderService
             var product = await _context.Products
                 .FromSqlInterpolated($"SELECT * FROM products WHERE id = {productId} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken)
-                ?? throw new InvalidOperationException(
-                    "تغيرت محتويات السلة. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.");
+                ?? throw new InvalidOperationException("تغيرت محتويات السلة. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.");
 
             products.Add(productId, product);
         }
@@ -169,7 +155,7 @@ public class OrderService
         return products;
     }
 
-    private static void ValidateSubmittedCart(
+    private void ValidateSubmittedCart(
         CheckoutVM checkout,
         IEnumerable<Cartitem> cartItems,
         IReadOnlyDictionary<int, Product> products)
@@ -182,25 +168,33 @@ public class OrderService
             throw new InvalidOperationException(staleCartMessage);
 
         var submittedItems = submittedCartItems
-            .GroupBy(item => item.ProductId)
+            .GroupBy(item => new { item.ProductId, item.RetailPriceId })
             .Select(group => new
             {
-                ProductId = group.Key,
+                group.Key.ProductId,
+                group.Key.RetailPriceId,
                 Quantity = group.Sum(item => item.Quantity),
                 UnitPrices = group.Select(item => item.UnitPrice).Distinct().ToArray()
             })
             .OrderBy(item => item.ProductId)
+            .ThenBy(item => item.RetailPriceId ?? 0)
             .ToArray();
 
         var currentItems = cartItems
-            .GroupBy(item => item.Productid)
-            .Select(group => new
+            .GroupBy(item => new { item.Productid, item.RetailPriceId })
+            .Select(group =>
             {
-                ProductId = group.Key,
-                Quantity = group.Sum(item => item.Quantity),
-                UnitPrice = products[group.Key].Price
+                var sample = group.First();
+                return new
+                {
+                    ProductId = group.Key.Productid,
+                    group.Key.RetailPriceId,
+                    Quantity = group.Sum(item => item.Quantity),
+                    UnitPrice = _inventoryService.GetUnitPrice(products[group.Key.Productid], sample.RetailPrice)
+                };
             })
             .OrderBy(item => item.ProductId)
+            .ThenBy(item => item.RetailPriceId ?? 0)
             .ToArray();
 
         if (submittedItems.Length != currentItems.Length)
@@ -211,6 +205,7 @@ public class OrderService
             var submitted = submittedItems[index];
             var current = currentItems[index];
             if (submitted.ProductId != current.ProductId ||
+                submitted.RetailPriceId != current.RetailPriceId ||
                 submitted.Quantity <= 0 ||
                 submitted.Quantity != current.Quantity ||
                 submitted.UnitPrices.Length != 1 ||
@@ -242,10 +237,7 @@ public class OrderService
         };
     }
 
-    public async Task<bool> UpdateStatusAsync(
-        int orderId,
-        string requestedStatus,
-        string? paymentStatus = null)
+    public async Task<bool> UpdateStatusAsync(int orderId, string requestedStatus, string? paymentStatus = null)
     {
         var status = NormalizeStatus(requestedStatus)
             ?? throw new ArgumentException("Invalid order status.", nameof(requestedStatus));
@@ -258,57 +250,43 @@ public class OrderService
                 _context.ChangeTracker.Clear();
                 await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            // Serialize status changes for this order so two administrators cannot
-            // independently deduct or restore the same stock.
-            var order = await _context.Orders
-                .FromSqlInterpolated($"SELECT * FROM orders WHERE id = {orderId} FOR UPDATE")
-                .SingleOrDefaultAsync();
+                var order = await _context.Orders
+                    .FromSqlInterpolated($"SELECT * FROM orders WHERE id = {orderId} FOR UPDATE")
+                    .SingleOrDefaultAsync();
 
-            if (order == null)
-            {
-                await transaction.CommitAsync();
-                return false;
-            }
-
-            var orderItems = await _context.Orderitems
-                .Where(item => item.Orderid == orderId)
-                .ToListAsync();
-
-            if (FulfillingStatuses.Contains(status) && !order.Stockdeducted)
-            {
-                var products = await LockProductsAsync(orderItems);
-                foreach (var quantity in RequiredQuantities(orderItems))
+                if (order == null)
                 {
-                    var product = products[quantity.Key];
-                    if (product.Stockquantity < quantity.Value)
-                    {
-                        throw new InvalidOperationException(
-                            $"The product '{product.Name}' does not have sufficient stock.");
-                    }
+                    await transaction.CommitAsync();
+                    return false;
                 }
 
-                foreach (var quantity in RequiredQuantities(orderItems))
-                    products[quantity.Key].Stockquantity -= quantity.Value;
-
-                order.Stockdeducted = true;
-            }
-            else if (ReleasingStatuses.Contains(status) &&
-                     order.Stockdeducted &&
-                     !string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase))
-            {
-                // Returning a fulfilling order to Pending releases its reserved stock.
-                // The persisted flag makes repeated Pending/Cancelled/Refunded updates no-ops.
+                var orderItems = await _context.Orderitems
+                    .Where(item => item.Orderid == orderId)
+                    .ToListAsync();
                 var products = await LockProductsAsync(orderItems);
-                foreach (var quantity in RequiredQuantities(orderItems))
-                    products[quantity.Key].Stockquantity += quantity.Value;
+                var requiredAmounts = BuildOrderDeductions(orderItems, products);
 
-                order.Stockdeducted = false;
-            }
+                if (FulfillingStatuses.Contains(status) && !order.Stockdeducted)
+                {
+                    foreach (var amount in requiredAmounts)
+                        await _inventoryService.DeductStockAsync(amount.Key, amount.Value);
 
-            order.Status = status;
-            order.TimeState = DateTime.Now;
-            if (paymentStatus != null)
-                order.Paymentstatus = paymentStatus;
+                    order.Stockdeducted = true;
+                }
+                else if (ReleasingStatuses.Contains(status) &&
+                         order.Stockdeducted &&
+                         !string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var amount in requiredAmounts)
+                        await _inventoryService.RestoreStockAsync(amount.Key, amount.Value);
+
+                    order.Stockdeducted = false;
+                }
+
+                order.Status = status;
+                order.TimeState = DateTime.Now;
+                if (paymentStatus != null)
+                    order.Paymentstatus = paymentStatus;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -317,11 +295,7 @@ public class OrderService
         }
         catch (Exception exception)
         {
-            _logger.LogError(
-                exception,
-                "Updating order {OrderId} to status {Status} failed.",
-                orderId,
-                status);
+            _logger.LogError(exception, "Updating order {OrderId} to status {Status} failed.", orderId, status);
             throw;
         }
     }
@@ -342,14 +316,27 @@ public class OrderService
         return products;
     }
 
-    private static IReadOnlyDictionary<int, int> RequiredQuantities(IEnumerable<Orderitem> orderItems) =>
+    private Dictionary<int, int> BuildCartDeductions(IEnumerable<Cartitem> cartItems, IReadOnlyDictionary<int, Product> products) =>
+        cartItems
+            .GroupBy(item => item.Productid)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(item => _inventoryService.CalculateDeductionAmount(
+                    products[item.Productid],
+                    item.Quantity,
+                    item.RetailPrice?.SizeMl)));
+
+    private Dictionary<int, int> BuildOrderDeductions(IEnumerable<Orderitem> orderItems, IReadOnlyDictionary<int, Product> products) =>
         orderItems
             .GroupBy(item => item.Productid)
-            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(item => _inventoryService.CalculateDeductionAmount(
+                    products[item.Productid],
+                    item.Quantity,
+                    item.RetailSizeMl)));
 
-    private async Task ValidateCheckoutAsync(
-        CheckoutVM checkout,
-        CancellationToken cancellationToken)
+    private async Task ValidateCheckoutAsync(CheckoutVM checkout, CancellationToken cancellationToken)
     {
         if (checkout == null)
             throw new ArgumentNullException(nameof(checkout));
@@ -377,40 +364,36 @@ public class OrderService
             throw new InvalidOperationException("الرجاء اختيار طريقة دفع صحيحة.");
     }
 
-    private async Task<bool> IsAllowedPaymentMethodAsync(
-        string paymentMethod,
-        CancellationToken cancellationToken)
+    private async Task<bool> IsAllowedPaymentMethodAsync(string paymentMethod, CancellationToken cancellationToken)
     {
         var normalized = paymentMethod.Trim().ToLowerInvariant();
         if (normalized is "al-amqi" or "bin-dawl" or "al-basiri" or "other")
-        {
             return true;
-        }
 
         return await _context.Paymentmethods.AnyAsync(
             method => method.Isactive && method.Type.ToLower() == normalized,
             cancellationToken);
     }
 
-    public async Task<IEnumerable<Order>> GetUserOrdersAsync(
-        int userId,
-        CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Order>> GetUserOrdersAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _context.Orders
             .AsNoTracking()
             .Where(order => order.Userid == userId)
             .Include(order => order.Orderitems)
                 .ThenInclude(item => item.Product)
+            .Include(order => order.Orderitems)
+                .ThenInclude(item => item.RetailPrice)
             .OrderByDescending(order => order.Orderdate)
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Order?> GetOrderByIdAsync(
-        int orderId,
-        CancellationToken cancellationToken = default) =>
+    public Task<Order?> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken = default) =>
         _context.Orders
             .AsNoTracking()
             .Include(order => order.Orderitems)
                 .ThenInclude(item => item.Product)
+            .Include(order => order.Orderitems)
+                .ThenInclude(item => item.RetailPrice)
             .FirstOrDefaultAsync(order => order.Id == orderId, cancellationToken);
 }

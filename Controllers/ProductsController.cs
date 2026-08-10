@@ -81,7 +81,10 @@ public class ProductsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         // تعرض تفاصيل المنتج محدد
-        var product = await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.RetailPrices.Where(price => price.IsActive))
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
         return View(product);
     }

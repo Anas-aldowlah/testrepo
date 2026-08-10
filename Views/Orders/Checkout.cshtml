@@ -5,7 +5,11 @@
 @{
     ViewData["Title"] = "إتمام الطلب";
     var items = Model?.Cart?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
-    decimal subtotal = items.Sum(i => i.Quantity * (i.Product?.Price ?? 0));
+    decimal UnitPrice(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.Price ?? item.Product?.Price ?? 0;
+    string UnitLabel(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.SizeMl > 0
+        ? $"{item.RetailPrice.SizeMl} ml"
+        : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "");
+    decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
@@ -112,8 +116,10 @@
         @for (var snapshotIndex = 0; snapshotIndex < items.Count; snapshotIndex++)
         {
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].ProductId" value="@items[snapshotIndex].Productid" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].RetailPriceId" value="@items[snapshotIndex].RetailPriceId" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].RetailSizeMl" value="@items[snapshotIndex].RetailPrice?.SizeMl" />
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].Quantity" value="@items[snapshotIndex].Quantity" />
-            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@(items[snapshotIndex].Product?.Price ?? 0)" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@UnitPrice(items[snapshotIndex])" />
         }
 
         <style>
@@ -332,7 +338,7 @@
             <div class="yq-checkout-summary__items">
                 @foreach (var item in items)
                 {
-                    var lineTotal = item.Quantity * (item.Product?.Price ?? 0);
+                    var lineTotal = item.Quantity * UnitPrice(item);
                     <div class="yq-checkout-summary__item">
                         <div class="yq-checkout-summary__item-media">
                             <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
@@ -340,7 +346,7 @@
                                  data-yaqut-fallback="/images/placeholder-product.svg" />
                             <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
                         </div>
-                        <span class="yq-checkout-summary__item-name">@item.Product?.Name</span>
+                        <span class="yq-checkout-summary__item-name">@item.Product?.Name @(string.IsNullOrWhiteSpace(UnitLabel(item)) ? "" : $" - {UnitLabel(item)}")</span>
                         <span class="yq-checkout-summary__item-price">@lineTotal.ToString("N0") ر.س</span>
                     </div>
                 }

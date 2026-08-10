@@ -11,6 +11,10 @@ public partial class Orderitem
 
     public int Productid { get; set; }
 
+    public int? RetailPriceId { get; set; }
+
+    public int? RetailSizeMl { get; set; }
+
     public int Quantity { get; set; }
 
     public decimal Unitprice { get; set; }
@@ -18,4 +22,6 @@ public partial class Orderitem
     public virtual Order Order { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
+
+    public virtual ProductRetailPrice? RetailPrice { get; set; }
 }

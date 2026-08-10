@@ -12,6 +12,7 @@ public class GuestCartService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly NeondbContext _context;
     private readonly CartLockService _cartLock;
+    private readonly IInventoryService _inventoryService;
     private readonly ILogger<GuestCartService> _logger;
 
     public string? Message { get; private set; }
@@ -20,18 +21,25 @@ public class GuestCartService
         IHttpContextAccessor httpContextAccessor,
         NeondbContext context,
         CartLockService cartLock,
+        IInventoryService inventoryService,
         ILogger<GuestCartService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
         _cartLock = cartLock;
+        _inventoryService = inventoryService;
         _logger = logger;
     }
 
     public async Task<Cart> GetCartAsync()
     {
         var guestItems = ReadItems();
-        var productIds = guestItems.Select(i => i.ProductId).ToList();
+        var productIds = guestItems.Select(i => i.ProductId).Distinct().ToList();
+        var retailPriceIds = guestItems.Where(i => i.RetailPriceId.HasValue)
+            .Select(i => i.RetailPriceId!.Value)
+            .Distinct()
+            .ToList();
+
         var products = await _context.Products
             .AsNoTracking()
             .Include(p => p.Category)
@@ -39,18 +47,26 @@ public class GuestCartService
             .ToListAsync();
         var productsById = products.ToDictionary(p => p.Id);
 
+        var retailPrices = await _context.ProductRetailPrices
+            .AsNoTracking()
+            .Where(price => retailPriceIds.Contains(price.Id))
+            .ToDictionaryAsync(price => price.Id);
+
         var cartItems = guestItems
-            .Select(item =>
+            .Select((item, index) =>
             {
                 if (!productsById.TryGetValue(item.ProductId, out var product)) return null;
 
+                retailPrices.TryGetValue(item.RetailPriceId ?? 0, out var retailPrice);
                 return new Cartitem
                 {
-                    Id = item.ProductId,
+                    Id = index + 1,
                     Cartid = 0,
                     Productid = item.ProductId,
+                    RetailPriceId = item.RetailPriceId,
                     Quantity = item.Quantity,
-                    Product = product
+                    Product = product,
+                    RetailPrice = retailPrice
                 };
             })
             .Where(item => item != null)
@@ -65,7 +81,7 @@ public class GuestCartService
         };
     }
 
-    public async Task AddToCartAsync(int productId, int quantity)
+    public async Task AddToCartAsync(int productId, int quantity, int? retailPriceId = null)
     {
         Message = null;
         quantity = Math.Max(1, quantity);
@@ -77,19 +93,34 @@ public class GuestCartService
             return;
         }
 
+        var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, retailPriceId);
+        var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
+        if (maxUnits <= 0)
+        {
+            Message = "هذا المنتج غير متوفر حالياً.";
+            return;
+        }
+
         var items = ReadItems();
-        var existingItem = items.FirstOrDefault(i => i.ProductId == productId);
+        var existingItem = items.FirstOrDefault(i =>
+            i.ProductId == productId &&
+            i.RetailPriceId == retailPriceId);
         var requestedQuantity = (existingItem?.Quantity ?? 0) + quantity;
 
-        if (requestedQuantity > product.Stockquantity)
+        if (requestedQuantity > maxUnits)
         {
-            Message = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-            requestedQuantity = product.Stockquantity;
+            Message = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+            requestedQuantity = maxUnits;
         }
 
         if (existingItem == null)
         {
-            items.Add(new GuestCartItem { ProductId = productId, Quantity = requestedQuantity });
+            items.Add(new GuestCartItem
+            {
+                ProductId = productId,
+                RetailPriceId = retailPriceId,
+                Quantity = requestedQuantity
+            });
         }
         else
         {
@@ -99,11 +130,13 @@ public class GuestCartService
         WriteItems(items);
     }
 
-    public async Task UpdateQuantityAsync(int productId, int quantity)
+    public async Task UpdateQuantityAsync(int productId, int quantity, int? retailPriceId = null)
     {
         Message = null;
         var items = ReadItems();
-        var existingItem = items.FirstOrDefault(i => i.ProductId == productId);
+        var existingItem = items.FirstOrDefault(i =>
+            i.ProductId == productId &&
+            i.RetailPriceId == retailPriceId);
         if (existingItem == null)
         {
             Message = "العنصر غير موجود في سلتك.";
@@ -127,20 +160,22 @@ public class GuestCartService
             return;
         }
 
-        existingItem.Quantity = Math.Min(quantity, product.Stockquantity);
-        if (quantity > product.Stockquantity)
-        {
-            Message = $"الكمية المتبقية من {product.Name}: {product.Stockquantity}.";
-        }
+        var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, retailPriceId);
+        var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
+        existingItem.Quantity = Math.Min(quantity, maxUnits);
+        if (quantity > maxUnits)
+            Message = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
 
         WriteItems(items);
     }
 
-    public Task RemoveFromCartAsync(int productId)
+    public Task RemoveFromCartAsync(int productId, int? retailPriceId = null)
     {
         Message = null;
         var items = ReadItems();
-        var existingItem = items.FirstOrDefault(i => i.ProductId == productId);
+        var existingItem = items.FirstOrDefault(i =>
+            i.ProductId == productId &&
+            i.RetailPriceId == retailPriceId);
         if (existingItem == null)
         {
             Message = "العنصر غير موجود في سلتك.";
@@ -156,10 +191,11 @@ public class GuestCartService
     public async Task MergeIntoUserCartAsync(int userId)
     {
         var guestItems = ReadItems()
-            .GroupBy(item => item.ProductId)
+            .GroupBy(item => new { item.ProductId, item.RetailPriceId })
             .Select(group => new GuestCartItem
             {
-                ProductId = group.Key,
+                ProductId = group.Key.ProductId,
+                RetailPriceId = group.Key.RetailPriceId,
                 Quantity = group.Sum(item => item.Quantity)
             })
             .ToList();
@@ -178,6 +214,7 @@ public class GuestCartService
                 {
                     cart = new Cart { Userid = userId };
                     _context.Carts.Add(cart);
+                    await _context.SaveChangesAsync();
                 }
 
                 var productIds = guestItems.Select(i => i.ProductId).Distinct().ToList();
@@ -185,31 +222,28 @@ public class GuestCartService
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id);
 
-                var existingCartItems = cart.Id == 0
-                    ? []
-                    : await _context.Cartitems
-                        .Where(i => i.Cartid == cart.Id && productIds.Contains(i.Productid))
-                        .OrderByDescending(i => i.Id)
-                        .ToListAsync();
-                var existingItems = new Dictionary<int, Cartitem>();
-                foreach (var group in existingCartItems.GroupBy(item => item.Productid))
-                {
-                    var retainedItem = group.First();
-                    retainedItem.Quantity = group.Sum(item => item.Quantity);
-                    existingItems.Add(group.Key, retainedItem);
-                    _context.Cartitems.RemoveRange(group.Skip(1));
-                }
+                var existingCartItems = await _context.Cartitems
+                    .Where(i => i.Cartid == cart.Id && productIds.Contains(i.Productid))
+                    .Include(i => i.RetailPrice)
+                    .ToListAsync();
+
+                var existingItems = existingCartItems.ToDictionary(
+                    item => (item.Productid, item.RetailPriceId));
 
                 foreach (var guestItem in guestItems)
                 {
                     if (!products.TryGetValue(guestItem.ProductId, out var product) || product.Stockquantity <= 0)
                         continue;
 
-                    if (existingItems.TryGetValue(guestItem.ProductId, out var existingItem))
+                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, guestItem.RetailPriceId);
+                    var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
+                    if (maxUnits <= 0)
+                        continue;
+
+                    var key = (guestItem.ProductId, guestItem.RetailPriceId);
+                    if (existingItems.TryGetValue(key, out var existingItem))
                     {
-                        existingItem.Quantity = Math.Min(
-                            existingItem.Quantity + guestItem.Quantity,
-                            product.Stockquantity);
+                        existingItem.Quantity = Math.Min(existingItem.Quantity + guestItem.Quantity, maxUnits);
                         continue;
                     }
 
@@ -217,10 +251,11 @@ public class GuestCartService
                     {
                         Cart = cart,
                         Productid = guestItem.ProductId,
-                        Quantity = Math.Min(guestItem.Quantity, product.Stockquantity)
+                        RetailPriceId = guestItem.RetailPriceId,
+                        Quantity = Math.Min(guestItem.Quantity, maxUnits)
                     };
                     _context.Cartitems.Add(newItem);
-                    existingItems.Add(guestItem.ProductId, newItem);
+                    existingItems.Add(key, newItem);
                 }
 
                 await _context.SaveChangesAsync();
@@ -234,29 +269,12 @@ public class GuestCartService
                 }
                 catch (Exception rollbackException)
                 {
-                    _logger.LogWarning(
-                        rollbackException,
-                        "Rollback failed while merging a guest cart for user {UserId}.",
-                        userId);
+                    _logger.LogWarning(rollbackException, "Rollback failed while merging a guest cart for user {UserId}.", userId);
                 }
 
                 _context.ChangeTracker.Clear();
-                _logger.LogError(
-                    exception,
-                    "Merging the guest cart failed for user {UserId}.",
-                    userId);
-                try
-                {
-                    await _context.Database.CloseConnectionAsync();
-                }
-                catch (Exception closeException)
-                {
-                    _logger.LogWarning(
-                        closeException,
-                        "Closing the database connection failed after merging the guest cart for user {UserId}.",
-                        userId);
-                }
-
+                _logger.LogError(exception, "Merging the guest cart failed for user {UserId}.", userId);
+                await _context.Database.CloseConnectionAsync();
                 throw;
             }
         });
@@ -279,8 +297,13 @@ public class GuestCartService
             var json = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(cookieValue));
             return JsonSerializer.Deserialize<List<GuestCartItem>>(json)?
                 .Where(i => i.ProductId > 0 && i.Quantity > 0)
-                .GroupBy(i => i.ProductId)
-                .Select(g => new GuestCartItem { ProductId = g.Key, Quantity = g.Sum(i => i.Quantity) })
+                .GroupBy(i => new { i.ProductId, i.RetailPriceId })
+                .Select(g => new GuestCartItem
+                {
+                    ProductId = g.Key.ProductId,
+                    RetailPriceId = g.Key.RetailPriceId,
+                    Quantity = g.Sum(i => i.Quantity)
+                })
                 .ToList() ?? [];
         }
         catch (FormatException exception)
@@ -329,6 +352,7 @@ public class GuestCartService
     private sealed class GuestCartItem
     {
         public int ProductId { get; set; }
+        public int? RetailPriceId { get; set; }
         public int Quantity { get; set; }
     }
 }
