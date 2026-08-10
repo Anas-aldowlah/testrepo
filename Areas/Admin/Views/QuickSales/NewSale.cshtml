@@ -1,0 +1,956 @@
+@model YAGOT_2._0.Models.Sale
+@{
+    var openSalesDay = ViewBag.OpenSalesDay as YAGOT_2._0.Models.SalesDay;
+    var isEdit = Model != null && Model.Id > 0;
+    ViewData["Title"] = isEdit ? $"تعديل المسودة {Model.InvoiceNumber}" : "عملية بيع جديدة";
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">البيع السريع</a>
+    <span>/</span>
+    <span>@(isEdit ? "تعديل مسودة" : "بيع جديد")</span>
+}
+
+@section Styles {
+    <style>
+        .pos-grid-table th {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 12px 16px;
+        }
+        .pos-cell-search {
+            position: relative;
+        }
+        .pos-autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: #ffffff;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 1050;
+            border-radius: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+        }
+        .dark-mode .pos-autocomplete-dropdown,
+        html[data-theme="dark"] .pos-autocomplete-dropdown {
+            background: #111622;
+            border-color: rgba(212, 175, 55, 0.4);
+            color: #ffffff;
+        }
+        .pos-search-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: background-color 0.2s ease;
+        }
+        .dark-mode .pos-search-item,
+        html[data-theme="dark"] .pos-search-item {
+            border-bottom-color: rgba(255,255,255,0.05);
+        }
+        .pos-search-item:hover, .pos-search-item.is-selected {
+            background-color: rgba(212, 175, 55, 0.12);
+        }
+        .pos-summary-card {
+            background: linear-gradient(145deg, #111622 0%, #1e293b 100%);
+            color: #ffffff;
+            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        }
+        .pos-summary-card label, .pos-summary-card h5 {
+            color: #ffffff !important;
+        }
+        .pos-payment-row {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+}
+
+@Html.AntiForgeryToken()
+<input type="hidden" id="posSalesDayId" value="@openSalesDay?.Id" />
+<input type="hidden" id="posSaleId" value="@(Model?.Id ?? 0)" />
+
+<div class="container-fluid px-0">
+    <!-- HEADER BAR -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-cart-plus-fill text-warning me-2"></i>
+                @(isEdit ? $"تعديل مسودة البيع ({Model.InvoiceNumber})" : "شاشة البيع السريع (POS)")
+            </h2>
+            <p class="text-muted small mb-0">
+                يوم البيع الحالي: <strong class="text-dark">@(openSalesDay?.Date.ToString("yyyy/MM/dd"))</strong> | الحالة: <span class="badge bg-success text-white px-3 py-1 fw-bold">مفتوح</span>
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Drafts" class="btn btn-outline-secondary px-3 py-2 fw-bold">
+                <i class="bi bi-journal-bookmark-fill me-1"></i> المسودات المحفوظة
+            </a>
+            <a asp-action="Index" class="btn btn-outline-dark px-3 py-2 fw-bold">الرئيسية</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT MAIN COLUMN: EXCEL-STYLE TABLE -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between border-bottom">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-grid-3x3-gap-fill text-warning me-2"></i> جدول إضافة المنتجات (جدول شبكي فوري)
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-yaqut-gold fw-bold px-3" id="btnAddRowBtn">
+                        <i class="bi bi-plus-lg me-1"></i> إضافة صف جديد
+                    </button>
+                </div>
+                <div class="table-responsive" style="min-height: 350px;">
+                    <table class="table align-middle mb-0 pos-grid-table" id="posItemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;" class="text-center">#</th>
+                                <th style="min-width: 250px;">البحث عن المنتج (تلقائي داخل الخلية)</th>
+                                <th style="width: 70px;" class="text-center">الصورة</th>
+                                <th style="width: 140px;" class="text-center">الكمية</th>
+                                <th style="width: 120px;" class="text-end">سعر الوحدة</th>
+                                <th style="width: 110px;" class="text-end">الخصم</th>
+                                <th style="width: 130px;" class="text-end">الإجمالي</th>
+                                <th style="width: 60px;" class="text-center">إزالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="posTableBody">
+                            <!-- DYNAMIC ROWS INSERTED BY JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-light p-3 d-flex align-items-center justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> استخدم خانة البحث للااختيار المباشر دون الحاجة للانتقال لصفحة أخرى.</span>
+                    <button type="button" class="btn btn-sm btn-outline-warning fw-bold px-3" id="btnAddRowFooterBtn">
+                        <i class="bi bi-plus-lg me-1"></i> إضافة صنف آخر
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: SUMMARY, CUSTOMER INFO & PAYMENTS -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 pos-summary-card mb-4">
+                <h4 class="h5 fw-bold mb-3 border-bottom border-secondary pb-2 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-receipt-cutoff text-warning me-2"></i> ملخص البيع</span>
+                    <span class="badge bg-warning text-dark fs-6" id="summaryItemsCount">0 أصناف</span>
+                </h4>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-white-50">المجموع الفرعي:</span>
+                    <strong class="fs-6 text-white" id="summarySubtotal">0.00 ر.س</strong>
+                </div>
+
+                <div class="mb-3">
+                    <label for="posOverallDiscount" class="form-label text-white-50 small mb-1">خصم إجمالي على الفاتورة (ر.س):</label>
+                    <input type="number" step="0.01" min="0" id="posOverallDiscount" class="form-control form-control-sm text-end" value="@(Model?.DiscountTotal ?? 0m)" placeholder="0.00" />
+                </div>
+
+                <hr class="border-secondary my-3" />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fs-5 fw-bold text-white">المبلغ النهائي:</span>
+                    <strong class="fs-4 text-warning fw-bold" id="summaryFinalTotal">0.00 ر.س</strong>
+                </div>
+
+                <!-- PAYMENT METHODS SECTION -->
+                <div class="border-top border-secondary pt-3 mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-warning mb-0"><i class="bi bi-wallet2 me-1"></i> وسيلة/وسائل الدفع</h6>
+                        <button type="button" class="btn btn-sm btn-outline-warning text-nowrap py-0 px-2 fs-7" id="btnAddPaymentRow">
+                            <i class="bi bi-plus-lg"></i> إضافة طريقة
+                        </button>
+                    </div>
+
+                    <div id="posPaymentsContainer">
+                        <!-- Dynamic payment method rows inserted by JS -->
+                    </div>
+
+                    <div class="bg-dark bg-opacity-50 p-2 rounded-3 mt-2 border border-secondary border-opacity-50">
+                        <div class="d-flex justify-content-between align-items-center small text-white-50 mb-1">
+                            <span>إجمالي المدفوع:</span>
+                            <strong class="text-white fs-7" id="summaryTotalPaid">0.00 ر.س</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small">
+                            <span>المبلغ المتبقي:</span>
+                            <strong class="text-danger fw-bold fs-7" id="summaryRemaining">0.00 ر.س</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CUSTOMER INFO (OPTIONAL) -->
+                <div class="border-top border-secondary pt-3 mb-4">
+                    <h6 class="fw-bold text-warning mb-2"><i class="bi bi-person-lines-fill me-1"></i> بيانات العميل (اختياري)</h6>
+                    <div class="mb-2">
+                        <input type="text" id="custName" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="اسم العميل (اختياري)" value="@Model?.CustomerName" />
+                    </div>
+                    <div class="mb-2">
+                        <input type="tel" id="custPhone" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="رقم الجوال (اختياري)" value="@Model?.CustomerPhone" />
+                    </div>
+                    <div>
+                        <textarea id="saleNotes" class="form-control form-control-sm bg-dark text-white border-secondary" rows="2" placeholder="ملاحظات إضافية على الفاتورة...">@Model?.Notes</textarea>
+                    </div>
+                </div>
+
+                <!-- PRIMARY ACTION BUTTONS -->
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm" id="btnCompleteSale" onclick="completeSale()">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون
+                    </button>
+                    <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft" onclick="saveDraftSale()">
+                        <i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SALE COMPLETION SUCCESS MODAL -->
+<div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #111622; color: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <div class="rounded-circle bg-success bg-opacity-25 text-success p-3 d-inline-flex mb-3 border border-success border-opacity-50">
+                    <i class="bi bi-check-lg display-4"></i>
+                </div>
+                <h3 class="h4 fw-bold text-white mb-2">تم اعتماد عملية البيع وتحديث المخزون!</h3>
+                <p class="text-white-50 small mb-4" id="successModalMessage">تم تسجيل الفاتورة وتخصيم كميات المنتجات من المستودع بنجاح.</p>
+
+                <div class="bg-dark p-3 rounded-3 text-start mb-4 border border-secondary">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white-50">رقم الفاتورة:</span>
+                        <strong class="text-warning" id="successInvoiceNum">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white-50">الإجمالي المسدد:</span>
+                        <strong class="text-white" id="successFinalAmount">0.00 ر.س</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-white-50">تاريخ الاعتماد:</span>
+                        <span class="text-white-50 small" id="successCompletedAt">-</span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a asp-action="NewSale" class="btn btn-yaqut-gold w-100 py-2 fw-bold">
+                        <i class="bi bi-plus-circle me-1"></i> بيع جديد
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-light w-100 py-2 fw-bold">
+                        الرئيسية
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var posRowsCount = 0;
+        var initialModelItems = [];
+        var availablePaymentMethods = [];
+        var initialModelPayments = [];
+
+        @if (Model != null && Model.SaleItems != null && Model.SaleItems.Any())
+        {
+            <text>
+            initialModelItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SaleItems.Select(si => new {
+                productId = si.ProductId,
+                productName = si.ProductName ?? si.Product?.Name ?? "",
+                quantity = si.Quantity,
+                unitPrice = si.UnitPrice,
+                discount = si.Discount,
+                stock = si.Product?.Stockquantity ?? 99,
+                imageUrl = string.IsNullOrWhiteSpace(si.Product?.Imageurl) ? "/images/yaqut-logo.png" : si.Product.Imageurl
+            })));
+            </text>
+        }
+
+        @if (Model != null && Model.SalePayments != null && Model.SalePayments.Any())
+        {
+            <text>
+            initialModelPayments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalePayments.Select(sp => new {
+                paymentMethodId = sp.PaymentMethodId,
+                amount = sp.Amount,
+                transactionReference = sp.TransactionReference ?? ""
+            })));
+            </text>
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load Payment Methods from DB
+            loadPaymentMethods(function() {
+                if (initialModelPayments && initialModelPayments.length > 0) {
+                    initialModelPayments.forEach(function(pm) {
+                        addPaymentRow(pm);
+                    });
+                } else {
+                    addPaymentRow(); // Add 1 default payment row
+                }
+                calculateTotals();
+            });
+
+            if (initialModelItems && initialModelItems.length > 0) {
+                initialModelItems.forEach(function(item) {
+                    addRow(item);
+                });
+            } else {
+                addRow(); // Add default empty product row
+            }
+
+            document.getElementById('btnAddRowBtn').addEventListener('click', function() { addRow(); });
+            document.getElementById('btnAddRowFooterBtn').addEventListener('click', function() { addRow(); });
+            document.getElementById('btnAddPaymentRow').addEventListener('click', function() { addPaymentRow(); });
+            document.getElementById('posOverallDiscount').addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
+            document.getElementById('custName')?.addEventListener('input', scheduleAutoSave);
+            document.getElementById('custPhone')?.addEventListener('input', scheduleAutoSave);
+            document.getElementById('saleNotes')?.addEventListener('input', scheduleAutoSave);
+            document.getElementById('btnSaveDraft').addEventListener('click', saveDraftSale);
+            document.getElementById('btnCompleteSale').addEventListener('click', completeSale);
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.pos-cell-search')) {
+                    document.querySelectorAll('.pos-autocomplete-dropdown').forEach(function(dd) {
+                        dd.style.display = 'none';
+                    });
+                }
+            });
+        });
+
+        var autoSaveTimer = null;
+        var isAutoSaving = false;
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(function() {
+                autoSaveDraft();
+            }, 1000);
+        }
+
+        function autoSaveDraft() {
+            if (isAutoSaving) return;
+            var data = collectSaleData();
+            if (!data || data.salesDayId <= 0) return;
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            if (data.items.length === 0) {
+                if (data.saleId > 0) {
+                    isAutoSaving = true;
+                    fetch(`/Admin/QuickSales/DeleteDraft?id=${data.saleId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.success) {
+                            document.getElementById('posSaleId').value = '0';
+                        }
+                    })
+                    .catch(() => {})
+                    .finally(() => { isAutoSaving = false; });
+                }
+                return;
+            }
+
+            isAutoSaving = true;
+            fetch('/Admin/QuickSales/SaveDraft', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.saleId > 0) {
+                    document.getElementById('posSaleId').value = res.saleId;
+                }
+            })
+            .catch(() => {})
+            .finally(() => { isAutoSaving = false; });
+        }
+
+        function loadPaymentMethods(callback) {
+            fetch('/Admin/QuickSales/GetPaymentMethods')
+                .then(res => res.json())
+                .then(data => {
+                    availablePaymentMethods = data || [];
+                    if (callback) callback();
+                })
+                .catch(() => {
+                    availablePaymentMethods = [{ id: 1, name: 'نقدي', type: 'Cash' }];
+                    if (callback) callback();
+                });
+        }
+
+        function addPaymentRow(pmData) {
+            var container = document.getElementById('posPaymentsContainer');
+            var rowDiv = document.createElement('div');
+            rowDiv.className = 'pos-payment-row d-flex align-items-center gap-2';
+
+            var methodOptionsHtml = '';
+            availablePaymentMethods.forEach(function(pm, index) {
+                var selected = pmData ? (pmData.paymentMethodId === pm.id ? 'selected' : '') : (index === 0 ? 'selected' : '');
+                methodOptionsHtml += `<option value="${pm.id}" ${selected}>${pm.name}</option>`;
+            });
+
+            var amt = pmData ? pmData.amount : 0;
+
+            rowDiv.innerHTML = `
+                <select class="form-select form-select-sm bg-dark text-white border-secondary pos-payment-method-select fw-bold">
+                    ${methodOptionsHtml}
+                </select>
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end bg-dark text-white border-secondary pos-payment-amount-input fw-bold" placeholder="0.00" value="${amt > 0 ? amt.toFixed(2) : ''}" />
+                <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove-payment p-1" title="حذف"><i class="bi bi-x-lg"></i></button>
+            `;
+
+            container.appendChild(rowDiv);
+
+            var amtInput = rowDiv.querySelector('.pos-payment-amount-input');
+            amtInput.addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
+
+            rowDiv.querySelector('.pos-btn-remove-payment').addEventListener('click', function() {
+                var rows = container.querySelectorAll('.pos-payment-row');
+                if (rows.length > 1) {
+                    rowDiv.remove();
+                } else {
+                    amtInput.value = '';
+                }
+                calculateTotals();
+                scheduleAutoSave();
+            });
+        }
+
+        function addRow(itemData) {
+            posRowsCount++;
+            var rowId = 'pos-row-' + posRowsCount;
+            var tbody = document.getElementById('posTableBody');
+
+            var tr = document.createElement('tr');
+            tr.id = rowId;
+            tr.className = 'pos-item-row';
+            tr.setAttribute('data-row-index', posRowsCount);
+
+            var pId = itemData ? itemData.productId : 0;
+            var pName = itemData ? itemData.productName : '';
+            var pPrice = itemData ? itemData.unitPrice : 0;
+            var pQty = itemData ? itemData.quantity : 1;
+            var pDisc = itemData ? itemData.discount : 0;
+            var pStock = itemData ? itemData.stock : 0;
+            var pImg = itemData ? itemData.imageUrl : '/images/yaqut-logo.png';
+
+            tr.innerHTML = `
+                <td class="text-center text-muted fw-bold pos-row-num">1</td>
+                <td class="pos-cell-search">
+                    <input type="hidden" class="pos-product-id" value="${pId}" />
+                    <input type="hidden" class="pos-product-stock" value="${pStock}" />
+                    <input type="text" class="form-control pos-product-search-input" value="${pName}" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" />
+                    <div class="pos-autocomplete-dropdown"></div>
+                    <div class="pos-stock-hint mt-1 fs-7" ${pId > 0 ? '' : 'style="display:none;"'}>
+                        <span class="badge bg-light text-dark border me-1">المتوفر: <strong class="pos-stock-val">${pStock}</strong></span>
+                        <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val">${pStock - pQty}</strong></span>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <img src="${pImg}" class="pos-product-thumb rounded-2 border" style="width: 40px; height: 40px; object-fit: cover;" alt="منتج" />
+                </td>
+                <td class="text-center">
+                    <div class="input-group input-group-sm">
+                        <button type="button" class="btn btn-outline-secondary pos-qty-minus"><i class="bi bi-dash"></i></button>
+                        <input type="number" class="form-control text-center pos-qty-input fw-bold" value="${pQty}" min="1" />
+                        <button type="button" class="btn btn-outline-secondary pos-qty-plus"><i class="bi bi-plus"></i></button>
+                    </div>
+                </td>
+                <td class="text-end">
+                    <input type="text" class="form-control form-control-sm text-end fw-bold bg-light pos-price-input" readonly value="${pPrice.toFixed(2)}" />
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end pos-discount-input" value="${pDisc.toFixed(2)}" />
+                </td>
+                <td class="text-end">
+                    <strong class="pos-row-total text-dark fs-6">0.00 ر.س</strong>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove"><i class="bi bi-trash"></i></button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+
+            bindRowEvents(tr);
+            updateRowNumbers();
+            calculateTotals();
+        }
+
+        function bindRowEvents(tr) {
+            var searchInput = tr.querySelector('.pos-product-search-input');
+            var dropdown = tr.querySelector('.pos-autocomplete-dropdown');
+            var qtyInput = tr.querySelector('.pos-qty-input');
+            var qtyMinus = tr.querySelector('.pos-qty-minus');
+            var qtyPlus = tr.querySelector('.pos-qty-plus');
+            var discountInput = tr.querySelector('.pos-discount-input');
+            var btnRemove = tr.querySelector('.pos-btn-remove');
+
+            var searchTimeout = null;
+            searchInput.addEventListener('input', function() {
+                var query = searchInput.value.trim();
+                if (query.length < 1) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    fetch('/Admin/QuickSales/SearchProducts?q=' + encodeURIComponent(query))
+                        .then(res => res.json())
+                        .then(data => {
+                            dropdown.innerHTML = '';
+                            if (!data || data.length === 0) {
+                                dropdown.innerHTML = '<div class="p-3 text-muted text-center small">لا توجد نتائج مطابقة</div>';
+                            } else {
+                                data.forEach(function(p) {
+                                    var itemDiv = document.createElement('div');
+                                    itemDiv.className = 'pos-search-item d-flex align-items-center justify-content-between gap-2';
+                                    itemDiv.innerHTML = `
+                                        <div class="d-flex align-items-center gap-2">
+                                            <img src="${p.imageUrl}" style="width: 35px; height: 35px; object-fit: cover;" class="rounded border" />
+                                            <div>
+                                                <div class="fw-bold text-dark fs-7">${p.name}</div>
+                                                <div class="text-muted fs-8">${p.brand ? p.brand : 'قسم ياقوت'} | متوفر: ${p.stock}</div>
+                                            </div>
+                                        </div>
+                                        <div class="fw-bold text-warning fs-7">${p.price.toFixed(2)} ر.س</div>
+                                    `;
+                                    itemDiv.addEventListener('click', function() {
+                                        selectProductForRow(tr, p);
+                                        dropdown.style.display = 'none';
+                                    });
+                                    dropdown.appendChild(itemDiv);
+                                });
+                            }
+                            dropdown.style.display = 'block';
+                        })
+                        .catch(() => { dropdown.style.display = 'none'; });
+                }, 200);
+            });
+
+            qtyMinus.addEventListener('click', function() {
+                var val = parseInt(qtyInput.value) || 1;
+                if (val > 1) {
+                    qtyInput.value = val - 1;
+                    calculateTotals();
+                    scheduleAutoSave();
+                }
+            });
+
+            qtyPlus.addEventListener('click', function() {
+                var pId = parseInt(tr.querySelector('.pos-product-id').value) || 0;
+                var availableStock = parseInt(tr.querySelector('.pos-product-stock').value) || 0;
+                var currentQty = parseInt(qtyInput.value) || 1;
+
+                if (pId > 0) {
+                    var otherRowsQty = 0;
+                    document.querySelectorAll('.pos-item-row').forEach(function(row) {
+                        if (row !== tr) {
+                            var rId = parseInt(row.querySelector('.pos-product-id').value) || 0;
+                            if (rId === pId) {
+                                otherRowsQty += (parseInt(row.querySelector('.pos-qty-input').value) || 0);
+                            }
+                        }
+                    });
+
+                    var maxAllowed = availableStock - otherRowsQty;
+                    if (currentQty < maxAllowed) {
+                        qtyInput.value = currentQty + 1;
+                        calculateTotals();
+                        scheduleAutoSave();
+                    } else {
+                        showAlert(`عذراً، الحد الأقصى المتاح بالمخزون هو (${availableStock}) للمنتج.`, 'warning');
+                    }
+                } else {
+                    qtyInput.value = currentQty + 1;
+                    calculateTotals();
+                    scheduleAutoSave();
+                }
+            });
+
+            qtyInput.addEventListener('change', function() {
+                var pId = parseInt(tr.querySelector('.pos-product-id').value) || 0;
+                var availableStock = parseInt(tr.querySelector('.pos-product-stock').value) || 0;
+                var currentQty = parseInt(qtyInput.value) || 1;
+
+                if (currentQty < 1) currentQty = 1;
+
+                if (pId > 0) {
+                    var otherRowsQty = 0;
+                    document.querySelectorAll('.pos-item-row').forEach(function(row) {
+                        if (row !== tr) {
+                            var rId = parseInt(row.querySelector('.pos-product-id').value) || 0;
+                            if (rId === pId) {
+                                otherRowsQty += (parseInt(row.querySelector('.pos-qty-input').value) || 0);
+                            }
+                        }
+                    });
+
+                    var maxAllowed = availableStock - otherRowsQty;
+                    if (currentQty > maxAllowed) {
+                        currentQty = Math.max(1, maxAllowed);
+                        qtyInput.value = currentQty;
+                        showAlert(`تم ضبط الكمية على الحد الأقصى المتوفر بالمخزون وهو (${maxAllowed}).`, 'warning');
+                    }
+                } else {
+                    qtyInput.value = currentQty;
+                }
+
+                calculateTotals();
+                scheduleAutoSave();
+            });
+
+            discountInput.addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
+
+            btnRemove.addEventListener('click', function() {
+                var rows = document.querySelectorAll('.pos-item-row');
+                if (rows.length <= 1) {
+                    tr.querySelector('.pos-product-id').value = '0';
+                    tr.querySelector('.pos-product-search-input').value = '';
+                    tr.querySelector('.pos-price-input').value = '0.00';
+                    tr.querySelector('.pos-discount-input').value = '0.00';
+                    tr.querySelector('.pos-qty-input').value = '1';
+                    tr.querySelector('.pos-product-thumb').src = '/images/yaqut-logo.png';
+                    tr.querySelector('.pos-stock-hint').style.display = 'none';
+                } else {
+                    tr.remove();
+                }
+                updateRowNumbers();
+                calculateTotals();
+                scheduleAutoSave();
+            });
+        }
+
+        function selectProductForRow(tr, product) {
+            tr.querySelector('.pos-product-id').value = product.id;
+            tr.querySelector('.pos-product-search-input').value = product.name;
+            tr.querySelector('.pos-price-input').value = product.price.toFixed(2);
+            tr.querySelector('.pos-product-stock').value = product.stock;
+            tr.querySelector('.pos-product-thumb').src = product.imageUrl;
+
+            var hint = tr.querySelector('.pos-stock-hint');
+            if (hint) {
+                hint.style.display = 'block';
+            }
+
+            calculateTotals();
+            scheduleAutoSave();
+        }
+
+        function updateRowNumbers() {
+            var rows = document.querySelectorAll('.pos-item-row');
+            rows.forEach(function(row, idx) {
+                var numTd = row.querySelector('.pos-row-num');
+                if (numTd) numTd.textContent = (idx + 1);
+            });
+        }
+
+        function calculateTotals() {
+            var rows = document.querySelectorAll('.pos-item-row');
+            var subtotal = 0;
+            var validItemsCount = 0;
+
+            // Map total quantities per product ID for accurate remaining stock across duplicate rows
+            var productQtySums = {};
+            rows.forEach(function(row) {
+                var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
+                var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
+                if (pId > 0) {
+                    productQtySums[pId] = (productQtySums[pId] || 0) + qty;
+                }
+            });
+
+            rows.forEach(function(row) {
+                var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
+                var availableStock = parseInt(row.querySelector('.pos-product-stock').value) || 0;
+                var price = parseFloat(row.querySelector('.pos-price-input').value) || 0;
+                var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
+                var disc = parseFloat(row.querySelector('.pos-discount-input').value) || 0;
+
+                if (pId > 0) {
+                    validItemsCount++;
+                    var totalQtyForThisProduct = productQtySums[pId] || qty;
+                    var remainingStock = availableStock - totalQtyForThisProduct;
+
+                    var hint = row.querySelector('.pos-stock-hint');
+                    var stockValSpan = row.querySelector('.pos-stock-val');
+                    var remainingValSpan = row.querySelector('.pos-remaining-val');
+                    var remainingBadge = row.querySelector('.pos-remaining-badge');
+
+                    if (hint && stockValSpan && remainingValSpan && remainingBadge) {
+                        stockValSpan.textContent = availableStock;
+                        remainingValSpan.textContent = remainingStock;
+                        hint.style.display = 'block';
+
+                        if (remainingStock > 0) {
+                            remainingBadge.className = 'badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold';
+                        } else if (remainingStock === 0) {
+                            remainingBadge.className = 'badge pos-remaining-badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50';
+                        } else {
+                            remainingBadge.className = 'badge pos-remaining-badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50';
+                        }
+                    }
+
+                    var lineTotal = (price * qty) - disc;
+                    if (lineTotal < 0) lineTotal = 0;
+                    row.querySelector('.pos-row-total').textContent = lineTotal.toFixed(2) + ' ر.س';
+                    subtotal += (price * qty);
+                } else {
+                    row.querySelector('.pos-row-total').textContent = '0.00 ر.س';
+                    var hint = row.querySelector('.pos-stock-hint');
+                    if (hint) hint.style.display = 'none';
+                }
+            });
+
+            var overallDiscount = parseFloat(document.getElementById('posOverallDiscount').value) || 0;
+            var finalTotal = Math.max(0, subtotal - overallDiscount);
+
+            document.getElementById('summaryItemsCount').textContent = validItemsCount + ' أصناف';
+            document.getElementById('summarySubtotal').textContent = subtotal.toFixed(2) + ' ر.س';
+            document.getElementById('summaryFinalTotal').textContent = finalTotal.toFixed(2) + ' ر.س';
+
+            // Calculate Payment Totals
+            var pContainer = document.getElementById('posPaymentsContainer');
+            var pInputs = pContainer.querySelectorAll('.pos-payment-amount-input');
+            var totalPaid = 0;
+
+            pInputs.forEach(function(inp) {
+                totalPaid += parseFloat(inp.value) || 0;
+            });
+
+            // If single payment row and empty, auto-populate with final total
+            if (pInputs.length === 1 && (!pInputs[0].value || parseFloat(pInputs[0].value) === 0) && finalTotal > 0) {
+                pInputs[0].value = finalTotal.toFixed(2);
+                totalPaid = finalTotal;
+            }
+
+            var remaining = finalTotal - totalPaid;
+            document.getElementById('summaryTotalPaid').textContent = totalPaid.toFixed(2) + ' ر.س';
+
+            var remainingSpan = document.getElementById('summaryRemaining');
+            remainingSpan.textContent = remaining.toFixed(2) + ' ر.س';
+
+            if (Math.abs(remaining) < 0.01) {
+                remainingSpan.className = 'text-success fw-bold fs-7';
+            } else if (remaining > 0) {
+                remainingSpan.className = 'text-warning fw-bold fs-7';
+            } else {
+                remainingSpan.className = 'text-danger fw-bold fs-7';
+            }
+        }
+
+        function collectSaleData() {
+            var salesDayId = parseInt(document.getElementById('posSalesDayId').value) || 0;
+            var saleId = parseInt(document.getElementById('posSaleId').value) || 0;
+            var overallDiscount = parseFloat(document.getElementById('posOverallDiscount').value) || 0;
+            var custName = document.getElementById('custName').value.trim();
+            var custPhone = document.getElementById('custPhone').value.trim();
+            var saleNotes = document.getElementById('saleNotes').value.trim();
+
+            var rows = document.querySelectorAll('.pos-item-row');
+            var items = [];
+            rows.forEach(function(row) {
+                var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
+                var pName = row.querySelector('.pos-product-search-input').value.trim();
+                var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
+                var price = parseFloat(row.querySelector('.pos-price-input').value) || 0;
+                var disc = parseFloat(row.querySelector('.pos-discount-input').value) || 0;
+
+                if (pId > 0 && qty > 0) {
+                    items.push({
+                        productId: pId,
+                        productName: pName,
+                        quantity: qty,
+                        unitPrice: price,
+                        discount: disc
+                    });
+                }
+            });
+
+            var paymentRows = document.querySelectorAll('.pos-payment-row');
+            var payments = [];
+            paymentRows.forEach(function(pRow) {
+                var methodId = parseInt(pRow.querySelector('.pos-payment-method-select').value) || 0;
+                var amt = parseFloat(pRow.querySelector('.pos-payment-amount-input').value) || 0;
+
+                if (methodId > 0 && amt > 0) {
+                    payments.push({
+                        paymentMethodId: methodId,
+                        amount: amt
+                    });
+                }
+            });
+
+            return {
+                saleId: saleId > 0 ? saleId : null,
+                salesDayId: salesDayId,
+                customerName: custName,
+                customerPhone: custPhone,
+                notes: saleNotes,
+                discountTotal: overallDiscount,
+                items: items,
+                payments: payments
+            };
+        }
+
+        function saveDraftSale() {
+            var data = collectSaleData();
+
+            if (data.salesDayId <= 0) {
+                showAlert('يجب فتح يوم بيع أولاً قبل الحفظ.', 'danger');
+                return;
+            }
+            if (data.items.length === 0) {
+                showAlert('يرجى اختيار منتج واحد على الأقل وإدخال كميته لحفظ المسودة.', 'warning');
+                return;
+            }
+
+            var btnSave = document.getElementById('btnSaveDraft');
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch('/Admin/QuickSales/SaveDraft', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
+
+                if (res.success) {
+                    document.getElementById('posSaleId').value = res.saleId;
+                    showAlert(`تم حفظ المسودة بنجاح! رقم الفاتورة: (${res.invoiceNumber})`, 'success');
+                } else {
+                    showAlert(res.message || 'حدث خطأ أثناء حفظ المسودة.', 'danger');
+                }
+            })
+            .catch(() => {
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
+                showAlert('تعذر الاتصال بالسيرفر لحفظ المسودة.', 'danger');
+            });
+        }
+
+        function completeSale() {
+            var data = collectSaleData();
+
+            if (data.salesDayId <= 0) {
+                showAlert('يجب فتح يوم بيع أولاً قبل الاعتماد.', 'danger');
+                return;
+            }
+            if (data.items.length === 0) {
+                showAlert('يرجى إضافة منتج واحد على الأقل للبيع.', 'warning');
+                return;
+            }
+            if (data.payments.length === 0) {
+                showAlert('يرجى اختيار وإدخال مبلغ طريقة الدفع.', 'warning');
+                return;
+            }
+
+            // Client-side Payment Total vs Final Amount Match Check
+            var itemsSubtotal = data.items.reduce(function(sum, item) {
+                var lineTot = (item.unitPrice * item.quantity) - (item.discount || 0);
+                return sum + Math.max(0, lineTot);
+            }, 0);
+            var overallDiscount = parseFloat(document.getElementById('posOverallDiscount')?.value) || 0;
+            var calcFinalTotal = Math.max(0, itemsSubtotal - overallDiscount);
+            var totalPaid = data.payments.reduce(function(sum, p) { return sum + (p.amount || 0); }, 0);
+
+            if (Math.abs(totalPaid - calcFinalTotal) > 0.01) {
+                showAlert(`مجموع الدفعات المدخلة (${totalPaid.toFixed(2)} ر.س) لا يطابق المبلغ النهائي المطلوب (${calcFinalTotal.toFixed(2)} ر.س).`, 'warning');
+                return;
+            }
+
+            var btnComplete = document.getElementById('btnCompleteSale');
+            btnComplete.disabled = true;
+            btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التحقق واعتماد البيع...';
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch('/Admin/QuickSales/CompleteSale', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                btnComplete.disabled = false;
+                btnComplete.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون';
+
+                if (res.success) {
+                    document.getElementById('successInvoiceNum').textContent = res.invoiceNumber || '-';
+                    document.getElementById('successFinalAmount').textContent = res.finalAmount.toFixed(2) + ' ر.س';
+                    document.getElementById('successCompletedAt').textContent = res.completedAt || '-';
+                    document.getElementById('successModalMessage').textContent = res.message || 'تمت العملية بنجاح.';
+
+                    var modalElem = document.getElementById('saleSuccessModal');
+                    var modal = new bootstrap.Modal(modalElem);
+                    modal.show();
+                } else {
+                    showAlert(res.message || 'تعذر اعتماد عملية البيع.', 'danger');
+                }
+            })
+            .catch(() => {
+                btnComplete.disabled = false;
+                btnComplete.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون';
+                showAlert('تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
+            });
+        }
+
+        function showAlert(message, type) {
+            type = type || 'warning';
+            var alertContainer = document.getElementById('posAlertContainer');
+            if (!alertContainer) {
+                alertContainer = document.createElement('div');
+                alertContainer.id = 'posAlertContainer';
+                alertContainer.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 320px; max-width: 550px;';
+                document.body.appendChild(alertContainer);
+            }
+
+            var alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-lg rounded-3 fw-bold d-flex align-items-center justify-content-between mb-2 p-3`;
+            alertDiv.innerHTML = `
+                <span><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ${message}</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(function() {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}

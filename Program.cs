@@ -39,6 +39,12 @@ builder.Services.AddControllersWithViews()
 // Performance: In-memory cache for SiteStatus
 builder.Services.AddMemoryCache();
 
+// Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
+
 // Registration Session & OTP Service
 builder.Services.AddSession(options =>
 {
