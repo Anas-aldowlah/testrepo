@@ -158,7 +158,6 @@ public class OrdersController : Controller
         var normalizedStatus = OrderService.NormalizeStatus(status);
         if (normalizedStatus == null || !AllowedStatuses.Contains(normalizedStatus))
             return BadRequest("Invalid order status.");
-        }
 
         try
         {
