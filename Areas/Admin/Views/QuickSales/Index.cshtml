@@ -1,0 +1,205 @@
+@model YAGOT_2._0.Models.Admin.QuickSalesIndexViewModel
+@{
+    ViewData["Title"] = "البيع السريع (POS)";
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <span>البيع السريع</span>
+}
+
+<div class="container-fluid px-0">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["WarningMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- HEADER STATUS BAR -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #111622 0%, #1e293b 100%); border: 1px solid rgba(212, 175, 55, 0.2) !important;">
+        <div class="card-body p-4 text-white">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-3 d-flex align-items-center justify-content-center" style="background: rgba(212, 175, 55, 0.15); width: 60px; height: 60px; border: 1px solid rgba(212, 175, 55, 0.3);">
+                        <i class="bi bi-lightning-charge-fill text-warning fs-2"></i>
+                    </div>
+                    <div>
+                        <h2 class="h4 fw-bold text-white mb-1">البيع السريع في المتجر (Point of Sale)</h2>
+                        <p class="text-white-50 mb-0 small">إدارة المبيعات المباشرة بالمنفذ، المسودات والدفتر اليومي</p>
+                    </div>
+                </div>
+
+                @if (Model.CurrentOpenDay != null)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success text-white px-3 py-2 fs-6 rounded-pill fw-bold">
+                            <i class="bi bi-circle-fill me-1 fs-6"></i> يوم البيع مفتوح
+                        </span>
+                        <span class="text-white-50 fs-6">|</span>
+                        <span class="fw-bold fs-6 text-warning"><i class="bi bi-calendar3 me-1"></i> @Model.CurrentOpenDay.Date.ToString("yyyy/MM/dd")</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2 fs-6 rounded-pill">
+                            <i class="bi bi-lock-fill me-1"></i> لا يوجد يوم بيع مفتوح
+                        </span>
+                        <a asp-action="History" class="btn btn-sm btn-outline-warning text-white fw-bold">سجل الأيام</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN ACTION CARDS -->
+    @if (Model.CurrentOpenDay != null)
+    {
+        <div class="row g-4 mb-4">
+            <!-- NEW SALE ACTION CARD -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.25) !important;">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 mb-3 text-warning">
+                        <i class="bi bi-cart-plus-fill fs-2"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2">بدء بيع جديد</h3>
+                    <p class="text-muted small mb-3">إضافة المنتجات والبحث السريع والاعتماد</p>
+                    <a asp-action="NewSale" class="btn btn-yaqut-gold px-3 py-2 fw-bold small w-100 shadow-sm">
+                        <i class="bi bi-plus-circle-fill me-1"></i> إنشاء بيع جديد
+                    </a>
+                </div>
+            </div>
+
+            <!-- TODAY'S LEDGER CARD -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25) !important;">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 mb-3 text-success">
+                        <i class="bi bi-journal-check fs-2"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-1">دفتر مبيعات اليوم</h3>
+                    <div class="mb-2">
+                        <strong class="text-success fs-5">@Model.TodayCompletedSalesTotal.ToString("N2") ر.س</strong>
+                        <div class="text-muted fs-8">(@Model.TodayCompletedSalesCount عملية مكتملة)</div>
+                    </div>
+                    <a asp-action="Ledger" class="btn btn-outline-success px-3 py-2 fw-bold small w-100">
+                        <i class="bi bi-eye me-1"></i> عرض دفتر اليوم
+                    </a>
+                </div>
+            </div>
+
+            <!-- DRAFTS ACTION CARD -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(30, 41, 59, 0.03); border: 1px solid rgba(148, 163, 184, 0.2) !important;">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 p-3 mb-3 text-primary">
+                        <i class="bi bi-journal-bookmark-fill fs-2"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-1">المسودات النشطة</h3>
+                    <p class="text-muted small mb-2">العمليات غير المكتملة المحفوظة</p>
+                    <div class="mb-3">
+                        <span class="badge bg-warning text-dark fs-7 px-3 py-1 rounded-pill fw-bold">
+                            @Model.ActiveDrafts.Count مسودة
+                        </span>
+                    </div>
+                    <a asp-action="Drafts" class="btn btn-outline-primary px-3 py-2 fw-bold small w-100">
+                        <i class="bi bi-folder-fill me-1"></i> تصفح المسودات
+                    </a>
+                </div>
+            </div>
+
+            <!-- HISTORY CARD -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(59, 130, 246, 0.03); border: 1px solid rgba(59, 130, 246, 0.2) !important;">
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 mb-3 text-info">
+                        <i class="bi bi-clock-history fs-2"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2">سجل الأيام السابقة</h3>
+                    <p class="text-muted small mb-3">تصفح دفاتر الأيام المغلقة والأرشيف</p>
+                    <a asp-action="History" class="btn btn-outline-dark px-3 py-2 fw-bold small w-100">
+                        <i class="bi bi-list-columns-reverse me-1"></i> السجل التاريخي
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT DRAFTS TABLE -->
+        @if (Model.ActiveDrafts.Any())
+        {
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between border-bottom">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-clock-history text-warning me-2"></i> آخر المسودات المحفوظة
+                    </h5>
+                    <a asp-action="Drafts" class="btn btn-sm btn-link text-decoration-none fw-bold">عرض الكل <i class="bi bi-arrow-left"></i></a>
+                </div>
+                <div class="table-responsive w-100">
+                    <table class="table table-hover align-middle mb-0 w-100">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 20%;">رقم الفاتورة</th>
+                                <th style="width: 20%;">اسم العميل</th>
+                                <th style="width: 15%;">عدد العناصر</th>
+                                <th style="width: 20%;">المبلغ الإجمالي</th>
+                                <th style="width: 15%;">آخر تحديث</th>
+                                <th style="width: 10%;">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var draft in Model.ActiveDrafts.Take(5))
+                            {
+                                <tr>
+                                    <td><strong class="text-warning text-nowrap">@draft.InvoiceNumber</strong></td>
+                                    <td class="pos-text-main fw-bold">@(string.IsNullOrWhiteSpace(draft.CustomerName) ? "عميل عادي" : draft.CustomerName)</td>
+                                    <td><span class="badge bg-info text-dark px-2 py-1 fw-bold text-nowrap">@draft.SaleItems.Count عنصر</span></td>
+                                    <td class="text-nowrap"><strong class="pos-text-main fw-bold">@draft.FinalAmount.ToString("N2") ر.س</strong></td>
+                                    <td class="pos-text-muted small text-nowrap">@((draft.UpdatedAt ?? draft.CreatedAt).ToString("yyyy/MM/dd HH:mm"))</td>
+                                    <td class="text-nowrap">
+                                        <a asp-action="NewSale" asp-route-id="@draft.Id" class="btn btn-sm btn-yaqut-gold fw-bold me-1">
+                                            <i class="bi bi-pencil-square me-1"></i> فتح المسودة
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- NO OPEN DAY PROMPT -->
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="background: rgba(239, 68, 68, 0.03); border: 1px dashed rgba(239, 68, 68, 0.3) !important;">
+            <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-4 d-inline-flex mb-3">
+                <i class="bi bi-calendar-x-fill display-4"></i>
+            </div>
+            <h3 class="h4 fw-bold mb-2">لا يوجد يوم بيع مفتوح حالياً</h3>
+            <p class="text-muted mb-4" style="max-width: 500px; margin: 0 auto;">
+                بدء عمليات البيع المباشرة والمسودات يتطلب فتح يوم بيع جديد أولاً لتنظيم عمليات السجل اليومي.
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+                <a asp-action="OpenDay" class="btn btn-yaqut-gold btn-lg px-4 py-3 fw-bold shadow-sm">
+                    <i class="bi bi-calendar-plus-fill me-2"></i> فتح يوم بيع جديد الآن
+                </a>
+                <a asp-action="History" class="btn btn-outline-dark btn-lg px-4 py-3 fw-bold">
+                    <i class="bi bi-clock-history me-2"></i> تصفح السجل التاريخي
+                </a>
+            </div>
+        </div>
+    }
+</div>

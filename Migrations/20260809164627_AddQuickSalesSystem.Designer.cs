@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YAGOT_2._0.Models;
@@ -11,9 +12,11 @@ using YAGOT_2._0.Models;
 namespace YAGOT_2._0.Migrations
 {
     [DbContext(typeof(NeondbContext))]
-    partial class NeondbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809164627_AddQuickSalesSystem")]
+    partial class AddQuickSalesSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,9 +47,6 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("carts_pkey");
 
-                    b.HasIndex(new[] { "Userid" }, "ux_carts_userid")
-                        .IsUnique();
-
                     b.ToTable("carts", (string)null);
                 });
 
@@ -76,10 +76,9 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("cartitems_pkey");
 
-                    b.HasIndex("Productid");
+                    b.HasIndex("Cartid");
 
-                    b.HasIndex(new[] { "Cartid", "Productid" }, "ux_cartitems_cartid_productid")
-                        .IsUnique();
+                    b.HasIndex("Productid");
 
                     b.ToTable("cartitems", (string)null);
                 });
@@ -206,12 +205,6 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("status");
 
-                    b.Property<bool>("Stockdeducted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("stockdeducted");
-
                     b.Property<DateTime?>("TimeState")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -233,8 +226,6 @@ namespace YAGOT_2._0.Migrations
 
                     b.HasKey("Id")
                         .HasName("orders_pkey");
-
-                    b.HasIndex("Userid");
 
                     b.ToTable("orders", (string)null);
                 });
@@ -815,8 +806,6 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("securitylogs_pkey");
 
-                    b.HasIndex("Userid");
-
                     b.ToTable("securitylogs", (string)null);
                 });
 
@@ -928,12 +917,6 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
-                    b.HasIndex(new[] { "Email" }, "ux_users_email")
-                        .IsUnique();
-
-                    b.HasIndex(new[] { "Phone" }, "ux_users_phone")
-                        .IsUnique();
-
                     b.ToTable("users", (string)null);
                 });
 
@@ -951,15 +934,12 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying")
                         .HasDefaultValueSql("'Customer'::character varying");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("UserID");
 
                     b.HasKey("Id")
                         .HasName("UserSite_pkey");
-
-                    b.HasAlternateKey("UserId")
-                        .HasName("AK_UserSite_UserID");
 
                     b.ToTable("UserSite", (string)null);
                 });
@@ -1015,17 +995,6 @@ namespace YAGOT_2._0.Migrations
                     b.ToTable("visits", (string)null);
                 });
 
-            modelBuilder.Entity("YAGOT_2._0.Models.Cart", b =>
-                {
-                    b.HasOne("YAGOT_2._0.Models.UserSite", null)
-                        .WithMany("Carts")
-                        .HasForeignKey("Userid")
-                        .HasPrincipalKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_cart");
-                });
-
             modelBuilder.Entity("YAGOT_2._0.Models.Cartitem", b =>
                 {
                     b.HasOne("YAGOT_2._0.Models.Cart", "Cart")
@@ -1045,17 +1014,6 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Cart");
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("YAGOT_2._0.Models.Order", b =>
-                {
-                    b.HasOne("YAGOT_2._0.Models.UserSite", null)
-                        .WithMany("Orders")
-                        .HasForeignKey("Userid")
-                        .HasPrincipalKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_order");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Orderdetail", b =>
@@ -1167,12 +1125,6 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("PaymentMethod");
 
                     b.Navigation("Sale");
-                    b.HasOne("YAGOT_2._0.Models.UserSite", null)
-                        .WithMany("Securitylogs")
-                        .HasForeignKey("Userid")
-                        .HasPrincipalKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_user_logs");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Cart", b =>

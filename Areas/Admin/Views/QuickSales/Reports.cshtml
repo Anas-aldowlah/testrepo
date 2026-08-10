@@ -1,0 +1,245 @@
+@model YAGOT_2._0.Models.Admin.QuickSalesReportsIndexViewModel
+@{
+    ViewData["Title"] = "تقارير البيع السريع";
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">البيع السريع</a>
+    <span>/</span>
+    <span>التقارير</span>
+}
+
+<div class="container-fluid px-0">
+    <!-- HEADER BAR -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-bar-chart-line-fill text-warning me-2"></i>
+                تقارير مبيعات المنفذ (POS Reports & Analytics)
+            </h2>
+            <p class="text-muted small mb-0">تحليلات المبيعات، تفكيك التحصيل حسب طريقة الدفع، والمنتجات الأكثر مبيعاً</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="History" class="btn btn-outline-secondary px-3 py-2 fw-bold">
+                <i class="bi bi-clock-history me-1"></i> سجل الأيام
+            </a>
+            <a asp-action="Index" class="btn btn-outline-dark px-3 py-2 fw-bold">الرئيسية</a>
+        </div>
+    </div>
+
+    <!-- DATE RANGE FILTER FORM -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form asp-action="Reports" method="get" class="row g-2 align-items-center">
+                <div class="col-md-4 col-lg-3">
+                    <label class="form-label text-muted small mb-1 fw-bold">من تاريخ:</label>
+                    <input type="date" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label class="form-label text-muted small mb-1 fw-bold">إلى تاريخ:</label>
+                    <input type="date" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-4 col-lg-3 d-flex align-items-end pt-3 pt-md-0">
+                    <button type="submit" class="btn btn-yaqut-gold btn-sm px-4 py-2 fw-bold w-100 shadow-sm">
+                        <i class="bi bi-funnel-fill me-1"></i> تطبيق التصفية
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- METRIC SUMMARY CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small d-block mb-1">المبيعات الإجمالية</span>
+                        <h3 class="fw-bold mb-0 text-dark">@Model.GrossSales.ToString("N2") <small class="fs-6 text-muted">ر.س</small></h3>
+                    </div>
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3">
+                        <i class="bi bi-bag-check fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small d-block mb-1">إجمالي الخصومات</span>
+                        <h3 class="fw-bold mb-0 text-danger">@Model.TotalDiscounts.ToString("N2") <small class="fs-6">ر.س</small></h3>
+                    </div>
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3">
+                        <i class="bi bi-tag fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small d-block mb-1">صافي المبيعات (Net Revenue)</span>
+                        <h3 class="fw-bold mb-0 text-success">@Model.NetSales.ToString("N2") <small class="fs-6">ر.س</small></h3>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success p-3">
+                        <i class="bi bi-graph-up-arrow fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small d-block mb-1">عدد العمليات المكتملة</span>
+                        <h3 class="fw-bold mb-0 text-dark">@Model.TotalOperations <small class="fs-6 text-muted">عملية</small></h3>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 text-info p-3">
+                        <i class="bi bi-receipt-cutoff fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- REPORT 2: SALES BY PAYMENT METHOD -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white py-3 px-4 border-bottom">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-pie-chart-fill text-warning me-2"></i> تقرير التحصيل حسب طريقة الدفع
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    @if (!Model.PaymentTotals.Any())
+                    {
+                        <div class="text-center text-muted py-4">لا توجد تحصيلات مسجلة في هذه الفترة.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var pm in Model.PaymentTotals)
+                            {
+                                var pct = Model.NetSales > 0 ? (pm.TotalAmount / Model.NetSales) * 100m : 0m;
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark">@pm.PaymentMethodName </span>
+                                        <strong class="text-warning">@pm.TotalAmount.ToString("N2") ر.س (@pct.ToString("N1")%)</strong>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: @pct.ToString("0.0")%" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORT 3: PRODUCTS SOLD -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header py-3 px-4 border-bottom">
+                    <h5 class="card-title fw-bold mb-0">
+                        <i class="bi bi-trophy-fill text-warning me-2"></i> تقرير المنتجات الأكثر مبيعاً
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-nowrap">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>اسم المنتج</th>
+                                <th class="text-center">الكمية المباعة</th>
+                                <th class="text-end">إجمالي الإيراد</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.TopProducts.Any())
+                            {
+                                <tr><td colspan="3" class="text-center pos-text-muted py-4">لا توجد مبيعات منتجات في هذه الفترة.</td></tr>
+                            }
+                            else
+                            {
+                                foreach (var prod in Model.TopProducts)
+                                {
+                                    <tr>
+                                        <td><strong class="fw-bold">@prod.ProductName</strong></td>
+                                        <td class="text-center"><span class="badge bg-secondary px-3 py-1 fw-bold">@prod.TotalQuantitySold قطعة</span></td>
+                                        <td class="text-end"><strong class="text-warning">@prod.TotalRevenue.ToString("N2") ر.س</strong></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT TRANSACTIONS SAMPLE TABLE -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header py-3 px-4 border-bottom">
+            <h5 class="card-title fw-bold mb-0">
+                <i class="bi bi-receipt text-warning me-2"></i> سجل أحدث عمليات البيع المكتملة
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-nowrap">
+                <thead class="bg-light">
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>تاريخ الاعتماد</th>
+                        <th>العميل</th>
+                        <th>طرق الدفع</th>
+                        <th>الإجمالي النهائي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.SampleCompletedSales.Any())
+                    {
+                        <tr><td colspan="5" class="text-center pos-text-muted py-4">لا توجد فواتير مكتملة في هذه الفترة.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var sale in Model.SampleCompletedSales)
+                        {
+                            <tr>
+                                <td><strong class="text-warning">@sale.InvoiceNumber</strong></td>
+                                <td class="pos-text-muted small">@((sale.CompletedAt ?? sale.CreatedAt).ToString("yyyy/MM/dd HH:mm"))</td>
+                                <td>@(string.IsNullOrWhiteSpace(sale.CustomerName) ? "عميل عادي" : sale.CustomerName)</td>
+                                <td>
+                                    @if (sale.SalePayments != null && sale.SalePayments.Any())
+                                    {
+                                        <div class="d-flex flex-column gap-1">
+                                            @foreach (var sp in sale.SalePayments)
+                                            {
+                                                <div>
+                                                    <span class="badge bg-dark text-warning border border-secondary px-2 py-1">
+                                                        <i class="bi bi-wallet2 me-1"></i>@(sp.PaymentMethod?.Name ?? "دفع"): @sp.Amount.ToString("N2") ر.س
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="pos-text-muted">-</span>
+                                    }
+                                </td>
+                                <td><strong class="fs-6 fw-bold">@sale.FinalAmount.ToString("N2") ر.س</strong></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

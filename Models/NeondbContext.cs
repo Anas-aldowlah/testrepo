@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,6 +42,14 @@ public partial class NeondbContext : DbContext
     public virtual DbSet<UserSite> UserSites { get; set; }
 
     public virtual DbSet<Visit> Visits { get; set; }
+
+    public virtual DbSet<SalesDay> SalesDays { get; set; }
+
+    public virtual DbSet<Sale> Sales { get; set; }
+
+    public virtual DbSet<SaleItem> SaleItems { get; set; }
+
+    public virtual DbSet<SalePayment> SalePayments { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -467,6 +475,198 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Visitorname)
                 .HasMaxLength(100)
                 .HasColumnName("visitorname");
+        });
+
+        modelBuilder.Entity<SalesDay>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sales_days_pkey");
+
+            entity.ToTable("sales_days");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Date)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("date");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'Open'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.OpeningBalance)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("opening_balance");
+            entity.Property(e => e.TotalSales)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_sales");
+            entity.Property(e => e.TotalCash)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_cash");
+            entity.Property(e => e.TotalTransfer)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_transfer");
+            entity.Property(e => e.TotalWallet)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_wallet");
+            entity.Property(e => e.TotalReturns)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_returns");
+            entity.Property(e => e.NetTotal)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("net_total");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(150)
+                .HasColumnName("created_by");
+            entity.Property(e => e.ClosedBy)
+                .HasMaxLength(150)
+                .HasColumnName("closed_by");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ClosedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("closed_at");
+        });
+
+        modelBuilder.Entity<Sale>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sales_pkey");
+
+            entity.ToTable("sales");
+
+            entity.HasIndex(e => e.SalesDayId, "ix_sales_sales_day_id");
+            entity.HasIndex(e => e.InvoiceNumber, "ix_sales_invoice_number").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SalesDayId).HasColumnName("sales_day_id");
+            entity.Property(e => e.InvoiceNumber)
+                .HasMaxLength(100)
+                .HasColumnName("invoice_number");
+            entity.Property(e => e.CustomerName)
+                .HasMaxLength(150)
+                .HasColumnName("customer_name");
+            entity.Property(e => e.CustomerPhone)
+                .HasMaxLength(50)
+                .HasColumnName("customer_phone");
+            entity.Property(e => e.TotalAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total_amount");
+            entity.Property(e => e.DiscountTotal)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("discount_total");
+            entity.Property(e => e.FinalAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("final_amount");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'Draft'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(150)
+                .HasColumnName("created_by");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CompletedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("completed_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.SalesDay).WithMany(p => p.Sales)
+                .HasForeignKey(d => d.SalesDayId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_sales_sales_day");
+        });
+
+        modelBuilder.Entity<SaleItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_items_pkey");
+
+            entity.ToTable("sale_items", t => t.HasCheckConstraint("CK_SaleItem_Quantity_Positive", "quantity > 0"));
+
+            entity.HasIndex(e => e.SaleId, "ix_sale_items_sale_id");
+            entity.HasIndex(e => e.ProductId, "ix_sale_items_product_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SaleId).HasColumnName("sale_id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductName)
+                .HasMaxLength(255)
+                .HasColumnName("product_name");
+            entity.Property(e => e.Quantity)
+                .HasDefaultValue(1)
+                .HasColumnName("quantity");
+            entity.Property(e => e.UnitPrice)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("unit_price");
+            entity.Property(e => e.Discount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("discount");
+            entity.Property(e => e.Total)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("total");
+
+            entity.HasOne(d => d.Sale).WithMany(p => p.SaleItems)
+                .HasForeignKey(d => d.SaleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_sale_items_sale");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.SaleItems)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_sale_items_product");
+        });
+
+        modelBuilder.Entity<SalePayment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_payments_pkey");
+
+            entity.ToTable("sale_payments", t => t.HasCheckConstraint("CK_SalePayment_Amount_Positive", "amount > 0"));
+
+            entity.HasIndex(e => e.SaleId, "ix_sale_payments_sale_id");
+            entity.HasIndex(e => e.PaymentMethodId, "ix_sale_payments_payment_method_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SaleId).HasColumnName("sale_id");
+            entity.Property(e => e.PaymentMethodId).HasColumnName("payment_method_id");
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("amount");
+            entity.Property(e => e.TransactionReference)
+                .HasMaxLength(150)
+                .HasColumnName("transaction_reference");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.Sale).WithMany(p => p.SalePayments)
+                .HasForeignKey(d => d.SaleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_sale_payments_sale");
+
+            entity.HasOne(d => d.PaymentMethod).WithMany(p => p.SalePayments)
+                .HasForeignKey(d => d.PaymentMethodId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_sale_payments_payment_method");
         });
 
         OnModelCreatingPartial(modelBuilder);

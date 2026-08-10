@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
@@ -24,4 +24,6 @@ public partial class Paymentmethod
     public int Storesettingsid { get; set; }
 
     public virtual Storesetting Storesettings { get; set; } = null!;
+
+    public virtual ICollection<SalePayment> SalePayments { get; set; } = new List<SalePayment>();
 }
