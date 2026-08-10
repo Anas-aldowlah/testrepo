@@ -11,15 +11,21 @@ public class GuestCartService
     private const string CookieName = "YAGOT.GuestCart";
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly NeondbContext _context;
-    private readonly CartService _cartService;
+    private readonly CartLockService _cartLock;
+    private readonly ILogger<GuestCartService> _logger;
 
     public string? Message { get; private set; }
 
-    public GuestCartService(IHttpContextAccessor httpContextAccessor, NeondbContext context, CartService cartService)
+    public GuestCartService(
+        IHttpContextAccessor httpContextAccessor,
+        NeondbContext context,
+        CartLockService cartLock,
+        ILogger<GuestCartService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
-        _cartService = cartService;
+        _cartLock = cartLock;
+        _logger = logger;
     }
 
     public async Task<Cart> GetCartAsync()
@@ -27,15 +33,16 @@ public class GuestCartService
         var guestItems = ReadItems();
         var productIds = guestItems.Select(i => i.ProductId).ToList();
         var products = await _context.Products
+            .AsNoTracking()
             .Include(p => p.Category)
             .Where(p => productIds.Contains(p.Id))
             .ToListAsync();
+        var productsById = products.ToDictionary(p => p.Id);
 
         var cartItems = guestItems
             .Select(item =>
             {
-                var product = products.FirstOrDefault(p => p.Id == item.ProductId);
-                if (product == null) return null;
+                if (!productsById.TryGetValue(item.ProductId, out var product)) return null;
 
                 return new Cartitem
                 {
@@ -148,13 +155,111 @@ public class GuestCartService
 
     public async Task MergeIntoUserCartAsync(int userId)
     {
-        var items = ReadItems();
-        if (!items.Any()) return;
+        var guestItems = ReadItems()
+            .GroupBy(item => item.ProductId)
+            .Select(group => new GuestCartItem
+            {
+                ProductId = group.Key,
+                Quantity = group.Sum(item => item.Quantity)
+            })
+            .ToList();
+        if (guestItems.Count == 0) return;
 
-        foreach (var item in items)
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await _cartService.AddToCartAsync(userId, item.ProductId, item.Quantity);
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _cartLock.AcquireAsync(userId);
+
+                var cart = await _context.Carts.SingleOrDefaultAsync(c => c.Userid == userId);
+                if (cart == null)
+                {
+                    cart = new Cart { Userid = userId };
+                    _context.Carts.Add(cart);
+                }
+
+                var productIds = guestItems.Select(i => i.ProductId).Distinct().ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id);
+
+                var existingCartItems = cart.Id == 0
+                    ? []
+                    : await _context.Cartitems
+                        .Where(i => i.Cartid == cart.Id && productIds.Contains(i.Productid))
+                        .OrderByDescending(i => i.Id)
+                        .ToListAsync();
+                var existingItems = new Dictionary<int, Cartitem>();
+                foreach (var group in existingCartItems.GroupBy(item => item.Productid))
+                {
+                    var retainedItem = group.First();
+                    retainedItem.Quantity = group.Sum(item => item.Quantity);
+                    existingItems.Add(group.Key, retainedItem);
+                    _context.Cartitems.RemoveRange(group.Skip(1));
+                }
+
+                foreach (var guestItem in guestItems)
+                {
+                    if (!products.TryGetValue(guestItem.ProductId, out var product) || product.Stockquantity <= 0)
+                        continue;
+
+                    if (existingItems.TryGetValue(guestItem.ProductId, out var existingItem))
+                    {
+                        existingItem.Quantity = Math.Min(
+                            existingItem.Quantity + guestItem.Quantity,
+                            product.Stockquantity);
+                        continue;
+                    }
+
+                    var newItem = new Cartitem
+                    {
+                        Cart = cart,
+                        Productid = guestItem.ProductId,
+                        Quantity = Math.Min(guestItem.Quantity, product.Stockquantity)
+                    };
+                    _context.Cartitems.Add(newItem);
+                    existingItems.Add(guestItem.ProductId, newItem);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception rollbackException)
+                {
+                    _logger.LogWarning(
+                        rollbackException,
+                        "Rollback failed while merging a guest cart for user {UserId}.",
+                        userId);
+                }
+
+                _context.ChangeTracker.Clear();
+                _logger.LogError(
+                    exception,
+                    "Merging the guest cart failed for user {UserId}.",
+                    userId);
+                try
+                {
+                    await _context.Database.CloseConnectionAsync();
+                }
+                catch (Exception closeException)
+                {
+                    _logger.LogWarning(
+                        closeException,
+                        "Closing the database connection failed after merging the guest cart for user {UserId}.",
+                        userId);
+                }
+
+                throw;
+            }
+        });
 
         Clear();
     }
@@ -178,13 +283,15 @@ public class GuestCartService
                 .Select(g => new GuestCartItem { ProductId = g.Key, Quantity = g.Sum(i => i.Quantity) })
                 .ToList() ?? [];
         }
-        catch (FormatException)
+        catch (FormatException exception)
         {
+            _logger.LogWarning(exception, "Discarding a malformed guest-cart cookie.");
             Clear();
             return [];
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
+            _logger.LogWarning(exception, "Discarding an invalid guest-cart cookie payload.");
             Clear();
             return [];
         }

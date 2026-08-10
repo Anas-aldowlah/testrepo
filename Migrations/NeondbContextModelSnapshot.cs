@@ -37,9 +37,6 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnName("createdat")
                         .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)");
 
-                    b.Property<int?>("UserSiteId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Userid")
                         .HasColumnType("integer")
                         .HasColumnName("userid");
@@ -47,7 +44,8 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("carts_pkey");
 
-                    b.HasIndex("UserSiteId");
+                    b.HasIndex(new[] { "Userid" }, "ux_carts_userid")
+                        .IsUnique();
 
                     b.ToTable("carts", (string)null);
                 });
@@ -78,9 +76,10 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("cartitems_pkey");
 
-                    b.HasIndex("Cartid");
-
                     b.HasIndex("Productid");
+
+                    b.HasIndex(new[] { "Cartid", "Productid" }, "ux_cartitems_cartid_productid")
+                        .IsUnique();
 
                     b.ToTable("cartitems", (string)null);
                 });
@@ -207,6 +206,12 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("status");
 
+                    b.Property<bool>("Stockdeducted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("stockdeducted");
+
                     b.Property<DateTime?>("TimeState")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -222,9 +227,6 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("trackingnumber");
 
-                    b.Property<int?>("UserSiteId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Userid")
                         .HasColumnType("integer")
                         .HasColumnName("userid");
@@ -232,7 +234,7 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("orders_pkey");
 
-                    b.HasIndex("UserSiteId");
+                    b.HasIndex("Userid");
 
                     b.ToTable("orders", (string)null);
                 });
@@ -477,6 +479,298 @@ namespace YAGOT_2._0.Migrations
                     b.ToTable("products", (string)null);
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("customer_name");
+
+                    b.Property<string>("CustomerPhone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("customer_phone");
+
+                    b.Property<decimal>("DiscountTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_total");
+
+                    b.Property<decimal>("FinalAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("final_amount");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("SalesDayId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sales_day_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status")
+                        .HasDefaultValueSql("'Draft'::character varying");
+
+                    b.Property<decimal>("TotalAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_amount");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("sales_pkey");
+
+                    b.HasIndex(new[] { "SalesDayId" }, "ix_sales_sales_day_id");
+
+                    b.ToTable("sales", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SaleItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Discount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("product_name");
+
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("quantity");
+
+                    b.Property<int>("SaleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sale_id");
+
+                    b.Property<decimal>("Total")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total");
+
+                    b.Property<decimal>("UnitPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("unit_price");
+
+                    b.HasKey("Id")
+                        .HasName("sale_items_pkey");
+
+                    b.HasIndex(new[] { "ProductId" }, "ix_sale_items_product_id");
+
+                    b.HasIndex(new[] { "SaleId" }, "ix_sale_items_sale_id");
+
+                    b.ToTable("sale_items", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SalePayment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)");
+
+                    b.Property<int>("PaymentMethodId")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_method_id");
+
+                    b.Property<int>("SaleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sale_id");
+
+                    b.Property<string>("TransactionReference")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("transaction_reference");
+
+                    b.HasKey("Id")
+                        .HasName("sale_payments_pkey");
+
+                    b.HasIndex(new[] { "PaymentMethodId" }, "ix_sale_payments_payment_method_id");
+
+                    b.HasIndex(new[] { "SaleId" }, "ix_sale_payments_sale_id");
+
+                    b.ToTable("sale_payments", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SalesDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("ClosedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("closed_by");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("(CURRENT_TIMESTAMP + '03:00:00'::interval)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("date");
+
+                    b.Property<decimal>("NetTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("net_total");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("opening_balance");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status")
+                        .HasDefaultValueSql("'Open'::character varying");
+
+                    b.Property<decimal>("TotalCash")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_cash");
+
+                    b.Property<decimal>("TotalReturns")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_returns");
+
+                    b.Property<decimal>("TotalSales")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_sales");
+
+                    b.Property<decimal>("TotalTransfer")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_transfer");
+
+                    b.Property<decimal>("TotalWallet")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_wallet");
+
+                    b.HasKey("Id")
+                        .HasName("sales_days_pkey");
+
+                    b.ToTable("sales_days", (string)null);
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Securitylog", b =>
                 {
                     b.Property<int>("Id")
@@ -514,9 +808,6 @@ namespace YAGOT_2._0.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("riskscore");
 
-                    b.Property<int?>("UserSiteId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("Userid")
                         .HasColumnType("integer")
                         .HasColumnName("userid");
@@ -524,7 +815,7 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("securitylogs_pkey");
 
-                    b.HasIndex("UserSiteId");
+                    b.HasIndex("Userid");
 
                     b.ToTable("securitylogs", (string)null);
                 });
@@ -542,6 +833,22 @@ namespace YAGOT_2._0.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
                         .HasColumnName("contactemail")
+                        .HasDefaultValueSql("''::text");
+
+                    b.Property<int?>("Featuredcategoryid")
+                        .HasColumnType("integer")
+                        .HasColumnName("featuredcategoryid");
+
+                    b.Property<string>("Heromarketingdesc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasColumnName("heromarketingdesc")
+                        .HasDefaultValueSql("''::text");
+
+                    b.Property<string>("Heromarketingtext")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasColumnName("heromarketingtext")
                         .HasDefaultValueSql("''::text");
 
                     b.Property<string>("Instagramlink")
@@ -621,6 +928,12 @@ namespace YAGOT_2._0.Migrations
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
+                    b.HasIndex(new[] { "Email" }, "ux_users_email")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "Phone" }, "ux_users_phone")
+                        .IsUnique();
+
                     b.ToTable("users", (string)null);
                 });
 
@@ -638,12 +951,15 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying")
                         .HasDefaultValueSql("'Customer'::character varying");
 
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("UserID");
 
                     b.HasKey("Id")
                         .HasName("UserSite_pkey");
+
+                    b.HasAlternateKey("UserId")
+                        .HasName("AK_UserSite_UserID");
 
                     b.ToTable("UserSite", (string)null);
                 });
@@ -703,7 +1019,11 @@ namespace YAGOT_2._0.Migrations
                 {
                     b.HasOne("YAGOT_2._0.Models.UserSite", null)
                         .WithMany("Carts")
-                        .HasForeignKey("UserSiteId");
+                        .HasForeignKey("Userid")
+                        .HasPrincipalKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_cart");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Cartitem", b =>
@@ -731,7 +1051,11 @@ namespace YAGOT_2._0.Migrations
                 {
                     b.HasOne("YAGOT_2._0.Models.UserSite", null)
                         .WithMany("Orders")
-                        .HasForeignKey("UserSiteId");
+                        .HasForeignKey("Userid")
+                        .HasPrincipalKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_order");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Orderdetail", b =>
@@ -791,11 +1115,64 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("YAGOT_2._0.Models.Securitylog", b =>
+            modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
                 {
+                    b.HasOne("YAGOT_2._0.Models.SalesDay", "SalesDay")
+                        .WithMany("Sales")
+                        .HasForeignKey("SalesDayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sales_sales_day");
+
+                    b.Navigation("SalesDay");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SaleItem", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Product", "Product")
+                        .WithMany("SaleItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_items_product");
+
+                    b.HasOne("YAGOT_2._0.Models.Sale", "Sale")
+                        .WithMany("SaleItems")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_items_sale");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SalePayment", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Paymentmethod", "PaymentMethod")
+                        .WithMany("SalePayments")
+                        .HasForeignKey("PaymentMethodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_payments_payment_method");
+
+                    b.HasOne("YAGOT_2._0.Models.Sale", "Sale")
+                        .WithMany("SalePayments")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_payments_sale");
+
+                    b.Navigation("PaymentMethod");
+
+                    b.Navigation("Sale");
                     b.HasOne("YAGOT_2._0.Models.UserSite", null)
                         .WithMany("Securitylogs")
-                        .HasForeignKey("UserSiteId");
+                        .HasForeignKey("Userid")
+                        .HasPrincipalKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_user_logs");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Cart", b =>
@@ -815,25 +1192,35 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Orderitems");
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.Paymentmethod", b =>
+                {
+                    b.Navigation("SalePayments");
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Product", b =>
                 {
                     b.Navigation("Cartitems");
 
                     b.Navigation("Orderitems");
+
+                    b.Navigation("SaleItems");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
+                {
+                    b.Navigation("SaleItems");
+
+                    b.Navigation("SalePayments");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SalesDay", b =>
+                {
+                    b.Navigation("Sales");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Storesetting", b =>
                 {
                     b.Navigation("Paymentmethods");
-                });
-
-            modelBuilder.Entity("YAGOT_2._0.Models.UserSite", b =>
-                {
-                    b.Navigation("Carts");
-
-                    b.Navigation("Orders");
-
-                    b.Navigation("Securitylogs");
                 });
 #pragma warning restore 612, 618
         }

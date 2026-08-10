@@ -5,22 +5,16 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
+using YAGOT_2._0.Services;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize]
+[Authorize(Roles = "Admin,Developer")]
 public class OrdersController : Controller
 {
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
-
-    private static readonly HashSet<string> ActiveStatuses =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Processed",
-            "Shipped",
-            "Delivered"
-        };
+    private readonly OrderService _orderService;
 
     private static readonly HashSet<string> AllowedStatuses =
         new(StringComparer.OrdinalIgnoreCase)
@@ -29,13 +23,15 @@ public class OrdersController : Controller
             "Processed",
             "Shipped",
             "Delivered",
-            "Cancelled"
+            "Cancelled",
+            "Refunded"
         };
 
-    public OrdersController(NeondbContext context, UsersDbContext dbUser)
+    public OrdersController(NeondbContext context, UsersDbContext dbUser, OrderService orderService)
     {
         _context = context;
         _dbUser = dbUser;
+        _orderService = orderService;
     }
 
     public async Task<IActionResult> Index(string[]? status, string? search, int page = 1, int pageSize = 10)
@@ -159,74 +155,21 @@ public class OrdersController : Controller
         int page = 1,
         int pageSize = 10)
     {
-        if (string.IsNullOrWhiteSpace(status))
-        {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "Invalid status." });
-            return BadRequest();
-        }
-
-        status = status.Trim();
-
-        if (!AllowedStatuses.Contains(status))
-        {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "Invalid order status." });
+        var normalizedStatus = OrderService.NormalizeStatus(status);
+        if (normalizedStatus == null || !AllowedStatuses.Contains(normalizedStatus))
             return BadRequest("Invalid order status.");
         }
 
-        var order = await _context.Orders
-            .Include(o => o.Orderitems)
-                .ThenInclude(oi => oi.Product)
-            .FirstOrDefaultAsync(o => o.Id == id);
-
-        if (order == null)
-        {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "Order not found." });
-            return NotFound();
-        }
-
-        // ?? ??? ??? ??? ??? ???? ?????? ?????
-        if (order.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
-        {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true, message = "Status is already up to date.", status = order.Status });
-            return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
-        }
-
-        bool wasActive = ActiveStatuses.Contains(order.Status);
-        bool willBeActive = ActiveStatuses.Contains(status);
-
         try
         {
-            // ???????? ?? ???? ??? ????? ??? ???? ????? => ??? ???????
-            if (!wasActive && willBeActive)
-            {
-                if (!DeductStock(order))
-                {
-                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                        return Json(new { success = false, message = "One or more products do not have sufficient stock." });
-                    TempData["Error"] = "One or more products do not have sufficient stock.";
-                    return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
-                }
-            }
-
-            // ???????? ?? ???? ????? ??? ???? ??? ????? => ????? ???????
-            if (wasActive && !willBeActive)
-            {
-                RestoreStock(order);
-            }
-
-            order.Status = status;
-            order.TimeState = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true, message = "Order status updated successfully.", status = order.Status, timeState = order.TimeState.Value.ToString("dd-MM-yyyy") });
+            if (!await _orderService.UpdateStatusAsync(id, normalizedStatus))
+                return NotFound();
 
             TempData["Success"] = "Order status updated successfully.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
         }
         catch
         {
@@ -258,64 +201,40 @@ public class OrdersController : Controller
         });
     }
 
-    /// <summary>
-    /// ??? ???? ????????.
-    /// </summary>
-    private bool DeductStock(Order order)
-    {
-        foreach (var item in order.Orderitems)
-        {
-            if (item.Product == null)
-                return false;
-
-            if (item.Product.Stockquantity < item.Quantity)
-                return false;
-        }
-
-        foreach (var item in order.Orderitems)
-        {
-            item.Product!.Stockquantity -= item.Quantity;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// ????? ???? ???????? ???????.
-    /// </summary>
-    private void RestoreStock(Order order)
-    {
-        foreach (var item in order.Orderitems)
-        {
-            if (item.Product != null)
-            {
-                item.Product.Stockquantity += item.Quantity;
-            }
-        }
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdatePaymentStatus(int id, string paymentStatus, bool returnToDetails = false)
     {
-        var order = await _context.Orders.FindAsync(id);
-        if (order == null)
-        {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "Order not found." });
-            return NotFound();
-        }
-
         var allowed = new[] { "Unpaid", "Pending", "Paid", "Refunded" };
         if (!allowed.Contains(paymentStatus))
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "حالة الدفع غير صالحة." });
             TempData["Error"] = "حالة الدفع غير صالحة.";
             return returnToDetails 
                 ? RedirectToAction(nameof(Details), new { id })
                 : RedirectToAction(nameof(Index));
         }
+
+        if (paymentStatus == "Refunded")
+        {
+            try
+            {
+                if (!await _orderService.UpdateStatusAsync(id, "Refunded", paymentStatus))
+                    return NotFound();
+
+                TempData["Success"] = $"تم استرداد الطلب #{id} وإعادة مخزونه بنجاح.";
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return returnToDetails
+                ? RedirectToAction(nameof(Details), new { id })
+                : RedirectToAction(nameof(Index));
+        }
+
+        var order = await _context.Orders.FindAsync(id);
+        if (order == null) return NotFound();
 
         order.Paymentstatus = paymentStatus;
         await _context.SaveChangesAsync();

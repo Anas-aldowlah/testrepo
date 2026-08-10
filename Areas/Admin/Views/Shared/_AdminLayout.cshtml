@@ -20,7 +20,15 @@
 <body class="yaqut-admin-body">
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-        bool IsActive(string controller) => string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase);
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+        bool IsActive(string controller, string action = "")
+        {
+            if (!string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (string.IsNullOrEmpty(action))
+                return true;
+            return string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+        }
         var pageTitle = ViewData["Title"]?.ToString() ?? "لوحة التحكم";
     }
 
@@ -56,6 +64,18 @@
                        aria-current="@(IsActive("Dashboard") ? "page" : null)" title="لوحة التحكم">
                         <i class="bi bi-speedometer2"></i>
                         <span>لوحة التحكم</span>
+                    </a>
+                    <a asp-area="Admin" asp-controller="QuickSales" asp-action="Index"
+                       class="yq-admin-nav__link @(IsActive("QuickSales") && !IsActive("QuickSales", "Reports") ? "is-active" : "")"
+                       aria-current="@(IsActive("QuickSales") && !IsActive("QuickSales", "Reports") ? "page" : null)" title="البيع السريع (POS)">
+                        <i class="bi bi-lightning-charge-fill text-warning"></i>
+                        <span>البيع السريع (POS)</span>
+                    </a>
+                    <a asp-area="Admin" asp-controller="QuickSales" asp-action="Reports"
+                       class="yq-admin-nav__link @(IsActive("QuickSales", "Reports") ? "is-active" : "")"
+                       aria-current="@(IsActive("QuickSales", "Reports") ? "page" : null)" title="تقارير POS">
+                        <i class="bi bi-bar-chart-line-fill text-info"></i>
+                        <span>تقارير POS</span>
                     </a>
                 </div>
 

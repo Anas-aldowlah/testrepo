@@ -1,8 +1,10 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Admin Layout Shell
    Shared admin structure only. Page-specific admin styles belong elsewhere.
    ========================================================================== */
-
+.bg-dark {
+    background-color: #ffffff !important; /* ضع اللون الغامق المناسب لك هنا */
+}
 .yaqut-admin-body {
     min-height: 100vh;
     overflow-x: clip;
@@ -1333,4 +1335,203 @@
     .yq-admin-topbar__actions {
         margin-inline-start: auto;
     }
+}
+
+/* Green Badge & Text Contrast Fix */
+.badge.bg-success,
+.badge.bg-success.text-success,
+.badge.bg-success.bg-opacity-25.text-success,
+.badge.bg-success.bg-opacity-15.text-success,
+.badge.bg-success.bg-opacity-10.text-success {
+    color: #ffffff !important;
+    background-color: #15803d !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-success * {
+    color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POS DARK MODE COMPLETE CONTRAST & VISIBILITY OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+.pos-text-main {
+    color: var(--pos-text-main, inherit) !important;
+}
+
+.pos-text-muted {
+    color: var(--pos-text-muted, #64748b) !important;
+}
+
+.dark-mode .pos-text-muted,
+body.dark-mode .pos-text-muted,
+html[data-theme="dark"] .pos-text-muted,
+.theme-dark .pos-text-muted {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .pos-text-main,
+body.dark-mode .pos-text-main,
+html[data-theme="dark"] .pos-text-main,
+.theme-dark .pos-text-main {
+    color: #f8fafc !important;
+}
+
+.dark-mode .text-dark,
+body.dark-mode .text-dark,
+html[data-theme="dark"] .text-dark,
+.theme-dark .text-dark {
+    color: #f8fafc !important;
+}
+
+.dark-mode .text-muted,
+body.dark-mode .text-muted,
+html[data-theme="dark"] .text-muted,
+.theme-dark .text-muted {
+    color: #cbd5e1 !important;
+}
+
+.dark-mode .bg-white,
+body.dark-mode .bg-white,
+html[data-theme="dark"] .bg-white,
+.theme-dark .bg-white {
+    background-color: #111622 !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .bg-light,
+body.dark-mode .bg-light,
+html[data-theme="dark"] .bg-light,
+.theme-dark .bg-light {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .card,
+body.dark-mode .card,
+html[data-theme="dark"] .card,
+.theme-dark .card {
+    background-color: #111622 !important;
+    border-color: rgba(212, 175, 55, 0.25) !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .card-header,
+body.dark-mode .card-header,
+html[data-theme="dark"] .card-header,
+.theme-dark .card-header {
+    background-color: #1e293b !important;
+    border-bottom-color: rgba(212, 175, 55, 0.25) !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .card-footer,
+body.dark-mode .card-footer,
+html[data-theme="dark"] .card-footer,
+.theme-dark .card-footer {
+    background-color: #1e293b !important;
+    border-top-color: rgba(212, 175, 55, 0.25) !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .table,
+body.dark-mode .table,
+html[data-theme="dark"] .table,
+.theme-dark .table {
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    --bs-table-bg: #111622 !important;
+    --bs-table-color: #f8fafc !important;
+}
+
+.dark-mode .table thead th,
+body.dark-mode .table thead th,
+html[data-theme="dark"] .table thead th,
+.theme-dark .table thead th {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: rgba(212, 175, 55, 0.3) !important;
+    --bs-table-bg: #0f172a !important;
+    --bs-table-color: #ffffff !important;
+}
+
+.dark-mode .table tbody tr,
+body.dark-mode .table tbody tr,
+html[data-theme="dark"] .table tbody tr,
+.theme-dark .table tbody tr,
+.dark-mode .table tbody td,
+body.dark-mode .table tbody td,
+html[data-theme="dark"] .table tbody td,
+.theme-dark .table tbody td {
+    background-color: #111622 !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    --bs-table-bg: #111622 !important;
+    --bs-table-color: #f8fafc !important;
+}
+
+.dark-mode .table-hover tbody tr:hover,
+body.dark-mode .table-hover tbody tr:hover,
+html[data-theme="dark"] .table-hover tbody tr:hover,
+.theme-dark .table-hover tbody tr:hover,
+.dark-mode .table-hover tbody tr:hover td,
+body.dark-mode .table-hover tbody tr:hover td,
+html[data-theme="dark"] .table-hover tbody tr:hover td,
+.theme-dark .table-hover tbody tr:hover td {
+    background-color: #1a2336 !important;
+    --bs-table-bg: #1a2336 !important;
+}
+
+.dark-mode .form-control,
+body.dark-mode .form-control,
+html[data-theme="dark"] .form-control,
+.theme-dark .form-control,
+.dark-mode .form-select,
+body.dark-mode .form-select,
+html[data-theme="dark"] .form-select,
+.theme-dark .form-select {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+.dark-mode .form-control::placeholder,
+body.dark-mode .form-control::placeholder,
+html[data-theme="dark"] .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .form-control:focus,
+body.dark-mode .form-control:focus,
+html[data-theme="dark"] .form-control:focus {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #d4af37 !important;
+    box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25) !important;
+}
+
+.dark-mode .form-control[readonly],
+body.dark-mode .form-control[readonly] {
+    background-color: #0f172a !important;
+    color: #d4af37 !important;
+}
+
+.dark-mode .btn-outline-dark,
+body.dark-mode .btn-outline-dark,
+html[data-theme="dark"] .btn-outline-dark {
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark-mode .btn-outline-secondary,
+body.dark-mode .btn-outline-secondary,
+html[data-theme="dark"] .btn-outline-secondary {
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark-mode .btn-outline-secondary:hover,
+body.dark-mode .btn-outline-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
 }

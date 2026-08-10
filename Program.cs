@@ -39,6 +39,37 @@ builder.Services.AddControllersWithViews()
 // Performance: In-memory cache for SiteStatus
 builder.Services.AddMemoryCache();
 
+// Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
+
+// Registration Session & OTP Service
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = "YAGOT.RegSession";
+});
+builder.Services.AddOptions<EmailOptions>()
+    .Bind(builder.Configuration.GetSection(EmailOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.FromAddress),
+        "Email:FromAddress is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Smtp.Host),
+        "Email:Smtp:Host is required.")
+    .Validate(options => options.Smtp.Port is > 0 and <= 65535,
+        "Email:Smtp:Port must be between 1 and 65535.")
+    .Validate(options => options.Smtp.TimeoutMilliseconds > 0,
+        "Email:Smtp:TimeoutMilliseconds must be greater than zero.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Smtp.UserName),
+        "Email:Smtp:UserName is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Smtp.Password),
+        "Email:Smtp:Password is required.")
+    .ValidateOnStart();
+builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
+
 static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
 {
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -81,12 +112,40 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             return Task.CompletedTask;
         };
     })
+    .AddCookie(AuthenticationSchemes.External, options =>
+    {
+        options.Cookie.Name = "YAGOT.External";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+        options.SlidingExpiration = false;
+    })
     .AddGoogle(options =>
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
 
-        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        // Google may only establish a short-lived external principal. The
+        // application cookie is issued by AccountController after account match.
+        options.SignInScheme = AuthenticationSchemes.External;
+        options.CallbackPath = "/signin-google";
+        options.UserInformationEndpoint = "https://www.googleapis.com/oauth2/v2/userinfo";
+        options.SaveTokens = false;
+
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+
+        // Keep both framework-standard and raw Google claim names available.
+        options.ClaimActions.MapJsonKey("email", "email");
+        options.ClaimActions.MapJsonKey("name", "name");
+        options.ClaimActions.MapJsonKey("id", "id");
+        options.ClaimActions.MapJsonKey("sub", "sub");
+        options.ClaimActions.MapJsonKey("picture", "picture");
+        options.ClaimActions.MapJsonKey("email_verified", "verified_email");
+        options.ClaimActions.MapJsonKey("google_email_verified", "verified_email");
     });
 
 builder.Services.AddCors(options =>
@@ -113,6 +172,7 @@ builder.Services.AddDbContext<UsersDbContext>(options =>
 
 //  انشاء كائن object (Dependency Injection - DI) كل مايتم انشاء HTTP Request
 builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ProductService>();
@@ -124,20 +184,10 @@ builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient
 
 var app = builder.Build();
 
-// Drop old database foreign key constraints pointing to the deleted users table
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<NeondbContext>();
-    try
-    {
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE carts DROP CONSTRAINT IF EXISTS fk_user_cart;");
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE orders DROP CONSTRAINT IF EXISTS fk_user_order;");
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE securitylogs DROP CONSTRAINT IF EXISTS fk_user_logs;");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error dropping constraints: {ex.Message}");
-    }
+    var dbContext = scope.ServiceProvider.GetRequiredService<NeondbContext>();
+    await dbContext.Database.MigrateAsync();
 }
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -159,7 +209,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAll");
-
+app.UseSession();
 app.UseAuthentication();
 
 app.Use(async (context, next) =>
@@ -198,7 +248,10 @@ app.Use(async (context, next) =>
 
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer") || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close") || context.Request.Path.StartsWithSegments("/Account/Auth"))
+    if (context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer")
+        || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close")
+        || context.Request.Path.StartsWithSegments("/Account/Auth")
+        || context.Request.Path.StartsWithSegments("/Account/Google"))
     {
         await next();
         return;

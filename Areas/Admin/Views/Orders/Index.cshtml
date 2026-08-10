@@ -137,6 +137,10 @@
                     <input type="checkbox" name="status" value="Cancelled" checked="@selectedStatus.Contains("Cancelled")" />
                     <span>ملغي</span>
                 </label>
+                <label>
+                    <input type="checkbox" name="status" value="Refunded" checked="@selectedStatus.Contains("Refunded")" />
+                    <span>مرتجع</span>
+                </label>
             </fieldset>
 
             <div class="yq-orders-filter-actions">
@@ -173,18 +177,12 @@
                             <th scope="col">حالة الدفع</th>
                             <th scope="col">حالة الطلب</th>
                             <th scope="col">تاريخ الطلب</th>
-                            <th scope="col">المعلومات السريعة</th>
                             <th scope="col">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @{
-                            var deliveryOrdersDict = ViewData["DeliveryOrders"] as Dictionary<int, YAGOT_2._0.Models.Deliveryorder>;
-                        }
                         @foreach (var order in orders)
                         {
-                            var dOrder = deliveryOrdersDict != null && deliveryOrdersDict.ContainsKey(order.Id) ? deliveryOrdersDict[order.Id] : null;
-
                             var statusLabel = order.Status switch
                             {
                                 "Pending" => "قيد الانتظار",
@@ -192,6 +190,7 @@
                                 "Shipped" => "تم الشحن",
                                 "Delivered" => "تم التوصيل",
                                 "Cancelled" => "ملغي",
+                                "Refunded" => "مرتجع",
                                 _ => order.Status
                             };
 
@@ -202,6 +201,7 @@
                                 "Shipped" => "yq-orders-badge--shipped",
                                 "Delivered" => "yq-orders-badge--delivered",
                                 "Cancelled" => "yq-orders-badge--cancelled",
+                                "Refunded" => "yq-orders-badge--cancelled",
                                 _ => "yq-orders-badge--neutral"
                             };
 
@@ -254,63 +254,56 @@
                                     </div>
                                 </td>
                                 <td data-label="حالة الدفع">
-                                    <div class="yq-orders-payment-method">
-                                        @(string.IsNullOrWhiteSpace(order.Paymentmethod) ? "غير متوفرة" : order.Paymentmethod)
-                                    </div>
+                                    <form asp-action="UpdatePaymentStatus" method="post" class="yq-order-payment-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <select name="paymentStatus" class="yq-order-status-select yq-payment-status-select" 
+                                                onchange="this.form.submit()" aria-label="حالة الدفع">
+                                            <option value="Unpaid" selected="@(order.Paymentstatus == "Unpaid" ? "selected" : null)">غير مدفوع</option>
+                                            <option value="Pending" selected="@(order.Paymentstatus == "Pending" ? "selected" : null)">قيد المراجعة</option>
+                                            <option value="Paid" selected="@(order.Paymentstatus == "Paid" ? "selected" : null)">مدفوع</option>
+                                            <option value="Refunded" selected="@(order.Paymentstatus == "Refunded" ? "selected" : null)">مسترد</option>
+                                        </select>
+                                    </form>
                                 </td>
                                 <td data-label="حالة الطلب">
-                                    <span class="yq-orders-badge @statusClass" id="status-badge-@order.Id">@statusLabel</span>
-                                    <small class="yq-orders-status-date" id="status-date-@order.Id">@(order.TimeState.HasValue ? order.TimeState.Value.ToString("dd/MM/yyyy") : "")</small>
+                                    <span class="yq-orders-badge @statusClass">@statusLabel</span>
+                                    @if (order.TimeState.HasValue)
+                                    {
+                                        <small class="yq-orders-status-date">@order.TimeState.Value.ToString("dd/MM/yyyy")</small>
+                                    }
                                 </td>
                                 <td data-label="تاريخ الطلب">
                                     <time class="yq-orders-date" datetime="@(order.Orderdate?.ToString("yyyy-MM-dd") ?? "")">
                                         @(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")
                                     </time>
                                 </td>
-                                <td data-label="المعلومات السريعة">
-                                    <div class="yq-orders-quick-info">
-                                        <button type="button" class="yq-orders-action-button" data-bs-toggle="popover" data-bs-placement="top" data-bs-custom-class="yq-popover-dark" data-bs-title="معلومات التوصيل والمستلم" data-bs-html="true" data-bs-content="<div class='yq-popover-grid'><div><span>اسم المستلم:</span> <strong>@(dOrder?.Fullname ?? customerName)</strong></div><div><span>رقم الجوال:</span> <strong>@(dOrder?.Phonenumber ?? customerPhone)</strong></div><div><span>رقم إضافي:</span> <strong>@(dOrder?.Secondphonenumber ?? "-")</strong></div><div><span>المحافظة:</span> <strong>@(dOrder?.Governorate ?? "-")</strong></div><div><span>المدينة:</span> <strong>@(dOrder?.City ?? "-")</strong></div></div>">
-                                            <i class="bi bi-geo-alt-fill"></i>
-                                        </button>
-
-                                        <button type="button" class="yq-orders-action-button" data-bs-toggle="popover" data-bs-placement="top" data-bs-custom-class="yq-popover-dark" data-bs-title="معلومات الدفع" data-bs-html="true" data-bs-content="<div class='yq-popover-grid'><div><span>وسيلة الدفع:</span> <strong>@(order.Paymentmethod ?? "-")</strong></div></div>">
-                                            <i class="bi bi-wallet-fill"></i>
-                                        </button>
-
-                                        @if (!string.IsNullOrWhiteSpace(order.Receipturl))
-                                        {
-                                            <button type="button" class="yq-orders-action-button" data-bs-toggle="popover" data-bs-placement="top" data-bs-custom-class="yq-popover-dark yq-popover-image" data-bs-html="true" data-bs-content="<img src='@order.Receipturl' alt='Receipt' class='img-fluid rounded' style='max-height: 250px;'>">
-                                                <i class="bi bi-receipt"></i>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button type="button" class="yq-orders-action-button" data-bs-toggle="popover" data-bs-placement="top" data-bs-custom-class="yq-popover-dark" data-bs-content="لم يتم رفع صورة اشعار الدفع">
-                                                <i class="bi bi-receipt"></i>
-                                            </button>
-                                        }
-                                    </div>
-                                </td>
                                 <td data-label="الإجراءات">
                                     <div class="yq-orders-action-stack">
-                                        <a asp-action="Details" asp-route-id="@order.Id" class="yq-orders-detail-link" title="التفاصيل">
+                                        <a asp-action="Details" asp-route-id="@order.Id" class="yq-orders-detail-link">
                                             <i class="bi bi-eye" aria-hidden="true"></i>
+                                            <span>التفاصيل</span>
                                         </a>
-                                        
-                                        <select class="yq-orders-status-select ajax-status-select" data-order-id="@order.Id" data-url="@Url.Action("UpdateStatus", "Orders")" aria-label="تحديث حالة الطلب">
-                                            <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
-                                            <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
-                                            <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
-                                            <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
-                                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
-                                        </select>
-                                        
-                                        <select class="yq-orders-status-select yq-payment-status-select ajax-payment-select" data-order-id="@order.Id" data-url="@Url.Action("UpdatePaymentStatus", "Orders")" aria-label="حالة الدفع">
-                                            <option value="Unpaid" selected="@(order.Paymentstatus == "Unpaid")">غير مدفوع</option>
-                                            <option value="Pending" selected="@(order.Paymentstatus == "Pending")">قيد المراجعة</option>
-                                            <option value="Paid" selected="@(order.Paymentstatus == "Paid")">مدفوع</option>
-                                            <option value="Refunded" selected="@(order.Paymentstatus == "Refunded")">مسترد</option>
-                                        </select>
+                                        <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                            <input type="hidden" name="Id" value="@order.Id" />
+                                            <input type="hidden" name="search" value="@search" />
+                                            <input type="hidden" name="page" value="@Model.Orders.CurrentPage" />
+                                            <input type="hidden" name="pageSize" value="@Model.Orders.PageSize" />
+                                            @foreach (var filterStatus in selectedStatus)
+                                            {
+                                                <input type="hidden" name="filterStatus" value="@filterStatus" />
+                                            }
+                                            <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
+                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" onchange="this.form.submit()">
+                                                <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
+                                                <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
+                                                <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
+                                                <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
+                                                <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
+                                                <option value="Refunded" selected="@(order.Status == "Refunded")">مرتجع</option>
+                                            </select>
+
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -341,7 +334,3 @@
         }
     </section>
 </section>
-
-@section Scripts {
-    <script src="~/js/admin/orders.js" asp-append-version="true"></script>
-}

@@ -79,9 +79,10 @@
                     <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-envelope"></i>
-                        <input asp-for="Email" type="email" class="yaqut-form-input" placeholder="example@email.com" />
+                        <input asp-for="Email" type="email" class="yaqut-form-input" readonly />
                     </div>
                     <span asp-validation-for="Email" class="text-danger small"></span>
+                    <small class="text-muted">تم توثيق البريد عبر Google ولا يمكن تغييره من الملف الشخصي.</small>
                 </div>
 
                 <div class="yaqut-form-group">

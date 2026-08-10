@@ -18,6 +18,7 @@
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
         "Cancelled" => "ملغي",
+        "Refunded" => "مرتجع",
         _ => Model.Status
     };
     var statusClass = Model.Status switch
@@ -27,11 +28,12 @@
         "Shipped" => "yq-orders-badge--shipped",
         "Delivered" => "yq-orders-badge--delivered",
         "Cancelled" => "yq-orders-badge--cancelled",
+        "Refunded" => "yq-orders-badge--cancelled",
         _ => "yq-orders-badge--neutral"
     };
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
-    var isCancelled = string.Equals(Model.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+    var isCancelled = Model.Status is "Cancelled" or "Refunded";
     if (currentStepIndex < 0)
     {
         currentStepIndex = 0;
@@ -258,6 +260,7 @@
                         <option value="Shipped" selected="@(Model.Status == "Shipped")">تم الشحن</option>
                         <option value="Delivered" selected="@(Model.Status == "Delivered")">تم التوصيل</option>
                         <option value="Cancelled" selected="@(Model.Status == "Cancelled")">ملغي</option>
+                        <option value="Refunded" selected="@(Model.Status == "Refunded")">مرتجع</option>
                     </select>
                     <button type="submit" class="btn-yaqut-gold">
                         <i class="bi bi-check2-circle" aria-hidden="true"></i>

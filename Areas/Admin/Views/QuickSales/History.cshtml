@@ -1,0 +1,120 @@
+@model List<YAGOT_2._0.Models.Admin.SalesDayHistoryItemDto>
+@{
+    ViewData["Title"] = "سجل دفاتر اليوم السابقة";
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">البيع السريع</a>
+    <span>/</span>
+    <span>سجل الأيام السابقة</span>
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-clock-history text-warning me-2"></i>
+                سجل دفاتر المبيعات اليومية (Sales History Ledgers)
+            </h2>
+            <p class="text-muted small mb-0">جميع دفاتر الأيام السابقة والحالية المؤرخة في السجل المالي للمتجر</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Ledger" class="btn btn-yaqut-gold fw-bold px-3 py-2 shadow-sm">
+                <i class="bi bi-journal-check me-1"></i> دفتر اليوم الحالي
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary px-3 py-2 fw-bold">الرئيسية</a>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4">
+            <div class="rounded-circle bg-light text-muted p-4 d-inline-flex mb-3">
+                <i class="bi bi-calendar-x display-4"></i>
+            </div>
+            <h4 class="h5 fw-bold mb-2">لا توجد دفاتر أيام سابقة مسجلة</h4>
+            <p class="text-muted small mb-4">قم بفتح أول يوم بيع لتبدأ بتوثيق العمليات اليومية في النظام.</p>
+            <div>
+                <a asp-action="OpenDay" class="btn btn-yaqut-gold px-4 py-2 fw-bold">
+                    <i class="bi bi-calendar-plus-fill me-1"></i> فتح يوم بيع جديد
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>تاريخ اليوم</th>
+                            <th>العهدة الافتتاحية</th>
+                            <th>عدد العمليات المكتملة</th>
+                            <th>المسودات النشطة</th>
+                            <th>إجمالي المبيعات</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإغلاق</th>
+                            <th>المُغلق بواسطة</th>
+                            <th class="text-end">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var isOpen = item.Status == "Open";
+                            <tr>
+                                <td>
+                                    <strong class="text-dark fs-6"><i class="bi bi-calendar3 text-warning me-1"></i> @item.Date.ToString("yyyy/MM/dd")</strong>
+                                </td>
+                                <td>@item.OpeningBalance.ToString("N2") ر.س</td>
+                                <td>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
+                                        @item.CompletedSalesCount عملية
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (item.DraftsCount > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark px-2 py-1">@item.DraftsCount مسودة</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">0</span>
+                                    }
+                                </td>
+                                <td>
+                                    <strong class="text-dark">@item.TotalSales.ToString("N2") ر.س</strong>
+                                </td>
+                                <td>
+                                    @if (isOpen)
+                                    {
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-3 py-1">مفتوح</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 px-3 py-1">
+                                            <i class="bi bi-lock-fill me-1"></i> مغلق (للقراءة فقط)
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-muted small">
+                                    @(item.ClosedAt.HasValue ? item.ClosedAt.Value.ToString("yyyy/MM/dd HH:mm") : "-")
+                                </td>
+                                <td class="text-muted small">
+                                    @(string.IsNullOrWhiteSpace(item.ClosedBy) ? "-" : item.ClosedBy)
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Ledger" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary fw-bold me-1 px-3">
+                                        <i class="bi bi-journal-text me-1"></i> عرض الدفتر
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

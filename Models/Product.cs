@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
@@ -28,4 +28,6 @@ public partial class Product
     public virtual Category Category { get; set; } = null!;
 
     public virtual ICollection<Orderitem> Orderitems { get; set; } = new List<Orderitem>();
+
+    public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
 }

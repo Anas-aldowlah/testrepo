@@ -39,12 +39,7 @@
             };
     }
     var checkoutPaymentMethods = paymentMethods.Any()
-        ? paymentMethods.Where(method => method.Isactive)
-                        .OrderBy(m => (string.Equals(m.Type, "other", StringComparison.OrdinalIgnoreCase) || 
-                                       m.Name.Contains("أخرى") || 
-                                       m.Name.Contains("اخرى")) ? 1 : 0)
-                        .ThenBy(m => m.Id)
-                        .ToList()
+        ? paymentMethods.Where(method => method.Isactive).ToList()
         : new List<YAGOT_2._0.Models.Paymentmethod> { PaymentInfo("al-amqi", "العمقي") };
     var selectedPaymentExists = checkoutPaymentMethods.Any(method => string.Equals(method.Type, selectedPaymentMethod, StringComparison.OrdinalIgnoreCase));
     if (!selectedPaymentExists)
@@ -111,9 +106,15 @@
           id="yqCheckoutForm"
           data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
           data-yq-auth-modal="yqCheckoutAuthModal"
-          data-yq-validate
           novalidate>
         @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="SubmittedCartTotal" value="@subtotal" />
+        @for (var snapshotIndex = 0; snapshotIndex < items.Count; snapshotIndex++)
+        {
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].ProductId" value="@items[snapshotIndex].Productid" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].Quantity" value="@items[snapshotIndex].Quantity" />
+            <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@(items[snapshotIndex].Product?.Price ?? 0)" />
+        }
 
         <style>
             .yq-readonly {
@@ -135,10 +136,39 @@
         <!-- LEFT: DETAILS -->
         <div class="yq-checkout-details yq-reveal">
 
-            <!-- DELIVERY INFO -->
+            <!-- CUSTOMER INFO -->
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
                     <span class="yq-checkout-card__step">01</span>
+                    <div>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
+                        <p class="yq-checkout-card__desc">بيانات التواصل الأساسية لمتابعة الطلب.</p>
+                    </div>
+                </div>
+                <div class="yq-checkout-field-grid">
+                    <label class="yq-checkout-field">
+                        <span>الاسم الكامل</span>
+                        <input asp-for="CustomerName" form="yqCheckoutForm" type="text" value="@customerName" readonly="readonly" class="yq-readonly" />
+                        <span asp-validation-for="CustomerName" class="yq-checkout-field__error"></span>
+                    </label>
+                    <label class="yq-checkout-field">
+                        <span>رقم الجوال</span>
+                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone"
+                               readonly="readonly" class="yq-readonly" />
+                        <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
+                    </label>
+                    <label class="yq-checkout-field yq-checkout-field--wide">
+                        <span>البريد الإلكتروني</span>
+                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" value="@Model.CustomerEmail" readonly="readonly" class="yq-readonly" />
+                        <span asp-validation-for="CustomerEmail" class="yq-checkout-field__error"></span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- DELIVERY INFO -->
+            <section class="yq-checkout-card yq-glass">
+                <div class="yq-checkout-card__head">
+                    <span class="yq-checkout-card__step">02</span>
                     <div>
                         <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
                         <p class="yq-checkout-card__desc">العنوان الذي سيتم اعتماده عند تأكيد الطلب.</p>
@@ -186,7 +216,12 @@
                     </label>
                     <label class="yq-checkout-field">
                         <span>رقم جوال المستلم</span>
-                        <input asp-for="Street" form="yqCheckoutForm" type="tel" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '')" title="يجب إدخال 9 أرقام بالضبط" />
+                        <input asp-for="Street" form="yqCheckoutForm" type="tel" minlength="9" maxlength="9"
+                               inputmode="numeric" autocomplete="tel"
+                               required
+                               pattern="7[01378][0-9]{7}"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               title="أدخل 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78" />
                         <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
@@ -198,34 +233,6 @@
                 <div class="yq-checkout-delivery-note">
                     <i class="bi bi-clock-history"></i>
                     <span>مدة التوصيل المتوقعة 2-3 أيام عمل، وسيتم التواصل معك لتأكيد التفاصيل قبل التسليم.</span>
-                </div>
-            </section>
-
-            <!-- CUSTOMER INFO -->
-            <section class="yq-checkout-card yq-glass">
-                <div class="yq-checkout-card__head">
-                    <span class="yq-checkout-card__step">02</span>
-                    <div>
-                        <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
-                        <p class="yq-checkout-card__desc">بيانات التواصل الأساسية لمتابعة الطلب.</p>
-                    </div>
-                </div>
-                <div class="yq-checkout-field-grid">
-                    <label class="yq-checkout-field">
-                        <span>الاسم الكامل</span>
-                        <input asp-for="CustomerName" form="yqCheckoutForm" type="text" value="@customerName" readonly="readonly" class="yq-readonly" />
-                        <span asp-validation-for="CustomerName" class="yq-checkout-field__error"></span>
-                    </label>
-                    <label class="yq-checkout-field">
-                        <span>رقم الجوال</span>
-                        <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone" readonly="readonly" class="yq-readonly" />
-                        <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
-                    </label>
-                    <label class="yq-checkout-field yq-checkout-field--wide">
-                        <span>البريد الإلكتروني</span>
-                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" value="@Model.CustomerEmail" readonly="readonly" class="yq-readonly" />
-                        <span asp-validation-for="CustomerEmail" class="yq-checkout-field__error"></span>
-                    </label>
                 </div>
             </section>
 
@@ -302,7 +309,7 @@
                     <button type="submit" class="btn-yaqut-gold yq-checkout-submit-btn" id="confirmOrderBottom"
                             aria-describedby="confirmOrderBottomHelp">
                         <i class="bi bi-check-circle" aria-hidden="true"></i>
-                        تأكيد الطلب والدفع
+                        تأكيد الطلب
                     </button>
                     <p id="confirmOrderBottomHelp" class="yq-checkout-submit-hint">
                         <i class="bi bi-shield-check" aria-hidden="true"></i>
@@ -354,7 +361,7 @@
             </div>
 
             <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
-                <i class="bi bi-shield-check"></i> تأكيد الطلب والدفع
+                <i class="bi bi-shield-check"></i> تأكيد الطلب
             </button>
 
             <p class="yq-checkout-summary__secure">

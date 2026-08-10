@@ -2,15 +2,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text;
+using System.Text.Json;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.UsersDatabase;
@@ -20,20 +20,70 @@ namespace YAGOT_2._0.Controllers;
 
 public class AccountController : Controller
 {
+    private const string REG_SESSION_KEY = "YAGOT_RegistrationSessionState";
+
     private readonly NeondbContext _db;
     private readonly UsersDbContext _dbUser;
     private readonly IConfiguration _configuration;
     private readonly IVisitService _visitService;
     private readonly GuestCartService _guestCartService;
+    private readonly IPasswordResetEmailSender _passwordResetEmailSender;
+    private readonly ITimeLimitedDataProtector _passwordResetProtector;
+    private readonly ILogger<AccountController> _logger;
 
-    public AccountController(NeondbContext db, IConfiguration configuration, IVisitService visitService, UsersDbContext user, GuestCartService guestCartService)
+    public AccountController(
+        NeondbContext db,
+        IConfiguration configuration,
+        IVisitService visitService,
+        UsersDbContext user,
+        GuestCartService guestCartService,
+        IPasswordResetEmailSender passwordResetEmailSender,
+        IDataProtectionProvider dataProtectionProvider,
+        ILogger<AccountController> logger)
     {
         _db = db;
         _configuration = configuration;
         _visitService = visitService;
         _dbUser = user;
         _guestCartService = guestCartService;
+        _passwordResetEmailSender = passwordResetEmailSender;
+        _passwordResetProtector = dataProtectionProvider
+            .CreateProtector("YAGOT.PasswordReset.v1")
+            .ToTimeLimitedDataProtector();
+        _logger = logger;
     }
+
+    #region Registration Session State Helpers
+
+    private RegistrationSessionState GetRegistrationState()
+    {
+        var json = HttpContext.Session.GetString(REG_SESSION_KEY);
+        if (string.IsNullOrEmpty(json))
+        {
+            return new RegistrationSessionState();
+        }
+        try
+        {
+            return JsonSerializer.Deserialize<RegistrationSessionState>(json) ?? new RegistrationSessionState();
+        }
+        catch
+        {
+            return new RegistrationSessionState();
+        }
+    }
+
+    private void SaveRegistrationState(RegistrationSessionState state)
+    {
+        var json = JsonSerializer.Serialize(state);
+        HttpContext.Session.SetString(REG_SESSION_KEY, json);
+    }
+
+    private void ClearRegistrationState()
+    {
+        HttpContext.Session.Remove(REG_SESSION_KEY);
+    }
+
+    #endregion
 
     [HttpGet]
     public IActionResult Auth(string? returnUrl = null, bool register = false)
@@ -43,10 +93,10 @@ public class AccountController : Controller
             return LocalRedirect(GetRedirectUrl(returnUrl));
         }
 
-        ;
-
+        var regState = GetRegistrationState();
         ViewData["ReturnUrl"] = returnUrl;
-        ViewData["ShowRegister"] = register;
+        ViewData["ShowRegister"] = register || regState.Step > 1;
+        ViewData["RegState"] = regState;
         return View();
     }
 
@@ -54,14 +104,10 @@ public class AccountController : Controller
     {
         ViewData["ReturnUrl"] = returnUrl;
         TempData["Email"] = email;
+        var regState = GetRegistrationState();
+        ViewData["RegState"] = regState;
+        ViewData["ShowRegister"] = true;
         return View("Auth");
-    }
-
-    public IActionResult RecoveryAccountTem(string? returnUrl = null, string? email = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        TempData["Email"] = email;
-        return View("RecoveryAccount");
     }
 
     [HttpPost]
@@ -69,25 +115,29 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
-        var phone = model.Phone.Trim();
+        var phone = model.Phone?.Trim() ?? string.Empty;
        
         if (string.IsNullOrWhiteSpace(model.Phone))
             ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مطلوب.");
         if (string.IsNullOrWhiteSpace(model.Password))
             ModelState.AddModelError(nameof(model.Password), "كلمة المرور مطلوبة.");
         if (!ModelState.IsValid)
-            return View("Auth");
-        var userGloble = await _dbUser.Users
-     .FirstOrDefaultAsync(i => i.Phone == HashPhone(phone));
-
-        if (userGloble == null)
         {
+            ViewData["RegState"] = GetRegistrationState();
             return View("Auth");
         }
 
-        var userSiteVB = await _db.UserSites
-            .FirstOrDefaultAsync(i => i.UserId == userGloble.Id);
+        var hashedPhone = HashPhone(phone);
+        var userGloble = await _dbUser.Users.FirstOrDefaultAsync(i => i.Phone == hashedPhone);
 
+        if (userGloble == null || !VerifyHashedPassword(model.Password, userGloble.Passwordhash))
+        {
+            ModelState.AddModelError(string.Empty, "رقم الجوال أو كلمة المرور غير صحيحة.");
+            ViewData["RegState"] = GetRegistrationState();
+            return View("Auth");
+        }
+
+        var userSiteVB = await _db.UserSites.FirstOrDefaultAsync(i => i.UserId == userGloble.Id);
         if (userSiteVB == null)
         {
             var userSite = new UserSite
@@ -100,98 +150,324 @@ public class AccountController : Controller
             await _db.SaveChangesAsync();
         }
 
-
-
-        var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Phone == HashPhone(phone));
-
-        if (user == null || !VerifyHashedPassword(model.Password, user.Passwordhash))
-        {
-            ModelState.AddModelError(string.Empty, "رقم الجوال أو كلمة المرور غير صحيحة.");
-            return View("Auth");
-        }
-        ;
-        await SignInUserAsync(user,user.Id);
-        await _guestCartService.MergeIntoUserCartAsync(user.Id);
-        TempData["UserName"] = user.Name;
-        await _visitService.SaveVisitAsync(HttpContext, user.Name);
+        await SignInUserAsync(userGloble, userGloble.Id);
+        await _guestCartService.MergeIntoUserCartAsync(userGloble.Id);
+        TempData["UserName"] = userGloble.Name;
+        await _visitService.SaveVisitAsync(HttpContext, userGloble.Name);
         return LocalRedirect(GetRedirectUrl(returnUrl));
+    }
+
+    #region Google Login Actions
+
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
+    {
+        TempData.Remove("GoogleLoginError");
+        TempData.Remove("GoogleLoginErrorTitle");
+        TempData.Remove("RegistrationNotice");
+        ClearRegistrationState();
+        await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action(nameof(GoogleResponse), new { returnUrl, isRegister })
+        };
+
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> GoogleResponse(string? returnUrl = null, bool isRegister = false)
+    {
+        var externalResult = await HttpContext.AuthenticateAsync(AuthenticationSchemes.External);
+        if (!externalResult.Succeeded || externalResult.Principal == null)
+        {
+            _logger.LogWarning(
+                externalResult.Failure,
+                "Google external authentication ticket could not be read. Succeeded={Succeeded}.",
+                externalResult.Succeeded);
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            TempData["GoogleLoginErrorTitle"] = "تعذر تسجيل الدخول عبر Google";
+            TempData["GoogleLoginError"] = "تعذر إكمال المصادقة بواسطة Google.";
+            return RedirectToAction("Auth", "Account", new { returnUrl });
+        }
+
+        var externalPrincipal = externalResult.Principal;
+        var googleClaims = externalPrincipal.Claims.ToList();
+        _logger.LogInformation("Google callback received {ClaimCount} claims.", googleClaims.Count);
+        foreach (var claim in googleClaims)
+        {
+            _logger.LogInformation(
+                "Google raw claim: Type={ClaimType}, Value={ClaimValue}, Issuer={Issuer}.",
+                claim.Type,
+                claim.Value,
+                claim.Issuer);
+        }
+
+        var email = externalPrincipal.FindFirst(ClaimTypes.Email)?.Value
+            ?? externalPrincipal.FindFirst("email")?.Value;
+        var name = externalPrincipal.FindFirst(ClaimTypes.Name)?.Value
+            ?? externalPrincipal.FindFirst("name")?.Value;
+        var sub = externalPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? externalPrincipal.FindFirst("sub")?.Value
+            ?? externalPrincipal.FindFirst("id")?.Value;
+        var emailVerifiedClaim = externalPrincipal.FindFirst("google_email_verified")?.Value
+            ?? externalPrincipal.FindFirst("email_verified")?.Value;
+        var picture = externalPrincipal.FindFirst("picture")?.Value
+            ?? externalPrincipal.FindFirst("urn:google:picture")?.Value;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("Google callback did not contain an email claim. Available claim types: {ClaimTypes}.",
+                string.Join(", ", googleClaims.Select(claim => claim.Type)));
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            TempData["GoogleLoginErrorTitle"] = "حساب Google غير مرتبط";
+            TempData["GoogleLoginError"] = "تعذر الحصول على البريد الإلكتروني من Google.";
+            return RedirectToAction("Auth", "Account", new { returnUrl });
+        }
+
+        email = email.Trim();
+        var normalizedEmail = email.ToLowerInvariant();
+        var hasVerifiedClaim = bool.TryParse(emailVerifiedClaim, out var isEmailVerified);
+        _logger.LogInformation(
+            "Google identity resolved. Email={Email}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, Subject={Subject}.",
+            email,
+            hasVerifiedClaim && isEmailVerified,
+            hasVerifiedClaim,
+            sub ?? "<missing>");
+
+        // The external identity has now been read and must never become the app identity.
+        await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+
+        // Check if Google email already belongs to an existing user
+        var existingUser = await _dbUser.Users.FirstOrDefaultAsync(
+            u => u.Email != null && u.Email.ToLower() == normalizedEmail);
+        if (existingUser != null)
+        {
+            // User exists -> perform login & account linking immediately
+            TempData.Remove("GoogleLoginError");
+            TempData.Remove("GoogleLoginErrorTitle");
+            TempData.Remove("RegistrationNotice");
+            await SignInUserAsync(existingUser, existingUser.Id);
+            try
+            {
+                await _guestCartService.MergeIntoUserCartAsync(existingUser.Id);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Could not merge the guest cart for Google user {UserId}; continuing with an empty cart.",
+                    existingUser.Id);
+            }
+            TempData["UserName"] = existingUser.Name;
+            await _visitService.SaveVisitAsync(HttpContext, existingUser.Name);
+            ClearRegistrationState();
+            return LocalRedirect(GetRedirectUrl(returnUrl));
+        }
+
+        // A verified Google identity without a local account starts registration.
+        // It is not issued an application cookie until registration completes.
+        var state = new RegistrationSessionState
+        {
+            GoogleSubjectId = sub ?? normalizedEmail,
+            GoogleEmail = email,
+            GoogleName = name,
+            GooglePicture = picture,
+            IsGoogleVerified = true,
+            FullName = name,
+            Step = 2
+        };
+
+        SaveRegistrationState(state);
+        TempData.Remove("GoogleLoginError");
+        TempData.Remove("GoogleLoginErrorTitle");
+        TempData["RegistrationNotice"] = "هذا البريد غير مسجل، يرجى استكمال بيانات الحساب أولاً.";
+
+        return RedirectToAction("Auth", "Account", new { register = true, returnUrl });
+    }
+
+    [HttpGet]
+    public IActionResult GetRegisterState()
+    {
+        var state = GetRegistrationState();
+        return Json(new
+        {
+            step = state.Step,
+            googleEmail = state.GoogleEmail,
+            googleName = state.GoogleName,
+            isGoogleVerified = state.IsGoogleVerified,
+            fullName = state.FullName,
+            phoneNumber = state.PhoneNumber,
+            isPhoneStepCompleted = state.IsPhoneStepCompleted
+        });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterModel model, string? returnUrl = null)
+    public async Task<IActionResult> SaveStep2Info([FromBody] Step2InfoRequest request)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        TempData["ShowRegister"] = true;
+        if (request == null || string.IsNullOrWhiteSpace(request.Phone))
+        {
+            return Json(new { success = false, message = "رقم الجوال مطلوب." });
+        }
 
-        if (string.IsNullOrWhiteSpace(model.Name))
-            ModelState.AddModelError(nameof(model.Name), "الاسم الكامل مطلوب.");
-        else if (model.Name.Trim().Length < 2)
-            ModelState.AddModelError(nameof(model.Name), "الاسم يجب أن يكون حرفين على الأقل.");
+        var fullName = request.FullName?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Length < 2)
+        {
+            return Json(new { success = false, message = "الاسم الكامل يجب أن يكون حرفين على الأقل." });
+        }
 
-        if (string.IsNullOrWhiteSpace(model.Phone))
-            ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مطلوب.");
-        else if (model.Phone.Trim().Length < 9)
-            ModelState.AddModelError(nameof(model.Phone), "رقم الجوال غير صالح.");
+        var phone = request.Phone.Trim();
+        if (phone.Length < 9 || !System.Text.RegularExpressions.Regex.IsMatch(phone, @"^\d{9}$"))
+        {
+            return Json(new { success = false, message = "رقم الجوال يجب أن يتكون من 9 أرقام بالضبط." });
+        }
 
-        if (string.IsNullOrWhiteSpace(model.Password))
-            ModelState.AddModelError(nameof(model.Password), "كلمة المرور مطلوبة.");
-        else if (model.Password.Length < 6)
-            ModelState.AddModelError(nameof(model.Password), "كلمة المرور يجب أن تكون 6 أحرف على الأقل.");
+        var state = GetRegistrationState();
+        if (!state.IsGoogleVerified
+            || string.IsNullOrWhiteSpace(state.GoogleSubjectId)
+            || string.IsNullOrWhiteSpace(state.GoogleEmail)
+            || state.Step != 2)
+        {
+            return Json(new { success = false, message = "يرجى إكمال المصادقة عبر Google أولاً." });
+        }
 
-        if (string.IsNullOrWhiteSpace(model.ConfirmPassword))
-            ModelState.AddModelError(nameof(model.ConfirmPassword), "تأكيد كلمة المرور مطلوب.");
+        // Check if phone number already belongs to another user
+        var hashedPhone = HashPhone(phone);
+        if (await _dbUser.Users.AnyAsync(u => u.Phone == hashedPhone))
+        {
+            return Json(new { success = false, message = "رقم الجوال مستخدم بالفعل. سجّل الدخول أو استخدم رقماً آخر." });
+        }
 
-        if (string.IsNullOrWhiteSpace(model.Email))
-            ModelState.AddModelError(nameof(model.Email), "الايميل مطلوب");
+        state.FullName = fullName;
+        state.PhoneNumber = phone;
+        state.IsPhoneStepCompleted = true;
+        state.Step = 3;
 
-        if (!ModelState.IsValid)
-            return View("Auth");
+        SaveRegistrationState(state);
+
+        return Json(new { success = true, nextStep = 3 });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationModel model, string? returnUrl = null)
+    {
+        if (model == null)
+        {
+            return Json(new { success = false, message = "البيانات المدخلة غير صالحة." });
+        }
+
+        var state = GetRegistrationState();
+        if (!state.IsGoogleVerified
+            || string.IsNullOrWhiteSpace(state.GoogleSubjectId)
+            || string.IsNullOrWhiteSpace(state.GoogleEmail)
+            || !state.IsPhoneStepCompleted
+            || state.Step != 3)
+        {
+            return Json(new { success = false, message = "يرجى التحقق عبر Google أولاً." });
+        }
+
+        if (string.IsNullOrWhiteSpace(state.PhoneNumber))
+        {
+            return Json(new { success = false, message = "يرجى أدخال رقم الجوال في الخطوة الثانية أولاً." });
+        }
+
+        var fullName = string.IsNullOrWhiteSpace(model.FullName) ? state.FullName : model.FullName.Trim();
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Length < 2)
+        {
+            return Json(new { success = false, message = "الاسم الكامل يجب أن يكون حرفين على الأقل." });
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
+        {
+            return Json(new { success = false, message = "كلمة المرور يجب أن تكون 6 أحرف على الأقل." });
+        }
 
         if (model.Password != model.ConfirmPassword)
         {
-            ModelState.AddModelError(nameof(model.ConfirmPassword), "كلمة المرور وتأكيدها غير متطابقين.");
-            return View("Auth");
+            return Json(new { success = false, message = "كلمة المرور وتأكيدها غير متطابقين." });
         }
 
-        var phone = model.Phone.Trim();
-        if (await _dbUser.Users.AnyAsync(u => u.Phone == HashPhone(phone)))
+        var phone = state.PhoneNumber.Trim();
+        var hashedPhone = HashPhone(phone);
+
+        if (await _dbUser.Users.AnyAsync(u => u.Phone == hashedPhone))
         {
-            ModelState.AddModelError(nameof(model.Phone), "رقم الجوال مستخدم بالفعل. سجّل الدخول أو استخدم رقماً آخر.");
-            return View("Auth");
+            return Json(new { success = false, message = "رقم الجوال مستخدم بالفعل. سجّل الدخول أو استخدم رقماً آخر." });
         }
 
         var user = new Models.UsersDatabase.User
         {
-            Name = model.Name.Trim(),
-            Phone = HashPhone(phone),
+            Name = fullName,
+            Phone = hashedPhone,
             Passwordhash = HashPassword(model.Password),
-            Email = model.Email?.Trim()
+            Email = state.GoogleEmail.Trim().ToLowerInvariant(),
+            Createdat = DateTime.UtcNow
         };
 
         _dbUser.Users.Add(user);
         await _dbUser.SaveChangesAsync();
+
         var userSite = new UserSite
         {
             UserId = user.Id,
-            Role = "Customer",
+            Role = "Customer"
         };
-
         _db.UserSites.Add(userSite);
         await _db.SaveChangesAsync();
-        await SignInUserAsync(user,user.Id);
+
+        await SignInUserAsync(user, user.Id);
         await _guestCartService.MergeIntoUserCartAsync(user.Id);
 
         TempData["UserName"] = user.Name;
-        TempData.Remove("ShowRegister");
         TempData["Success"] = true;
-        TempData["Email"] = model.Email;
-        return LocalRedirect(GetRedirectUrl(returnUrl));
+
+        ClearRegistrationState();
+
+        return Json(new { success = true, redirectUrl = GetRedirectUrl(returnUrl) });
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SetRegisterStep(int step)
+    {
+        var state = GetRegistrationState();
+        if (step == 3 && (!state.IsGoogleVerified || !state.IsPhoneStepCompleted || string.IsNullOrWhiteSpace(state.PhoneNumber)))
+        {
+            return Json(new { success = false, message = "لا يمكن الانتقال للخطوة 3 قبل إدخال رقم الجوال في الخطوة 2." });
+        }
+        if (step == 2 && !state.IsGoogleVerified)
+        {
+            return Json(new { success = false, message = "لا يمكن الانتقال للخطوة 2 قبل المصادقة بواسطة Google." });
+        }
+
+        if (step >= 1 && step <= 3)
+        {
+            state.Step = step;
+            SaveRegistrationState(state);
+        }
+
+        return Json(new { success = true, step = state.Step });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ResetRegistration()
+    {
+        ClearRegistrationState();
+        return Json(new { success = true });
+    }
+
+    #endregion
 
     [HttpGet]
     public async Task<IActionResult> Logout()
     {
+        ClearRegistrationState();
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Index", "Home");
     }
@@ -243,7 +519,6 @@ public class AccountController : Controller
         var currentUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (currentUser == null) return NotFound();
 
-        // منع تعديل ملف مستخدم آخر عبر التلاعب بالنموذج (Id قادم من حقل مخفي)
         if (model.Id != currentUser.Id)
         {
             return Forbid();
@@ -263,11 +538,12 @@ public class AccountController : Controller
         }
 
         currentUser.Name = model.Name.Trim();
-        currentUser.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+        // Email is an authentication identifier established through Google.
+        // It must only change through a future verified email-linking flow.
+        model.Email = currentUser.Email;
 
         await _dbUser.SaveChangesAsync();
 
-        // إعادة تسجيل الدخول لتحديث الـ Claims — الاسم يُستخدم لربط السلة والطلبات بالمستخدم
         await SignInUserAsync(currentUser, currentUser.Id);
 
         TempData["ProfileSuccess"] = true;
@@ -281,18 +557,98 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
-        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(u =>
-            u.Email == model.Email || u.Phone == HashPhone(model.Phone));
+        var email = model.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            ModelState.AddModelError(nameof(model.Email), "يرجى إدخال بريد إلكتروني صالح.");
+            return View(model);
+        }
+
+        var normalizedEmail = email.ToLower();
+        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(
+            u => u.Email != null && u.Email.ToLower() == normalizedEmail);
+
+        if (accountUser != null)
+        {
+            var payload = JsonSerializer.Serialize(new PasswordResetTokenPayload(
+                accountUser.Id,
+                ComputePasswordFingerprint(accountUser.Passwordhash)));
+            var token = _passwordResetProtector.Protect(payload, TimeSpan.FromMinutes(15));
+            var resetUrl = Url.Action(
+                nameof(ResetPassword),
+                "Account",
+                new { token },
+                Request.Scheme)!;
+
+            try
+            {
+                await _passwordResetEmailSender.SendResetLinkAsync(
+                    accountUser.Email!,
+                    resetUrl,
+                    HttpContext.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                // Do not reveal account existence or mail configuration details.
+                _logger.LogError(ex, "Failed to send a password reset email.");
+            }
+        }
+
+        TempData["RecoveryMessage"] = "إذا كان البريد مرتبطاً بحساب، فسيصلك رابط صالح لمدة 15 دقيقة.";
+        return RedirectToAction(nameof(RecoveryAccount));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ResetPassword(string? token)
+    {
+        var payload = await ValidatePasswordResetTokenAsync(token);
+        if (payload == null)
+        {
+            ViewData["ResetError"] = "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.";
+        }
+
+        return View(new ResetPasswordModel { Token = token ?? string.Empty });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
+    {
+        if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
+        {
+            ModelState.AddModelError(nameof(model.Password), "كلمة المرور يجب أن تكون 6 أحرف على الأقل.");
+        }
+        if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(nameof(model.ConfirmPassword), "كلمتا المرور غير متطابقتين.");
+        }
+
+        var payload = await ValidatePasswordResetTokenAsync(model.Token);
+        if (payload == null)
+        {
+            ModelState.AddModelError(string.Empty, "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.");
+        }
+
+        if (!ModelState.IsValid || payload == null)
+        {
+            return View(model);
+        }
+
+        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == payload.UserId);
         if (accountUser == null)
         {
-            ModelState.AddModelError(string.Empty, "لم يتم العثور على حساب بهذا البريد الإلكتروني أو رقم الجوال.");
-            return View("RecoveryAccount");
+            ModelState.AddModelError(string.Empty, "الحساب المرتبط بالرابط لم يعد موجوداً.");
+            return View(model);
         }
+
         accountUser.Passwordhash = HashPassword(model.Password);
         await _dbUser.SaveChangesAsync();
-        return View("Auth");
+
+        TempData["PasswordResetSuccess"] = "تم تغيير كلمة المرور. يمكنك تسجيل الدخول الآن.";
+        return RedirectToAction(nameof(Auth));
     }
 
     private static string GetRedirectUrl(string? returnUrl)
@@ -302,57 +658,54 @@ public class AccountController : Controller
             : returnUrl!;
     }
 
-    [HttpGet]
-    public IActionResult GoogleLogin(string? returnUrl = "/Account/AuthR")
+    private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)
     {
-        var properties = new AuthenticationProperties
+        if (string.IsNullOrWhiteSpace(token))
         {
-            RedirectUri = Url.Action(nameof(GoogleResponse), new { returnUrl })
-        };
-
-        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-    }
-
-    [AllowAnonymous]
-    [HttpGet]
-    public IActionResult GoogleResponse(string? returnUrl = null)
-    {
-        if (!(User.Identity?.IsAuthenticated ?? false))
-        {
-            return RedirectToAction("AuthR", "Account");
+            return null;
         }
 
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-        return RedirectToAction("AuthR", "Account", new { email = email });
-    }
-
-    public IActionResult GoogleLoginRecovery()
-    {
-        var properties = new AuthenticationProperties
+        try
         {
-            RedirectUri = Url.Action(nameof(GoogleResponseRecovery))
-        };
+            var json = _passwordResetProtector.Unprotect(token, out _);
+            var payload = JsonSerializer.Deserialize<PasswordResetTokenPayload>(json);
+            if (payload == null || payload.UserId <= 0)
+            {
+                return null;
+            }
 
-        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-    }
+            var accountUser = await _dbUser.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == payload.UserId);
+            if (accountUser == null)
+            {
+                return null;
+            }
 
-    [AllowAnonymous]
-    [HttpGet]
-    public IActionResult GoogleResponseRecovery()
-    {
-        if (!(User.Identity?.IsAuthenticated ?? false))
-        {
-            return RedirectToAction("RecoveryAccountTem", "Account");
+            return string.Equals(
+                payload.PasswordFingerprint,
+                ComputePasswordFingerprint(accountUser.Passwordhash),
+                StringComparison.Ordinal)
+                ? payload
+                : null;
         }
+        catch (Exception ex) when (ex is CryptographicException or JsonException or FormatException)
+        {
+            return null;
+        }
+    }
 
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-        return RedirectToAction("RecoveryAccountTem", "Account", new { email = email });
+    private static string ComputePasswordFingerprint(string passwordHash)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(passwordHash)));
     }
 
     private async Task SignInUserAsync(Models.UsersDatabase.User user, int Id)
     {
+        if (Id <= 0 || user.Id != Id)
+        {
+            throw new UnauthorizedAccessException("Cannot issue an application cookie without a valid linked user identifier.");
+        }
+
         var userSite = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == Id);
         if (userSite == null)
         {
@@ -403,8 +756,8 @@ public class AccountController : Controller
 
     private string HashPhone(string phone)
     {
-        string key = _configuration["Encryption:Key"];
-        string iv = _configuration["Encryption:IV"];
+        string key = _configuration["Encryption:Key"] ?? "12345678901234567890123456789012";
+        string iv = _configuration["Encryption:IV"] ?? "1234567890123456";
 
         using var aes = Aes.Create();
 
@@ -439,12 +792,18 @@ public class AccountController : Controller
         public string Password { get; set; } = string.Empty;
     }
 
-    public sealed class RegisterModel
+    public sealed class Step2InfoRequest
     {
-        public string Name { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+    }
+
+    public sealed class CompleteRegistrationModel
+    {
+        public string FullName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
     }
+
+    private sealed record PasswordResetTokenPayload(int UserId, string PasswordFingerprint);
 }

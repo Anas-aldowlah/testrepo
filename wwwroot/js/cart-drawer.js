@@ -335,6 +335,7 @@
     function formHiddenHtml(form) {
         if (!form) return '';
         return toArray(form.querySelectorAll('input[type="hidden"], input[name="__RequestVerificationToken"]'))
+            .filter(function (input) { return input.name !== 'quantity'; })
             .map(function (input) { return input.outerHTML; })
             .join('');
     }
@@ -347,7 +348,8 @@
             var image = item.querySelector('.yq-cart-item__media img');
             var qtyForm = item.querySelector('.yq-cart-item__qty-block');
             var removeForm = item.querySelector('.yq-cart-item__remove-form');
-            var qtyInput = qtyForm ? qtyForm.querySelector('input[name="quantity"]') : null;
+            var qtyInput = qtyForm ? qtyForm.querySelector('[data-yq-cart-qty-value]') : null;
+            var customQtyInput = qtyForm ? qtyForm.querySelector('[data-yq-cart-qty-custom]') : null;
             var productIdInput = qtyForm ? qtyForm.querySelector('input[name="productId"]') : null;
             var lineTotal = item.querySelector('.yq-cart-item__line-total');
             var unitPrice = item.querySelector('.yq-cart-item__unit-price');
@@ -361,7 +363,7 @@
                 imageSrc: image ? image.getAttribute('src') : '/images/placeholder-product.svg',
                 imageAlt: image ? image.getAttribute('alt') : '',
                 quantity: Number.isFinite(quantity) ? quantity : 1,
-                max: qtyInput ? qtyInput.getAttribute('max') : '',
+                max: customQtyInput ? customQtyInput.getAttribute('max') : '',
                 unitPrice: unitPrice ? unitPrice.textContent.replace(/\s+/g, ' ').trim() : '',
                 lineTotal: lineTotal ? lineTotal.textContent.replace(/\s+/g, ' ').trim() : '',
                 qtyAction: qtyForm ? qtyForm.action : '',
@@ -683,7 +685,8 @@
     }
 
     function fetchCartPage() {
-        return window.fetch('/Cart', {
+        var cartUrl = drawer.getAttribute('data-cart-url') || '/Cart';
+        return window.fetch(cartUrl, {
             method: 'GET',
             credentials: 'same-origin',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
