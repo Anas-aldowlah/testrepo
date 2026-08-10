@@ -7,7 +7,7 @@ public partial class UserSite
 {
     public int Id { get; set; }
 
-    public int? UserId { get; set; }
+    public int UserId { get; set; }
 
     public string? Role { get; set; }
 }

@@ -1,10 +1,14 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using YAGOT_2._0.Models;
 
 #nullable disable
 
 namespace YAGOT_2._0.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(NeondbContext))]
+    [Migration("20260804090000_RestoreStorefrontSettingsColumns")]
     public partial class RestoreStorefrontSettingsColumns : Migration
     {
         /// <inheritdoc />

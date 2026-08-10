@@ -56,7 +56,7 @@
         {
             var isDone = i < currentStepIndex;
             var isActive = i == currentStepIndex;
-            var isCancelled = Model.Status == "Cancelled";
+            var isCancelled = Model.Status is "Cancelled" or "Refunded";
             <div class="yq-timeline-step @(isDone ? "is-done" : "") @(isActive && !isCancelled ? "is-active" : "")">
                 <span class="yq-timeline-step__dot">
                     @if (isDone)

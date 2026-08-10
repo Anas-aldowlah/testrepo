@@ -77,45 +77,136 @@
 
     function initPlaceOrderGuard() {
         var form = document.getElementById('yqCheckoutForm');
-        var btn = document.getElementById('yqPlaceOrderBtn');
-        if (!form || !btn) return;
+        var buttons = [
+            document.getElementById('confirmOrderBottom'),
+            document.getElementById('yqPlaceOrderBtn')
+        ].filter(Boolean);
+        if (!form || !buttons.length) return;
+
+        var isSubmitting = false;
+
+        buttons.forEach(function (button) {
+            button.dataset.yqOriginalHtml = button.innerHTML;
+        });
+
+        function setSubmitting(submitting) {
+            isSubmitting = submitting;
+            buttons.forEach(function (button) {
+                button.disabled = submitting;
+                button.classList.toggle('is-submitting', submitting);
+                button.innerHTML = submitting
+                    ? '<i class="bi bi-arrow-repeat yq-spin" aria-hidden="true"></i> جارٍ تأكيد الطلب...'
+                    : button.dataset.yqOriginalHtml;
+            });
+        }
+
+        form.querySelectorAll('input[type="tel"]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                validatePhoneField(input);
+            });
+        });
+
+        form.addEventListener('invalid', function () {
+            setSubmitting(false);
+        }, true);
 
         form.addEventListener('submit', function (event) {
+            if (isSubmitting) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+
             if (!validateForm(form)) {
                 event.preventDefault();
+                event.stopImmediatePropagation();
+                setSubmitting(false);
                 return;
             }
 
             var authRequired = form.getAttribute('data-yq-auth-required') === 'true';
             if (authRequired) {
                 event.preventDefault();
+                event.stopImmediatePropagation();
+                setSubmitting(false);
                 showAuthModal(form.getAttribute('data-yq-auth-modal'));
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> جارِ تأكيد الطلب...';
+            setSubmitting(true);
+            try {
+                window.localStorage.removeItem('yq-checkout-draft');
+            } catch (error) {
+                // Storage availability must never block checkout.
+            }
+
+            // If a later submit listener cancels the request, restore the controls.
+            window.setTimeout(function () {
+                if (event.defaultPrevented) setSubmitting(false);
+            }, 0);
         });
+
+        window.addEventListener('pageshow', function () {
+            setSubmitting(false);
+        });
+
+        // Reset state if a jQuery-based AJAX submitter is introduced or enabled.
+        if (window.jQuery) {
+            window.jQuery(document).on('ajaxError.yqCheckout', function (_event, _xhr, settings) {
+                var failedUrl = settings && settings.url
+                    ? new URL(settings.url, window.location.href).href
+                    : form.action;
+                if (failedUrl === form.action) {
+                    setSubmitting(false);
+                }
+            });
+        }
     }
 
     function validateForm(form) {
+        var phonesValid = true;
+        form.querySelectorAll('input[type="tel"]').forEach(function (input) {
+            if (!validatePhoneField(input)) phonesValid = false;
+        });
+
+        var nativeValid = typeof form.checkValidity !== 'function' || form.checkValidity();
+        var jqueryValid = true;
         if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.valid === 'function') {
-            var isValid = window.jQuery(form).valid();
-            if (!isValid) {
-                focusFirstInvalidField(form, false);
-            }
-            return isValid;
+            jqueryValid = window.jQuery(form).valid();
         }
 
-        if (typeof form.checkValidity === 'function') {
-            var nativeValid = form.checkValidity();
-            if (!nativeValid) {
-                focusFirstInvalidField(form, true);
+        var isValid = phonesValid && nativeValid && jqueryValid;
+        if (!isValid) {
+            if (!nativeValid && typeof form.reportValidity === 'function') {
+                form.reportValidity();
             }
-            return nativeValid;
+            focusFirstInvalidField(form, true);
         }
 
-        return true;
+        return isValid;
+    }
+
+    function validatePhoneField(input) {
+        if (!input || input.disabled) return true;
+
+        // Account details are read-only here; validate the editable recipient phone.
+        if (input.readOnly) {
+            input.setCustomValidity('');
+            return true;
+        }
+
+        var value = String(input.value || '').trim();
+        var isRecipientPhone = input.name === 'Street';
+        var regex = isRecipientPhone
+            ? /^7[01378][0-9]{7}$/
+            : /^(?:(?:\+?967|00967))?7[01378][0-9]{7}$/;
+        var message = isRecipientPhone
+            ? 'رقم الجوال يجب أن يتكون من 9 أرقام ويبدأ بـ 70 أو 71 أو 73 أو 77 أو 78.'
+            : 'رقم الجوال غير صالح.';
+        var valid = !value || regex.test(value);
+
+        input.setCustomValidity(valid ? '' : message);
+        return valid;
     }
 
     function focusFirstInvalidField(form, includeNativeInvalid) {
@@ -165,26 +256,9 @@
     }
 })(window, document);
 
-// === Linked Submit Buttons ===
+// === Checkout draft persistence ===
 (function() {
-    const form = document.querySelector('form[method="post"]');
-    const btnTop = document.getElementById('confirmOrderBottom');
-    const btnSidebar = document.querySelector('.yq-checkout-summary button[type="submit"], .yq-checkout-aside button[type="submit"]');
-    const allBtns = [btnTop, btnSidebar].filter(Boolean);
-    let isSubmitting = false;
-
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (isSubmitting) { e.preventDefault(); return; }
-            isSubmitting = true;
-            allBtns.forEach(btn => {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="bi bi-arrow-repeat yq-spin" aria-hidden="true"></i> جاري تأكيد الطلب...';
-            });
-            // Clear saved data on submit
-            localStorage.removeItem('yq-checkout-draft');
-        });
-    }
+    const form = document.getElementById('yqCheckoutForm');
 
     // === Auto-save form data ===
     const STORAGE_KEY = 'yq-checkout-draft';

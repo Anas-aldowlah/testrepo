@@ -213,9 +213,11 @@ namespace YAGOT_2._0.Services
 
         private async Task<StoreSettings?> GetExistingSettingsAsync()
         {
-            var settings = await _context.Storesettings
-                .OrderBy(settings => settings.Id)
-                .FirstOrDefaultAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
+            var settings = await strategy.ExecuteAsync(async () =>
+                await _context.Storesettings
+                    .OrderBy(settings => settings.Id)
+                    .FirstOrDefaultAsync());
             return settings == null ? null : ToModel(settings);
         }
 

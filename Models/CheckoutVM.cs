@@ -7,6 +7,11 @@ public class CheckoutVM
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public Cart Cart { get; set; } = new();
 
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
+    public List<CheckoutCartItemSnapshot> SubmittedCartItems { get; set; } = [];
+
+    public decimal SubmittedCartTotal { get; set; }
+
     private string _customerName = string.Empty;
 
     [Required(ErrorMessage = "اسم العميل مطلوب.")]
@@ -78,7 +83,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "رقم جوال المستلم مطلوب.")]
     [StringLength(9, MinimumLength = 9, ErrorMessage = "رقم الجوال يجب أن يتكون من 9 أرقام بالضبط.")]
-    [RegularExpression(@"^[0-9]{9}$", ErrorMessage = "رقم الجوال يجب أن يحتوي على 9 أرقام فقط.")]
+    [RegularExpression(@"^7[01378][0-9]{7}$", ErrorMessage = "رقم الجوال يجب أن يتكون من 9 أرقام ويبدأ بـ 70 أو 71 أو 73 أو 77 أو 78.")]
     public string Street
     {
         get => _street;
@@ -111,4 +116,13 @@ public class CheckoutVM
 
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public IReadOnlyList<Paymentmethod> PaymentMethods { get; set; } = [];
+}
+
+public sealed class CheckoutCartItemSnapshot
+{
+    public int ProductId { get; set; }
+
+    public int Quantity { get; set; }
+
+    public decimal UnitPrice { get; set; }
 }

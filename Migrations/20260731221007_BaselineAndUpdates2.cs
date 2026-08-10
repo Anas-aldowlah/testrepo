@@ -1,12 +1,16 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using YAGOT_2._0.Models;
 
 #nullable disable
 
 namespace YAGOT_2._0.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(NeondbContext))]
+    [Migration("20260731221007_BaselineAndUpdates2")]
     public partial class BaselineAndUpdates2 : Migration
     {
         /// <inheritdoc />

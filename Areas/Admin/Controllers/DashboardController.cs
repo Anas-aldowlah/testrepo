@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
@@ -8,6 +9,7 @@ using YAGOT_2._0.Data;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class DashboardController : Controller
 {

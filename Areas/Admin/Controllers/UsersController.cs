@@ -10,6 +10,7 @@ using static YAGOT_2._0.Services.DealingAPI;
 namespace Yagot.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class UsersController : Controller
 {
@@ -36,16 +37,13 @@ public class UsersController : Controller
 
         var userSites = await _context.UserSites
             .AsNoTracking()
-            .Where(us => us.UserId.HasValue && userIds.Contains(us.UserId.Value))
+            .Where(us => userIds.Contains(us.UserId))
             .ToListAsync();
 
         var roleCache = new Dictionary<int, string?>();
         foreach (var us in userSites)
         {
-            if (us.UserId.HasValue)
-            {
-                roleCache[us.UserId.Value] = us.Role;
-            }
+            roleCache[us.UserId] = us.Role;
         }
 
         foreach (var user in usersPage.Items)

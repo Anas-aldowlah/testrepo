@@ -137,6 +137,10 @@
                     <input type="checkbox" name="status" value="Cancelled" checked="@selectedStatus.Contains("Cancelled")" />
                     <span>ملغي</span>
                 </label>
+                <label>
+                    <input type="checkbox" name="status" value="Refunded" checked="@selectedStatus.Contains("Refunded")" />
+                    <span>مرتجع</span>
+                </label>
             </fieldset>
 
             <div class="yq-orders-filter-actions">
@@ -186,6 +190,7 @@
                                 "Shipped" => "تم الشحن",
                                 "Delivered" => "تم التوصيل",
                                 "Cancelled" => "ملغي",
+                                "Refunded" => "مرتجع",
                                 _ => order.Status
                             };
 
@@ -196,6 +201,7 @@
                                 "Shipped" => "yq-orders-badge--shipped",
                                 "Delivered" => "yq-orders-badge--delivered",
                                 "Cancelled" => "yq-orders-badge--cancelled",
+                                "Refunded" => "yq-orders-badge--cancelled",
                                 _ => "yq-orders-badge--neutral"
                             };
 
@@ -294,6 +300,7 @@
                                                 <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
                                                 <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
                                                 <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
+                                                <option value="Refunded" selected="@(order.Status == "Refunded")">مرتجع</option>
                                             </select>
 
                                         </form>

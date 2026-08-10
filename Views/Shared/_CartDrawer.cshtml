@@ -8,6 +8,7 @@
 <aside class="yq-cart-drawer"
        data-yq-cart-drawer
        data-yq-commerce-cart
+       data-cart-url="@(Url.Action("Index", "Cart") ?? "/Cart")"
        data-free-shipping-threshold="@ShippingPolicy.FreeShippingThreshold"
        role="dialog"
        aria-modal="false"

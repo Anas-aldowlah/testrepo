@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
@@ -20,6 +21,7 @@ public class OrdersController : Controller
     private readonly StoreSettingsService _settingsService;
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
+    private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         OrderService orderService,
@@ -28,7 +30,8 @@ public class OrdersController : Controller
         DealingAPI dealingApiService,
         StoreSettingsService settingsService,
         NeondbContext context,
-        UsersDbContext users)
+        UsersDbContext users,
+        ILogger<OrdersController> logger)
     {
         _context = context;
         _orderService = orderService;
@@ -37,13 +40,14 @@ public class OrdersController : Controller
         _dealingApiService = dealingApiService;
         _settingsService = settingsService;
         _dbUser = users;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
         var userId = await ResolveUserIdAsync();
-        var orders = await _orderService.GetUserOrdersAsync(userId);
+        var orders = await _orderService.GetUserOrdersAsync(userId, HttpContext.RequestAborted);
         return View(orders);
     }
 
@@ -120,7 +124,11 @@ public class OrdersController : Controller
                 receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
             }
 
-            var order = await _orderService.CreateOrderAsync(userId, model, receiptUrl);
+            var order = await _orderService.CreateOrderAsync(
+                userId,
+                model,
+                receiptUrl,
+                HttpContext.RequestAborted);
 
             var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
             if (!string.IsNullOrWhiteSpace(whatsappNumber))
@@ -134,11 +142,45 @@ public class OrdersController : Controller
 
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
-        catch (InvalidOperationException ex)
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
-            await PopulateCheckoutPaymentMethodsAsync(model);
-            return View("Checkout", model);
+            throw;
+        }
+        catch (Exception exception) when (exception is CartConcurrencyException or DbUpdateConcurrencyException)
+        {
+            _logger.LogWarning(exception, "Checkout cart conflict for user {UserId}.", userId);
+            return await HandleCheckoutFailureAsync(
+                model,
+                StatusCodes.Status409Conflict,
+                "Checkout cart conflict",
+                "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.");
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "Checkout was rejected for user {UserId}.", userId);
+            return await HandleCheckoutFailureAsync(
+                model,
+                StatusCodes.Status409Conflict,
+                "Checkout rejected",
+                exception.Message);
+        }
+        catch (Exception exception) when (exception is DbUpdateException or NpgsqlException or TimeoutException)
+        {
+            _logger.LogError(exception, "Database failure during checkout for user {UserId}.", userId);
+            return await HandleCheckoutFailureAsync(
+                model,
+                StatusCodes.Status503ServiceUnavailable,
+                "Checkout temporarily unavailable",
+                "تعذر إتمام الطلب حالياً بسبب مشكلة مؤقتة. يرجى المحاولة مرة أخرى.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected checkout failure for user {UserId}.", userId);
+            return await HandleCheckoutFailureAsync(
+                model,
+                StatusCodes.Status500InternalServerError,
+                "Checkout failed",
+                "تعذر إتمام الطلب حالياً. يرجى المحاولة مرة أخرى.");
         }
     }
 
@@ -146,7 +188,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> Confirmation(int id)
     {
         var userId = await ResolveUserIdAsync();
-        var order = await _orderService.GetOrderByIdAsync(id);
+        var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
     }
@@ -155,7 +197,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var userId = await ResolveUserIdAsync();
-        var order = await _orderService.GetOrderByIdAsync(id);
+        var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
     }
@@ -176,11 +218,12 @@ public class OrdersController : Controller
     private Task<int> ResolveUserIdAsync()
     {
         var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(userIdVal, out var userId))
+        if (int.TryParse(userIdVal, out var userId) && userId > 0)
         {
             return Task.FromResult(userId);
         }
-        return Task.FromResult(1);
+
+        throw new UnauthorizedAccessException("The authenticated user has no valid user identifier claim.");
     }
 
     private async Task<CheckoutVM> BuildCheckoutViewModelAsync(Cart cart)
@@ -212,6 +255,32 @@ public class OrdersController : Controller
     {
         model.PaymentMethods = await _settingsService.GetCheckoutPaymentMethodsAsync();
     }
+
+    private async Task<IActionResult> HandleCheckoutFailureAsync(
+        CheckoutVM model,
+        int statusCode,
+        string title,
+        string detail)
+    {
+        if (IsAjaxRequest())
+        {
+            return Problem(
+                statusCode: statusCode,
+                title: title,
+                detail: detail,
+                type: $"https://httpstatuses.com/{statusCode}");
+        }
+
+        ModelState.AddModelError(string.Empty, detail);
+        await PopulateCheckoutPaymentMethodsAsync(model);
+        return View("Checkout", model);
+    }
+
+    private bool IsAjaxRequest() =>
+        string.Equals(
+            Request.Headers["X-Requested-With"],
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeWhatsAppNumber(string? value)
     {
