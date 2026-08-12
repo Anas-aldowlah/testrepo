@@ -10,8 +10,9 @@
     var hasNotes   = parts.Length >= 2;
     var isMlProduct = Model?.StockUnit == "Ml" && Model.VolumeMl is > 0;
     var pieceAvailableUnits = Model?.Stockquantity ?? 0;
-    var fullAvailableUnits = isMlProduct ? (Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
-    var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} عبوة" : $"{pieceAvailableUnits:N0} قطعة";
+    var fullAvailableUnits = isMlProduct ? (int)Math.Floor((double)Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
+    var mlLabel = (fullAvailableUnits >= 3 && fullAvailableUnits <= 10) ? "عبوات" : "عبوة";
+    var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} {mlLabel}" : $"{pieceAvailableUnits:N0} قطعة";
     var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
     var retailPrices = Model?.RetailPrices?.Where(price => price.IsActive).OrderBy(price => price.SizeMl).ToList() ?? new();
 }
@@ -110,7 +111,7 @@
                             {
                                 <span class="yq-pdp-stock__note">
                                     <i class="bi bi-exclamation-triangle-fill"></i>
-                                    الكمية المتبقية: <strong>@availableStockText فقط</strong>
+                                    الكمية المتبقية: <strong><span class="yq-available-stock-text">@availableStockText</span> فقط</strong>
                                 </span>
                             }
                         }
@@ -155,7 +156,7 @@
                                         @foreach (var price in retailPrices)
                                         {
                                             <label class="yq-pdp-retail-option">
-                                                <input type="radio" name="retailChoice" value="@price.Id" data-price="@price.Price" data-max="@(Model.Stockquantity / price.SizeMl)" />
+                                                <input type="radio" name="retailChoice" value="@price.Id" data-price="@price.Price" data-max="@((int)Math.Floor((double)Model.Stockquantity / price.SizeMl))" />
                                                 <span class="yq-pdp-retail-option__body">
                                                     <span>@price.SizeMl مل</span>
                                                     <strong>@price.Price.ToString("N0") ر.س</strong>
@@ -298,7 +299,7 @@
                         {
                             <li>
                                 <span class="yq-pdp-quick-specs__key"><i class="bi bi-layers"></i> المتوفر</span>
-                                <span class="yq-pdp-quick-specs__val">@availableStockText</span>
+                                <span class="yq-pdp-quick-specs__val yq-available-stock-text">@availableStockText</span>
                             </li>
                         }
                         <li>
@@ -346,6 +347,12 @@ else
                     if ((parseInt(qtyInput.value || '1', 10) || 1) > max) qtyInput.value = Math.max(1, max);
                     var price = parseFloat(selected.dataset.price || '0') || 0;
                     priceBox.innerHTML = price.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+
+                    var stockTexts = document.querySelectorAll('.yq-available-stock-text');
+                    var label = (max >= 3 && max <= 10) ? 'عبوات' : 'عبوة';
+                    stockTexts.forEach(function(el) {
+                        el.innerText = max + ' ' + label;
+                    });
                 }
 
                 choices.forEach(function (choice) {
