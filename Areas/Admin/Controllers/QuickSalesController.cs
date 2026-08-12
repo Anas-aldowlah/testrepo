@@ -156,7 +156,8 @@ public class QuickSalesController : Controller
         {
             sale = await _context.Sales
                 .Include(s => s.SaleItems)
-                .ThenInclude(si => si.Product)
+                    .ThenInclude(si => si.Product)
+                        .ThenInclude(p => p.RetailPrices)
                 .Include(s => s.SalePayments)
                 .FirstOrDefaultAsync(s => s.Id == id.Value && s.Status == "Draft");
 
@@ -171,7 +172,8 @@ public class QuickSalesController : Controller
             // Auto-load latest active draft for current open sales day when opening/refreshing Quick Sales
             sale = await _context.Sales
                 .Include(s => s.SaleItems)
-                .ThenInclude(si => si.Product)
+                    .ThenInclude(si => si.Product)
+                        .ThenInclude(p => p.RetailPrices)
                 .Include(s => s.SalePayments)
                 .Where(s => s.SalesDayId == openDay.Id && s.Status == "Draft")
                 .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
@@ -210,7 +212,6 @@ public class QuickSalesController : Controller
                 VolumeMl = p.VolumeMl,
                 IsRetailEnabled = p.IsRetailEnabled,
                 RetailPrices = p.RetailPrices
-                    .Where(price => price.IsActive)
                     .OrderBy(price => price.SizeMl)
                     .Select(price => new ProductRetailPriceDto
                     {
@@ -309,7 +310,7 @@ public class QuickSalesController : Controller
                 }
                 else
                 {
-                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:HHmmss}-{Random.Shared.Next(10, 99)}";
+                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
                     sale = new Sale
                     {
                         SalesDayId = openDay.Id,
@@ -325,19 +326,55 @@ public class QuickSalesController : Controller
                 sale.CustomerName = model.CustomerName?.Trim();
                 sale.CustomerPhone = model.CustomerPhone?.Trim();
                 sale.Notes = model.Notes?.Trim();
-                sale.DiscountTotal = model.DiscountTotal >= 0 ? model.DiscountTotal : 0m;
 
-                decimal totalAmount = 0m;
+                var draftDeductionGroups = new Dictionary<int, int>();
+                foreach (var item in model.Items)
+                {
+                    if (!dbProducts.TryGetValue(item.ProductId, out var product))
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new { success = false, message = $"المنتج رقم {item.ProductId} غير موجود." });
+                    }
+
+                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
+                    var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
+
+                    if (draftDeductionGroups.ContainsKey(product.Id))
+                        draftDeductionGroups[product.Id] += deductionAmount;
+                    else
+                        draftDeductionGroups[product.Id] = deductionAmount;
+                }
+
+                foreach (var kvp in draftDeductionGroups)
+                {
+                    var prodId = kvp.Key;
+                    var totalDeduction = kvp.Value;
+                    var product = dbProducts[prodId];
+                    if (totalDeduction > product.Stockquantity)
+                    {
+                        await transaction.RollbackAsync();
+                        string msg = string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase)
+                            ? $"الكمية المطلوبة من ({product.Name}) تتجاوز المخزون المتوفر بالمليلتر."
+                            : $"الكمية المطلوبة من ({product.Name}) أكبر من المخزون المتوفر.";
+                        return Json(new { success = false, message = msg });
+                    }
+                }
+
+                decimal grossSubtotal = 0m;
+                decimal lineDiscountsTotal = 0m;
                 var newItems = new List<SaleItem>();
                 foreach (var item in model.Items)
                 {
                     var product = dbProducts[item.ProductId];
                     var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                    var lineDiscount = item.Discount >= 0 ? item.Discount : 0m;
-                    var lineTotal = Math.Max(0m, (unitPrice * item.Quantity) - lineDiscount);
+                    var lineGross = unitPrice * item.Quantity;
+                    var lineDiscount = Math.Max(0m, item.Discount);
+                    if (lineDiscount > lineGross) lineDiscount = lineGross;
+                    var lineTotal = lineGross - lineDiscount;
 
-                    totalAmount += (unitPrice * item.Quantity);
+                    grossSubtotal += lineGross;
+                    lineDiscountsTotal += lineDiscount;
 
                     newItems.Add(new SaleItem
                     {
@@ -352,8 +389,12 @@ public class QuickSalesController : Controller
                     });
                 }
 
-                sale.TotalAmount = totalAmount;
-                sale.FinalAmount = Math.Max(0m, totalAmount - sale.DiscountTotal);
+                var overallDiscount = Math.Max(0m, model.DiscountTotal);
+                var totalDiscounts = lineDiscountsTotal + overallDiscount;
+
+                sale.TotalAmount = grossSubtotal;
+                sale.DiscountTotal = totalDiscounts;
+                sale.FinalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
 
                 if (sale.Id == 0)
                 {
@@ -408,31 +449,53 @@ public class QuickSalesController : Controller
         return View(drafts);
     }
 
-    // 7. DELETE / CANCEL DRAFT
+    // 7. DELETE / CANCEL DRAFT (ATOMIC TRANSACTION)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDraft(int id)
     {
-        var draft = await _context.Sales
-            .FirstOrDefaultAsync(s => s.Id == id && s.Status == "Draft");
-
-        if (draft == null)
+        if (id <= 0)
         {
-            return Json(new { success = false, message = "المسودة غير موجودة أو تم معالجتها سابقاً." });
+            return Json(new { success = false, message = "معرف المسودة غير صالح." });
         }
 
-        await _context.SaleItems
-            .Where(si => si.SaleId == draft.Id)
-            .ExecuteDeleteAsync();
+        var strategy = _context.Database.CreateExecutionStrategy();
 
-        await _context.SalePayments
-            .Where(sp => sp.SaleId == draft.Id)
-            .ExecuteDeleteAsync();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var draft = await _context.Sales
+                    .FirstOrDefaultAsync(s => s.Id == id && s.Status == "Draft");
 
-        _context.Sales.Remove(draft);
-        await _context.SaveChangesAsync();
+                if (draft == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(new { success = false, message = "المسودة غير موجودة أو تم معالجتها سابقاً." });
+                }
 
-        return Json(new { success = true, message = "تم حذف المسودة بنجاح." });
+                await _context.SaleItems
+                    .Where(si => si.SaleId == draft.Id)
+                    .ExecuteDeleteAsync();
+
+                await _context.SalePayments
+                    .Where(sp => sp.SaleId == draft.Id)
+                    .ExecuteDeleteAsync();
+
+                _context.Sales.Remove(draft);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = "تم حذف المسودة بنجاح." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"[DeleteDraft Error] {ex}");
+                return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء حذف المسودة. يرجى المحاولة مرة أخرى." });
+            }
+        });
     }
 
     // 8. GET ACTIVE PAYMENT METHODS LIST FOR POS CHECKOUT
@@ -565,12 +628,12 @@ public class QuickSalesController : Controller
                 if (model.SaleId.HasValue && model.SaleId.Value > 0)
                 {
                     sale = await _context.Sales
-                        .FirstOrDefaultAsync(s => s.Id == model.SaleId.Value);
+                        .FirstOrDefaultAsync(s => s.Id == model.SaleId.Value && s.SalesDayId == openDay.Id);
 
                     if (sale == null)
                     {
                         await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto { Success = false, Message = "المسودة المطلوبة غير موجودة في قاعدة البيانات." });
+                        return Json(new CompleteSaleResponseDto { Success = false, Message = "المسودة المطلوبة غير موجودة في يوم البيع الحالي أو تم حذفها." });
                     }
 
                     if (sale.Status == "Completed")
@@ -604,7 +667,7 @@ public class QuickSalesController : Controller
                 }
                 else
                 {
-                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:HHmmss}-{Random.Shared.Next(10, 99)}";
+                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
                     sale = new Sale
                     {
                         SalesDayId = openDay.Id,
@@ -624,9 +687,8 @@ public class QuickSalesController : Controller
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id);
 
-                decimal totalAmount = 0m;
-                var newSaleItems = new List<SaleItem>();
-
+                // Group deductions per ProductId to safely validate and deduct inventory even if product appears in multiple rows
+                var deductionGroups = new Dictionary<int, int>();
                 foreach (var item in model.Items)
                 {
                     if (!dbProducts.TryGetValue(item.ProductId, out var product))
@@ -643,9 +705,22 @@ public class QuickSalesController : Controller
 
                     var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
+
+                    if (deductionGroups.ContainsKey(product.Id))
+                        deductionGroups[product.Id] += deductionAmount;
+                    else
+                        deductionGroups[product.Id] = deductionAmount;
+                }
+
+                // Deduct stock per product
+                foreach (var kvp in deductionGroups)
+                {
+                    var prodId = kvp.Key;
+                    var totalDeduction = kvp.Value;
+                    var product = dbProducts[prodId];
                     try
                     {
-                        await _inventoryService.DeductStockAsync(product.Id, deductionAmount);
+                        await _inventoryService.DeductStockAsync(prodId, totalDeduction);
                     }
                     catch (InvalidOperationException)
                     {
@@ -656,13 +731,25 @@ public class QuickSalesController : Controller
                             Message = $"عذراً، الكمية المتوفرة غير كافية للمنتج ({product.Name}) أو تم تعديل المخزون بنفس الوقت."
                         });
                     }
+                }
 
-                    // Compute Trusted Prices & Totals
+                // Compute Trusted Prices & Totals
+                decimal grossSubtotal = 0m;
+                decimal lineDiscountsTotal = 0m;
+                var newSaleItems = new List<SaleItem>();
+
+                foreach (var item in model.Items)
+                {
+                    var product = dbProducts[item.ProductId];
+                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
+                    var lineGross = unitPrice * item.Quantity;
                     var lineDiscount = Math.Max(0m, item.Discount);
-                    var lineTotal = Math.Max(0m, (unitPrice * item.Quantity) - lineDiscount);
+                    if (lineDiscount > lineGross) lineDiscount = lineGross;
+                    var lineTotal = lineGross - lineDiscount;
 
-                    totalAmount += (unitPrice * item.Quantity);
+                    grossSubtotal += lineGross;
+                    lineDiscountsTotal += lineDiscount;
 
                     newSaleItems.Add(new SaleItem
                     {
@@ -677,8 +764,9 @@ public class QuickSalesController : Controller
                     });
                 }
 
-                var discountTotal = Math.Max(0m, model.DiscountTotal);
-                var finalAmount = Math.Max(0m, totalAmount - discountTotal);
+                var overallDiscount = Math.Max(0m, model.DiscountTotal);
+                var totalDiscounts = lineDiscountsTotal + overallDiscount;
+                var finalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
                 var totalPaid = aggregatedPayments.Sum(p => p.Amount);
 
                 // 6. Validate Payment Total Matches Final Amount Exactly
@@ -708,8 +796,8 @@ public class QuickSalesController : Controller
                 sale.CustomerName = model.CustomerName?.Trim();
                 sale.CustomerPhone = model.CustomerPhone?.Trim();
                 sale.Notes = model.Notes?.Trim();
-                sale.TotalAmount = totalAmount;
-                sale.DiscountTotal = discountTotal;
+                sale.TotalAmount = grossSubtotal;
+                sale.DiscountTotal = totalDiscounts;
                 sale.FinalAmount = finalAmount;
                 sale.Status = "Completed";
                 sale.CompletedAt = DateTime.Now;
@@ -880,6 +968,7 @@ public class QuickSalesController : Controller
                 productId = si.ProductId,
                 productName = si.ProductName,
                 retailSizeMl = si.RetailSizeMl,
+                stockUnit = si.Product != null ? si.Product.StockUnit : "Piece",
                 quantity = si.Quantity,
                 unitPrice = si.UnitPrice,
                 discount = si.Discount,

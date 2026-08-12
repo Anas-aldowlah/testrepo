@@ -341,6 +341,16 @@
             }
         });
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function viewSaleDetails(saleId) {
             var modalElem = document.getElementById('saleDetailsModal');
             var modalBody = document.getElementById('detailsModalBody');
@@ -353,15 +363,16 @@
                 .then(res => res.json())
                 .then(data => {
                     if (!data.success) {
-                        modalBody.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                        modalBody.innerHTML = `<div class="alert alert-danger">${escapeHtml(data.message)}</div>`;
                         return;
                     }
 
                     var itemsHtml = '';
                     data.items.forEach(function(item) {
+                        var modeLabel = item.retailSizeMl ? ` — تجزئة (${item.retailSizeMl} ml)` : (item.stockUnit === 'Ml' ? ' — بالعبوة الكاملة' : '');
                         itemsHtml += `
                             <tr>
-                                <td><strong class="text-dark">${item.productName}</strong></td>
+                                <td><strong class="text-dark">${escapeHtml(item.productName)}${modeLabel}</strong></td>
                                 <td class="text-center">${item.quantity}</td>
                                 <td class="text-end">${item.unitPrice.toFixed(2)} ر.س</td>
                                 <td class="text-end">${item.discount > 0 ? item.discount.toFixed(2) + ' ر.س' : '-'}</td>
@@ -374,7 +385,7 @@
                     data.payments.forEach(function(pm) {
                         paymentsHtml += `
                             <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light mb-1 border">
-                                <span><i class="bi bi-wallet2 me-1"></i> ${pm.methodName} (${pm.methodCode})</span>
+                                <span><i class="bi bi-wallet2 me-1"></i> ${escapeHtml(pm.methodName)} (${escapeHtml(pm.methodCode)})</span>
                                 <strong class="text-warning">${pm.amount.toFixed(2)} ر.س</strong>
                             </div>
                         `;
@@ -383,10 +394,10 @@
                     modalBody.innerHTML = `
                         <div class="bg-light p-3 rounded-3 mb-4 border">
                             <div class="row g-2">
-                                <div class="col-6"><strong>رقم الفاتورة:</strong> <span class="text-warning fw-bold">${data.invoiceNumber}</span></div>
-                                <div class="col-6"><strong>تاريخ الاعتماد:</strong> <span class="text-muted small">${data.time}</span></div>
-                                <div class="col-6"><strong>العميل:</strong> ${data.customerName}</div>
-                                <div class="col-6"><strong>الجوال:</strong> ${data.customerPhone}</div>
+                                <div class="col-6"><strong>رقم الفاتورة:</strong> <span class="text-warning fw-bold">${escapeHtml(data.invoiceNumber)}</span></div>
+                                <div class="col-6"><strong>تاريخ الاعتماد:</strong> <span class="text-muted small">${escapeHtml(data.time)}</span></div>
+                                <div class="col-6"><strong>العميل:</strong> ${escapeHtml(data.customerName)}</div>
+                                <div class="col-6"><strong>الجوال:</strong> ${escapeHtml(data.customerPhone)}</div>
                             </div>
                         </div>
 
