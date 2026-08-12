@@ -127,11 +127,12 @@
                                 </form>
 
                                 <div class="yq-cart-item__pricing">
-                                    <span class="yq-cart-item__unit-price">
-                                        @UnitPrice(item).ToString("N0") ر.س / @UnitLabel(item)
+                                    <span class="yq-cart-item__unit-price"
+                                          data-unit-price="@UnitPrice(item).ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                        @UnitPrice(item).ToString("N2") ر.س / @UnitLabel(item)
                                     </span>
                                     <span class="yq-cart-item__line-total">
-                                        @lineTotal.ToString("N0") <small>ر.س</small>
+                                        @lineTotal.ToString("N2") <small>ر.س</small>
                                     </span>
                                 </div>
                             </div>
@@ -150,7 +151,7 @@
                     <div class="yq-cart-summary__total-box">
                         <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
                         <div class="yq-cart-summary__total-value">
-                            <span data-yq-summary-total>@subtotal.ToString("N0")</span>
+                            <span data-yq-summary-total>@subtotal.ToString("N2")</span>
                             <small>ر.س</small>
                         </div>
                     </div>

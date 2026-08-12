@@ -174,7 +174,7 @@
             var priceEl = item.querySelector('.yq-cart-item__unit-price');
             // Extract numeric price from text like "250 ر.س / للقطعة"
             var priceText = priceEl ? priceEl.textContent.replace(/[^\d]/g, '') : '0';
-            var price = parseInt(priceText, 10) || 0;
+            var price = parseFloat(priceEl ? priceEl.dataset.unitPrice : '0') || 0;
             
             var lineTotal = qty * price;
             subtotal += lineTotal;
