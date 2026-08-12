@@ -29,6 +29,7 @@
         </div>
     </div>
 
+    <div id="posAlertContainer"></div>
     @if (!Model.Any())
     {
         <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4">
@@ -120,6 +121,26 @@
 
 @section Scripts {
     <script>
+        function showAlert(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('posAlertContainer');
+            if (!container) {
+                alert(message);
+                return;
+            }
+            var alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-sm my-2`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            container.appendChild(alertDiv);
+            setTimeout(() => {
+                if (alertDiv && alertDiv.parentNode) alertDiv.remove();
+            }, 4000);
+        }
+
         function deleteDraft(draftId, invoiceNo) {
             if (!confirm(`هل أنت تأكد من حذف المسودة رقم (${invoiceNo}) نهائياً؟`)) {
                 return;

@@ -23,38 +23,68 @@
         .pos-cell-search {
             position: relative;
         }
-        .pos-autocomplete-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            left: 0;
+        /* Floating Side Search Panel */
+        .pos-floating-search-panel {
+            position: fixed;
+            z-index: 2500;
+            width: 380px;
+            max-width: calc(100vw - 32px);
+            max-height: 420px;
+            overflow-y: auto;
             background: #ffffff;
             border: 1px solid rgba(212, 175, 55, 0.4);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            z-index: 1050;
-            border-radius: 10px;
-            max-height: 280px;
-            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            border-radius: 14px;
             display: none;
+            direction: rtl;
+            text-align: right;
+            scroll-behavior: smooth;
+            transition: opacity 0.15s ease;
         }
-        .dark-mode .pos-autocomplete-dropdown,
-        html[data-theme="dark"] .pos-autocomplete-dropdown {
+        .dark-mode .pos-floating-search-panel,
+        html[data-theme="dark"] .pos-floating-search-panel,
+        body.dark-mode .pos-floating-search-panel {
             background: #111622;
-            border-color: rgba(212, 175, 55, 0.4);
+            border-color: rgba(212, 175, 55, 0.5);
+            color: #ffffff;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        }
+        .pos-search-card {
+            padding: 11px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+        .dark-mode .pos-search-card,
+        html[data-theme="dark"] .pos-search-card,
+        body.dark-mode .pos-search-card {
+            border-bottom-color: rgba(255, 255, 255, 0.08);
             color: #ffffff;
         }
-        .pos-search-item {
-            padding: 10px 14px;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            transition: background-color 0.2s ease;
+        .pos-search-card:hover,
+        .pos-search-card.is-selected {
+            background-color: rgba(212, 175, 55, 0.16) !important;
         }
-        .dark-mode .pos-search-item,
-        html[data-theme="dark"] .pos-search-item {
-            border-bottom-color: rgba(255,255,255,0.05);
+        .pos-search-card-img {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            background-color: #f8fafc;
+            flex-shrink: 0;
         }
-        .pos-search-item:hover, .pos-search-item.is-selected {
-            background-color: rgba(212, 175, 55, 0.12);
+        .dark-mode .pos-search-card-img,
+        html[data-theme="dark"] .pos-search-card-img,
+        body.dark-mode .pos-search-card-img {
+            background-color: #1e293b;
+        }
+        .pos-floating-search-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .pos-floating-search-panel::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.5);
+            border-radius: 4px;
         }
         .pos-summary-card {
             background: linear-gradient(145deg, #111622 0%, #1e293b 100%);
@@ -71,6 +101,29 @@
             padding: 8px;
             margin-bottom: 8px;
         }
+        .block-color {
+            color: #000 !important;
+        }
+        .pos-autocomplete-dropdown {
+            z-index: 1050 !important;
+        }
+        /* الوضع الفاتح */
+.form-control,
+.form-select {
+    color: #000 !important;
+}
+
+/* الوضع الداكن */
+.dark-mode .form-control,
+body.dark-mode .form-control,
+html[data-theme="dark"] .form-control,
+.theme-dark .form-control,
+.dark-mode .form-select,
+body.dark-mode .form-select,
+html[data-theme="dark"] .form-select,
+.theme-dark .form-select {
+    color: #fff !important;
+}
     </style>
 }
 
@@ -177,13 +230,13 @@
                     </div>
 
                     <div class="bg-dark bg-opacity-50 p-2 rounded-3 mt-2 border border-secondary border-opacity-50">
-                        <div class="d-flex justify-content-between align-items-center small text-white-50 mb-1">
-                            <span>إجمالي المدفوع:</span>
-                            <strong class="text-white fs-7" id="summaryTotalPaid">0.00 ر.س</strong>
+                        <div class="d-flex justify-content-between align-items-center small text-white-50 mb-1" >
+                            <span class="block-color">إجمالي المدفوع:</span>
+                            <strong class="fs-7 block-color" id="summaryTotalPaid">0.00 ر.س</strong>
                         </div>
                         <div class="d-flex justify-content-between align-items-center small">
-                            <span>المبلغ المتبقي:</span>
-                            <strong class="text-danger fw-bold fs-7" id="summaryRemaining">0.00 ر.س</strong>
+                            <span class="block-color">المبلغ المتبقي:</span>
+                            <strong class="text-danger fw-bold fs-7 block-color" id="summaryRemaining">0.00 ر.س</strong>
                         </div>
                     </div>
                 </div>
@@ -207,14 +260,16 @@
                     <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm" id="btnCompleteSale" onclick="completeSale()">
                         <i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون
                     </button>
-                    <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft" onclick="saveDraftSale()">
+                    <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft">
                         <i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)
                     </button>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+<!-- GLOBAL FLOATING SEARCH RESULTS SIDE PANEL (ESCAPES TABLE OVERFLOW) -->
+<div id="posGlobalSearchPanel" class="pos-floating-search-panel" role="listbox" aria-label="نتائج البحث عن المنتجات"></div>
 
 <!-- SALE COMPLETION SUCCESS MODAL -->
 <div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -276,6 +331,10 @@
                 stock = si.Product?.Stockquantity ?? 99,
                 stockUnit = si.Product?.StockUnit ?? "Piece",
                 volumeMl = si.Product?.VolumeMl,
+                isRetailEnabled = si.Product != null && si.Product.IsRetailEnabled,
+                retailPrices = (si.Product != null && si.Product.RetailPrices != null && si.Product.RetailPrices.Any())
+                    ? si.Product.RetailPrices.Where(r => r.IsActive).OrderBy(r => r.SizeMl).Select(r => (object)new { id = r.Id, sizeMl = r.SizeMl, price = r.Price }).ToList()
+                    : new List<object>(),
                 imageUrl = string.IsNullOrWhiteSpace(si.Product?.Imageurl) ? "/images/yaqut-logo.png" : si.Product.Imageurl
             })));
             </text>
@@ -290,6 +349,16 @@
                 transactionReference = sp.TransactionReference ?? ""
             })));
             </text>
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -330,6 +399,28 @@
                     });
                 }
             });
+
+            // Centralized Smart Auto-Select for Editable POS Inputs on Focus
+            document.addEventListener('focusin', function(e) {
+                var target = e.target;
+                if (!target || target.disabled || target.readOnly) return;
+
+                var tagName = target.tagName ? target.tagName.toLowerCase() : '';
+                if (tagName === 'button' || tagName === 'select' || target.type === 'checkbox' || target.type === 'radio') return;
+
+                var isEligible = target.matches(
+                    '.pos-qty-input, .pos-discount-input, .pos-price-input, .pos-product-search-input, .pos-payment-amount-input, ' +
+                    '#posOverallDiscount, #custName, #custPhone, #saleNotes, .pos-payment-ref-input'
+                ) || target.classList.contains('form-control');
+
+                if (isEligible) {
+                    setTimeout(function() {
+                        if (document.activeElement === target && typeof target.select === 'function') {
+                            target.select();
+                        }
+                    }, 40);
+                }
+            });
         });
 
         var autoSaveTimer = null;
@@ -342,7 +433,7 @@
         }
 
         function autoSaveDraft() {
-            if (isAutoSaving) return;
+            if (isAutoSaving || isSavingDraft) return;
             var data = collectSaleData();
             if (!data || data.salesDayId <= 0) return;
 
@@ -426,7 +517,33 @@
             container.appendChild(rowDiv);
 
             var amtInput = rowDiv.querySelector('.pos-payment-amount-input');
+            var selectElem = rowDiv.querySelector('.pos-payment-method-select');
+
             amtInput.addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
+
+            selectElem.addEventListener('change', function() {
+                var selectedId = parseInt(selectElem.value) || 0;
+                var allRows = container.querySelectorAll('.pos-payment-row');
+                var existingRow = null;
+                allRows.forEach(function(r) {
+                    if (r !== rowDiv) {
+                        var rMethod = parseInt(r.querySelector('.pos-payment-method-select').value) || 0;
+                        if (rMethod === selectedId) {
+                            existingRow = r;
+                        }
+                    }
+                });
+                if (existingRow) {
+                    var existingInput = existingRow.querySelector('.pos-payment-amount-input');
+                    var curVal = parseFloat(existingInput.value) || 0;
+                    var myVal = parseFloat(amtInput.value) || 0;
+                    existingInput.value = (curVal + myVal).toFixed(2);
+                    rowDiv.remove();
+                    showAlert('تم دمج المبلغ مع طريقة الدفع المحددة سابقةً.', 'info');
+                }
+                calculateTotals();
+                scheduleAutoSave();
+            });
 
             rowDiv.querySelector('.pos-btn-remove-payment').addEventListener('click', function() {
                 var rows = container.querySelectorAll('.pos-payment-row');
@@ -473,7 +590,7 @@
                     <div class="pos-autocomplete-dropdown"></div>
                     <div class="pos-stock-hint mt-1 fs-7" ${pId > 0 ? '' : 'style="display:none;"'}>
                         <span class="badge bg-light text-dark border me-1">المتوفر: <strong class="pos-stock-val">${pStock}</strong></span>
-                        <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val">${pStock - pQty}</strong></span>
+                        <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val">${pStock - pQty <= 0 ? 0 : (pStock - pQty)}</strong></span>
                     </div>
                 </td>
                 <td class="text-center">
@@ -508,13 +625,45 @@
             calculateTotals();
         }
 
+        function isMlUnit(unit) {
+            return unit && unit.toString().trim().toLowerCase() === 'ml';
+        }
+
         function ensureRetailSelect(tr, itemData) {
             var searchCell = tr.querySelector('.pos-cell-search');
             if (!searchCell || tr.querySelector('.pos-retail-select')) return;
 
             var select = document.createElement('select');
             select.className = 'form-select form-select-sm mt-1 pos-retail-select';
-            select.innerHTML = '<option value="" data-size="" data-price="' + (itemData?.unitPrice || 0) + '">كامل</option>';
+            var stockUnit = itemData && itemData.stockUnit ? itemData.stockUnit : 'Piece';
+            var prices = itemData && (itemData.retailPrices || itemData.RetailPrices) ? (itemData.retailPrices || itemData.RetailPrices) : [];
+            var isRetailOn = itemData && (itemData.isRetailEnabled || itemData.IsRetailEnabled || prices.length > 0 || itemData.volumeMl > 0);
+
+            if (!isMlUnit(stockUnit) || !isRetailOn) {
+                select.style.display = 'none';
+                select.innerHTML = '<option value="" data-size="" data-price="' + (itemData?.unitPrice || 0) + '">كامل</option>';
+            } else {
+                select.style.display = 'block';
+                var fullPrice = itemData?.unitPrice || 0;
+                var fullLabel = '📦 بالعبوة الكاملة' + (itemData?.volumeMl ? ' (' + itemData.volumeMl + ' ml)' : '');
+                select.innerHTML = '<option value="" data-size="" data-price="' + fullPrice + '">' + fullLabel + '</option>';
+                if (prices.length > 0) {
+                    prices.forEach(function(price) {
+                        var size = price.sizeMl || price.SizeMl || 0;
+                        var pVal = price.price || price.Price || 0;
+                        var pId = price.id || price.Id || 0;
+                        var option = document.createElement('option');
+                        option.value = pId;
+                        option.dataset.size = size;
+                        option.dataset.price = pVal;
+                        option.textContent = '🧪 تجزئة ' + size + ' ml — ' + Number(pVal).toFixed(2) + ' ر.س';
+                        if (itemData && itemData.retailPriceId && String(itemData.retailPriceId) === String(pId)) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                }
+            }
             searchCell.appendChild(select);
 
             select.addEventListener('change', function() {
@@ -528,9 +677,88 @@
             });
         }
 
+        var activeSearchInput = null;
+        var activeSearchRow = null;
+        var selectedResultIndex = -1;
+
+        function getGlobalSearchPanel() {
+            return document.getElementById('posGlobalSearchPanel');
+        }
+
+        function positionSearchPanel(inputEl) {
+            var panel = getGlobalSearchPanel();
+            if (!panel || !inputEl) return;
+
+            var rect = inputEl.getBoundingClientRect();
+            var viewportWidth = window.innerWidth;
+            var viewportHeight = window.innerHeight;
+            var panelWidth = 380;
+
+            if (viewportWidth < 768) {
+                // Mobile overlay positioning
+                var mobWidth = Math.min(viewportWidth - 24, 400);
+                panel.style.width = mobWidth + 'px';
+                panel.style.left = Math.max(12, (viewportWidth - mobWidth) / 2) + 'px';
+                panel.style.right = 'auto';
+
+                var topPos = rect.bottom + 6;
+                if (topPos + 300 > viewportHeight) {
+                    topPos = Math.max(12, rect.top - 310);
+                }
+                panel.style.top = topPos + 'px';
+            } else {
+                // Desktop RTL side panel positioning
+                panel.style.width = panelWidth + 'px';
+                var spaceOnRight = viewportWidth - rect.right;
+                var spaceOnLeft = rect.left;
+
+                if (spaceOnRight >= panelWidth + 16) {
+                    // Floating to the right side of the input field
+                    panel.style.left = (rect.right + 12) + 'px';
+                    panel.style.top = Math.min(rect.top, viewportHeight - 430) + 'px';
+                } else if (spaceOnLeft >= panelWidth + 16) {
+                    // Floating to the left side of the input field
+                    panel.style.left = (rect.left - panelWidth - 12) + 'px';
+                    panel.style.top = Math.min(rect.top, viewportHeight - 430) + 'px';
+                } else {
+                    // Floating directly below input if neither side fits 380px
+                    panel.style.left = Math.max(12, rect.left) + 'px';
+                    var topVal = rect.bottom + 6;
+                    if (topVal + 300 > viewportHeight) {
+                        topVal = Math.max(12, rect.top - 310);
+                    }
+                    panel.style.top = topVal + 'px';
+                }
+            }
+        }
+
+        function hideGlobalSearchPanel() {
+            var panel = getGlobalSearchPanel();
+            if (panel) panel.style.display = 'none';
+            activeSearchInput = null;
+            activeSearchRow = null;
+            selectedResultIndex = -1;
+        }
+
+        // Close search panel on click outside
+        document.addEventListener('click', function(e) {
+            var panel = getGlobalSearchPanel();
+            if (!panel || panel.style.display === 'none') return;
+
+            if (!panel.contains(e.target) && (!activeSearchInput || !activeSearchInput.contains(e.target))) {
+                hideGlobalSearchPanel();
+            }
+        });
+
+        // Reposition on window resize or scroll
+        window.addEventListener('resize', function() {
+            if (activeSearchInput && getGlobalSearchPanel()?.style.display === 'block') {
+                positionSearchPanel(activeSearchInput);
+            }
+        });
+
         function bindRowEvents(tr) {
             var searchInput = tr.querySelector('.pos-product-search-input');
-            var dropdown = tr.querySelector('.pos-autocomplete-dropdown');
             var qtyInput = tr.querySelector('.pos-qty-input');
             var qtyMinus = tr.querySelector('.pos-qty-minus');
             var qtyPlus = tr.querySelector('.pos-qty-plus');
@@ -538,46 +766,132 @@
             var btnRemove = tr.querySelector('.pos-btn-remove');
 
             var searchTimeout = null;
+            var activeSearchController = null;
+
+            searchInput.addEventListener('focus', function() {
+                if (searchInput.value.trim().length >= 1) {
+                    searchInput.dispatchEvent(new Event('input'));
+                }
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                var panel = getGlobalSearchPanel();
+                if (!panel || panel.style.display !== 'block') return;
+
+                var items = panel.querySelectorAll('.pos-search-card');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedResultIndex = (selectedResultIndex + 1) % items.length;
+                    highlightSearchItem(items, selectedResultIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedResultIndex = (selectedResultIndex - 1 + items.length) % items.length;
+                    highlightSearchItem(items, selectedResultIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedResultIndex >= 0 && selectedResultIndex < items.length) {
+                        items[selectedResultIndex].click();
+                    } else if (items.length > 0) {
+                        items[0].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    hideGlobalSearchPanel();
+                }
+            });
+
+            function highlightSearchItem(items, index) {
+                items.forEach((item, idx) => {
+                    if (idx === index) {
+                        item.classList.add('is-selected');
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.classList.remove('is-selected');
+                    }
+                });
+            }
+
             searchInput.addEventListener('input', function() {
                 var query = searchInput.value.trim();
+                var panel = getGlobalSearchPanel();
+
                 if (query.length < 1) {
-                    dropdown.style.display = 'none';
+                    hideGlobalSearchPanel();
+                    if (activeSearchController) {
+                        activeSearchController.abort();
+                        activeSearchController = null;
+                    }
                     return;
                 }
 
+                activeSearchInput = searchInput;
+                activeSearchRow = tr;
+                selectedResultIndex = -1;
+
+                positionSearchPanel(searchInput);
+                panel.innerHTML = '<div class="p-3 text-muted text-center small"><i class="bi bi-hourglass-split me-1 spinner-border spinner-border-sm text-warning"></i> جاري البحث عن المنتجات...</div>';
+                panel.style.display = 'block';
+
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(function() {
-                    fetch('/Admin/QuickSales/SearchProducts?q=' + encodeURIComponent(query))
+                    if (activeSearchController) {
+                        activeSearchController.abort();
+                    }
+                    activeSearchController = new AbortController();
+
+                    fetch('/Admin/QuickSales/SearchProducts?q=' + encodeURIComponent(query), {
+                        signal: activeSearchController.signal
+                    })
                         .then(res => res.json())
                         .then(data => {
-                            dropdown.innerHTML = '';
+                            panel.innerHTML = '';
                             if (!data || data.length === 0) {
-                                dropdown.innerHTML = '<div class="p-3 text-muted text-center small">لا توجد نتائج مطابقة</div>';
+                                panel.innerHTML = '<div class="p-3 text-muted text-center small"><i class="bi bi-exclamation-circle me-1 text-warning"></i> لا توجد منتجات مطابقة</div>';
                             } else {
-                                data.forEach(function(p) {
-                                    var itemDiv = document.createElement('div');
-                                    itemDiv.className = 'pos-search-item d-flex align-items-center justify-content-between gap-2';
-                                    itemDiv.innerHTML = `
-                                        <div class="d-flex align-items-center gap-2">
-                                            <img src="${p.imageUrl}" style="width: 35px; height: 35px; object-fit: cover;" class="rounded border" />
-                                            <div>
-                                                <div class="fw-bold text-dark fs-7">${p.name}</div>
-                                                <div class="text-muted fs-8">${p.brand ? p.brand : 'قسم ياقوت'} | متوفر: ${p.stock}</div>
+                                var header = document.createElement('div');
+                                header.className = 'p-2 bg-slate-900 text-warning fw-bold small border-bottom border-secondary d-flex align-items-center justify-content-between px-3';
+                                header.innerHTML = `<span><i class="bi bi-search me-1"></i> نتائج البحث (${data.length})</span><span class="fs-8 text-muted">استخدم الأسهم 🡱🡳 و Enter</span>`;
+                                panel.appendChild(header);
+
+                                data.forEach(function(p, idx) {
+                                    var itemCard = document.createElement('div');
+                                    itemCard.className = 'pos-search-card d-flex align-items-center justify-content-between gap-3';
+                                    var unitLabel = isMlUnit(p.stockUnit) ? 'ml' : 'قطعة';
+                                    var volInfo = isMlUnit(p.stockUnit) && p.volumeMl > 0 ? ` (عبوة ${p.volumeMl} ml)` : '';
+                                    var imgPath = p.imageUrl && p.imageUrl.trim() !== '' ? escapeHtml(p.imageUrl) : '/images/yaqut-logo.png';
+
+                                    itemCard.innerHTML = `
+                                        <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                            <img src="${imgPath}" onerror="this.onerror=null; this.src='/images/yaqut-logo.png';" class="pos-search-card-img" alt="${escapeHtml(p.name)}" />
+                                            <div class="text-truncate">
+                                                <div class="fw-bold fs-7 text-truncate">${escapeHtml(p.name)}</div>
+                                                <div class="small opacity-75 text-truncate">${escapeHtml(p.brand ? p.brand : 'قسم ياقوت')}${volInfo}</div>
+                                                <div class="fs-8 text-success fw-bold">المخزون المتوفر: ${p.stock} ${unitLabel}</div>
                                             </div>
                                         </div>
-                                        <div class="fw-bold text-warning fs-7">${p.price.toFixed(2)} ر.س</div>
+                                        <div class="text-end flex-shrink-0">
+                                            <div class="fw-bold text-warning fs-6">${p.price.toFixed(2)} ر.س</div>
+                                            <div class="fs-8 text-muted">اضغط للاختيار</div>
+                                        </div>
                                     `;
-                                    itemDiv.addEventListener('click', function() {
+                                    itemCard.addEventListener('click', function() {
                                         selectProductForRow(tr, p);
-                                        dropdown.style.display = 'none';
+                                        hideGlobalSearchPanel();
                                     });
-                                    dropdown.appendChild(itemDiv);
+                                    panel.appendChild(itemCard);
                                 });
                             }
-                            dropdown.style.display = 'block';
+                            positionSearchPanel(searchInput);
+                            panel.style.display = 'block';
                         })
-                        .catch(() => { dropdown.style.display = 'none'; });
-                }, 200);
+                        .catch(err => {
+                            if (err.name === 'AbortError') return;
+                            panel.innerHTML = '<div class="p-3 text-danger text-center small"><i class="bi bi-x-circle me-1"></i> تعذر تحميل المنتجات</div>';
+                            panel.style.display = 'block';
+                        });
+                }, 150);
             });
 
             qtyMinus.addEventListener('click', function() {
@@ -686,16 +1000,29 @@
 
             var retailSelect = tr.querySelector('.pos-retail-select');
             if (retailSelect) {
-                retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">كامل' + (product.volumeMl ? ' - ' + product.volumeMl + ' ml' : '') + '</option>';
-                if (product.isRetailEnabled && product.retailPrices && product.retailPrices.length) {
-                    product.retailPrices.forEach(function(price) {
-                        var option = document.createElement('option');
-                        option.value = price.id;
-                        option.dataset.size = price.sizeMl;
-                        option.dataset.price = price.price;
-                        option.textContent = price.sizeMl + ' ml - ' + Number(price.price).toFixed(2);
-                        retailSelect.appendChild(option);
-                    });
+                var isMl = isMlUnit(product.stockUnit);
+                var prices = product.retailPrices || product.RetailPrices || [];
+                var hasRetail = product.isRetailEnabled || product.IsRetailEnabled || prices.length > 0 || (product.volumeMl && product.volumeMl > 0);
+                if (isMl && hasRetail) {
+                    retailSelect.style.display = 'block';
+                    var fullLabel = '📦 بالعبوة الكاملة' + (product.volumeMl ? ' (' + product.volumeMl + ' ml)' : '') + ' — ' + Number(product.price).toFixed(2) + ' ر.س';
+                    retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">' + fullLabel + '</option>';
+                    if (prices.length) {
+                        prices.forEach(function(price) {
+                            var size = price.sizeMl || price.SizeMl || 0;
+                            var pVal = price.price || price.Price || 0;
+                            var pId = price.id || price.Id || 0;
+                            var option = document.createElement('option');
+                            option.value = pId;
+                            option.dataset.size = size;
+                            option.dataset.price = pVal;
+                            option.textContent = '🧪 تجزئة ' + size + ' ml — ' + Number(pVal).toFixed(2) + ' ر.س';
+                            retailSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    retailSelect.style.display = 'none';
+                    retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">كامل</option>';
                 }
             }
 
@@ -721,12 +1048,13 @@
             if (retailSize > 0) return retailSize;
             var stockUnit = row.querySelector('.pos-stock-unit')?.value || 'Piece';
             var volumeMl = parseInt(row.querySelector('.pos-volume-ml')?.value || '0') || 0;
-            return stockUnit === 'Ml' && volumeMl > 0 ? volumeMl : 1;
+            return isMlUnit(stockUnit) && volumeMl > 0 ? volumeMl : 1;
         }
 
         function calculateTotals() {
             var rows = document.querySelectorAll('.pos-item-row');
-            var subtotal = 0;
+            var grossSubtotal = 0;
+            var lineDiscountsTotal = 0;
             var validItemsCount = 0;
 
             // Map total stock consumption per product ID for accurate remaining stock across duplicate rows
@@ -739,6 +1067,8 @@
                 }
             });
 
+            var hasStockError = false;
+
             rows.forEach(function(row) {
                 var pId = parseInt(row.querySelector('.pos-product-id').value) || 0;
                 var availableStock = parseInt(row.querySelector('.pos-product-stock').value) || 0;
@@ -746,34 +1076,85 @@
                 var qty = parseInt(row.querySelector('.pos-qty-input').value) || 1;
                 var disc = parseFloat(row.querySelector('.pos-discount-input').value) || 0;
 
+                if (disc < 0) {
+                    disc = 0;
+                    row.querySelector('.pos-discount-input').value = '0.00';
+                }
+
+                var lineGross = price * qty;
+                if (disc > lineGross) {
+                    disc = lineGross;
+                    row.querySelector('.pos-discount-input').value = disc.toFixed(2);
+                }
+
                 if (pId > 0) {
                     validItemsCount++;
-                    var totalQtyForThisProduct = productQtySums[pId] || qty;
+                    var unitDeduction = getDeductionUnit(row);
+                    var totalQtyForThisProduct = productQtySums[pId] || (qty * unitDeduction);
                     var remainingStock = availableStock - totalQtyForThisProduct;
 
                     var hint = row.querySelector('.pos-stock-hint');
                     var stockValSpan = row.querySelector('.pos-stock-val');
                     var remainingValSpan = row.querySelector('.pos-remaining-val');
                     var remainingBadge = row.querySelector('.pos-remaining-badge');
+                    var qtyPlusBtn = row.querySelector('.pos-qty-plus');
 
-                    if (hint && stockValSpan && remainingValSpan && remainingBadge) {
-                        stockValSpan.textContent = availableStock;
-                        remainingValSpan.textContent = remainingStock;
-                        hint.style.display = 'block';
-
-                        if (remainingStock > 0) {
-                            remainingBadge.className = 'badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold';
-                        } else if (remainingStock === 0) {
-                            remainingBadge.className = 'badge pos-remaining-badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50';
-                        } else {
-                            remainingBadge.className = 'badge pos-remaining-badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50';
-                        }
+                    // Disable plus button if adding 1 more unit would exceed available stock
+                    if (qtyPlusBtn) {
+                        var nextConsumption = totalQtyForThisProduct + unitDeduction;
+                        qtyPlusBtn.disabled = (nextConsumption > availableStock);
                     }
 
-                    var lineTotal = (price * qty) - disc;
-                    if (lineTotal < 0) lineTotal = 0;
+                    if (hint && stockValSpan && remainingValSpan && remainingBadge) {
+                        var stockUnit = row.querySelector('.pos-stock-unit')?.value || 'Piece';
+                        var retailSize = parseInt(row.querySelector('.pos-retail-size-ml')?.value || '0') || 0;
+                        var volumeMl = parseInt(row.querySelector('.pos-volume-ml')?.value || '0') || 0;
+
+                        if (remainingStock < 0) {
+                            hasStockError = true;
+                            remainingBadge.className = 'badge pos-remaining-badge bg-danger text-white px-2 py-1 fw-bold';
+
+                            if (isMlUnit(stockUnit)) {
+                                if (retailSize > 0) {
+                                    remainingValSpan.textContent = 'الكمية المطلوبة تتجاوز المخزون المتوفر بالمليلتر.';
+                                } else if (volumeMl > 0) {
+                                    remainingValSpan.textContent = 'الكمية المطلوبة من العبوات تتجاوز المخزون المتوفر.';
+                                } else {
+                                    remainingValSpan.textContent = 'الكمية المطلوبة تتجاوز المخزون المتوفر بالمليلتر.';
+                                }
+                            } else {
+                                remainingValSpan.textContent = 'الكمية المطلوبة أكبر من المخزون المتوفر.';
+                            }
+                        } else {
+                            if (isMlUnit(stockUnit)) {
+                                if (retailSize > 0) {
+                                    stockValSpan.textContent = availableStock + ' ml (تجزئة ' + retailSize + ' ml)';
+                                } else if (volumeMl > 0) {
+                                    var availBottles = Math.floor(availableStock / volumeMl);
+                                    stockValSpan.textContent = availableStock + ' ml (عبوة ' + volumeMl + ' ml - متاح: ' + availBottles + ' عبوة)';
+                                } else {
+                                    stockValSpan.textContent = availableStock + ' ml';
+                                }
+                                remainingValSpan.textContent = remainingStock + ' ml';
+                            } else {
+                                stockValSpan.textContent = availableStock + ' قطعة';
+                                remainingValSpan.textContent = remainingStock + ' قطعة';
+                            }
+
+                            if (remainingStock > 0) {
+                                remainingBadge.className = 'badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold';
+                            } else {
+                                remainingBadge.className = 'badge pos-remaining-badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50';
+                            }
+                        }
+                        hint.style.display = 'block';
+                    }
+
+                    var lineTotal = Math.max(0, lineGross - disc);
                     row.querySelector('.pos-row-total').textContent = lineTotal.toFixed(2) + ' ر.س';
-                    subtotal += (price * qty);
+
+                    grossSubtotal += lineGross;
+                    lineDiscountsTotal += disc;
                 } else {
                     row.querySelector('.pos-row-total').textContent = '0.00 ر.س';
                     var hint = row.querySelector('.pos-stock-hint');
@@ -781,11 +1162,36 @@
                 }
             });
 
+            var btnComplete = document.getElementById('btnCompleteSale');
+            var btnSave = document.getElementById('btnSaveDraft');
+            if (btnComplete) {
+                btnComplete.disabled = hasStockError;
+                if (hasStockError) {
+                    btnComplete.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
+                } else {
+                    btnComplete.removeAttribute('title');
+                }
+            }
+            if (btnSave) {
+                btnSave.disabled = hasStockError;
+                if (hasStockError) {
+                    btnSave.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
+                } else {
+                    btnSave.removeAttribute('title');
+                }
+            }
+
             var overallDiscount = parseFloat(document.getElementById('posOverallDiscount').value) || 0;
-            var finalTotal = Math.max(0, subtotal - overallDiscount);
+            if (overallDiscount < 0) {
+                overallDiscount = 0;
+                document.getElementById('posOverallDiscount').value = '0.00';
+            }
+
+            var totalDiscounts = lineDiscountsTotal + overallDiscount;
+            var finalTotal = Math.max(0, grossSubtotal - totalDiscounts);
 
             document.getElementById('summaryItemsCount').textContent = validItemsCount + ' أصناف';
-            document.getElementById('summarySubtotal').textContent = subtotal.toFixed(2) + ' ر.س';
+            document.getElementById('summarySubtotal').textContent = grossSubtotal.toFixed(2) + ' ر.س';
             document.getElementById('summaryFinalTotal').textContent = finalTotal.toFixed(2) + ' ر.س';
 
             // Calculate Payment Totals
@@ -809,7 +1215,7 @@
             var remainingSpan = document.getElementById('summaryRemaining');
             remainingSpan.textContent = remaining.toFixed(2) + ' ر.س';
 
-            if (Math.abs(remaining) < 0.01) {
+            if (Math.abs(remaining) == 0.00) {
                 remainingSpan.className = 'text-success fw-bold fs-7';
             } else if (remaining > 0) {
                 remainingSpan.className = 'text-warning fw-bold fs-7';
@@ -876,7 +1282,11 @@
             };
         }
 
-        function saveDraftSale() {
+        var isSavingDraft = false;
+
+        async function saveDraftSale() {
+            if (isSavingDraft) return;
+
             var data = collectSaleData();
 
             if (data.salesDayId <= 0) {
@@ -889,23 +1299,30 @@
             }
 
             var btnSave = document.getElementById('btnSaveDraft');
-            btnSave.disabled = true;
-            btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+            }
 
-            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            isSavingDraft = true;
 
-            fetch('/Admin/QuickSales/SaveDraft', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
-                btnSave.disabled = false;
-                btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
+            try {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+                var response = await fetch('/Admin/QuickSales/SaveDraft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('تعذر الاتصال بالسيرفر لحفظ المسودة.');
+                }
+
+                var res = await response.json();
 
                 if (res.success) {
                     document.getElementById('posSaleId').value = res.saleId;
@@ -913,12 +1330,16 @@
                 } else {
                     showAlert(res.message || 'حدث خطأ أثناء حفظ المسودة.', 'danger');
                 }
-            })
-            .catch(() => {
-                btnSave.disabled = false;
-                btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
-                showAlert('تعذر الاتصال بالسيرفر لحفظ المسودة.', 'danger');
-            });
+            } catch (err) {
+                console.error('SaveDraft error:', err);
+                showAlert(err.message || 'تعذر الاتصال بالسيرفر لحفظ المسودة.', 'danger');
+            } finally {
+                isSavingDraft = false;
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
+                }
+            }
         }
 
         function completeSale() {
