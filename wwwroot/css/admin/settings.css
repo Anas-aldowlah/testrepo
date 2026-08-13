@@ -173,7 +173,10 @@
 
 .yq-settings-field {
     display: grid;
+    align-content: start;
+    align-self: start;
     gap: 0.45rem;
+    width: 100%;
 }
 
 .yq-settings-field--full {
@@ -247,6 +250,7 @@
 }
 
 .yq-payment-method-extra__name {
+    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
     padding: 0.12rem 0;
@@ -265,6 +269,32 @@
 
 .yq-payment-method-extra__name:focus {
     border-bottom-color: var(--yq-admin-gold-bright);
+}
+
+.yq-payment-method-extra__remove {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 34px;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid rgba(185, 28, 28, 0.28);
+    border-radius: 7px;
+    background: rgba(220, 38, 38, 0.07);
+    color: #b91c1c;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.yq-payment-method-extra__remove:hover,
+.yq-payment-method-extra__remove:focus-visible {
+    border-color: rgba(185, 28, 28, 0.55);
+    background: rgba(220, 38, 38, 0.14);
+    color: #991b1b;
+    outline: none;
 }
 
 .yq-payment-method-add-card {

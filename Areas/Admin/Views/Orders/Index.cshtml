@@ -206,24 +206,42 @@
                                 _ => "yq-orders-badge--neutral"
                             };
 
-                            var details = order.Orderdetail;
+                            var delivery = order.Deliveryorder;
                             var customerName = order.User?.Name ?? "عميل غير معروف";
                             var customerPhone = DealingApiService.DecryptPhone(order.User?.Phone);
                             var customerEmail = order.User?.Email;
                             var itemCount = order.Orderitems?.Sum(i => i.Quantity) ?? 0;
 
-                            var recipientName = !string.IsNullOrWhiteSpace(details?.Recipientname) ? details.Recipientname : customerName;
-                            var recipientPhone = !string.IsNullOrWhiteSpace(details?.Recipientphone) ? details.Recipientphone : customerPhone;
-                            var governorate = !string.IsNullOrWhiteSpace(details?.Governorate) ? details.Governorate : "-";
-                            var region = !string.IsNullOrWhiteSpace(details?.Region) ? details.Region : "-";
-                            var district = !string.IsNullOrWhiteSpace(details?.District) ? details.District : "-";
-                            var fullAddress = !string.IsNullOrWhiteSpace(details?.Fulladdress) ? details.Fulladdress : (governorate != "-" ? $"{governorate}، {region}" : "-");
+                            var recipientName = !string.IsNullOrWhiteSpace(delivery?.Fullname)
+                                ? delivery.Fullname
+                                : customerName;
+                            var deliveryPhones = new[] { delivery?.Phonenumber, delivery?.Secondphonenumber }
+                                .Where(phone => !string.IsNullOrWhiteSpace(phone))
+                                .Distinct()
+                                .ToArray();
+                            var recipientPhone = deliveryPhones.Length > 0
+                                ? string.Join(" / ", deliveryPhones)
+                                : !string.IsNullOrWhiteSpace(customerPhone) ? customerPhone : "-";
+                            var governorate = !string.IsNullOrWhiteSpace(delivery?.Governorate)
+                                ? delivery.Governorate
+                                : "-";
+                            var region = !string.IsNullOrWhiteSpace(delivery?.City)
+                                ? delivery.City
+                                : "-";
+                            var district = !string.IsNullOrWhiteSpace(delivery?.District)
+                                ? delivery.District
+                                : "-";
+                            var addressParts = new[] { governorate, region, district }
+                                .Where(part => !string.IsNullOrWhiteSpace(part) && part != "-")
+                                .ToArray();
+                            var fullAddress = addressParts.Length > 0 ? string.Join("، ", addressParts) : "-";
 
-                            var paymentMethod = !string.IsNullOrWhiteSpace(details?.Paymentmethod) ? details.Paymentmethod : "غير محدد";
-                            var accountName = !string.IsNullOrWhiteSpace(details?.Accountname) ? details.Accountname : "-";
-                            var accountNumber = !string.IsNullOrWhiteSpace(details?.Accountnumber) ? details.Accountnumber : "-";
-                            var refNumber = !string.IsNullOrWhiteSpace(details?.Transferreferencenumber) ? details.Transferreferencenumber : "-";
-                            var receiptImage = details?.Paymentimagepath;
+                            var paymentMethod = !string.IsNullOrWhiteSpace(order.Paymentmethod)
+                                ? order.Paymentmethod
+                                : "غير محدد";
+                            var receiptImage = !string.IsNullOrWhiteSpace(order.Receipturl)
+                                ? order.Receipturl
+                                : null;
 
                             <tr data-order-id="@order.Id">
                                 <td data-label="رقم الطلب">
@@ -305,7 +323,7 @@
                                                 data-bs-html="true"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--payment"
                                                 title='<i class="bi bi-credit-card-fill"></i> معلومات الدفع'
-                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>وسيلة الدفع:</span> <strong>@paymentMethod</strong></div><div class="yq-popover-row"><span>صاحب الحساب:</span> <strong>@accountName</strong></div><div class="yq-popover-row"><span>رقم الحساب:</span> <strong dir="ltr">@accountNumber</strong></div><div class="yq-popover-row"><span>رقم المرجع:</span> <strong>@refNumber</strong></div><div class="yq-popover-row"><span>حالة الطلب:</span> <strong>@statusLabel</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> عرض تفاصيل الدفع الكاملة</a></div></div>'
+                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>وسيلة الدفع:</span> <strong>@paymentMethod</strong></div><div class="yq-popover-row"><span>حالة الطلب:</span> <strong>@statusLabel</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> عرض تفاصيل الدفع الكاملة</a></div></div>'
                                                 aria-label="معلومات الدفع">
                                             <i class="bi bi-credit-card-fill" aria-hidden="true"></i>
                                         </button>

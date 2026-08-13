@@ -77,17 +77,11 @@ public class OrdersController : Controller
         var pageQuery = query
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
-            .Include(o => o.Orderdetail)
+            .Include(o => o.Deliveryorder)
             .OrderByDescending(o => o.Orderdate);
 
         var pagedOrders = await PagedResult<Order>.CreateAsync(pageQuery, page, pageSize);
         await PopulateUserDisplayDataAsync(pagedOrders.Items);
-
-        var orderIds = pagedOrders.Items.Select(o => o.Id).ToList();
-        var deliveryOrders = await _context.Deliveryorders
-            .Where(d => orderIds.Contains(d.Orderid))
-            .ToDictionaryAsync(d => d.Orderid);
-        ViewData["DeliveryOrders"] = deliveryOrders;
 
         var model = new AdminOrdersIndexViewModel
         {
@@ -109,7 +103,7 @@ public class OrdersController : Controller
             .AsNoTracking()
             .Include(o => o.Orderitems)
                 .ThenInclude(oi => oi.Product)
-            .Include(o => o.Orderdetail)
+            .Include(o => o.Deliveryorder)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null)

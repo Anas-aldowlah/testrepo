@@ -121,11 +121,8 @@ namespace YAGOT_2._0.Migrations
             modelBuilder.Entity("YAGOT_2._0.Models.Deliveryorder", b =>
                 {
                     b.Property<int>("Orderid")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasColumnName("orderid");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Orderid"));
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -1156,6 +1153,15 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("RetailPrice");
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.Deliveryorder", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Order", null)
+                        .WithOne("Deliveryorder")
+                        .HasForeignKey("YAGOT_2._0.Models.Deliveryorder", "Orderid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Order", b =>
                 {
                     b.HasOne("YAGOT_2._0.Models.UserSite", null)
@@ -1328,6 +1334,8 @@ namespace YAGOT_2._0.Migrations
 
             modelBuilder.Entity("YAGOT_2._0.Models.Order", b =>
                 {
+                    b.Navigation("Deliveryorder");
+
                     b.Navigation("Orderdetail");
 
                     b.Navigation("Orderitems");

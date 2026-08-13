@@ -156,6 +156,9 @@ public partial class NeondbContext : DbContext
             entity.Property(e => e.Secondphonenumber)
                 .HasMaxLength(20)
                 .HasColumnName("secondphonenumber");
+
+            entity.HasOne<Order>().WithOne(p => p.Deliveryorder)
+                .HasForeignKey<Deliveryorder>(d => d.Orderid);
         });
 
         modelBuilder.Entity<Order>(entity =>

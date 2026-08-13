@@ -284,7 +284,7 @@ namespace YAGOT_2._0.Services
             settings.OtherPaymentName = other?.Name ?? settings.OtherPaymentName;
             settings.OtherPaymentInstructions = other?.Instructions ?? settings.OtherPaymentInstructions;
             settings.AdditionalPaymentMethods = paymentMethods
-                .Where(method => !IsBuiltInPaymentMethod(method))
+                .Where(method => method.Isactive && !IsBuiltInPaymentMethod(method))
                 .Select(method => new PaymentMethodSetting
                 {
                     Id = method.Id,
@@ -329,7 +329,7 @@ namespace YAGOT_2._0.Services
                 {
                     if (method != null)
                     {
-                        _context.Paymentmethods.Remove(method);
+                        method.Isactive = false;
                     }
                     continue;
                 }
