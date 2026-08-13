@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    Admin Orders Index
    Page-specific order management styles only.
    ========================================================================== */
@@ -195,38 +195,47 @@
 }
 
 .yq-orders-filter-form {
-    display: grid;
-    grid-template-columns: minmax(260px, 0.4fr) minmax(0, 1fr) auto;
-    gap: 1rem;
-    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
     padding: 1rem;
 }
 
-.yq-orders-search,
-.yq-orders-status-filter {
-    min-width: 0;
-}
-
-.yq-orders-search label,
-.yq-orders-status-filter legend {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--yq-admin-gold-bright, #d4af37);
-    font-size: 0.84rem;
-    font-weight: 900;
+.yq-orders-search {
+    flex: 1 0 240px;
+    min-width: 240px;
 }
 
 .yq-orders-status-filter {
+    flex: 0 0 auto;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.35rem;
     margin: 0;
     padding: 0;
     border: 0;
 }
 
+.yq-orders-search label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.84rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
 .yq-orders-status-filter legend {
-    width: 100%;
+    float: right;
+    display: block;
+    margin: 0 0 0 0.5rem;
+    padding: 0.35rem 0 0 0;
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.84rem;
+    font-weight: 900;
+    white-space: nowrap;
 }
 
 .yq-orders-search__control {
@@ -267,15 +276,16 @@
     display: inline-flex;
     align-items: center;
     min-height: 38px;
-    gap: 0.45rem;
-    padding: 0.45rem 0.65rem;
+    gap: 0.35rem;
+    padding: 0.35rem 0.5rem;
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 999px;
     background: var(--yq-admin-surface-soft, #1b1f22);
     color: var(--yq-admin-text, #f8f5ee);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 900;
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .yq-orders-status-filter input {
@@ -285,9 +295,11 @@
 }
 
 .yq-orders-filter-actions {
+    flex: 0 0 auto;
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
+    margin: 0 auto;
 }
 
 .yq-orders-table-wrap {
@@ -602,13 +614,30 @@
     outline-offset: 3px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1380px) {
     .yq-orders-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .yq-orders-filter-form {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .yq-orders-search,
+    .yq-orders-status-filter,
+    .yq-orders-filter-actions {
+        flex: 0 0 auto;
+    }
+
+    .yq-orders-status-filter {
+        flex-wrap: wrap;
+    }
+
+    .yq-orders-status-filter legend {
+        float: none;
+        display: block;
+        margin: 0 0 0.5rem 0;
     }
 
     .yq-orders-filter-actions {
@@ -1440,4 +1469,264 @@
 
 .yq-popover-image .popover-body {
     padding: 0.25rem;
+}
+
+/* â•â•â• Quick Info Buttons & Popovers â•â•â• */
+.yq-orders-quick-info {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.yq-quick-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    background: var(--yq-admin-surface-soft, #1b1f22);
+}
+
+.yq-quick-btn--location {
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.25);
+    background: rgba(168, 85, 247, 0.12);
+}
+
+.yq-quick-btn--location:hover {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: #c084fc;
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
+    transform: translateY(-2px);
+}
+
+.yq-quick-btn--payment {
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.25);
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.yq-quick-btn--payment:hover {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: #4ade80;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+    transform: translateY(-2px);
+}
+
+.yq-quick-btn--receipt {
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.25);
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.yq-quick-btn--receipt:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: #60a5fa;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Custom Admin Dark Popover */
+.popover.yq-quick-popover {
+    max-width: 330px;
+    border: 1px solid var(--yq-admin-border-strong, rgba(212, 175, 55, 0.28));
+    border-radius: 12px;
+    background: #181b1e;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    padding: 0;
+    z-index: 1060;
+    backdrop-filter: blur(12px);
+}
+
+.popover.yq-quick-popover .popover-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.86rem;
+    font-weight: 800;
+    padding: 0.65rem 0.9rem;
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.popover.yq-quick-popover--location .popover-header {
+    color: #c084fc;
+}
+
+.popover.yq-quick-popover--payment .popover-header {
+    color: #4ade80;
+}
+
+.popover.yq-quick-popover--receipt .popover-header {
+    color: #60a5fa;
+}
+
+.popover.yq-quick-popover .popover-body {
+    padding: 0.8rem 0.9rem;
+    color: var(--yq-admin-text, #f8f5ee);
+    font-size: 0.83rem;
+}
+
+.popover.yq-quick-popover .popover-arrow::after {
+    border-top-color: #181b1e;
+    border-bottom-color: #181b1e;
+}
+
+/* Card layout inside Popover */
+.yq-popover-card {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.yq-popover-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.yq-popover-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.yq-popover-row span {
+    color: var(--yq-admin-muted, #b6b1a6);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.yq-popover-row strong {
+    color: #f8f5ee;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-align: end;
+    word-break: break-word;
+}
+
+.yq-popover-footer {
+    margin-top: 0.4rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+}
+
+.yq-popover-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+
+.yq-popover-link:hover {
+    color: #fff;
+}
+
+/* Receipt Popover Content */
+.yq-popover-receipt {
+    display: grid;
+    gap: 0.65rem;
+    text-align: center;
+}
+
+.yq-popover-thumb {
+    max-height: 160px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0d0e10;
+}
+
+.yq-popover-thumb img {
+    width: 100%;
+    height: 100%;
+    max-height: 160px;
+    object-fit: cover;
+}
+
+.yq-popover-actions {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.yq-popover-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.65rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 20%, var(--yq-admin-surface-soft, #1b1f22));
+    border: 1px solid var(--yq-admin-gold, #b8942e);
+    color: var(--yq-admin-gold-bright, #d4af37);
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.yq-popover-btn:hover {
+    background: var(--yq-admin-gold, #b8942e);
+    color: #000;
+}
+
+.yq-popover-btn--outline {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--yq-admin-muted, #b6b1a6);
+}
+
+.yq-popover-btn--outline:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.yq-popover-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem 0.4rem;
+    color: var(--yq-admin-muted, #b6b1a6);
+}
+
+.yq-popover-empty i {
+    font-size: 1.8rem;
+    opacity: 0.5;
+}
+
+/* Modal styling */
+.yq-receipt-modal {
+    background: #151719;
+    border: 1px solid var(--yq-admin-border-strong, rgba(212, 175, 55, 0.3));
+    color: #f8f5ee;
+    border-radius: 12px;
+}
+.yq-receipt-modal .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.yq-receipt-modal .modal-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--yq-admin-gold-bright, #d4af37);
+}
+.yq-receipt-modal .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }

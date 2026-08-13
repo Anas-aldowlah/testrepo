@@ -155,25 +155,39 @@ public class OrdersController : Controller
         int page = 1,
         int pageSize = 10)
     {
+        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         var normalizedStatus = OrderService.NormalizeStatus(status);
         if (normalizedStatus == null || !AllowedStatuses.Contains(normalizedStatus))
+        {
+            if (isAjax)
+                return Json(new { success = false, message = "حالة الطلب غير صالحة." });
             return BadRequest("Invalid order status.");
+        }
 
         try
         {
             if (!await _orderService.UpdateStatusAsync(id, normalizedStatus))
+            {
+                if (isAjax)
+                    return Json(new { success = false, message = "الطلب غير موجود." });
                 return NotFound();
+            }
+
+            if (isAjax)
+                return Json(new { success = true, message = $"تم تحديث حالة الطلب #{id} بنجاح." });
 
             TempData["Success"] = "Order status updated successfully.";
         }
         catch (InvalidOperationException ex)
         {
+            if (isAjax)
+                return Json(new { success = false, message = ex.Message });
             TempData["Error"] = ex.Message;
         }
         catch
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "An unexpected error occurred while updating the order." });
+            if (isAjax)
+                return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء تحديث الطلب." });
             TempData["Error"] = "An unexpected error occurred while updating the order.";
         }
 

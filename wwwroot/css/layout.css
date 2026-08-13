@@ -320,42 +320,50 @@ body {
     box-shadow: var(--yq-shadow-gold);
 }
 
+.yaqut-cart-link__icon {
+    font-size: 1.15rem;
+}
+
 .yaqut-cart-link__count {
     position: absolute;
-    top: -7px;
-    inset-inline-start: -7px;
-    min-width: 22px;
-    height: 22px;
+    top: -8px;
+    inset-inline-start: -8px;
+    min-width: 24px;
+    height: 24px;
     padding: 0 0.35rem;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #111;
-    color: var(--yq-gold-bright);
+    background: #e63946;
+    color: #fff;
     border: 2px solid var(--yq-bg-elevated);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-    font-size: 0.72rem;
+    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.4);
+    font-size: 0.75rem;
     font-weight: 900;
     line-height: 1;
+    z-index: 2;
+}
+
+.yaqut-cart-link:has(.yaqut-cart-link__count.is-updated) .yaqut-cart-link__icon {
+    animation: yqCartShake 420ms cubic-bezier(.36,.07,.19,.97) both;
 }
 
 .yaqut-cart-link__count.is-updated {
     animation: yqCartBadgePulse 420ms ease;
 }
 
+@keyframes yqCartShake {
+    10%, 90% { transform: translate3d(-1px, 0, 0) rotate(-5deg); }
+    20%, 80% { transform: translate3d(2px, 0, 0) rotate(5deg); }
+    30%, 50%, 70% { transform: translate3d(-3px, 0, 0) rotate(-10deg); }
+    40%, 60% { transform: translate3d(3px, 0, 0) rotate(10deg); }
+}
+
 @keyframes yqCartBadgePulse {
-    0% {
-        transform: scale(0.72);
-    }
-
-    55% {
-        transform: scale(1.18);
-    }
-
-    100% {
-        transform: scale(1);
-    }
+    0% { transform: scale(0.72); }
+    55% { transform: scale(1.18); }
+    100% { transform: scale(1); }
 }
 
 .yaqut-cart-link:hover,
@@ -743,7 +751,7 @@ body {
 .yq-contact-float__message:focus {
     outline: none;
     border-color: var(--yq-gold-bright);
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.14);
+        box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.14);
 }
 
 .yq-contact-float__actions {
@@ -1468,6 +1476,14 @@ body {
 }
 
 @media (max-width: 767.98px) {
+    .yaqut-cart-link {
+        padding-inline: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        justify-content: center;
+    }
+
     .yaqut-header__actions .yaqut-theme-pill,
     .yaqut-user-chip,
     .yaqut-login-btn,

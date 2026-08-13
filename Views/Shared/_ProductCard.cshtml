@@ -1,17 +1,26 @@
 @model YAGOT_2._0.Models.Product
 @{
     var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
-    var categoryName = Model.Category?.Name ?? "";
+    var categoryName = Model.Category?.Name ?? string.Empty;
     var isAvailable = Model.Stockquantity > 0;
+    var isNew = Model.Createdat.HasValue && Model.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
     var statusId = $"yq-ps-{Model.Id}-{Guid.NewGuid():N}";
+    var imageUrl = string.IsNullOrWhiteSpace(Model.Imageurl)
+        ? Url.Content("~/images/placeholder-product.svg")
+        : (Model.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || Model.Imageurl.StartsWith("/")
+            ? Model.Imageurl
+            : Url.Content("~/" + Model.Imageurl.TrimStart('/')));
 }
 
-<article class="yq-pcard @(isAvailable ? "" : "yq-pcard--out")"
+<article class="yq-pcard @(isAvailable ? string.Empty : "yq-pcard--out")"
+         dir="rtl"
          data-yaqut-product
          data-yq-product-card
+         data-yq-availability="@(isAvailable ? "in-stock" : "out-of-stock")"
+         data-retail="@Model.IsRetailEnabled.ToString().ToLowerInvariant()"
          data-product-id="@Model.Id"
          data-product-name="@Model.Name"
-         data-name="@Model.Name.ToLower()"
+         data-name="@Model.Name.ToLowerInvariant()"
          data-family="@categoryName"
          data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
          data-size="@(Model.Name.Contains("100") || (Model.Description?.Contains("100") ?? false) ? "100" : Model.Name.Contains("50") || (Model.Description?.Contains("50") ?? false) ? "50" : "all")"
@@ -19,72 +28,67 @@
 
     <div class="yq-pcard__media">
         <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
-           class="yq-pcard__img-wrap" tabindex="-1" aria-label="عرض @Model.Name">
-            <img src="@Model.Imageurl"
-                 alt="@Model.Name"
-                 class="yq-pcard__img"
-                 data-yaqut-fallback="/images/placeholder-product.svg"
-                 loading="lazy"
-                 decoding="async" />
+           class="yq-pcard__img-wrap" aria-label="عرض @Model.Name">
+            <img src="@imageUrl" alt="@Model.Name" class="yq-pcard__img" loading="lazy" decoding="async"
+                 data-yaqut-fallback="/images/placeholder-product.svg" />
         </a>
 
-        <span class="yq-pcard__badge @(isAvailable ? "yq-pcard__badge--on" : "yq-pcard__badge--off")">
-            @(isAvailable ? "متوفر" : "نفذ")
-        </span>
-
-        @if (showQuickAdd)
+        @if (Model.IsRetailEnabled)
         {
-            <div class="yq-pcard__overlay" aria-hidden="true">
-                @if (isAvailable)
-                {
-                    <form asp-controller="Cart" asp-action="Add" method="post"
-                          class="yaqut-quick-add-form"
-                          data-yq-add-to-cart-form
-                          data-product-id="@Model.Id"
-                          data-product-name="@Model.Name">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="productId" value="@Model.Id" />
-                        <input type="hidden" name="quantity" value="1" />
-                        <button type="submit"
-                                class="yq-pcard__ov-btn yq-pcard__ov-btn--gold"
-                                data-yq-add-button
-                                aria-describedby="@statusId">
-                            <i class="bi bi-bag-plus"></i>
-                            <span data-yq-add-label>إضافة للسلة</span>
-                        </button>
-                    </form>
-                }
-                <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
-                   class="yq-pcard__ov-btn yq-pcard__ov-btn--ghost">
-                    <i class="bi bi-eye"></i>
-                    <span>عرض التفاصيل</span>
-                </a>
-            </div>
+            <span class="yq-pcard__badge yq-pcard__badge--retail">
+                <i class="bi bi-droplet-half" aria-hidden="true"></i> يباع بالتجزئة
+            </span>
+        }
+        else if (isNew)
+        {
+            <span class="yq-pcard__badge yq-pcard__badge--new">
+                <i class="bi bi-stars" aria-hidden="true"></i> جديد
+            </span>
         }
     </div>
 
     <div class="yq-pcard__body">
-        @if (!string.IsNullOrEmpty(categoryName))
-        {
-            <span class="yq-pcard__family">@categoryName</span>
-        }
-
         <h3 class="yq-pcard__name">
-            <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
-               class="yq-pcard__name-link">@Model.Name</a>
+            <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yq-pcard__name-link">@Model.Name</a>
         </h3>
-
         <div class="yq-pcard__footer">
-            <span class="yq-pcard__price">
-                @Model.Price.ToString("N0") <small>ر.س</small>
-            </span>
+            <span class="yq-pcard__price">@Model.Price.ToString("N0") <small>ر.س</small></span>
             @if (!isAvailable)
             {
-                <span class="yq-pcard__unavail">نفذ</span>
+                <span class="yq-pcard__unavail">غير متوفر</span>
             }
         </div>
-
         <p id="@statusId" class="yq-pcard__status yq-hidden" data-yq-add-status aria-live="polite"></p>
     </div>
 
+    @if (showQuickAdd)
+    {
+        <div class="yq-pcard__actions" aria-label="إجراءات @Model.Name">
+            @if (isAvailable)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post"
+                      class="yaqut-quick-add-form yq-pcard__add-form"
+                      data-yq-add-to-cart-form data-product-id="@Model.Id" data-product-name="@Model.Name">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <input type="hidden" name="quantity" value="1" />
+                    <button type="submit" class="yq-pcard__action-add" data-yq-add-button aria-describedby="@statusId">
+                        <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                        <span data-yq-add-label>أضف للسلة</span>
+                    </button>
+                </form>
+            }
+            else
+            {
+                <button type="button" class="yq-pcard__action-add" disabled aria-disabled="true">
+                    <i class="bi bi-bag-x" aria-hidden="true"></i><span>غير متوفر</span>
+                </button>
+            }
+
+            <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
+               class="yq-pcard__action-view" aria-label="معاينة @Model.Name" title="معاينة سريعة">
+                <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">معاينة</span>
+            </a>
+        </div>
+    }
 </article>

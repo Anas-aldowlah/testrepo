@@ -175,7 +175,7 @@
     .yq-shop-sort__select:focus {
         outline: none;
         border-color: var(--yq-gold-bright);
-        box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
     }
 
 .yq-shop-filter-toggle {
@@ -272,22 +272,8 @@
 
 /* ── Product Grid ── */
 .yq-shop-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
-}
-
-@media (max-width: 1100px) {
-    .yq-shop-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    .yq-shop-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-    }
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
 }
 
 .yq-page-hidden {
@@ -537,8 +523,8 @@
 /* ── Responsive ── */
 @media (max-width: 576px) {
     .yq-shop-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0.65rem;
     }
 
     .yq-shop-pills {
