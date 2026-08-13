@@ -210,6 +210,14 @@
                                     <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
                                     <label asp-for="AdditionalPaymentMethods[i].Name" class="visually-hidden">اسم الطريقة</label>
                                     <input asp-for="AdditionalPaymentMethods[i].Name" class="yq-payment-method-extra__name" placeholder="اسم الطريقة" aria-label="اسم طريقة الدفع" data-yq-payment-name />
+                                    <button type="button"
+                                            class="yq-payment-method-extra__remove"
+                                            data-yq-payment-remove
+                                            aria-label="حذف طريقة الدفع @Model.AdditionalPaymentMethods[i].Name"
+                                            title="حذف طريقة الدفع">
+                                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                                        <span>حذف</span>
+                                    </button>
                                 </h4>
                                 <div class="yq-settings-field">
                                     <label asp-for="AdditionalPaymentMethods[i].AccountHolderName" class="form-label">اسم الحساب</label>
@@ -236,6 +244,14 @@
                                     <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
                                     <label class="visually-hidden" for="AdditionalPaymentMethods___index___Name">اسم الطريقة</label>
                                     <input id="AdditionalPaymentMethods___index___Name" name="AdditionalPaymentMethods[__index__].Name" class="yq-payment-method-extra__name" placeholder="اسم الطريقة" aria-label="اسم طريقة الدفع" data-yq-payment-name />
+                                    <button type="button"
+                                            class="yq-payment-method-extra__remove"
+                                            data-yq-payment-remove
+                                            aria-label="حذف طريقة الدفع الجديدة"
+                                            title="حذف طريقة الدفع">
+                                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                                        <span>حذف</span>
+                                    </button>
                                 </h4>
                                 <div class="yq-settings-field">
                                     <label class="form-label" for="AdditionalPaymentMethods___index___AccountHolderName">اسم الحساب</label>
@@ -298,6 +314,8 @@
             }
 
             let nextIndex = list.querySelectorAll('[data-yq-payment-method-row]').length;
+            const settingsForm = list.closest('form');
+            const initialRows = new Set(list.querySelectorAll('[data-yq-payment-method-row]'));
 
             addButton.addEventListener('click', () => {
                 const html = template.innerHTML.replaceAll('__index__', String(nextIndex));
@@ -313,6 +331,11 @@
                 }
 
                 const row = removeButton.closest('[data-yq-payment-method-row]');
+                const methodName = row?.querySelector('[data-yq-payment-name]')?.value?.trim() || 'طريقة الدفع';
+                if (!window.confirm(`هل تريد حذف "${methodName}" من طرق الدفع؟ سيتم تطبيق الحذف بعد حفظ الإعدادات.`)) {
+                    return;
+                }
+
                 const deleteInput = row?.querySelector('[data-yq-payment-delete]');
                 if (deleteInput && deleteInput.value === 'false' && row?.querySelector('input[name$=".Id"]')?.value) {
                     deleteInput.value = 'true';
@@ -321,6 +344,24 @@
                 }
 
                 row?.remove();
+            });
+
+            settingsForm?.addEventListener('reset', () => {
+                window.setTimeout(() => {
+                    list.querySelectorAll('[data-yq-payment-method-row]').forEach((row) => {
+                        if (!initialRows.has(row)) {
+                            row.remove();
+                            return;
+                        }
+
+                        row.hidden = false;
+                        const deleteInput = row.querySelector('[data-yq-payment-delete]');
+                        if (deleteInput) {
+                            deleteInput.value = 'false';
+                        }
+                    });
+                    nextIndex = initialRows.size;
+                }, 0);
             });
 
         })();

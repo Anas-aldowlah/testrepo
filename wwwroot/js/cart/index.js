@@ -36,15 +36,9 @@
         }, 20);
     }
 
-    function updateHeaderBadge() {
+    function setHeaderBadge(total) {
         var badge = document.querySelector('[data-yq-cart-count]');
         if (!badge) return;
-
-        var total = toArray(document.querySelectorAll('[data-yq-cart-page] [data-yq-cart-qty-value]'))
-            .reduce(function (sum, input) {
-                var value = parseInt(normalizeDigits(input.value), 10);
-                return sum + (Number.isFinite(value) ? value : 0);
-            }, 0);
 
         if (total > 0) {
             badge.hidden = false;
@@ -55,6 +49,15 @@
             badge.textContent = '0';
             badge.setAttribute('aria-label', 'السلة فارغة');
         }
+    }
+
+    function updateHeaderBadge() {
+        var total = toArray(document.querySelectorAll('[data-yq-cart-page] [data-yq-cart-qty-value]'))
+            .reduce(function (sum, input) {
+                var value = parseInt(normalizeDigits(input.value), 10);
+                return sum + (Number.isFinite(value) ? value : 0);
+            }, 0);
+        setHeaderBadge(total);
     }
 
     function initRemoveTransition(root) {
@@ -136,12 +139,9 @@
         var item = form.closest('[data-yq-cart-item]');
         var spinner = form.querySelector('[data-yq-cart-qty-spinner]');
         form.classList.toggle('is-updating', isUpdating);
+        form.setAttribute('aria-busy', isUpdating ? 'true' : 'false');
         if (item) item.classList.toggle('is-updating', isUpdating);
         if (spinner) spinner.hidden = !isUpdating;
-
-        toArray(form.querySelectorAll('[data-yq-cart-qty-select], [data-yq-cart-qty-custom]')).forEach(function (control) {
-            control.disabled = isUpdating;
-        });
     }
 
     function refreshCartFromHtml(html, message) {
@@ -194,8 +194,27 @@
         updateHeaderBadge();
     }
 
+    function applyCartState(state, form) {
+        if (!state) return;
+
+        if (Number.isFinite(Number(state.totalQuantity))) {
+            setHeaderBadge(Number(state.totalQuantity));
+        }
+
+        var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
+        if (summaryTotalEl && Number.isFinite(Number(state.subtotal))) {
+            summaryTotalEl.textContent = Number(state.subtotal).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        }
+
+        var item = form.closest('[data-yq-cart-item]');
+        var lineTotalEl = item ? item.querySelector('.yq-cart-item__line-total') : null;
+        if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
+            lineTotalEl.innerHTML = Number(state.item.lineTotal).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+        }
+    }
+
     function submitQuantity(form, message) {
-        if (!form || form.classList.contains('is-updating')) return;
+        if (!form) return;
         var valueInput = form.querySelector('[data-yq-cart-qty-value]');
         var nextValue = parseInt(normalizeDigits(valueInput ? valueInput.value : '1'), 10);
         var previousValue = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
@@ -203,6 +222,11 @@
         if (!Number.isFinite(nextValue) || nextValue < 1) nextValue = 1;
         setQuantityValue(form, nextValue);
         calculateAndUpdateTotals();
+
+        if (form.classList.contains('is-updating')) {
+            form.setAttribute('data-yq-pending-qty', String(nextValue));
+            return;
+        }
 
         if (Number.isFinite(previousValue) && nextValue === previousValue) return;
 
@@ -212,6 +236,7 @@
         }
 
         var payload = new window.FormData(form);
+        form.removeAttribute('data-yq-pending-qty');
         setFormUpdating(form, true);
 
         window.fetch(form.action, {
@@ -219,34 +244,71 @@
             body: payload,
             credentials: 'same-origin',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
             }
         }).then(function (response) {
-            if (!response.ok) throw new Error('cart update failed');
-            return response.text();
-        }).then(function (html) {
-            var doc = new window.DOMParser().parseFromString(html, 'text/html');
-            var cartItemId = form.querySelector('input[name="cartItemId"]').value;
-            var matchingForm = toArray(doc.querySelectorAll('[data-yq-cart-qty-form]')).find(function (candidate) {
-                var candidateId = candidate.querySelector('input[name="cartItemId"]');
-                return candidateId && candidateId.value === cartItemId;
+            return response.json().then(function (state) {
+                if (!response.ok || !state.success) {
+                    var error = new Error('cart update failed');
+                    error.state = state;
+                    throw error;
+                }
+                return state;
             });
-            var serverValue = matchingForm && matchingForm.querySelector('[data-yq-cart-qty-value]');
-            var savedQuantity = parseInt(serverValue ? serverValue.value : nextValue, 10);
+        }).then(function (state) {
+            var savedQuantity = parseInt(state.item ? state.item.quantity : nextValue, 10);
 
             if (!Number.isFinite(savedQuantity) || savedQuantity < 1) savedQuantity = nextValue;
             form.setAttribute('data-yq-last-qty', String(savedQuantity));
             var expectedInput = form.querySelector('[data-yq-cart-qty-expected]');
             if (expectedInput) expectedInput.value = String(savedQuantity);
-            syncQuantitySelector(form, savedQuantity);
-            calculateAndUpdateTotals();
-            announce(message);
-        }).catch(function () {
+
+            var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+            if (Number.isFinite(pendingQuantity) && pendingQuantity !== savedQuantity) {
+                setQuantityValue(form, pendingQuantity);
+                calculateAndUpdateTotals();
+            } else {
+                form.removeAttribute('data-yq-pending-qty');
+                syncQuantitySelector(form, savedQuantity);
+                applyCartState(state, form);
+            }
+            announce(state.message || message);
+        }).catch(function (error) {
+            var state = error && error.state;
+            var serverQuantity = state && state.item ? parseInt(state.item.quantity, 10) : NaN;
+
+            if (state && state.conflict && Number.isFinite(serverQuantity) && serverQuantity > 0) {
+                var retryQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+                if (!Number.isFinite(retryQuantity)) retryQuantity = nextValue;
+                form.setAttribute('data-yq-last-qty', String(serverQuantity));
+                var expectedInput = form.querySelector('[data-yq-cart-qty-expected]');
+                if (expectedInput) expectedInput.value = String(serverQuantity);
+                form.setAttribute('data-yq-pending-qty', String(retryQuantity));
+                setQuantityValue(form, retryQuantity);
+                applyCartState(state, form);
+                calculateAndUpdateTotals();
+                return;
+            }
+
+            form.removeAttribute('data-yq-pending-qty');
             syncQuantitySelector(form, previousValue);
             calculateAndUpdateTotals();
-            announce('تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
+            announce((state && (state.message || state.detail)) || 'تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
         }).finally(function () {
             setFormUpdating(form, false);
+
+            var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+            var savedQuantity = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
+            if (Number.isFinite(pendingQuantity)) {
+                form.removeAttribute('data-yq-pending-qty');
+                setQuantityValue(form, pendingQuantity);
+                if (pendingQuantity !== savedQuantity) {
+                    window.setTimeout(function () {
+                        submitQuantity(form, message);
+                    }, 0);
+                }
+            }
         });
     }
 
@@ -285,7 +347,6 @@
             });
 
             customInput.addEventListener('blur', function () {
-                if (form.classList.contains('is-updating')) return;
                 var quantity = clampQuantity(customInput);
                 setQuantityValue(form, quantity);
                 submitQuantity(form, 'تم تحديث الكمية تلقائياً.');

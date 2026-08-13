@@ -29,6 +29,8 @@ public partial class Order
 
     public string? Receipturl { get; set; }
 
+    public virtual Deliveryorder? Deliveryorder { get; set; }
+
     public virtual Orderdetail? Orderdetail { get; set; }
 
     public virtual ICollection<Orderitem> Orderitems { get; set; } = new List<Orderitem>();

@@ -696,16 +696,31 @@
         }).then(parseCartDoc);
     }
 
-    function submitForm(form) {
+    function submitForm(form, expectsJson) {
+        var headers = { 'X-Requested-With': 'XMLHttpRequest' };
+        if (expectsJson) headers.Accept = 'application/json';
+
         return window.fetch(form.action, {
             method: (form.method || 'post').toUpperCase(),
             body: new window.FormData(form),
             credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: headers
         }).then(function (response) {
+            if (expectsJson) {
+                return response.json().then(function (state) {
+                    if (!response.ok || !state.success) {
+                        var error = new Error('cart-submit-failed');
+                        error.state = state;
+                        throw error;
+                    }
+                    return state;
+                });
+            }
             if (!response.ok) throw new Error('cart-submit-failed');
             return response.text();
-        }).then(parseCartDoc);
+        }).then(function (payload) {
+            return expectsJson ? payload : parseCartDoc(payload);
+        });
     }
 
     function refreshCart(options) {
@@ -780,31 +795,25 @@
         // Show compact toast without total — real total comes from server
         showCartToast(snapshot, '');
 
-        submitForm(form)
-            .then(function (doc) {
-                // Sync drawer data in background (don't open it)
-                cachedCartDoc = doc;
-                var items = extractItems(doc);
-                var totalQuantity = items.reduce(function (sum, item) { return sum + item.quantity; }, 0);
-                var summary = getSummary(doc);
-                var message = getCartMessage(doc);
-                var failed = isErrorMessage(message);
+        submitForm(form, true)
+            .then(function (state) {
+                cachedCartDoc = null;
+                setBadge(Number(state.totalQuantity) || 0);
 
-                setBadge(totalQuantity);
-
-                if (failed) {
-                    setAddButtonState(form, 'error', message || 'تعذّرت الإضافة. حاول مرة أخرى.');
+                if (isErrorMessage(state.message)) {
+                    setAddButtonState(form, 'error', state.message);
                     hideCartToast();
-                } else {
-                    animateBadgeNudge();
-                    setAddButtonState(form, 'success', message ? 'تم تحديث السلة' : 'تمت الإضافة');
-                    // Update toast with real cart total from server
-                    if (summary.totalText) updateToastTotal(summary.totalText);
+                    announce(state.message);
+                    return;
                 }
+
+                animateBadgeNudge();
+                setAddButtonState(form, 'success', state.message ? 'تم تحديث السلة' : 'تمت الإضافة');
+                if (state.subtotalText) updateToastTotal(state.subtotalText);
             })
-            .catch(function () {
+            .catch(function (error) {
                 setBadge(previousBadgeCount);
-                setAddButtonState(form, 'error', 'تعذّرت الإضافة. حاول مرة أخرى.');
+                setAddButtonState(form, 'error', (error.state && (error.state.message || error.state.detail)) || 'تعذّرت الإضافة. حاول مرة أخرى.');
                 hideCartToast();
                 announce('تعذّرت الإضافة. حاول مرة أخرى.');
             })
@@ -819,7 +828,7 @@
         form.dataset.yqBusy = 'true';
         if (item) item.classList.add('is-updating');
 
-        submitForm(form)
+        submitForm(form, false)
             .then(function (doc) {
                 var result = renderCart(doc, {
                     notice: getCartMessage(doc) || noticeText || 'تم تحديث السلة',
@@ -840,6 +849,108 @@
             });
     }
 
+    function applyDrawerQuantityState(form, state, noticeText) {
+        var item = form.closest('[data-yq-drawer-item]');
+        var input = form.querySelector('input[name="quantity"]');
+        var expectedInput = form.querySelector('input[name="expectedQuantity"]');
+        var savedQuantity = state.item ? parseInt(state.item.quantity, 10) : NaN;
+
+        cachedCartDoc = null;
+        setBadge(Number(state.totalQuantity) || 0);
+        if (countLabel) countLabel.textContent = productCountLabel(Number(state.uniqueItemCount) || 0);
+        if (totalEl && state.subtotalText) totalEl.textContent = state.subtotalText;
+        setCheckoutAvailable(Number(state.uniqueItemCount) > 0);
+        updateShipping({ subtotal: Number(state.subtotal) || 0 });
+
+        if (Number.isFinite(savedQuantity) && savedQuantity > 0) {
+            form.setAttribute('data-yq-last-qty', String(savedQuantity));
+            if (input) input.value = String(savedQuantity);
+            if (expectedInput) expectedInput.value = String(savedQuantity);
+
+            var minus = form.querySelector('[data-yq-qty-step="-1"]');
+            var plus = form.querySelector('[data-yq-qty-step="1"]');
+            var max = input ? parseInt(input.getAttribute('max'), 10) : NaN;
+            if (minus) minus.disabled = savedQuantity <= 1;
+            if (plus) plus.disabled = Number.isFinite(max) && savedQuantity >= max;
+
+            var lineTotal = item ? item.querySelector('.yq-cart-drawer__line-total') : null;
+            if (lineTotal && state.item.lineTotalText) lineTotal.textContent = state.item.lineTotalText;
+        }
+
+        showNotice(state.message || noticeText, false);
+        announce(state.message || noticeText);
+        return savedQuantity;
+    }
+
+    function handleDrawerQuantity(form, noticeText) {
+        var input = form ? form.querySelector('input[name="quantity"]') : null;
+        if (!form || !input) return;
+
+        var requestedQuantity = parseInt(normalizeDigits(input.value), 10);
+        if (!Number.isFinite(requestedQuantity) || requestedQuantity < 1) requestedQuantity = 1;
+        input.value = String(requestedQuantity);
+
+        if (form.dataset.yqBusy === 'true') {
+            form.setAttribute('data-yq-pending-qty', String(requestedQuantity));
+            return;
+        }
+
+        var expectedInput = form.querySelector('input[name="expectedQuantity"]');
+        var previousQuantity = parseInt(
+            form.getAttribute('data-yq-last-qty') || (expectedInput ? expectedInput.value : '1'),
+            10
+        );
+        if (requestedQuantity === previousQuantity) return;
+
+        var item = form.closest('[data-yq-drawer-item]');
+        form.dataset.yqBusy = 'true';
+        form.removeAttribute('data-yq-pending-qty');
+        if (item) item.classList.add('is-updating');
+
+        submitForm(form, true)
+            .then(function (state) {
+                var savedQuantity = applyDrawerQuantityState(form, state, noticeText);
+                var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+                if (Number.isFinite(pendingQuantity) && pendingQuantity !== savedQuantity) {
+                    input.value = String(pendingQuantity);
+                } else {
+                    form.removeAttribute('data-yq-pending-qty');
+                }
+            })
+            .catch(function (error) {
+                var state = error && error.state;
+                if (state && state.conflict && state.item) {
+                    var retryQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+                    if (!Number.isFinite(retryQuantity)) retryQuantity = requestedQuantity;
+                    applyDrawerQuantityState(form, state, noticeText);
+                    form.setAttribute('data-yq-pending-qty', String(retryQuantity));
+                    input.value = String(retryQuantity);
+                    return;
+                }
+
+                form.removeAttribute('data-yq-pending-qty');
+                input.value = String(previousQuantity);
+                showNotice((state && (state.message || state.detail)) || 'تعذّر تحديث السلة. حاول مرة أخرى.', true);
+                announce((state && (state.message || state.detail)) || 'تعذّر تحديث السلة. حاول مرة أخرى.');
+            })
+            .finally(function () {
+                form.dataset.yqBusy = 'false';
+                if (item) item.classList.remove('is-updating');
+
+                var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
+                var savedQuantity = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
+                if (Number.isFinite(pendingQuantity)) {
+                    form.removeAttribute('data-yq-pending-qty');
+                    input.value = String(pendingQuantity);
+                    if (pendingQuantity !== savedQuantity) {
+                        window.setTimeout(function () {
+                            handleDrawerQuantity(form, noticeText);
+                        }, 0);
+                    }
+                }
+            });
+    }
+
     function onDocumentSubmit(event) {
         var form = event.target;
         if (!(form instanceof window.HTMLFormElement)) return;
@@ -852,7 +963,7 @@
 
         if (form.matches('[data-yq-drawer-qty-form]')) {
             event.preventDefault();
-            handleDrawerMutation(form, 'تم تحديث الكمية');
+            handleDrawerQuantity(form, 'تم تحديث الكمية');
             return;
         }
 
@@ -908,7 +1019,7 @@
             next = Math.max(min, next);
             if (next === current) return;
             input.value = next;
-            handleDrawerMutation(form, 'تم تحديث الكمية');
+            handleDrawerQuantity(form, 'تم تحديث الكمية');
         }
     }
 
@@ -923,7 +1034,7 @@
         if (!Number.isFinite(value) || value < min) value = min;
         if (Number.isFinite(max)) value = Math.min(value, max);
         input.value = value;
-        if (form) handleDrawerMutation(form, 'تم تحديث الكمية');
+        if (form) handleDrawerQuantity(form, 'تم تحديث الكمية');
     }
 
     function onKeydown(event) {

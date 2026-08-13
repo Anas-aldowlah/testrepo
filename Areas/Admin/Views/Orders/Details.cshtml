@@ -11,6 +11,32 @@
     var customerName = Model.User?.Name ?? "عميل غير معروف";
     var customerPhone = DealingApiService.DecryptPhone(Model.User?.Phone ?? string.Empty);
     var customerEmail = Model.User?.Email;
+    var delivery = Model.Deliveryorder;
+    var recipientName = !string.IsNullOrWhiteSpace(delivery?.Fullname)
+        ? delivery.Fullname
+        : customerName;
+    var deliveryPhones = new[] { delivery?.Phonenumber, delivery?.Secondphonenumber }
+        .Where(phone => !string.IsNullOrWhiteSpace(phone))
+        .Distinct()
+        .ToArray();
+    var recipientPhone = deliveryPhones.Length > 0
+        ? string.Join(" / ", deliveryPhones)
+        : !string.IsNullOrWhiteSpace(customerPhone) ? customerPhone : "غير متوفر";
+    var governorate = !string.IsNullOrWhiteSpace(delivery?.Governorate)
+        ? delivery.Governorate
+        : "غير متوفر";
+    var region = !string.IsNullOrWhiteSpace(delivery?.City)
+        ? delivery.City
+        : "غير متوفر";
+    var district = !string.IsNullOrWhiteSpace(delivery?.District)
+        ? delivery.District
+        : "غير متوفر";
+    var paymentMethod = !string.IsNullOrWhiteSpace(Model.Paymentmethod)
+        ? Model.Paymentmethod
+        : "غير متوفرة";
+    var receiptUrl = !string.IsNullOrWhiteSpace(Model.Receipturl)
+        ? Model.Receipturl
+        : null;
     var statusLabel = Model.Status switch
     {
         "Pending" => "قيد الانتظار",
@@ -301,19 +327,23 @@
                 <dl class="yq-order-info-list">
                     <div>
                         <dt>اسم المستلم</dt>
-                        <dd>@(Model.Orderdetail?.Recipientname ?? customerName)</dd>
+                        <dd>@recipientName</dd>
                     </div>
                     <div>
                         <dt>رقم الجوال</dt>
-                        <dd>@(Model.Orderdetail?.Recipientphone ?? customerPhone ?? "غير متوفر")</dd>
+                        <dd dir="ltr">@recipientPhone</dd>
                     </div>
                     <div>
                         <dt>المحافظة</dt>
-                        <dd>@(Model.Orderdetail?.Governorate ?? "غير متوفر")</dd>
+                        <dd>@governorate</dd>
                     </div>
                     <div>
                         <dt>المنطقة</dt>
-                        <dd>@(Model.Orderdetail?.Region ?? "غير متوفر")</dd>
+                        <dd>@region</dd>
+                    </div>
+                    <div>
+                        <dt>الحي</dt>
+                        <dd>@district</dd>
                     </div>
                 </dl>
             </section>
@@ -327,14 +357,14 @@
                 <dl class="yq-order-info-list">
                     <div>
                         <dt>طريقة الدفع</dt>
-                        <dd>@(string.IsNullOrWhiteSpace(Model.Paymentmethod) ? "غير متوفرة" : Model.Paymentmethod)</dd>
+                        <dd>@paymentMethod</dd>
                     </div>
                 </dl>
                 <div style="margin-top: 1rem;">
-                    @if (!string.IsNullOrWhiteSpace(Model.Receipturl))
+                    @if (!string.IsNullOrWhiteSpace(receiptUrl))
                     {
-                        <a href="@Model.Receipturl" target="_blank" class="yq-order-receipt-link" style="display: block; text-align: center;">
-                            <img src="@Model.Receipturl" alt="إيصال الدفع" class="img-fluid rounded" style="max-height: 200px; object-fit: contain; border: 1px solid var(--yq-admin-border, rgba(255,255,255,0.08));" />
+                        <a href="@receiptUrl" target="_blank" class="yq-order-receipt-link" style="display: block; text-align: center;">
+                            <img src="@receiptUrl" alt="إيصال الدفع" class="img-fluid rounded" style="max-height: 200px; object-fit: contain; border: 1px solid var(--yq-admin-border, rgba(255,255,255,0.08));" />
                         </a>
                     }
                     else

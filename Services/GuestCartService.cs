@@ -14,6 +14,7 @@ public class GuestCartService
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<GuestCartService> _logger;
+    private List<GuestCartItem>? _currentItems;
 
     public string? Message { get; private set; }
 
@@ -284,6 +285,9 @@ public class GuestCartService
 
     private List<GuestCartItem> ReadItems()
     {
+        if (_currentItems != null)
+            return _currentItems;
+
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext == null ||
             !httpContext.Request.Cookies.TryGetValue(CookieName, out var cookieValue) ||
@@ -295,7 +299,7 @@ public class GuestCartService
         try
         {
             var json = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(cookieValue));
-            return JsonSerializer.Deserialize<List<GuestCartItem>>(json)?
+            _currentItems = JsonSerializer.Deserialize<List<GuestCartItem>>(json)?
                 .Where(i => i.ProductId > 0 && i.Quantity > 0)
                 .GroupBy(i => new { i.ProductId, i.RetailPriceId })
                 .Select(g => new GuestCartItem
@@ -305,6 +309,7 @@ public class GuestCartService
                     Quantity = g.Sum(i => i.Quantity)
                 })
                 .ToList() ?? [];
+            return _currentItems;
         }
         catch (FormatException exception)
         {
@@ -326,6 +331,7 @@ public class GuestCartService
         if (httpContext == null) return;
 
         var validItems = items.Where(i => i.ProductId > 0 && i.Quantity > 0).ToList();
+        _currentItems = validItems;
         if (!validItems.Any())
         {
             Clear();
@@ -346,6 +352,7 @@ public class GuestCartService
 
     private void Clear()
     {
+        _currentItems = [];
         _httpContextAccessor.HttpContext?.Response.Cookies.Delete(CookieName);
     }
 

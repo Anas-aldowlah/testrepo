@@ -46,7 +46,11 @@
 }
 
 <div class="yq-home-page" data-yq-auth-clear="@(TempData["Success"] != null ? "true" : "false")">
-    <section class="yq-home-hero" aria-labelledby="yqHeroTitle">
+    <section class="yq-home-hero yq-home-hero--cinematic" aria-label="الرئيسية">
+        <div class="yq-home-hero__top-bar">
+            <span class="yq-home-kicker"><i class="bi bi-stars" aria-hidden="true"></i> مختارات ياقوت</span>
+        </div>
+
         @if (heroProducts.Any())
         {
             <div class="yq-home-hero__carousel-bg yq-home-carousel"
@@ -64,21 +68,30 @@
                         <article class="yq-home-carousel__slide @(index == 0 ? "is-active" : "")"
                                  data-yq-hero-slide
                                  aria-hidden="@(index == 0 ? "false" : "true")">
-                            <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id"
-                               class="yq-home-carousel__product" tabindex="@(index == 0 ? "0" : "-1")">
-                                <img src="@imageUrl"
-                                     alt="@product.Name"
-                                     loading="@(index == 0 ? "eager" : "lazy")"
-                                     fetchpriority="@(index == 0 ? "high" : "auto")"
-                                     decoding="async"
-                                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                            <div class="yq-home-hero__blurred-bg" style="background-image: url('@imageUrl');"></div>
+                            <div class="yq-home-carousel__product" tabindex="@(index == 0 ? "0" : "-1")">
+                                <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id" class="yq-home-carousel__product-link" aria-label="عرض @product.Name">
+                                    <img src="@imageUrl"
+                                         alt="@product.Name"
+                                         loading="@(index == 0 ? "eager" : "lazy")"
+                                         fetchpriority="@(index == 0 ? "high" : "auto")"
+                                         decoding="async"
+                                         data-yaqut-fallback="/images/placeholder-product.svg" />
+                                </a>
                                 <div class="yq-home-hero__overlay" aria-hidden="true"></div>
-                                <span class="yq-home-carousel__caption">
-                                    <small>@(string.IsNullOrWhiteSpace(product.Brand) ? "من مختارات ياقوت" : product.Brand)</small>
-                                    <strong>@product.Name</strong>
-                                    <span>@product.Price.ToString("N0") ر.س</span>
-                                </span>
-                            </a>
+                                <div class="container yq-home-carousel__bottom-wrapper">
+                                    <div class="yq-home-carousel__bottom-bar">
+                                        <div class="yq-home-carousel__info">
+                                            <small>@(string.IsNullOrWhiteSpace(product.Brand) ? "من مختارات ياقوت" : product.Brand)</small>
+                                            <strong>@product.Name</strong>
+                                            <span>@product.Price.ToString("N0") ر.س</span>
+                                        </div>
+                                        <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id" class="yq-home-button yq-home-button--primary">
+                                            تسوّق الآن <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </article>
                     }
                 </div>
@@ -114,25 +127,7 @@
             </div>
         }
 
-        <div class="container yq-home-hero__container">
-            <div class="yq-home-hero__content yq-reveal">
-                <span class="yq-home-kicker"><i class="bi bi-stars" aria-hidden="true"></i> مختارات ياقوت</span>
-                <h1 id="yqHeroTitle" class="yq-home-hero__title">@heroTitle</h1>
-                <p class="yq-home-hero__desc">@heroDescription</p>
-                <div class="yq-home-hero__actions">
-                    <a asp-controller="Products" asp-action="Index" class="yq-home-button yq-home-button--primary">
-                        تسوّق الآن <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                    </a>
-                    @if (featuredCategory != null)
-                    {
-                        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@featuredCategory.Id"
-                           class="yq-home-button yq-home-button--secondary">
-                            @featuredCategory.Name <i class="bi bi-grid" aria-hidden="true"></i>
-                        </a>
-                    }
-                </div>
-            </div>
-        </div>
+
     </section>
 
     @if (brandNames.Any())
@@ -160,23 +155,7 @@
         </section>
     }
 
-    <section class="container yq-home-discovery" aria-label="طرق سريعة للتسوق">
-        <a asp-controller="Products" asp-action="Index" class="yq-home-discovery__card">
-            <span class="yq-home-discovery__icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
-            <span><strong>وصل حديثاً</strong><small>أحدث العطور المضافة إلى المتجر</small></span>
-        </a>
-        @if (featuredCategory != null)
-        {
-            <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@featuredCategory.Id" class="yq-home-discovery__card">
-                <span class="yq-home-discovery__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
-                <span><strong>اختر حسب التصنيف</strong><small>@featuredCategory.Name</small></span>
-            </a>
-        }
-        <a asp-controller="Cart" asp-action="Index" class="yq-home-discovery__card">
-            <span class="yq-home-discovery__icon"><i class="bi bi-bag" aria-hidden="true"></i></span>
-            <span><strong>أكمل مشترياتك</strong><small>راجع سلتك وأتمم طلبك بسهولة</small></span>
-        </a>
-    </section>
+
 
     <section class="container yq-home-section" aria-labelledby="newArrivalsTitle">
         <header class="yq-home-section__head">

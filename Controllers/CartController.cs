@@ -53,19 +53,29 @@ public class CartController : Controller
     {
         try
         {
+            string? message;
             if (TryResolveUserId(out var userId))
             {
                 await _cartService.AddToCartAsync(userId, productId, quantity, retailPriceId);
-                TempData["Message"] = _cartService.MESSAGE;
+                message = _cartService.MESSAGE;
             }
             else
             {
                 await _guestCartService.AddToCartAsync(productId, quantity, retailPriceId);
-                TempData["Message"] = _guestCartService.Message;
+                message = _guestCartService.Message;
             }
 
-            // Keep the redirect for AJAX too. For guest carts, the cookie is written
-            // to this response and is only visible when fetch follows the redirect.
+            if (IsAjaxRequest())
+            {
+                return Json(await BuildCartStateAsync(
+                    success: true,
+                    conflict: false,
+                    message,
+                    productId: productId,
+                    retailPriceId: retailPriceId));
+            }
+
+            TempData["Message"] = message;
             return RedirectToAction(nameof(Index));
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -89,6 +99,7 @@ public class CartController : Controller
     {
         try
         {
+            string? message;
             if (TryResolveUserId(out var userId))
             {
                 await _cartService.UpdateQuantityAsync(
@@ -96,25 +107,43 @@ public class CartController : Controller
                     cartItemId,
                     quantity,
                     expectedQuantity);
-                TempData["Message"] = _cartService.MESSAGE;
+                message = _cartService.MESSAGE;
             }
             else
             {
                 await _guestCartService.UpdateQuantityAsync(productId, quantity, retailPriceId);
-                TempData["Message"] = _guestCartService.Message;
+                message = _guestCartService.Message;
             }
 
             if (IsAjaxRequest())
             {
-                var cart = await GetCurrentCartAsync();
-                return View("Index", cart);
+                return Json(await BuildCartStateAsync(
+                    success: true,
+                    conflict: false,
+                    message,
+                    cartItemId,
+                    productId,
+                    retailPriceId));
             }
 
+            TempData["Message"] = message;
             return RedirectToAction(nameof(Index));
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
         {
             throw;
+        }
+        catch (CartConcurrencyException exception) when (IsAjaxRequest())
+        {
+            _logger.LogWarning(exception, "The cart quantity changed before the update was applied.");
+            var state = await BuildCartStateAsync(
+                success: false,
+                conflict: true,
+                exception.Message,
+                cartItemId,
+                productId,
+                retailPriceId);
+            return StatusCode(StatusCodes.Status409Conflict, state);
         }
         catch (Exception exception)
         {
@@ -162,6 +191,49 @@ public class CartController : Controller
         return TryResolveUserId(out var userId)
             ? await _cartService.GetCartAsync(userId)
             : await _guestCartService.GetCartAsync();
+    }
+
+    private async Task<object> BuildCartStateAsync(
+        bool success,
+        bool conflict,
+        string? message,
+        int? cartItemId = null,
+        int? productId = null,
+        int? retailPriceId = null)
+    {
+        var cart = await GetCurrentCartAsync();
+        var items = cart.Cartitems
+            .Where(item => item.Product != null)
+            .ToList();
+        var targetItem = cartItemId is > 0
+            ? items.FirstOrDefault(item => item.Id == cartItemId.Value)
+            : items.FirstOrDefault(item =>
+                item.Productid == productId &&
+                item.RetailPriceId == retailPriceId);
+        var subtotal = items.Sum(item =>
+            item.Quantity * (item.RetailPrice?.Price ?? item.Product.Price));
+
+        return new
+        {
+            success = success && targetItem?.Quantity > 0,
+            conflict,
+            message,
+            totalQuantity = items.Sum(item => item.Quantity),
+            uniqueItemCount = items.Count,
+            subtotal,
+            subtotalText = $"{subtotal:N0} ر.س",
+            item = targetItem == null
+                ? null
+                : new
+                {
+                    cartItemId = targetItem.Id,
+                    productId = targetItem.Productid,
+                    retailPriceId = targetItem.RetailPriceId,
+                    quantity = targetItem.Quantity,
+                    lineTotal = targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price),
+                    lineTotalText = $"{targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price):N0} ر.س"
+                }
+        };
     }
 
     private bool TryResolveUserId(out int userId)
