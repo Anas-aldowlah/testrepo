@@ -12,8 +12,8 @@
         return item.Product.Stockquantity;
     }
     string UnitLabel(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.SizeMl > 0
-        ? $"{item.RetailPrice.SizeMl} ml"
-        : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "للقطعة");
+        ? $"{item.RetailPrice.SizeMl} مل"
+        : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} مل" : "للقطعة");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
     var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
@@ -129,10 +129,10 @@
                                 <div class="yq-cart-item__pricing">
                                     <span class="yq-cart-item__unit-price"
                                           data-unit-price="@UnitPrice(item).ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                                        @UnitPrice(item).ToString("N2") ر.س / @UnitLabel(item)
+                                        @UnitPrice(item).ToString("N0") ر.س / @UnitLabel(item)
                                     </span>
                                     <span class="yq-cart-item__line-total">
-                                        @lineTotal.ToString("N2") <small>ر.س</small>
+                                        @lineTotal.ToString("N0") <small>ر.س</small>
                                     </span>
                                 </div>
                             </div>
@@ -151,7 +151,7 @@
                     <div class="yq-cart-summary__total-box">
                         <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
                         <div class="yq-cart-summary__total-value">
-                            <span data-yq-summary-total>@subtotal.ToString("N2")</span>
+                            <span data-yq-summary-total>@subtotal.ToString("N0")</span>
                             <small>ر.س</small>
                         </div>
                     </div>

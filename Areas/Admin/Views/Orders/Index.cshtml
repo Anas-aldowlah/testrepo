@@ -45,15 +45,17 @@
         </div>
     </header>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--success" role="alert">@TempData["Success"]</div>
-    }
+    <div id="yqOrdersAlertArea">
+        @if (TempData["Success"] != null)
+        {
+            <div class="yaqut-alert yaqut-alert--success" role="alert">@TempData["Success"]</div>
+        }
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
-    }
+        @if (TempData["Error"] != null)
+        {
+            <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+        }
+    </div>
 
     <section class="yq-orders-summary" aria-label="ملخص حالات الطلبات">
         <article class="yq-orders-stat">
@@ -162,7 +164,6 @@
                 <span class="yq-orders-eyebrow">قائمة الإدارة</span>
                 <h3 id="ordersTableTitle">جميع الطلبات</h3>
             </div>
-
         </div>
 
         @if (orders.Any())
@@ -174,9 +175,9 @@
                             <th scope="col">رقم الطلب</th>
                             <th scope="col">العميل</th>
                             <th scope="col">الإجمالي</th>
-                            <th scope="col">حالة الدفع</th>
                             <th scope="col">حالة الطلب</th>
                             <th scope="col">تاريخ الطلب</th>
+                            <th scope="col">المعلومات السريعة</th>
                             <th scope="col">الإجراءات</th>
                         </tr>
                     </thead>
@@ -205,12 +206,26 @@
                                 _ => "yq-orders-badge--neutral"
                             };
 
+                            var details = order.Orderdetail;
                             var customerName = order.User?.Name ?? "عميل غير معروف";
                             var customerPhone = DealingApiService.DecryptPhone(order.User?.Phone);
                             var customerEmail = order.User?.Email;
                             var itemCount = order.Orderitems?.Sum(i => i.Quantity) ?? 0;
 
-                            <tr>
+                            var recipientName = !string.IsNullOrWhiteSpace(details?.Recipientname) ? details.Recipientname : customerName;
+                            var recipientPhone = !string.IsNullOrWhiteSpace(details?.Recipientphone) ? details.Recipientphone : customerPhone;
+                            var governorate = !string.IsNullOrWhiteSpace(details?.Governorate) ? details.Governorate : "-";
+                            var region = !string.IsNullOrWhiteSpace(details?.Region) ? details.Region : "-";
+                            var district = !string.IsNullOrWhiteSpace(details?.District) ? details.District : "-";
+                            var fullAddress = !string.IsNullOrWhiteSpace(details?.Fulladdress) ? details.Fulladdress : (governorate != "-" ? $"{governorate}، {region}" : "-");
+
+                            var paymentMethod = !string.IsNullOrWhiteSpace(details?.Paymentmethod) ? details.Paymentmethod : "غير محدد";
+                            var accountName = !string.IsNullOrWhiteSpace(details?.Accountname) ? details.Accountname : "-";
+                            var accountNumber = !string.IsNullOrWhiteSpace(details?.Accountnumber) ? details.Accountnumber : "-";
+                            var refNumber = !string.IsNullOrWhiteSpace(details?.Transferreferencenumber) ? details.Transferreferencenumber : "-";
+                            var receiptImage = details?.Paymentimagepath;
+
+                            <tr data-order-id="@order.Id">
                                 <td data-label="رقم الطلب">
                                     <div class="yq-orders-number">
                                         <strong>#@order.Id</strong>
@@ -253,21 +268,8 @@
                                         <small>@itemCount قطعة</small>
                                     </div>
                                 </td>
-                                <td data-label="حالة الدفع">
-                                    <form asp-action="UpdatePaymentStatus" method="post" class="yq-order-payment-form">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@order.Id" />
-                                        <select name="paymentStatus" class="yq-order-status-select yq-payment-status-select" 
-                                                onchange="this.form.submit()" aria-label="حالة الدفع">
-                                            <option value="Unpaid" selected="@(order.Paymentstatus == "Unpaid" ? "selected" : null)">غير مدفوع</option>
-                                            <option value="Pending" selected="@(order.Paymentstatus == "Pending" ? "selected" : null)">قيد المراجعة</option>
-                                            <option value="Paid" selected="@(order.Paymentstatus == "Paid" ? "selected" : null)">مدفوع</option>
-                                            <option value="Refunded" selected="@(order.Paymentstatus == "Refunded" ? "selected" : null)">مسترد</option>
-                                        </select>
-                                    </form>
-                                </td>
                                 <td data-label="حالة الطلب">
-                                    <span class="yq-orders-badge @statusClass">@statusLabel</span>
+                                    <span class="yq-orders-badge @statusClass" data-order-badge="@order.Id">@statusLabel</span>
                                     @if (order.TimeState.HasValue)
                                     {
                                         <small class="yq-orders-status-date">@order.TimeState.Value.ToString("dd/MM/yyyy")</small>
@@ -278,13 +280,66 @@
                                         @(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")
                                     </time>
                                 </td>
+                                <td data-label="المعلومات السريعة">
+                                    <div class="yq-orders-quick-info">
+                                        @* Location Popover *@
+                                        <button type="button"
+                                                class="yq-quick-btn yq-quick-btn--location"
+                                                data-bs-toggle="popover"
+                                                data-bs-trigger="click"
+                                                data-bs-placement="top"
+                                                data-bs-html="true"
+                                                data-bs-custom-class="yq-quick-popover yq-quick-popover--location"
+                                                title='<i class="bi bi-geo-alt-fill"></i> معلومات التوصيل والمستلم'
+                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>اسم المستلم:</span> <strong>@recipientName</strong></div><div class="yq-popover-row"><span>رقم الجوال:</span> <strong dir="ltr">@recipientPhone</strong></div><div class="yq-popover-row"><span>المحافظة:</span> <strong>@governorate</strong></div><div class="yq-popover-row"><span>المنطقة:</span> <strong>@region</strong></div><div class="yq-popover-row"><span>الحي:</span> <strong>@district</strong></div><div class="yq-popover-row"><span>العنوان:</span> <strong>@fullAddress</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> فتح التفاصيل الكاملة</a></div></div>'
+                                                aria-label="معلومات التوصيل">
+                                            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                                        </button>
+
+                                        @* Payment Popover *@
+                                        <button type="button"
+                                                class="yq-quick-btn yq-quick-btn--payment"
+                                                data-bs-toggle="popover"
+                                                data-bs-trigger="click"
+                                                data-bs-placement="top"
+                                                data-bs-html="true"
+                                                data-bs-custom-class="yq-quick-popover yq-quick-popover--payment"
+                                                title='<i class="bi bi-credit-card-fill"></i> معلومات الدفع'
+                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>وسيلة الدفع:</span> <strong>@paymentMethod</strong></div><div class="yq-popover-row"><span>صاحب الحساب:</span> <strong>@accountName</strong></div><div class="yq-popover-row"><span>رقم الحساب:</span> <strong dir="ltr">@accountNumber</strong></div><div class="yq-popover-row"><span>رقم المرجع:</span> <strong>@refNumber</strong></div><div class="yq-popover-row"><span>حالة الطلب:</span> <strong>@statusLabel</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> عرض تفاصيل الدفع الكاملة</a></div></div>'
+                                                aria-label="معلومات الدفع">
+                                            <i class="bi bi-credit-card-fill" aria-hidden="true"></i>
+                                        </button>
+
+                                        @* Receipt Popover *@
+                                        <button type="button"
+                                                class="yq-quick-btn yq-quick-btn--receipt"
+                                                data-bs-toggle="popover"
+                                                data-bs-trigger="click"
+                                                data-bs-placement="top"
+                                                data-bs-html="true"
+                                                data-bs-custom-class="yq-quick-popover yq-quick-popover--receipt"
+                                                title='<i class="bi bi-receipt-cutoff"></i> إيصال الدفع'
+                                                data-bs-content='@if (!string.IsNullOrEmpty(receiptImage)) {
+                                                <div class="yq-popover-receipt"><div class="yq-popover-thumb"><img src="@receiptImage" alt="إيصال الدفع" /></div><div class="yq-popover-actions"><button type="button" class="yq-popover-btn" onclick="openReceiptModal(&quot;@receiptImage&quot;, @order.Id)"><i class="bi bi-zoom-in"></i> عرض الصورة مكبرة</button><a href="@receiptImage" target="_blank" class="yq-popover-btn yq-popover-btn--outline"><i class="bi bi-box-arrow-up-right"></i> فتح في تبويب جديد</a></div></div>
+                                            } else
+                                            {
+
+                                                <div class="yq-popover-empty"><i class="bi bi-image-alt"></i><span>لا يوجد إيصال مرفق لهذا الطلب</span></div>
+                                            }
+    '
+                                                aria-label="إيصال الدفع">
+                                            <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </td>
                                 <td data-label="الإجراءات">
                                     <div class="yq-orders-action-stack">
                                         <a asp-action="Details" asp-route-id="@order.Id" class="yq-orders-detail-link">
                                             <i class="bi bi-eye" aria-hidden="true"></i>
                                             <span>التفاصيل</span>
                                         </a>
-                                        <form asp-action="UpdateStatus" method="post" class="yq-orders-actions" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                        <form class="yq-orders-actions yq-ajax-status-form" data-order-id="@order.Id" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="Id" value="@order.Id" />
                                             <input type="hidden" name="search" value="@search" />
                                             <input type="hidden" name="page" value="@Model.Orders.CurrentPage" />
@@ -294,7 +349,7 @@
                                                 <input type="hidden" name="filterStatus" value="@filterStatus" />
                                             }
                                             <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
-                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" onchange="this.form.submit()">
+                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" data-original-status="@order.Status">
                                                 <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
                                                 <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
                                                 <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
@@ -302,7 +357,6 @@
                                                 <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
                                                 <option value="Refunded" selected="@(order.Status == "Refunded")">مرتجع</option>
                                             </select>
-
                                         </form>
                                     </div>
                                 </td>
@@ -334,3 +388,158 @@
         }
     </section>
 </section>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content yq-receipt-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptModalTitle">
+                    <i class="bi bi-receipt-cutoff"></i> معاينة إيصال الدفع - طلب رقم #<span id="modalOrderId"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body text-center p-3">
+                <img id="modalReceiptImg" src="" alt="إيصال الدفع" class="img-fluid rounded" style="max-height: 75vh; object-fit: contain;" />
+            </div>
+            <div class="modal-footer">
+                <a id="modalReceiptDownload" href="" target="_blank" class="btn-yaqut-gold">
+                    <i class="bi bi-box-arrow-up-right"></i> فتح الصورة بالحجم الكامل
+                </a>
+                <button type="button" class="btn-yaqut-outline" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // === Bootstrap Popovers ===
+            const popoverTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            popoverTriggerList.forEach(el => {
+                new bootstrap.Popover(el, { sanitize: false, container: 'body' });
+            });
+
+            document.addEventListener('click', function (e) {
+                popoverTriggerList.forEach(el => {
+                    const inst = bootstrap.Popover.getInstance(el);
+                    if (inst && !el.contains(e.target)) {
+                        const popEl = document.querySelector('.popover.show');
+                        if (popEl && !popEl.contains(e.target)) inst.hide();
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    popoverTriggerList.forEach(el => {
+                        const inst = bootstrap.Popover.getInstance(el);
+                        if (inst) inst.hide();
+                    });
+                }
+            });
+
+            // === AJAX Status Update ===
+            const statusLabels = {
+                Pending: 'قيد الانتظار',
+                Processed: 'تم الدفع',
+                Shipped: 'تم الشحن',
+                Delivered: 'تم التوصيل',
+                Cancelled: 'ملغي',
+                Refunded: 'مرتجع'
+            };
+            const statusClasses = {
+                Pending: 'yq-orders-badge--pending',
+                Processed: 'yq-orders-badge--processed',
+                Shipped: 'yq-orders-badge--shipped',
+                Delivered: 'yq-orders-badge--delivered',
+                Cancelled: 'yq-orders-badge--cancelled',
+                Refunded: 'yq-orders-badge--cancelled'
+            };
+
+            document.querySelectorAll('.yq-ajax-status-form select').forEach(select => {
+                select.addEventListener('change', async function () {
+                    const form = this.closest('.yq-ajax-status-form');
+                    const orderId = form.dataset.orderId;
+                    const newStatus = this.value;
+                    const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    // Visual feedback - disable select
+                    this.disabled = true;
+                    this.style.opacity = '0.5';
+
+                    try {
+                        const response = await fetch('@Url.Action("UpdateStatus", "Orders", new { area = "Admin" })', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'RequestVerificationToken': token
+                            },
+                            body: `id=${orderId}&status=${encodeURIComponent(newStatus)}`
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Update the badge in the same row
+                            const badge = document.querySelector(`[data-order-badge="${orderId}"]`);
+                            if (badge) {
+                                badge.className = 'yq-orders-badge ' + (statusClasses[newStatus] || 'yq-orders-badge--neutral');
+                                badge.textContent = statusLabels[newStatus] || newStatus;
+                            }
+
+                            // Update original status
+                            this.dataset.originalStatus = newStatus;
+
+                            // Show success toast
+                            showOrderAlert('success', data.message || 'تم تحديث الحالة بنجاح');
+                        } else {
+                            // Revert select
+                            this.value = this.dataset.originalStatus;
+                            showOrderAlert('danger', data.message || 'حدث خطأ أثناء تحديث الحالة');
+                        }
+                    } catch (err) {
+                        this.value = this.dataset.originalStatus;
+                        showOrderAlert('danger', 'حدث خطأ في الاتصال بالخادم');
+                    } finally {
+                        this.disabled = false;
+                        this.style.opacity = '1';
+                    }
+                });
+            });
+
+            function showOrderAlert(type, message) {
+                const area = document.getElementById('yqOrdersAlertArea');
+                const cls = type === 'success' ? 'yaqut-alert--success' : 'yaqut-alert--danger';
+                const alert = document.createElement('div');
+                alert.className = `yaqut-alert ${cls}`;
+                alert.setAttribute('role', 'alert');
+                alert.textContent = message;
+                alert.style.animation = 'fadeIn 0.3s ease';
+                area.innerHTML = '';
+                area.appendChild(alert);
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.4s ease';
+                    setTimeout(() => alert.remove(), 400);
+                }, 4000);
+            }
+        });
+
+        function openReceiptModal(imageSrc, orderId) {
+            document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+                const instance = bootstrap.Popover.getInstance(el);
+                if (instance) instance.hide();
+            });
+
+            document.getElementById('modalOrderId').textContent = orderId;
+            document.getElementById('modalReceiptImg').src = imageSrc;
+            document.getElementById('modalReceiptDownload').href = imageSrc;
+
+            const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+            modal.show();
+        }
+    </script>
+}

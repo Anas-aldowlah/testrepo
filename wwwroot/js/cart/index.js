@@ -181,14 +181,14 @@
             
             var lineTotalEl = item.querySelector('.yq-cart-item__line-total');
             if (lineTotalEl) {
-                lineTotalEl.innerHTML = lineTotal.toLocaleString('en-US') + ' <small>ر.س</small>';
+                lineTotalEl.innerHTML = lineTotal.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
             }
         });
 
         // Update summary
         var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
         if (summaryTotalEl) {
-            summaryTotalEl.textContent = subtotal.toLocaleString('en-US');
+            summaryTotalEl.textContent = subtotal.toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
         
         updateHeaderBadge();

@@ -210,13 +210,13 @@
         <div class="yq-shop-main">
             @if (productList.Any())
             {
-                <div id="yaqutProductsGrid" class="yq-shop-grid">
+                <div id="yaqutProductsGrid" class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 yq-shop-grid">
                     @foreach (var item in productList)
                     {
                         var createdMs = item.Createdat.HasValue
                         ? new DateTimeOffset(item.Createdat.Value, TimeSpan.Zero).ToUnixTimeMilliseconds()
                         : 0;
-                        <div class="yq-col-item"
+                        <div class="col yq-col-item"
                              data-price="@item.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                              data-created="@createdMs"
                              data-name="@item.Name"

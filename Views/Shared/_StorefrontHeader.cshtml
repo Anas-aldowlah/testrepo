@@ -44,9 +44,9 @@
             </form>
 
             <div class="yaqut-header__actions" role="group" aria-label="إجراءات المتجر">
-                <a asp-controller="Cart" asp-action="Index" class="yaqut-cart-link @(cartActive ? "is-active" : null)" aria-label="السلة" aria-current="@(cartActive ? "page" : null)" title="السلة">
-                    <i class="bi bi-bag" aria-hidden="true"></i>
-                    <span class="yaqut-cart-link__text">السلة</span>
+                <a asp-controller="Cart" asp-action="Index" class="yaqut-cart-link @(cartActive ? "is-active" : null)" aria-label="السلة" aria-current="@(cartActive ? "page" : null)" title="السلة" id="yaqutHeaderCartLink">
+                    <i class="bi bi-cart3 yaqut-cart-link__icon" aria-hidden="true"></i>
+                    <span class="yaqut-cart-link__text d-none d-md-inline">السلة</span>
                     <span class="yaqut-cart-link__count" data-yq-cart-count hidden aria-label="0 منتجات">0</span>
                 </a>
 

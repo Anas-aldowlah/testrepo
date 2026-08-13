@@ -95,6 +95,7 @@ public class ProductsController : Controller
     public IActionResult Create()
     {
         ViewBag.Categoryid = new SelectList(_context.Categories.ToList(), "Id", "Name");
+        ViewBag.Brands = _context.Products.Where(p => !string.IsNullOrWhiteSpace(p.Brand)).Select(p => p.Brand!.Trim()).Distinct().ToList();
         return View(new ProductVW
         {
             StockUnit = "Piece",
@@ -165,6 +166,7 @@ public class ProductsController : Controller
 
         var model = ToProductViewModel(product);
         ViewBag.Categories = await _productService.GetCategoriesAsync();
+        ViewBag.Brands = await _context.Products.Where(p => !string.IsNullOrWhiteSpace(p.Brand)).Select(p => p.Brand!.Trim()).Distinct().ToListAsync();
         return View(model);
     }
 
