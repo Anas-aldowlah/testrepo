@@ -309,7 +309,7 @@
                                                 data-bs-html="true"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--location"
                                                 title='<i class="bi bi-geo-alt-fill"></i> معلومات التوصيل والمستلم'
-                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>اسم المستلم:</span> <strong>@recipientName</strong></div><div class="yq-popover-row"><span>رقم الجوال:</span> <strong dir="ltr">@recipientPhone</strong></div><div class="yq-popover-row"><span>المحافظة:</span> <strong>@governorate</strong></div><div class="yq-popover-row"><span>المنطقة:</span> <strong>@region</strong></div><div class="yq-popover-row"><span>الحي:</span> <strong>@district</strong></div><div class="yq-popover-row"><span>العنوان:</span> <strong>@fullAddress</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> فتح التفاصيل الكاملة</a></div></div>'
+                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>اسم العميل:</span> <strong>@customerName</strong></div><div class="yq-popover-row"><span>اسم المستلم:</span> <strong>@district</strong></div><div class="yq-popover-row"><span>رقم الجوال:</span> <strong dir="ltr">@recipientPhone</strong></div><div class="yq-popover-row"><span>المحافظة:</span> <strong>@governorate</strong></div><div class="yq-popover-row"><span>المنطقة:</span> <strong>@region</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> فتح التفاصيل الكاملة</a></div></div>'
                                                 aria-label="معلومات التوصيل">
                                             <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
                                         </button>
@@ -338,7 +338,7 @@
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--receipt"
                                                 title='<i class="bi bi-receipt-cutoff"></i> إيصال الدفع'
                                                 data-bs-content='@if (!string.IsNullOrEmpty(receiptImage)) {
-                                                <div class="yq-popover-receipt"><div class="yq-popover-thumb"><img src="@receiptImage" alt="إيصال الدفع" /></div><div class="yq-popover-actions"><button type="button" class="yq-popover-btn" onclick="openReceiptModal(&quot;@receiptImage&quot;, @order.Id)"><i class="bi bi-zoom-in"></i> عرض الصورة مكبرة</button><a href="@receiptImage" target="_blank" class="yq-popover-btn yq-popover-btn--outline"><i class="bi bi-box-arrow-up-right"></i> فتح في تبويب جديد</a></div></div>
+                                                <div class="yq-popover-receipt"><div class="yq-popover-thumb"><img src="@receiptImage" alt="إيصال الدفع" /></div><div class="yq-popover-actions"><button type="button" class="yq-popover-btn js-zoom-receipt" id="btn-receipt-@order.Id"><i class="bi bi-zoom-in"></i> عرض الصورة مكبرة</button><a href="@receiptImage" target="_blank" class="yq-popover-btn yq-popover-btn--outline"><i class="bi bi-box-arrow-up-right"></i> فتح في تبويب جديد</a></div></div>
                                             } else
                                             {
 
@@ -559,5 +559,17 @@
             const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
             modal.show();
         }
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.js-zoom-receipt');
+            if (btn) {
+                const orderId = btn.id.replace('btn-receipt-', '');
+                const link = btn.nextElementSibling;
+                const imageSrc = link ? link.getAttribute('href') : '';
+                if (imageSrc) {
+                    openReceiptModal(imageSrc, orderId);
+                }
+            }
+        });
     </script>
 }
