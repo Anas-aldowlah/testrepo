@@ -395,6 +395,47 @@ body {
 
 .yaqut-logout-btn {
     padding-inline: 0.78rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.yaqut-logout-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.yaqut-nav__logout-form {
+    width: 100%;
+    margin: 0;
+}
+
+.yaqut-nav__logout {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.78rem 0.9rem;
+    border: 0;
+    border-radius: var(--yq-radius-sm);
+    background: transparent;
+    color: var(--yq-text-soft);
+    font: inherit;
+    font-weight: 650;
+    text-align: start;
+    cursor: pointer;
+    transition: color var(--yq-ease), background var(--yq-ease);
+}
+
+.yaqut-nav__logout i {
+    color: var(--yq-gold);
+    opacity: 0.72;
+}
+
+.yaqut-nav__logout:hover {
+    background: color-mix(in srgb, var(--yq-gold) 11%, transparent);
+    color: var(--yq-gold);
 }
 
 /* ── Content Wrapper ── */

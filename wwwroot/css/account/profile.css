@@ -315,6 +315,15 @@
     transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
+button.yq-profile-nav-link {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
 .yq-profile-nav-link i {
     width: 18px;
     text-align: center;

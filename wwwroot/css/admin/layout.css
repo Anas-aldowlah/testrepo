@@ -535,7 +535,8 @@
         display: block;
     }
 
-    .yq-admin-user__dropdown a {
+    .yq-admin-user__dropdown a,
+    .yq-admin-user__dropdown button {
         display: flex;
         align-items: center;
         gap: 0.65rem;
@@ -547,9 +548,23 @@
         text-decoration: none;
     }
 
-        .yq-admin-user__dropdown a:hover {
+    .yq-admin-user__dropdown button {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        font-family: inherit;
+        text-align: start;
+        cursor: pointer;
+    }
+
+        .yq-admin-user__dropdown a:hover,
+        .yq-admin-user__dropdown button:hover {
             background: color-mix(in srgb, var(--yq-admin-gold) 9%, var(--yq-admin-surface-solid));
         }
+
+    .yq-admin-user__logout-form {
+        margin: 0;
+    }
 
     .yq-admin-user__dropdown i {
         color: var(--yq-admin-gold);

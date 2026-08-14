@@ -357,12 +357,12 @@
                 
             </div>
             <hr />
-            <a asp-controller="Account" asp-action="Logout" >
-                <div class="title-small" style="border:3px Gold solid">
+            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true">
+                <button type="submit" class="title-small" style="border:3px Gold solid; background:transparent; width:100%; cursor:pointer;">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     الرجوع إلى القائمة السابقة
-                </div>
-            </a>
+                </button>
+            </form>
         </div>
 
     </div>
