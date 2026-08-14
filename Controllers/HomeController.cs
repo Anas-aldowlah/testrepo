@@ -75,10 +75,11 @@ public class HomeController : Controller
             return View(model);
         }
 
-        // لا توجد خدمة بريد إلكتروني أو جدول لتخزين الرسائل حالياً.
-        // يتم تأكيد الاستلام للمستخدم فقط دون إرسال أو حفظ فعلي.
-        TempData["ContactSuccess"] = true;
-        return RedirectToAction(nameof(Contact));
+        ModelState.AddModelError(
+            string.Empty,
+            "خدمة استقبال الرسائل غير متاحة مؤقتاً. يرجى استخدام إحدى قنوات التواصل المباشرة والمحاولة لاحقاً.");
+        Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        return View(model);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

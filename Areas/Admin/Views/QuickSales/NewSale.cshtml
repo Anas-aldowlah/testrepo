@@ -1,8 +1,10 @@
-@model YAGOT_2._0.Models.Sale
+@model YAGOT_2._0.Models.Admin.NewSaleViewModel
 @{
-    var openSalesDay = ViewBag.OpenSalesDay as YAGOT_2._0.Models.SalesDay;
-    var isEdit = Model != null && Model.Id > 0;
-    ViewData["Title"] = isEdit ? $"تعديل المسودة {Model.InvoiceNumber}" : "عملية بيع جديدة";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var sale = Model.Sale;
+    var openSalesDay = Model.SalesDay;
+    var isEdit = Model.IsExistingDraft;
+    ViewData["Title"] = isEdit ? $"تعديل المسودة {sale.InvoiceNumber}" : "عملية بيع جديدة";
 }
 
 @section Breadcrumb {
@@ -128,16 +130,24 @@ html[data-theme="dark"] .form-select,
 }
 
 @Html.AntiForgeryToken()
-<input type="hidden" id="posSalesDayId" value="@openSalesDay?.Id" />
-<input type="hidden" id="posSaleId" value="@(Model?.Id ?? 0)" />
+<input type="hidden" id="posSalesDayId" value="@(openSalesDay?.Id ?? sale.SalesDayId)" />
+<input type="hidden" id="posSaleId" value="@sale.Id" />
 
 <div class="container-fluid px-0">
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["WarningMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- HEADER BAR -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <h2 class="h3 fw-bold text-dark mb-1">
                 <i class="bi bi-cart-plus-fill text-warning me-2"></i>
-                @(isEdit ? $"تعديل مسودة البيع ({Model.InvoiceNumber})" : "شاشة البيع السريع (POS)")
+                @(isEdit ? $"تعديل مسودة البيع ({sale.InvoiceNumber})" : "شاشة البيع السريع (POS)")
             </h2>
             <p class="text-muted small mb-0">
                 يوم البيع الحالي: <strong class="text-dark">@(openSalesDay?.Date.ToString("yyyy/MM/dd"))</strong> | الحالة: <span class="badge bg-success text-white px-3 py-1 fw-bold">مفتوح</span>
@@ -206,7 +216,7 @@ html[data-theme="dark"] .form-select,
 
                 <div class="mb-3">
                     <label for="posOverallDiscount" class="form-label text-white-50 small mb-1">خصم إجمالي على الفاتورة (ر.س):</label>
-                    <input type="number" step="0.01" min="0" id="posOverallDiscount" class="form-control form-control-sm text-end" value="@(Model?.DiscountTotal ?? 0m)" placeholder="0.00" />
+                    <input type="number" step="0.01" min="0" id="posOverallDiscount" class="form-control form-control-sm text-end" value="@sale.DiscountTotal" placeholder="0.00" />
                 </div>
 
                 <hr class="border-secondary my-3" />
@@ -245,13 +255,19 @@ html[data-theme="dark"] .form-select,
                 <div class="border-top border-secondary pt-3 mb-4">
                     <h6 class="fw-bold text-warning mb-2"><i class="bi bi-person-lines-fill me-1"></i> بيانات العميل (اختياري)</h6>
                     <div class="mb-2">
-                        <input type="text" id="custName" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="اسم العميل (اختياري)" value="@Model?.CustomerName" />
+                        <input type="text" id="custName" list="posCustomerNames" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="اسم العميل (اختياري)" value="@sale.CustomerName" />
+                        <datalist id="posCustomerNames">
+                            @foreach (var customer in Model.Customers)
+                            {
+                                <option value="@customer.Name">@customer.Phone</option>
+                            }
+                        </datalist>
                     </div>
                     <div class="mb-2">
-                        <input type="tel" id="custPhone" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="رقم الجوال (اختياري)" value="@Model?.CustomerPhone" />
+                        <input type="tel" id="custPhone" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="رقم الجوال (اختياري)" value="@sale.CustomerPhone" />
                     </div>
                     <div>
-                        <textarea id="saleNotes" class="form-control form-control-sm bg-dark text-white border-secondary" rows="2" placeholder="ملاحظات إضافية على الفاتورة...">@Model?.Notes</textarea>
+                        <textarea id="saleNotes" class="form-control form-control-sm bg-dark text-white border-secondary" rows="2" placeholder="ملاحظات إضافية على الفاتورة...">@sale.Notes</textarea>
                     </div>
                 </div>
 
@@ -314,13 +330,25 @@ html[data-theme="dark"] .form-select,
     <script>
         var posRowsCount = 0;
         var initialModelItems = [];
+        var initialAvailableProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableProducts.Select(product => new {
+            id = product.Id,
+            name = product.Name,
+            brand = product.Brand,
+            price = product.Price,
+            stock = product.Stock,
+            stockUnit = product.StockUnit,
+            volumeMl = product.VolumeMl,
+            isRetailEnabled = product.IsRetailEnabled,
+            retailPrices = product.RetailPrices.Select(price => new { id = price.Id, sizeMl = price.SizeMl, price = price.Price }),
+            imageUrl = product.ImageUrl
+        })));
         var availablePaymentMethods = [];
         var initialModelPayments = [];
 
-        @if (Model != null && Model.SaleItems != null && Model.SaleItems.Any())
+        @if (sale.SaleItems.Any())
         {
             <text>
-            initialModelItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SaleItems.Select(si => new {
+            initialModelItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(sale.SaleItems.Select(si => new {
                 productId = si.ProductId,
                 retailPriceId = si.RetailPriceId,
                 retailSizeMl = si.RetailSizeMl,
@@ -340,10 +368,10 @@ html[data-theme="dark"] .form-select,
             </text>
         }
 
-        @if (Model != null && Model.SalePayments != null && Model.SalePayments.Any())
+        @if (sale.SalePayments.Any())
         {
             <text>
-            initialModelPayments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalePayments.Select(sp => new {
+            initialModelPayments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(sale.SalePayments.Select(sp => new {
                 paymentMethodId = sp.PaymentMethodId,
                 amount = sp.Amount,
                 transactionReference = sp.TransactionReference ?? ""
@@ -1342,7 +1370,20 @@ html[data-theme="dark"] .form-select,
             }
         }
 
-        function completeSale() {
+        async function completeSale() {
+            clearTimeout(autoSaveTimer);
+
+            // Completion must always reference a persisted Draft so the server can
+            // lock one stable row and reject duplicate submissions deterministically.
+            for (var waitAttempt = 0; (isAutoSaving || isSavingDraft) && waitAttempt < 100; waitAttempt++) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            if (isAutoSaving || isSavingDraft) {
+                showAlert('لا يزال حفظ المسودة قيد التنفيذ. يرجى المحاولة بعد لحظات.', 'warning');
+                return;
+            }
+
             var data = collectSaleData();
 
             if (data.salesDayId <= 0) {
@@ -1370,6 +1411,30 @@ html[data-theme="dark"] .form-select,
             if (Math.abs(totalPaid - calcFinalTotal) > 0.01) {
                 showAlert(`مجموع الدفعات المدخلة (${totalPaid.toFixed(2)} ر.س) لا يطابق المبلغ النهائي المطلوب (${calcFinalTotal.toFixed(2)} ر.س).`, 'warning');
                 return;
+            }
+
+            if (!data.saleId) {
+                try {
+                    var draftToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    var draftResponse = await fetch('/Admin/QuickSales/SaveDraft', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': draftToken
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    var draftResult = await draftResponse.json();
+                    if (!draftResponse.ok || !draftResult.success || !draftResult.saleId) {
+                        throw new Error(draftResult.message || 'تعذر حفظ المسودة قبل اعتماد البيع.');
+                    }
+
+                    data.saleId = draftResult.saleId;
+                    document.getElementById('posSaleId').value = draftResult.saleId;
+                } catch (error) {
+                    showAlert(error.message || 'تعذر حفظ المسودة قبل اعتماد البيع.', 'danger');
+                    return;
+                }
             }
 
             var btnComplete = document.getElementById('btnCompleteSale');

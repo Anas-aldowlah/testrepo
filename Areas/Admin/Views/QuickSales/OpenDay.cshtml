@@ -12,6 +12,14 @@
 
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
+        @if (TempData["WarningMessage"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["WarningMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-dark text-white p-4" style="background: linear-gradient(135deg, #111622 0%, #1e293b 100%) !important;">
                 <div class="d-flex align-items-center gap-3">

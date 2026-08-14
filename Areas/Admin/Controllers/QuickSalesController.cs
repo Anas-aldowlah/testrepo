@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
@@ -19,11 +21,16 @@ public class QuickSalesController : Controller
 {
     private readonly NeondbContext _context;
     private readonly IInventoryService _inventoryService;
+    private readonly ILogger<QuickSalesController> _logger;
 
-    public QuickSalesController(NeondbContext context, IInventoryService inventoryService)
+    public QuickSalesController(
+        NeondbContext context,
+        IInventoryService inventoryService,
+        ILogger<QuickSalesController> logger)
     {
         _context = context;
         _inventoryService = inventoryService;
+        _logger = logger;
     }
 
     // 1. MAIN QUICK SALES DASHBOARD / STATE ROUTE
@@ -139,7 +146,7 @@ public class QuickSalesController : Controller
 
     // 3. NEW SALE / EDIT DRAFT INTERFACE
     [HttpGet]
-    public async Task<IActionResult> NewSale(int? id)
+    public async Task<IActionResult> NewSale(int? draftId, int? id = null)
     {
         var openDay = await _context.SalesDays
             .AsNoTracking()
@@ -147,41 +154,153 @@ public class QuickSalesController : Controller
 
         if (openDay == null)
         {
-            TempData["ErrorMessage"] = "يجب فتح يوم بيع أولاً قبل بدء عملية بيع جديدة.";
-            return RedirectToAction(nameof(Index));
+            TempData["WarningMessage"] = "يجب فتح يوم بيع أولاً قبل بدء عملية بيع جديدة.";
+            return RedirectToAction(nameof(OpenDay));
         }
 
-        Sale? sale = null;
-        if (id.HasValue && id.Value > 0)
+        // Preserve old links while making draftId the canonical route value.
+        if (!draftId.HasValue && id.HasValue && id.Value > 0)
         {
-            sale = await _context.Sales
+            return RedirectToAction(nameof(NewSale), new { draftId = id.Value });
+        }
+
+        if (draftId.HasValue && draftId.Value > 0)
+        {
+            var requestedDraft = await _context.Sales
+                .AsNoTracking()
                 .Include(s => s.SaleItems)
                     .ThenInclude(si => si.Product)
                         .ThenInclude(p => p.RetailPrices)
                 .Include(s => s.SalePayments)
-                .FirstOrDefaultAsync(s => s.Id == id.Value && s.Status == "Draft");
+                .FirstOrDefaultAsync(s =>
+                    s.Id == draftId.Value &&
+                    s.SalesDayId == openDay.Id &&
+                    s.Status == "Draft");
+
+            if (requestedDraft != null)
+            {
+                var model = await BuildNewSaleViewModelAsync(requestedDraft, openDay, isExistingDraft: true);
+                return View(model);
+            }
+
+            TempData["WarningMessage"] = "المسودة المطلوبة غير موجودة أو لم تعد مفتوحة. تم تحميل مسودة العمل الحالية بدلاً منها.";
+        }
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        var workingDraftId = await strategy.ExecuteAsync(async () =>
+        {
+            _context.ChangeTracker.Clear();
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var lockedOpenDays = await _context.SalesDays
+                .FromSqlInterpolated($"SELECT * FROM sales_days WHERE id = {openDay.Id} AND status = 'Open' FOR UPDATE")
+                .ToListAsync();
+            var lockedOpenDay = lockedOpenDays.SingleOrDefault();
+
+            if (lockedOpenDay == null)
+            {
+                await transaction.RollbackAsync();
+                return 0;
+            }
+
+            var sale = await _context.Sales
+                .Where(s => s.SalesDayId == lockedOpenDay.Id && s.Status == "Draft")
+                .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
+                .FirstOrDefaultAsync();
 
             if (sale == null)
             {
-                TempData["ErrorMessage"] = "المسودة المطلوبة غير موجودة أو تم إغلاقها.";
-                return RedirectToAction(nameof(Index));
+                sale = new Sale
+                {
+                    SalesDayId = lockedOpenDay.Id,
+                    InvoiceNumber = $"POS-{lockedOpenDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid():N}",
+                    Status = "Draft",
+                    CreatedBy = User.Identity?.Name ?? "المدير",
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Sales.Add(sale);
+                await _context.SaveChangesAsync();
             }
-        }
-        else
+
+            await transaction.CommitAsync();
+            return sale.Id;
+        });
+
+        if (workingDraftId <= 0)
         {
-            // Auto-load latest active draft for current open sales day when opening/refreshing Quick Sales
-            sale = await _context.Sales
-                .Include(s => s.SaleItems)
-                    .ThenInclude(si => si.Product)
-                        .ThenInclude(p => p.RetailPrices)
-                .Include(s => s.SalePayments)
-                .Where(s => s.SalesDayId == openDay.Id && s.Status == "Draft")
-                .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
-                .FirstOrDefaultAsync();
+            TempData["WarningMessage"] = "تم إغلاق يوم البيع قبل فتح شاشة البيع. افتح يوم بيع جديداً للمتابعة.";
+            return RedirectToAction(nameof(OpenDay));
         }
 
-        ViewBag.OpenSalesDay = openDay;
-        return View(sale);
+        // PRG: render only after a clean GET reloads the saved draft and all related data.
+        return RedirectToAction(nameof(NewSale), new { draftId = workingDraftId });
+    }
+
+    private async Task<NewSaleViewModel> BuildNewSaleViewModelAsync(
+        Sale sale,
+        SalesDay salesDay,
+        bool isExistingDraft)
+    {
+        var availableProducts = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Stockquantity > 0)
+            .OrderBy(p => p.Name)
+            .Take(100)
+            .Select(p => new ProductSearchResultDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Brand = p.Brand,
+                Price = p.Price,
+                Stock = p.Stockquantity,
+                StockUnit = p.StockUnit,
+                VolumeMl = p.VolumeMl,
+                IsRetailEnabled = p.IsRetailEnabled,
+                RetailPrices = p.RetailPrices
+                    .Where(price => price.IsActive)
+                    .OrderBy(price => price.SizeMl)
+                    .Select(price => new ProductRetailPriceDto
+                    {
+                        Id = price.Id,
+                        SizeMl = price.SizeMl,
+                        Price = price.Price
+                    })
+                    .ToList(),
+                ImageUrl = string.IsNullOrWhiteSpace(p.Imageurl) ? "/images/yaqut-logo.png" : p.Imageurl
+            })
+            .ToListAsync();
+
+        var customerHistory = await _context.Sales
+            .AsNoTracking()
+            .Where(s => s.CustomerName != null && s.CustomerName != "")
+            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
+            .Select(s => new { s.CustomerName, s.CustomerPhone })
+            .Take(200)
+            .ToListAsync();
+
+        var customers = customerHistory
+            .GroupBy(customer => new
+            {
+                Name = customer.CustomerName!.Trim(),
+                Phone = customer.CustomerPhone == null ? null : customer.CustomerPhone.Trim()
+            })
+            .Select(group => new QuickSaleCustomerDto
+            {
+                Name = group.Key.Name,
+                Phone = group.Key.Phone
+            })
+            .Take(100)
+            .ToList();
+
+        return new NewSaleViewModel
+        {
+            Sale = sale,
+            SalesDay = salesDay,
+            AvailableProducts = availableProducts,
+            Customers = customers,
+            IsExistingDraft = isExistingDraft
+        };
     }
 
     // 4. SERVER-SIDE AUTOCOMPLETE PRODUCT SEARCH API
@@ -270,7 +389,7 @@ public class QuickSalesController : Controller
 
         var strategy = _context.Database.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async () =>
+        return await strategy.ExecuteAsync<IActionResult>(async () =>
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -288,23 +407,23 @@ public class QuickSalesController : Controller
                     }
                 }
 
-                Sale sale;
+                Sale? sale;
                 if (model.SaleId.HasValue && model.SaleId.Value > 0)
                 {
-                    sale = await _context.Sales
-                        .Include(s => s.SaleItems)
-                        .FirstOrDefaultAsync(s => s.Id == model.SaleId.Value && s.Status == "Draft");
+                    var lockedDrafts = await _context.Sales
+                        .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId.Value} AND sales_day_id = {openDay.Id} AND status = 'Draft' FOR UPDATE")
+                        .ToListAsync();
+                    sale = lockedDrafts.SingleOrDefault();
 
                     if (sale == null)
                     {
                         await transaction.RollbackAsync();
-                        return Json(new { success = false, message = "المسودة المحددة غير موجودة أو ليست بحالة مسودة." });
+                        return Conflict(new { success = false, message = "المسودة المحددة غير موجودة أو لم تعد بحالة مسودة." });
                     }
 
-                    if (sale.SaleItems != null && sale.SaleItems.Any())
-                    {
-                        _context.SaleItems.RemoveRange(sale.SaleItems);
-                    }
+                    await _context.SaleItems
+                        .Where(si => si.SaleId == sale.Id)
+                        .ExecuteDeleteAsync();
 
                     sale.UpdatedAt = DateTime.Now;
                 }
@@ -577,8 +696,18 @@ public class QuickSalesController : Controller
             return Json(new CompleteSaleResponseDto { Success = false, Message = "يجب إدخال منتج واحد على الأقل لاعتماد عملية البيع." });
         }
 
+        if (!model.SaleId.HasValue || model.SaleId.Value <= 0)
+        {
+            return Conflict(new CompleteSaleResponseDto
+            {
+                Success = false,
+                Message = "يجب حفظ عملية البيع كمسودة قبل اعتمادها. حدّث الصفحة وحاول مرة أخرى."
+            });
+        }
+
         // 1. Validate Active Sales Day
         var openDay = await _context.SalesDays
+            .AsNoTracking()
             .FirstOrDefaultAsync(sd => sd.Id == model.SalesDayId && sd.Status == "Open");
 
         if (openDay == null)
@@ -618,31 +747,38 @@ public class QuickSalesController : Controller
         // 3. Begin EF Core Database Transaction for Atomic Operations under Retrying Execution Strategy
         var strategy = _context.Database.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async () =>
+        try
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            return await strategy.ExecuteAsync<IActionResult>(async () =>
             {
-                // 4. Load or create Sale record
-                Sale sale;
-                if (model.SaleId.HasValue && model.SaleId.Value > 0)
+                _context.ChangeTracker.Clear();
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                try
                 {
-                    sale = await _context.Sales
-                        .FirstOrDefaultAsync(s => s.Id == model.SaleId.Value && s.SalesDayId == openDay.Id);
+                    // Lock the persisted draft first. Concurrent completions wait here and then
+                    // observe the committed status before inventory or payment rows are touched.
+                    var lockedSales = await _context.Sales
+                        .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId.Value} AND sales_day_id = {model.SalesDayId} FOR UPDATE")
+                        .ToListAsync();
+                    var sale = lockedSales.SingleOrDefault();
 
                     if (sale == null)
                     {
                         await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto { Success = false, Message = "المسودة المطلوبة غير موجودة في يوم البيع الحالي أو تم حذفها." });
+                        return Conflict(new CompleteSaleResponseDto
+                        {
+                            Success = false,
+                            Message = "المسودة المطلوبة غير موجودة في يوم البيع الحالي أو تم حذفها."
+                        });
                     }
 
-                    if (sale.Status == "Completed")
+                    if (!string.Equals(sale.Status, "Draft", StringComparison.Ordinal))
                     {
                         await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto
+                        return Conflict(new CompleteSaleResponseDto
                         {
-                            Success = true,
-                            Message = "تم اعتماد عملية البيع هذه سابقاً ولا يمكن اعتمادها مرتين.",
+                            Success = false,
+                            Message = "تم اعتماد عملية البيع هذه سابقاً أو لم تعد بحالة مسودة. لا يمكن اعتمادها مرتين.",
                             SaleId = sale.Id,
                             InvoiceNumber = sale.InvoiceNumber,
                             FinalAmount = sale.FinalAmount,
@@ -650,13 +786,20 @@ public class QuickSalesController : Controller
                         });
                     }
 
-                    if (sale.Status != "Draft")
+                    var salesDayIsOpen = await _context.SalesDays
+                        .AsNoTracking()
+                        .AnyAsync(sd => sd.Id == model.SalesDayId && sd.Status == "Open");
+                    if (!salesDayIsOpen)
                     {
                         await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto { Success = false, Message = "حالة عملية البيع لا تسمح بالاعتماد." });
+                        return Conflict(new CompleteSaleResponseDto
+                        {
+                            Success = false,
+                            Message = "تم إغلاق يوم البيع أثناء تنفيذ العملية. لم يتم خصم المخزون أو اعتماد الدفعات."
+                        });
                     }
 
-                    // Delete existing items & payments directly without EF entity tracking concurrency conflicts
+                    // Replace the draft detail only after its Draft status is verified under lock.
                     await _context.SaleItems
                         .Where(si => si.SaleId == sale.Id)
                         .ExecuteDeleteAsync();
@@ -664,186 +807,188 @@ public class QuickSalesController : Controller
                     await _context.SalePayments
                         .Where(sp => sp.SaleId == sale.Id)
                         .ExecuteDeleteAsync();
-                }
-                else
-                {
-                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
-                    sale = new Sale
+
+                    // 5. Product Stock Validation & Atomic Deductions
+                    var productIds = model.Items.Select(i => i.ProductId).Distinct().ToList();
+
+                    // Fetch products from DB
+                    var dbProducts = await _context.Products
+                        .Include(p => p.RetailPrices)
+                        .Where(p => productIds.Contains(p.Id))
+                        .ToDictionaryAsync(p => p.Id);
+
+                    // Group deductions per ProductId to safely validate and deduct inventory even if product appears in multiple rows
+                    var deductionGroups = new Dictionary<int, int>();
+                    foreach (var item in model.Items)
                     {
-                        SalesDayId = openDay.Id,
-                        InvoiceNumber = invoiceNum,
-                        CreatedBy = User.Identity?.Name ?? "المدير",
-                        CreatedAt = DateTime.Now
-                    };
-                    _context.Sales.Add(sale);
-                }
+                        if (!dbProducts.TryGetValue(item.ProductId, out var product))
+                        {
+                            await transaction.RollbackAsync();
+                            return Json(new CompleteSaleResponseDto { Success = false, Message = $"المنتج رقم {item.ProductId} غير موجود بالكتالوج." });
+                        }
 
-                // 5. Product Stock Validation & Atomic Deductions
-                var productIds = model.Items.Select(i => i.ProductId).Distinct().ToList();
+                        if (item.Quantity <= 0)
+                        {
+                            await transaction.RollbackAsync();
+                            return Json(new CompleteSaleResponseDto { Success = false, Message = $"كمية المنتج ({product.Name}) يجب أن تكون أكبر من 0." });
+                        }
 
-                // Fetch products from DB
-                var dbProducts = await _context.Products
-                    .Include(p => p.RetailPrices)
-                    .Where(p => productIds.Contains(p.Id))
-                    .ToDictionaryAsync(p => p.Id);
+                        var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
+                        var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
 
-                // Group deductions per ProductId to safely validate and deduct inventory even if product appears in multiple rows
-                var deductionGroups = new Dictionary<int, int>();
-                foreach (var item in model.Items)
-                {
-                    if (!dbProducts.TryGetValue(item.ProductId, out var product))
-                    {
-                        await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto { Success = false, Message = $"المنتج رقم {item.ProductId} غير موجود بالكتالوج." });
+                        if (deductionGroups.ContainsKey(product.Id))
+                            deductionGroups[product.Id] += deductionAmount;
+                        else
+                            deductionGroups[product.Id] = deductionAmount;
                     }
 
-                    if (item.Quantity <= 0)
+                    // Deduct stock per product
+                    foreach (var kvp in deductionGroups)
                     {
-                        await transaction.RollbackAsync();
-                        return Json(new CompleteSaleResponseDto { Success = false, Message = $"كمية المنتج ({product.Name}) يجب أن تكون أكبر من 0." });
+                        var prodId = kvp.Key;
+                        var totalDeduction = kvp.Value;
+                        var product = dbProducts[prodId];
+                        try
+                        {
+                            await _inventoryService.DeductStockAsync(prodId, totalDeduction);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            await transaction.RollbackAsync();
+                            return Json(new CompleteSaleResponseDto
+                            {
+                                Success = false,
+                                Message = $"عذراً، الكمية المتوفرة غير كافية للمنتج ({product.Name}) أو تم تعديل المخزون بنفس الوقت."
+                            });
+                        }
                     }
 
-                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
-                    var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
+                    // Compute Trusted Prices & Totals
+                    decimal grossSubtotal = 0m;
+                    decimal lineDiscountsTotal = 0m;
+                    var newSaleItems = new List<SaleItem>();
 
-                    if (deductionGroups.ContainsKey(product.Id))
-                        deductionGroups[product.Id] += deductionAmount;
-                    else
-                        deductionGroups[product.Id] = deductionAmount;
-                }
-
-                // Deduct stock per product
-                foreach (var kvp in deductionGroups)
-                {
-                    var prodId = kvp.Key;
-                    var totalDeduction = kvp.Value;
-                    var product = dbProducts[prodId];
-                    try
+                    foreach (var item in model.Items)
                     {
-                        await _inventoryService.DeductStockAsync(prodId, totalDeduction);
+                        var product = dbProducts[item.ProductId];
+                        var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
+                        var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
+                        var lineGross = unitPrice * item.Quantity;
+                        var lineDiscount = Math.Max(0m, item.Discount);
+                        if (lineDiscount > lineGross) lineDiscount = lineGross;
+                        var lineTotal = lineGross - lineDiscount;
+
+                        grossSubtotal += lineGross;
+                        lineDiscountsTotal += lineDiscount;
+
+                        newSaleItems.Add(new SaleItem
+                        {
+                            ProductId = product.Id,
+                            RetailPriceId = item.RetailPriceId,
+                            RetailSizeMl = retailPrice?.SizeMl,
+                            ProductName = product.Name,
+                            Quantity = item.Quantity,
+                            UnitPrice = unitPrice,
+                            Discount = lineDiscount,
+                            Total = lineTotal
+                        });
                     }
-                    catch (InvalidOperationException)
+
+                    var overallDiscount = Math.Max(0m, model.DiscountTotal);
+                    var totalDiscounts = lineDiscountsTotal + overallDiscount;
+                    var finalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
+                    var totalPaid = aggregatedPayments.Sum(p => p.Amount);
+
+                    // 6. Validate Payment Total Matches Final Amount Exactly
+                    if (Math.Abs(totalPaid - finalAmount) > 0.01m)
                     {
                         await transaction.RollbackAsync();
                         return Json(new CompleteSaleResponseDto
                         {
                             Success = false,
-                            Message = $"عذراً، الكمية المتوفرة غير كافية للمنتج ({product.Name}) أو تم تعديل المخزون بنفس الوقت."
+                            Message = $"مجموع الدفعات المدخلة ({totalPaid:N2} ر.س) لا يساوي المبلغ الإجمالي النهائي للبيع ({finalAmount:N2} ر.س)."
                         });
                     }
-                }
 
-                // Compute Trusted Prices & Totals
-                decimal grossSubtotal = 0m;
-                decimal lineDiscountsTotal = 0m;
-                var newSaleItems = new List<SaleItem>();
-
-                foreach (var item in model.Items)
-                {
-                    var product = dbProducts[item.ProductId];
-                    var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
-                    var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                    var lineGross = unitPrice * item.Quantity;
-                    var lineDiscount = Math.Max(0m, item.Discount);
-                    if (lineDiscount > lineGross) lineDiscount = lineGross;
-                    var lineTotal = lineGross - lineDiscount;
-
-                    grossSubtotal += lineGross;
-                    lineDiscountsTotal += lineDiscount;
-
-                    newSaleItems.Add(new SaleItem
+                    var newSalePayments = new List<SalePayment>();
+                    foreach (var p in aggregatedPayments)
                     {
-                        ProductId = product.Id,
-                        RetailPriceId = item.RetailPriceId,
-                        RetailSizeMl = retailPrice?.SizeMl,
-                        ProductName = product.Name,
-                        Quantity = item.Quantity,
-                        UnitPrice = unitPrice,
-                        Discount = lineDiscount,
-                        Total = lineTotal
-                    });
-                }
+                        newSalePayments.Add(new SalePayment
+                        {
+                            PaymentMethodId = p.PaymentMethodId,
+                            Amount = p.Amount,
+                            TransactionReference = p.TransactionReference?.Trim(),
+                            CreatedAt = DateTime.Now
+                        });
+                    }
 
-                var overallDiscount = Math.Max(0m, model.DiscountTotal);
-                var totalDiscounts = lineDiscountsTotal + overallDiscount;
-                var finalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
-                var totalPaid = aggregatedPayments.Sum(p => p.Amount);
+                    // Complete Sale Object Status
+                    sale.CustomerName = model.CustomerName?.Trim();
+                    sale.CustomerPhone = model.CustomerPhone?.Trim();
+                    sale.Notes = model.Notes?.Trim();
+                    sale.TotalAmount = grossSubtotal;
+                    sale.DiscountTotal = totalDiscounts;
+                    sale.FinalAmount = finalAmount;
+                    sale.Status = "Completed";
+                    sale.CompletedAt = DateTime.Now;
 
-                // 6. Validate Payment Total Matches Final Amount Exactly
-                if (Math.Abs(totalPaid - finalAmount) > 0.01m)
-                {
-                    await transaction.RollbackAsync();
+                    // Save Sale Header First
+                    await _context.SaveChangesAsync();
+
+                    // Attach items and payments with valid sale.Id
+                    foreach (var item in newSaleItems)
+                    {
+                        item.SaleId = sale.Id;
+                        _context.SaleItems.Add(item);
+                    }
+
+                    foreach (var payment in newSalePayments)
+                    {
+                        payment.SaleId = sale.Id;
+                        _context.SalePayments.Add(payment);
+                    }
+
+                    // Save SaleItems and SalePayments to PostgreSQL
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
                     return Json(new CompleteSaleResponseDto
                     {
-                        Success = false,
-                        Message = $"مجموع الدفعات المدخلة ({totalPaid:N2} ر.س) لا يساوي المبلغ الإجمالي النهائي للبيع ({finalAmount:N2} ر.س)."
+                        Success = true,
+                        Message = "تم اعتماد عملية البيع وتحديث المخزون بنجاح!",
+                        SaleId = sale.Id,
+                        InvoiceNumber = sale.InvoiceNumber,
+                        FinalAmount = sale.FinalAmount,
+                        TotalPaid = totalPaid,
+                        CompletedAt = sale.CompletedAt?.ToString("yyyy/MM/dd HH:mm")
                     });
                 }
-
-                var newSalePayments = new List<SalePayment>();
-                foreach (var p in aggregatedPayments)
+                catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
                 {
-                    newSalePayments.Add(new SalePayment
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Failed to complete POS sale {SaleId}.", model.SaleId);
+                    return StatusCode(StatusCodes.Status500InternalServerError, new CompleteSaleResponseDto
                     {
-                        PaymentMethodId = p.PaymentMethodId,
-                        Amount = p.Amount,
-                        TransactionReference = p.TransactionReference?.Trim(),
-                        CreatedAt = DateTime.Now
+                        Success = false,
+                        Message = "حدث خطأ غير متوقع أثناء معالجة اعتماد البيع. يرجى المحاولة مرة أخرى."
                     });
                 }
-
-                // Complete Sale Object Status
-                sale.CustomerName = model.CustomerName?.Trim();
-                sale.CustomerPhone = model.CustomerPhone?.Trim();
-                sale.Notes = model.Notes?.Trim();
-                sale.TotalAmount = grossSubtotal;
-                sale.DiscountTotal = totalDiscounts;
-                sale.FinalAmount = finalAmount;
-                sale.Status = "Completed";
-                sale.CompletedAt = DateTime.Now;
-
-                // Save Sale Header First
-                await _context.SaveChangesAsync();
-
-                // Attach items and payments with valid sale.Id
-                foreach (var item in newSaleItems)
-                {
-                    item.SaleId = sale.Id;
-                    _context.SaleItems.Add(item);
-                }
-
-                foreach (var payment in newSalePayments)
-                {
-                    payment.SaleId = sale.Id;
-                    _context.SalePayments.Add(payment);
-                }
-
-                // Save SaleItems and SalePayments to PostgreSQL
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return Json(new CompleteSaleResponseDto
-                {
-                    Success = true,
-                    Message = "تم اعتماد عملية البيع وتحديث المخزون بنجاح!",
-                    SaleId = sale.Id,
-                    InvoiceNumber = sale.InvoiceNumber,
-                    FinalAmount = sale.FinalAmount,
-                    TotalPaid = totalPaid,
-                    CompletedAt = sale.CompletedAt?.ToString("yyyy/MM/dd HH:mm")
-                });
-            }
-            catch (Exception ex)
+            });
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
+        {
+            _logger.LogWarning(ex, "POS sale {SaleId} could not be serialized after retrying.", model.SaleId);
+            return Conflict(new CompleteSaleResponseDto
             {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"[CompleteSale Error] {ex}");
-                return Json(new CompleteSaleResponseDto
-                {
-                    Success = false,
-                    Message = "حدث خطأ غير متوقع أثناء معالجة اعتماد البيع. يرجى المحاولة مرة أخرى."
-                });
-            }
-        });
+                Success = false,
+                Message = "تم تعديل عملية البيع بالتزامن مع طلب آخر. لم يتم اعتماد البيع؛ يرجى تحديث المسودة والمحاولة مرة أخرى."
+            });
+        }
     }
 
     // 10. DAILY LEDGER / ACCOUNTING SUMMARY VIEW
