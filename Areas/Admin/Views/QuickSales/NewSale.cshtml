@@ -25,6 +25,23 @@
         .pos-cell-search {
             position: relative;
         }
+        .yq-pos {
+            min-width: 0;
+        }
+        .yq-pos .pos-table-wrap {
+            min-height: 350px;
+        }
+        .yq-pos .pos-mobile-label,
+        .yq-pos .pos-btn-remove__text,
+        .yq-pos .pos-payment-label {
+            display: none;
+        }
+        .yq-pos .pos-grid-table td,
+        .yq-pos .pos-payment-field,
+        .yq-pos .pos-search-card__identity,
+        .yq-pos .pos-search-card__copy {
+            min-width: 0;
+        }
         /* Floating Side Search Panel */
         .pos-floating-search-panel {
             position: fixed;
@@ -41,6 +58,8 @@
             direction: rtl;
             text-align: right;
             scroll-behavior: smooth;
+            overscroll-behavior: contain;
+            overflow-x: hidden;
             transition: opacity 0.15s ease;
         }
         .dark-mode .pos-floating-search-panel,
@@ -52,6 +71,10 @@
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
         }
         .pos-search-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
             padding: 11px 14px;
             cursor: pointer;
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
@@ -97,11 +120,78 @@
             color: #ffffff !important;
         }
         .pos-payment-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 40px;
+            grid-template-areas:
+                "method remove"
+                "amount remove";
+            align-items: stretch;
+            gap: 8px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 8px;
             margin-bottom: 8px;
+        }
+        .pos-payment-field {
+            display: grid;
+            gap: 4px;
+        }
+        .pos-payment-field--method {
+            grid-area: method;
+        }
+        .pos-payment-field--amount {
+            grid-area: amount;
+        }
+        .pos-payment-field .form-control,
+        .pos-payment-field .form-select {
+            width: 100%;
+            min-width: 0;
+        }
+        .pos-btn-remove-payment {
+            grid-area: remove;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            align-self: center;
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            min-height: 44px;
+        }
+        .yq-pos #saleSuccessModal .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+        }
+        .pos-alert-container {
+            position: fixed;
+            top: max(1rem, env(safe-area-inset-top));
+            left: 50%;
+            z-index: 9999;
+            width: min(550px, calc(100vw - 2rem));
+            min-width: 0;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .pos-alert-container:empty {
+            display: none;
+        }
+        .pos-alert-container .alert {
+            width: 100%;
+            min-width: 0;
+            max-height: calc(100dvh - 2rem);
+            gap: 0.75rem;
+            overflow: auto;
+            overflow-wrap: anywhere;
+            pointer-events: auto;
+        }
+        .pos-alert-message {
+            min-width: 0;
+        }
+        .pos-alert-container .btn-close {
+            flex: 0 0 auto;
         }
         .block-color {
             color: #000 !important;
@@ -126,6 +216,230 @@ html[data-theme="dark"] .form-select,
 .theme-dark .form-select {
     color: #fff !important;
 }
+
+        @@media (max-width: 991.98px) {
+            .yq-pos .pos-table-wrap {
+                min-height: 0;
+                overflow-x: visible;
+            }
+            .yq-pos .pos-grid-table,
+            .yq-pos .pos-grid-table tbody {
+                display: block;
+                width: 100%;
+                min-width: 0;
+            }
+            .yq-pos .pos-grid-table thead {
+                display: none;
+            }
+            .yq-pos .pos-grid-table tbody {
+                display: grid;
+                gap: 0.875rem;
+                padding: 0.875rem;
+            }
+            .yq-pos .pos-grid-table .pos-item-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                grid-template-areas:
+                    "image index"
+                    "search search"
+                    "price quantity"
+                    "total discount"
+                    "remove remove";
+                width: 100%;
+                min-width: 0;
+                gap: 0.875rem 0.75rem;
+                padding: 0.875rem;
+                border: 1px solid rgba(184, 148, 46, 0.24);
+                border-radius: 12px;
+                background: var(--bs-table-bg, #ffffff);
+                box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            }
+            .yq-pos .pos-grid-table .pos-item-row > td {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                width: auto;
+                min-width: 0;
+                padding: 0;
+                border: 0;
+                text-align: right;
+            }
+            .yq-pos .pos-cell-index {
+                grid-area: index;
+                flex-direction: row;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .yq-pos .pos-cell-search {
+                grid-area: search;
+            }
+            .yq-pos .pos-cell-image {
+                grid-area: image;
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 0.5rem;
+            }
+            .yq-pos .pos-cell-quantity {
+                grid-area: quantity;
+            }
+            .yq-pos .pos-cell-price {
+                grid-area: price;
+            }
+            .yq-pos .pos-cell-discount {
+                grid-area: discount;
+            }
+            .yq-pos .pos-cell-total {
+                grid-area: total;
+            }
+            .yq-pos .pos-cell-remove {
+                grid-area: remove;
+            }
+            .yq-pos .pos-mobile-label,
+            .yq-pos .pos-payment-label {
+                display: block;
+                margin-bottom: 0.35rem;
+                color: #64748b;
+                font-size: 0.75rem;
+                font-weight: 800;
+                line-height: 1.35;
+            }
+            .yq-pos .pos-cell-index .pos-mobile-label,
+            .yq-pos .pos-cell-image .pos-mobile-label {
+                margin-bottom: 0;
+            }
+            .yq-pos .pos-row-num {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 32px;
+                min-height: 32px;
+                border-radius: 999px;
+                background: rgba(212, 175, 55, 0.16);
+                color: #6f5510;
+            }
+            .yq-pos .pos-product-search-input,
+            .yq-pos .pos-retail-select,
+            .yq-pos .pos-qty-input,
+            .yq-pos .pos-price-input,
+            .yq-pos .pos-discount-input {
+                width: 100%;
+                min-width: 0;
+                min-height: 44px;
+            }
+            .yq-pos .pos-cell-quantity .input-group {
+                width: 100%;
+                min-width: 0;
+                flex-wrap: nowrap;
+            }
+            .yq-pos .pos-qty-minus,
+            .yq-pos .pos-qty-plus {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 44px;
+                min-height: 44px;
+                padding-inline: 0.625rem;
+            }
+            .yq-pos .pos-stock-hint {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+                overflow-wrap: anywhere;
+            }
+            .yq-pos .pos-stock-hint .badge {
+                max-width: 100%;
+                margin: 0;
+                white-space: normal;
+                text-align: right;
+            }
+            .yq-pos .pos-row-total {
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid rgba(184, 148, 46, 0.22);
+                border-radius: 8px;
+                background: rgba(212, 175, 55, 0.08);
+                overflow-wrap: anywhere;
+            }
+            .yq-pos .pos-btn-remove {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                min-height: 44px;
+                gap: 0.5rem;
+            }
+            .yq-pos .pos-btn-remove__text {
+                display: inline;
+            }
+            .yq-pos .pos-floating-search-panel {
+                max-width: calc(100vw - 1.5rem);
+            }
+            .yq-pos .pos-search-panel-header {
+                flex-wrap: wrap;
+                gap: 0.35rem 0.75rem;
+            }
+            .yq-pos .pos-search-card__name,
+            .yq-pos .pos-search-card__meta {
+                overflow: visible;
+                text-overflow: clip;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+            .yq-pos .pos-search-card__price {
+                align-self: flex-start;
+            }
+        }
+
+        @@media (max-width: 575.98px) {
+            .yq-pos .pos-page-actions .btn {
+                flex: 1 1 100%;
+            }
+            .yq-pos .pos-search-panel-hint {
+                display: none;
+            }
+            .yq-pos .pos-search-card {
+                align-items: flex-start;
+            }
+            .yq-pos .pos-search-card__identity {
+                gap: 0.625rem;
+            }
+            .yq-pos .pos-success-detail {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .yq-pos .pos-grid-table .pos-item-row {
+                grid-template-areas:
+                    "image index"
+                    "search search"
+                    "quantity quantity"
+                    "price price"
+                    "discount discount"
+                    "total total"
+                    "remove remove";
+            }
+        }
+
+        .dark-mode .yq-pos .pos-mobile-label,
+        body.dark-mode .yq-pos .pos-mobile-label,
+        html[data-theme="dark"] .yq-pos .pos-mobile-label,
+        .theme-dark .yq-pos .pos-mobile-label,
+        .dark-mode .yq-pos .pos-payment-label,
+        body.dark-mode .yq-pos .pos-payment-label,
+        html[data-theme="dark"] .yq-pos .pos-payment-label,
+        .theme-dark .yq-pos .pos-payment-label {
+            color: #cbd5e1;
+        }
+        .dark-mode .yq-pos .pos-row-num,
+        body.dark-mode .yq-pos .pos-row-num,
+        html[data-theme="dark"] .yq-pos .pos-row-num,
+        .theme-dark .yq-pos .pos-row-num {
+            background: rgba(212, 175, 55, 0.22);
+            color: #f5d36b;
+        }
     </style>
 }
 
@@ -133,7 +447,9 @@ html[data-theme="dark"] .form-select,
 <input type="hidden" id="posSalesDayId" value="@(openSalesDay?.Id ?? sale.SalesDayId)" />
 <input type="hidden" id="posSaleId" value="@sale.Id" />
 
-<div class="container-fluid px-0">
+<div class="container-fluid px-0 yq-pos">
+    <div id="posAlertContainer" class="pos-alert-container" aria-live="polite" aria-atomic="true"></div>
+
     @if (TempData["WarningMessage"] != null)
     {
         <div class="alert alert-warning alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
@@ -153,7 +469,7 @@ html[data-theme="dark"] .form-select,
                 يوم البيع الحالي: <strong class="text-dark">@(openSalesDay?.Date.ToString("yyyy/MM/dd"))</strong> | الحالة: <span class="badge bg-success text-white px-3 py-1 fw-bold">مفتوح</span>
             </p>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2 pos-page-actions">
             <a asp-action="Drafts" class="btn btn-outline-secondary px-3 py-2 fw-bold">
                 <i class="bi bi-journal-bookmark-fill me-1"></i> المسودات المحفوظة
             </a>
@@ -163,9 +479,9 @@ html[data-theme="dark"] .form-select,
 
     <div class="row g-4">
         <!-- LEFT MAIN COLUMN: EXCEL-STYLE TABLE -->
-        <div class="col-lg-8 col-xl-9">
+        <div class="col-xl-9">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between border-bottom">
+                <div class="card-header bg-white py-3 px-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2 border-bottom">
                     <h5 class="card-title fw-bold mb-0 text-dark">
                         <i class="bi bi-grid-3x3-gap-fill text-warning me-2"></i> جدول إضافة المنتجات (جدول شبكي فوري)
                     </h5>
@@ -173,7 +489,7 @@ html[data-theme="dark"] .form-select,
                         <i class="bi bi-plus-lg me-1"></i> إضافة صف جديد
                     </button>
                 </div>
-                <div class="table-responsive" style="min-height: 350px;">
+                <div class="table-responsive pos-table-wrap">
                     <table class="table align-middle mb-0 pos-grid-table" id="posItemsTable">
                         <thead>
                             <tr>
@@ -192,7 +508,7 @@ html[data-theme="dark"] .form-select,
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer bg-light p-3 d-flex align-items-center justify-content-between">
+                <div class="card-footer bg-light p-3 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
                     <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> استخدم خانة البحث للااختيار المباشر دون الحاجة للانتقال لصفحة أخرى.</span>
                     <button type="button" class="btn btn-sm btn-outline-warning fw-bold px-3" id="btnAddRowFooterBtn">
                         <i class="bi bi-plus-lg me-1"></i> إضافة صنف آخر
@@ -202,9 +518,9 @@ html[data-theme="dark"] .form-select,
         </div>
 
         <!-- RIGHT SIDEBAR: SUMMARY, CUSTOMER INFO & PAYMENTS -->
-        <div class="col-lg-4 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 p-4 pos-summary-card mb-4">
-                <h4 class="h5 fw-bold mb-3 border-bottom border-secondary pb-2 d-flex align-items-center justify-content-between">
+        <div class="col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 p-sm-4 pos-summary-card mb-4">
+                <h4 class="h5 fw-bold mb-3 border-bottom border-secondary pb-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <span><i class="bi bi-receipt-cutoff text-warning me-2"></i> ملخص البيع</span>
                     <span class="badge bg-warning text-dark fs-6" id="summaryItemsCount">0 أصناف</span>
                 </h4>
@@ -228,7 +544,7 @@ html[data-theme="dark"] .form-select,
 
                 <!-- PAYMENT METHODS SECTION -->
                 <div class="border-top border-secondary pt-3 mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                         <h6 class="fw-bold text-warning mb-0"><i class="bi bi-wallet2 me-1"></i> وسيلة/وسائل الدفع</h6>
                         <button type="button" class="btn btn-sm btn-outline-warning text-nowrap py-0 px-2 fs-7" id="btnAddPaymentRow">
                             <i class="bi bi-plus-lg"></i> إضافة طريقة
@@ -289,9 +605,9 @@ html[data-theme="dark"] .form-select,
 
 <!-- SALE COMPLETION SUCCESS MODAL -->
 <div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #111622; color: #ffffff;">
-            <div class="modal-body text-center p-4">
+            <div class="modal-body text-center p-3 p-sm-4">
                 <div class="rounded-circle bg-success bg-opacity-25 text-success p-3 d-inline-flex mb-3 border border-success border-opacity-50">
                     <i class="bi bi-check-lg display-4"></i>
                 </div>
@@ -299,21 +615,21 @@ html[data-theme="dark"] .form-select,
                 <p class="text-white-50 small mb-4" id="successModalMessage">تم تسجيل الفاتورة وتخصيم كميات المنتجات من المستودع بنجاح.</p>
 
                 <div class="bg-dark p-3 rounded-3 text-start mb-4 border border-secondary">
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="d-flex flex-wrap justify-content-between gap-2 mb-2 pos-success-detail">
                         <span class="text-white-50">رقم الفاتورة:</span>
                         <strong class="text-warning" id="successInvoiceNum">-</strong>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="d-flex flex-wrap justify-content-between gap-2 mb-2 pos-success-detail">
                         <span class="text-white-50">الإجمالي المسدد:</span>
                         <strong class="text-white" id="successFinalAmount">0.00 ر.س</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex flex-wrap justify-content-between gap-2 pos-success-detail">
                         <span class="text-white-50">تاريخ الاعتماد:</span>
                         <span class="text-white-50 small" id="successCompletedAt">-</span>
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-column flex-sm-row gap-2">
                     <a asp-action="NewSale" class="btn btn-yaqut-gold w-100 py-2 fw-bold">
                         <i class="bi bi-plus-circle me-1"></i> بيع جديد
                     </a>
@@ -524,7 +840,7 @@ html[data-theme="dark"] .form-select,
         function addPaymentRow(pmData) {
             var container = document.getElementById('posPaymentsContainer');
             var rowDiv = document.createElement('div');
-            rowDiv.className = 'pos-payment-row d-flex align-items-center gap-2';
+            rowDiv.className = 'pos-payment-row';
 
             var methodOptionsHtml = '';
             availablePaymentMethods.forEach(function(pm, index) {
@@ -535,11 +851,17 @@ html[data-theme="dark"] .form-select,
             var amt = pmData ? pmData.amount : 0;
 
             rowDiv.innerHTML = `
-                <select class="form-select form-select-sm bg-dark text-white border-secondary pos-payment-method-select fw-bold">
-                    ${methodOptionsHtml}
-                </select>
-                <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end bg-dark text-white border-secondary pos-payment-amount-input fw-bold" placeholder="0.00" value="${amt > 0 ? amt.toFixed(2) : ''}" />
-                <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove-payment p-1" title="حذف"><i class="bi bi-x-lg"></i></button>
+                <label class="pos-payment-field pos-payment-field--method">
+                    <span class="pos-payment-label">طريقة الدفع</span>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary pos-payment-method-select fw-bold" aria-label="طريقة الدفع">
+                        ${methodOptionsHtml}
+                    </select>
+                </label>
+                <label class="pos-payment-field pos-payment-field--amount">
+                    <span class="pos-payment-label">المبلغ المدفوع</span>
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end bg-dark text-white border-secondary pos-payment-amount-input fw-bold" placeholder="0.00" value="${amt > 0 ? amt.toFixed(2) : ''}" aria-label="المبلغ المدفوع" />
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove-payment p-1" title="حذف" aria-label="حذف طريقة الدفع"><i class="bi bi-x-lg"></i></button>
             `;
 
             container.appendChild(rowDiv);
@@ -606,42 +928,51 @@ html[data-theme="dark"] .form-select,
             var pRetailSize = itemData && itemData.retailSizeMl ? itemData.retailSizeMl : '';
 
             tr.innerHTML = `
-                <td class="text-center text-muted fw-bold pos-row-num">1</td>
+                <td class="text-center text-muted fw-bold pos-cell-index">
+                    <span class="pos-mobile-label">رقم الصنف</span>
+                    <span class="pos-row-num">1</span>
+                </td>
                 <td class="pos-cell-search">
+                    <span class="pos-mobile-label">البحث عن المنتج</span>
                     <input type="hidden" class="pos-product-id" value="${pId}" />
                     <input type="hidden" class="pos-retail-price-id" value="${pRetailId}" />
                     <input type="hidden" class="pos-retail-size-ml" value="${pRetailSize}" />
                     <input type="hidden" class="pos-stock-unit" value="${itemData && itemData.stockUnit ? itemData.stockUnit : 'Piece'}" />
                     <input type="hidden" class="pos-volume-ml" value="${itemData && itemData.volumeMl ? itemData.volumeMl : ''}" />
                     <input type="hidden" class="pos-product-stock" value="${pStock}" />
-                    <input type="text" class="form-control pos-product-search-input" value="${pName}" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" />
+                    <input type="text" class="form-control pos-product-search-input" value="${pName}" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" aria-label="البحث عن المنتج" />
                     <div class="pos-autocomplete-dropdown"></div>
                     <div class="pos-stock-hint mt-1 fs-7" ${pId > 0 ? '' : 'style="display:none;"'}>
                         <span class="badge bg-light text-dark border me-1">المتوفر: <strong class="pos-stock-val">${pStock}</strong></span>
                         <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val">${pStock - pQty <= 0 ? 0 : (pStock - pQty)}</strong></span>
                     </div>
                 </td>
-                <td class="text-center">
+                <td class="text-center pos-cell-image">
+                    <span class="pos-mobile-label">الصورة</span>
                     <img src="${pImg}" class="pos-product-thumb rounded-2 border" style="width: 40px; height: 40px; object-fit: cover;" alt="منتج" />
                 </td>
-                <td class="text-center">
+                <td class="text-center pos-cell-quantity">
+                    <span class="pos-mobile-label">الكمية</span>
                     <div class="input-group input-group-sm">
-                        <button type="button" class="btn btn-outline-secondary pos-qty-minus"><i class="bi bi-dash"></i></button>
-                        <input type="number" class="form-control text-center pos-qty-input fw-bold" value="${pQty}" min="1" />
-                        <button type="button" class="btn btn-outline-secondary pos-qty-plus"><i class="bi bi-plus"></i></button>
+                        <button type="button" class="btn btn-outline-secondary pos-qty-minus" aria-label="إنقاص الكمية"><i class="bi bi-dash"></i></button>
+                        <input type="number" class="form-control text-center pos-qty-input fw-bold" value="${pQty}" min="1" aria-label="الكمية" />
+                        <button type="button" class="btn btn-outline-secondary pos-qty-plus" aria-label="زيادة الكمية"><i class="bi bi-plus"></i></button>
                     </div>
                 </td>
-                <td class="text-end">
-                    <input type="text" class="form-control form-control-sm text-end fw-bold bg-light pos-price-input" readonly value="${pPrice.toFixed(2)}" />
+                <td class="text-end pos-cell-price">
+                    <span class="pos-mobile-label">سعر الوحدة</span>
+                    <input type="text" class="form-control form-control-sm text-end fw-bold bg-light pos-price-input" readonly value="${pPrice.toFixed(2)}" aria-label="سعر الوحدة" />
                 </td>
-                <td class="text-end">
-                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end pos-discount-input" value="${pDisc.toFixed(2)}" />
+                <td class="text-end pos-cell-discount">
+                    <span class="pos-mobile-label">الخصم</span>
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end pos-discount-input" value="${pDisc.toFixed(2)}" aria-label="الخصم" />
                 </td>
-                <td class="text-end">
+                <td class="text-end pos-cell-total">
+                    <span class="pos-mobile-label">الإجمالي</span>
                     <strong class="pos-row-total text-dark fs-6">0.00 ر.س</strong>
                 </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove"><i class="bi bi-trash"></i></button>
+                <td class="text-center pos-cell-remove">
+                    <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove" aria-label="إزالة الصنف"><i class="bi bi-trash"></i><span class="pos-btn-remove__text">إزالة الصنف</span></button>
                 </td>
             `;
 
@@ -718,25 +1049,38 @@ html[data-theme="dark"] .form-select,
             if (!panel || !inputEl) return;
 
             var rect = inputEl.getBoundingClientRect();
-            var viewportWidth = window.innerWidth;
-            var viewportHeight = window.innerHeight;
+            var visualViewport = window.visualViewport;
+            var viewportWidth = visualViewport ? visualViewport.width : window.innerWidth;
+            var viewportHeight = visualViewport ? visualViewport.height : window.innerHeight;
+            var viewportLeft = visualViewport ? visualViewport.offsetLeft : 0;
+            var viewportTop = visualViewport ? visualViewport.offsetTop : 0;
             var panelWidth = 380;
 
-            if (viewportWidth < 768) {
+            if (viewportWidth < 992) {
                 // Mobile overlay positioning
                 var mobWidth = Math.min(viewportWidth - 24, 400);
                 panel.style.width = mobWidth + 'px';
-                panel.style.left = Math.max(12, (viewportWidth - mobWidth) / 2) + 'px';
+                panel.style.left = (viewportLeft + Math.max(12, (viewportWidth - mobWidth) / 2)) + 'px';
                 panel.style.right = 'auto';
 
-                var topPos = rect.bottom + 6;
-                if (topPos + 300 > viewportHeight) {
-                    topPos = Math.max(12, rect.top - 310);
+                var viewportBottom = viewportTop + viewportHeight;
+                var availableBelow = Math.max(0, viewportBottom - rect.bottom - 12);
+                var availableAbove = Math.max(0, rect.top - viewportTop - 12);
+                var placeBelow = availableBelow >= 220 || availableBelow >= availableAbove;
+                var availableHeight = placeBelow ? availableBelow : availableAbove;
+                var topPos;
+
+                if (placeBelow) {
+                    topPos = rect.bottom + 6;
+                } else {
+                    topPos = Math.max(viewportTop + 12, rect.top - Math.min(420, availableAbove) - 6);
                 }
                 panel.style.top = topPos + 'px';
+                panel.style.maxHeight = Math.max(150, Math.min(420, availableHeight - 6)) + 'px';
             } else {
                 // Desktop RTL side panel positioning
                 panel.style.width = panelWidth + 'px';
+                panel.style.maxHeight = '420px';
                 var spaceOnRight = viewportWidth - rect.right;
                 var spaceOnLeft = rect.left;
 
@@ -779,11 +1123,16 @@ html[data-theme="dark"] .form-select,
         });
 
         // Reposition on window resize or scroll
-        window.addEventListener('resize', function() {
+        function repositionActiveSearchPanel() {
             if (activeSearchInput && getGlobalSearchPanel()?.style.display === 'block') {
                 positionSearchPanel(activeSearchInput);
             }
-        });
+        }
+
+        window.addEventListener('resize', repositionActiveSearchPanel);
+        window.addEventListener('scroll', repositionActiveSearchPanel, { passive: true });
+        window.visualViewport?.addEventListener('resize', repositionActiveSearchPanel);
+        window.visualViewport?.addEventListener('scroll', repositionActiveSearchPanel);
 
         function bindRowEvents(tr) {
             var searchInput = tr.querySelector('.pos-product-search-input');
@@ -879,27 +1228,27 @@ html[data-theme="dark"] .form-select,
                                 panel.innerHTML = '<div class="p-3 text-muted text-center small"><i class="bi bi-exclamation-circle me-1 text-warning"></i> لا توجد منتجات مطابقة</div>';
                             } else {
                                 var header = document.createElement('div');
-                                header.className = 'p-2 bg-slate-900 text-warning fw-bold small border-bottom border-secondary d-flex align-items-center justify-content-between px-3';
-                                header.innerHTML = `<span><i class="bi bi-search me-1"></i> نتائج البحث (${data.length})</span><span class="fs-8 text-muted">استخدم الأسهم 🡱🡳 و Enter</span>`;
+                                header.className = 'pos-search-panel-header p-2 bg-slate-900 text-warning fw-bold small border-bottom border-secondary d-flex align-items-center justify-content-between px-3';
+                                header.innerHTML = `<span><i class="bi bi-search me-1"></i> نتائج البحث (${data.length})</span><span class="pos-search-panel-hint fs-8 text-muted">استخدم الأسهم 🡱🡳 و Enter</span>`;
                                 panel.appendChild(header);
 
                                 data.forEach(function(p, idx) {
                                     var itemCard = document.createElement('div');
-                                    itemCard.className = 'pos-search-card d-flex align-items-center justify-content-between gap-3';
+                                    itemCard.className = 'pos-search-card';
                                     var unitLabel = isMlUnit(p.stockUnit) ? 'ml' : 'قطعة';
                                     var volInfo = isMlUnit(p.stockUnit) && p.volumeMl > 0 ? ` (عبوة ${p.volumeMl} ml)` : '';
                                     var imgPath = p.imageUrl && p.imageUrl.trim() !== '' ? escapeHtml(p.imageUrl) : '/images/yaqut-logo.png';
 
                                     itemCard.innerHTML = `
-                                        <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                        <div class="pos-search-card__identity d-flex align-items-center gap-3">
                                             <img src="${imgPath}" onerror="this.onerror=null; this.src='/images/yaqut-logo.png';" class="pos-search-card-img" alt="${escapeHtml(p.name)}" />
-                                            <div class="text-truncate">
-                                                <div class="fw-bold fs-7 text-truncate">${escapeHtml(p.name)}</div>
-                                                <div class="small opacity-75 text-truncate">${escapeHtml(p.brand ? p.brand : 'قسم ياقوت')}${volInfo}</div>
+                                            <div class="pos-search-card__copy">
+                                                <div class="pos-search-card__name fw-bold fs-7 text-truncate">${escapeHtml(p.name)}</div>
+                                                <div class="pos-search-card__meta small opacity-75 text-truncate">${escapeHtml(p.brand ? p.brand : 'قسم ياقوت')}${volInfo}</div>
                                                 <div class="fs-8 text-success fw-bold">المخزون المتوفر: ${p.stock} ${unitLabel}</div>
                                             </div>
                                         </div>
-                                        <div class="text-end flex-shrink-0">
+                                        <div class="pos-search-card__price text-end flex-shrink-0">
                                             <div class="fw-bold text-warning fs-6">${p.price.toFixed(2)} ر.س</div>
                                             <div class="fs-8 text-muted">اضغط للاختيار</div>
                                         </div>
@@ -1482,14 +1831,17 @@ html[data-theme="dark"] .form-select,
             if (!alertContainer) {
                 alertContainer = document.createElement('div');
                 alertContainer.id = 'posAlertContainer';
-                alertContainer.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 320px; max-width: 550px;';
-                document.body.appendChild(alertContainer);
+                alertContainer.className = 'pos-alert-container';
+                alertContainer.setAttribute('aria-live', 'polite');
+                alertContainer.setAttribute('aria-atomic', 'true');
+                (document.querySelector('.yq-pos') || document.body).appendChild(alertContainer);
             }
 
             var alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-lg rounded-3 fw-bold d-flex align-items-center justify-content-between mb-2 p-3`;
+            alertDiv.setAttribute('role', 'alert');
             alertDiv.innerHTML = `
-                <span><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ${message}</span>
+                <span class="pos-alert-message"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ${message}</span>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
             alertContainer.appendChild(alertDiv);
