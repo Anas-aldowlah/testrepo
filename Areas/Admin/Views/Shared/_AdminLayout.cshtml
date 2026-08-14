@@ -201,9 +201,11 @@
                                 <i class="bi bi-shop"></i> عرض المتجر
                             </a>
                             <hr />
-                            <a asp-area="" asp-controller="Account" asp-action="Logout" class="yq-admin-user__logout">
-                                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                            </a>
+                            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="yq-admin-user__logout-form">
+                                <button type="submit" class="yq-admin-user__logout">
+                                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

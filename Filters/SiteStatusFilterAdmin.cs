@@ -21,7 +21,9 @@ namespace YAGOT_2._0.Filters
             bool isDeveloper = context.HttpContext.User.IsInRole("Developer");
             bool isAdmin = context.HttpContext.User.IsInRole("Admin");
 
-            var status = (StatueSite?)context.HttpContext.Items["SiteStatus"];
+            var status = context.HttpContext.Items.TryGetValue("SiteStatus", out var value) && value is StatueSite siteStatus
+                ? siteStatus
+                : StatueSite.ColsePlane;
 
             // المطور يدخل دائماً
             if (isDeveloper)
@@ -33,51 +35,41 @@ namespace YAGOT_2._0.Filters
             // الموقع مغلق للصيانة
             if (status == StatueSite.ColsePlane)
             {
-                if (isAdmin)
+                SiteDtoAdmin? site = null;
+                try
                 {
                     var data = await _httpClient.GetFromJsonAsync<List<SiteDtoAdmin>>(
                         "SiteAPI/GetSitesAdmin");
-
-                    var site = data?.FirstOrDefault(s => s.Siteid == 1);
-
-                    if (site != null)
-                    {
-                        context.Result = new RedirectToActionResult(
-                            "close",
-                            "DirectiveDevClose",
-                            new
-                            {
-                                area = "",
-                                Url = site.Url,
-                                SiteName = site.Sitename,
-                                StartDate = site.StartDate,
-                                EndDate = site.EndDate,
-                                OriginalDuration = site.DurationDay
-                            });
-
-                        return;
-                    }
+                    site = data?.FirstOrDefault(s => s.Siteid == 1);
                 }
-                if (status == StatueSite.Developer)
+                catch (Exception)
                 {
-                    if (isAdmin)
-                    {
-                        await next();
-                        return;
-                    }
-                    else
-                    {
-                        context.Result = new RedirectToActionResult(
-                   "Developer",
-                   "DirectiveDevClose",
-                   new { area = "" });
-                    }
+                    // Maintenance metadata is optional; access remains closed if the API is unavailable.
                 }
-                   
+
+                context.Result = new RedirectToActionResult(
+                    "close",
+                    "DirectiveDevClose",
+                    new
+                    {
+                        area = "",
+                        Url = site?.Url,
+                        SiteName = site?.Sitename,
+                        StartDate = site?.StartDate,
+                        EndDate = site?.EndDate,
+                        OriginalDuration = site?.DurationDay
+                    });
                 return;
             }
 
-           
+            if (status == StatueSite.Developer && !isAdmin)
+            {
+                context.Result = new RedirectToActionResult(
+                    "Developer",
+                    "DirectiveDevClose",
+                    new { area = "" });
+                return;
+            }
 
             // السماح بتنفيذ الـ Action
             await next();

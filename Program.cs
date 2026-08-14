@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
@@ -36,6 +41,13 @@ builder.Services.AddControllersWithViews()
         options.MaxModelBindingCollectionSize = 1000;
     });
 
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
 // Performance: In-memory cache for SiteStatus
 builder.Services.AddMemoryCache();
 
@@ -43,6 +55,22 @@ builder.Services.AddMemoryCache();
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "RequestVerificationToken";
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("Auth", httpContext =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 // Registration Session & OTP Service
@@ -67,6 +95,13 @@ builder.Services.AddOptions<EmailOptions>()
         "Email:Smtp:UserName is required.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.Smtp.Password),
         "Email:Smtp:Password is required.")
+    .ValidateOnStart();
+builder.Services.AddOptions<PublicUrlOptions>()
+    .Bind(builder.Configuration.GetSection(PublicUrlOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri)
+                         && (uri.Scheme == Uri.UriSchemeHttps
+                             || builder.Environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp),
+        "PublicUrl:BaseUrl must be an absolute HTTPS URL (HTTP is allowed only in Development).")
     .ValidateOnStart();
 builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
 
@@ -110,6 +145,41 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
             context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
+        };
+
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var endpointRequiresAuthorization = context.HttpContext.GetEndpoint()?
+                .Metadata.GetMetadata<IAuthorizeData>() != null;
+            var isAdminRequest = context.Request.Path.StartsWithSegments(
+                "/Admin",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!endpointRequiresAuthorization && !isAdminRequest)
+            {
+                return;
+            }
+
+            var userIdValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var cookieRole = context.Principal?.FindFirstValue(ClaimTypes.Role);
+            if (!int.TryParse(userIdValue, out var userId) || userId <= 0 || string.IsNullOrWhiteSpace(cookieRole))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
+            }
+
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<NeondbContext>();
+            var userSite = await dbContext.UserSites
+                .AsNoTracking()
+                .FirstOrDefaultAsync(site => site.UserId == userId, context.HttpContext.RequestAborted);
+            var databaseRole = string.IsNullOrWhiteSpace(userSite?.Role) ? "Customer" : userSite.Role;
+
+            if (userSite == null || !string.Equals(databaseRole, cookieRole, StringComparison.Ordinal))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
         };
     })
     .AddCookie(AuthenticationSchemes.External, options =>
@@ -176,6 +246,7 @@ builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddSingleton<ReceiptStorageService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
@@ -198,6 +269,29 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
         ForwardedHeaders.XForwardedProto
 });
 
+app.UseResponseCompression();
+
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+        headers["Content-Security-Policy"] =
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
+            "form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+            "img-src 'self' data: blob: https:; connect-src 'self'; upgrade-insecure-requests";
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -209,6 +303,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRateLimiter();
 app.UseCors("AllowAll");
 app.UseSession();
 app.UseAuthentication();

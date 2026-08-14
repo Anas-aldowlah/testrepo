@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -29,6 +31,7 @@ public class AccountController : Controller
     private readonly GuestCartService _guestCartService;
     private readonly IPasswordResetEmailSender _passwordResetEmailSender;
     private readonly ITimeLimitedDataProtector _passwordResetProtector;
+    private readonly Uri _publicBaseUri;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
@@ -39,6 +42,7 @@ public class AccountController : Controller
         GuestCartService guestCartService,
         IPasswordResetEmailSender passwordResetEmailSender,
         IDataProtectionProvider dataProtectionProvider,
+        IOptions<PublicUrlOptions> publicUrlOptions,
         ILogger<AccountController> logger)
     {
         _db = db;
@@ -50,6 +54,7 @@ public class AccountController : Controller
         _passwordResetProtector = dataProtectionProvider
             .CreateProtector("YAGOT.PasswordReset.v1")
             .ToTimeLimitedDataProtector();
+        _publicBaseUri = new Uri(publicUrlOptions.Value.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         _logger = logger;
     }
 
@@ -88,9 +93,10 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Auth(string? returnUrl = null, bool register = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         if (User.Identity?.IsAuthenticated == true)
         {
-            return LocalRedirect(GetRedirectUrl(returnUrl));
+            return LocalRedirect(returnUrl);
         }
 
         var regState = GetRegistrationState();
@@ -102,7 +108,7 @@ public class AccountController : Controller
 
     public IActionResult AuthR(string? returnUrl = null, string? email = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
+        ViewData["ReturnUrl"] = GetRedirectUrl(returnUrl);
         TempData["Email"] = email;
         var regState = GetRegistrationState();
         ViewData["RegState"] = regState;
@@ -112,8 +118,10 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         ViewData["ReturnUrl"] = returnUrl;
         var phone = model.Phone?.Trim() ?? string.Empty;
        
@@ -154,15 +162,17 @@ public class AccountController : Controller
         await _guestCartService.MergeIntoUserCartAsync(userGloble.Id);
         TempData["UserName"] = userGloble.Name;
         await _visitService.SaveVisitAsync(HttpContext, userGloble.Name);
-        return LocalRedirect(GetRedirectUrl(returnUrl));
+        return LocalRedirect(returnUrl);
     }
 
     #region Google Login Actions
 
     [AllowAnonymous]
     [HttpGet]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         TempData.Remove("GoogleLoginError");
         TempData.Remove("GoogleLoginErrorTitle");
         TempData.Remove("RegistrationNotice");
@@ -181,11 +191,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> GoogleResponse(string? returnUrl = null, bool isRegister = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         var externalResult = await HttpContext.AuthenticateAsync(AuthenticationSchemes.External);
         if (!externalResult.Succeeded || externalResult.Principal == null)
         {
             _logger.LogWarning(
-                externalResult.Failure,
                 "Google external authentication ticket could not be read. Succeeded={Succeeded}.",
                 externalResult.Succeeded);
             await HttpContext.SignOutAsync(AuthenticationSchemes.External);
@@ -197,14 +207,6 @@ public class AccountController : Controller
         var externalPrincipal = externalResult.Principal;
         var googleClaims = externalPrincipal.Claims.ToList();
         _logger.LogInformation("Google callback received {ClaimCount} claims.", googleClaims.Count);
-        foreach (var claim in googleClaims)
-        {
-            _logger.LogInformation(
-                "Google raw claim: Type={ClaimType}, Value={ClaimValue}, Issuer={Issuer}.",
-                claim.Type,
-                claim.Value,
-                claim.Issuer);
-        }
 
         var email = externalPrincipal.FindFirst(ClaimTypes.Email)?.Value
             ?? externalPrincipal.FindFirst("email")?.Value;
@@ -220,8 +222,7 @@ public class AccountController : Controller
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            _logger.LogWarning("Google callback did not contain an email claim. Available claim types: {ClaimTypes}.",
-                string.Join(", ", googleClaims.Select(claim => claim.Type)));
+            _logger.LogWarning("Google callback did not contain the required email identity indicator.");
             await HttpContext.SignOutAsync(AuthenticationSchemes.External);
             TempData["GoogleLoginErrorTitle"] = "حساب Google غير مرتبط";
             TempData["GoogleLoginError"] = "تعذر الحصول على البريد الإلكتروني من Google.";
@@ -232,11 +233,23 @@ public class AccountController : Controller
         var normalizedEmail = email.ToLowerInvariant();
         var hasVerifiedClaim = bool.TryParse(emailVerifiedClaim, out var isEmailVerified);
         _logger.LogInformation(
-            "Google identity resolved. Email={Email}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, Subject={Subject}.",
-            email,
+            "Google identity resolved. EmailPresent={EmailPresent}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, SubjectPresent={SubjectPresent}.",
+            true,
             hasVerifiedClaim && isEmailVerified,
             hasVerifiedClaim,
-            sub ?? "<missing>");
+            !string.IsNullOrWhiteSpace(sub));
+
+        if (!hasVerifiedClaim || !isEmailVerified)
+        {
+            _logger.LogWarning(
+                "Rejected Google authentication because the provider did not assert a verified email address. VerificationClaimPresent={VerificationClaimPresent}.",
+                hasVerifiedClaim);
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            ClearRegistrationState();
+            TempData["GoogleLoginErrorTitle"] = "تعذر التحقق من البريد الإلكتروني";
+            TempData["GoogleLoginError"] = "يجب التحقق من البريد الإلكتروني في حساب Google قبل تسجيل الدخول أو إنشاء حساب.";
+            return RedirectToAction("Auth", "Account", new { returnUrl });
+        }
 
         // The external identity has now been read and must never become the app identity.
         await HttpContext.SignOutAsync(AuthenticationSchemes.External);
@@ -307,6 +320,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> SaveStep2Info([FromBody] Step2InfoRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Phone))
@@ -354,6 +368,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationModel model, string? returnUrl = null)
     {
         if (model == null)
@@ -464,7 +479,9 @@ public class AccountController : Controller
 
     #endregion
 
-    [HttpGet]
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         ClearRegistrationState();
@@ -558,6 +575,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
         var email = model.Email?.Trim();
@@ -577,11 +595,12 @@ public class AccountController : Controller
                 accountUser.Id,
                 ComputePasswordFingerprint(accountUser.Passwordhash)));
             var token = _passwordResetProtector.Protect(payload, TimeSpan.FromMinutes(15));
-            var resetUrl = Url.Action(
+            var resetPath = Url.Action(
                 nameof(ResetPassword),
                 "Account",
-                new { token },
-                Request.Scheme)!;
+                new { token })
+                ?? throw new InvalidOperationException("Could not generate the password-reset route.");
+            var resetUrl = new Uri(_publicBaseUri, resetPath).AbsoluteUri;
 
             try
             {
@@ -590,10 +609,12 @@ public class AccountController : Controller
                     resetUrl,
                     HttpContext.RequestAborted);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Do not reveal account existence or mail configuration details.
-                _logger.LogError(ex, "Failed to send a password reset email.");
+                _logger.LogError(
+                    "Failed to send a password reset email for user {UserId}; sensitive delivery details were suppressed.",
+                    accountUser.Id);
             }
         }
 
@@ -615,6 +636,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
     {
         if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
@@ -651,11 +673,9 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Auth));
     }
 
-    private static string GetRedirectUrl(string? returnUrl)
+    private string GetRedirectUrl(string? returnUrl)
     {
-        return string.IsNullOrWhiteSpace(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-            ? "/Home/Index"
-            : returnUrl!;
+        return Url.IsLocalUrl(returnUrl) ? returnUrl! : "/Home/Index";
     }
 
     private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)

@@ -523,12 +523,12 @@
                 </div>
             </div>
             <center>
-                <a asp-controller="Account" asp-action="Logout" class="logout-container">
-                    <div class="logout-btn">
+                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="logout-container">
+                    <button type="submit" class="logout-btn">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
                         <span>الرجوع إلى القائمة السابقة</span>
-                    </div>
-                </a>
+                    </button>
+                </form>
             </center>
         </div>
     </div>
