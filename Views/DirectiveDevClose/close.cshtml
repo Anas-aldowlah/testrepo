@@ -7,12 +7,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>تجديد الاشتراك | المنصة الإلكترونية</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
         /* ===== RESET & BASE ===== */
         * {
@@ -429,7 +429,7 @@
 <body>
 
     <div class="sticky-alert-banner">
-        <i class="fas fa-exclamation-triangle"></i>
+        <i class="bi bi-exclamation-triangle-fill"></i>
         تنبيه: انتهت فترة صلاحية اشتراك موقعك. يرجى تجديد الاشتراك لضمان استمرار الخدمة وعدم فقدان البيانات.
     </div>
 
@@ -444,9 +444,9 @@
 
                     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                         <h2 class="page-title m-0 d-flex align-items-center gap-2">
-                            <i class="fas fa-cubes-stacked"></i> معلومات خطتك السابقة
+                            <i class="bi bi-boxes"></i> معلومات خطتك السابقة
                         </h2>
-                        <span class="badge-expired"><i class="fas fa-circle-xmark me-1"></i> منتهي الصلاحية</span>
+                        <span class="badge-expired"><i class="bi bi-x-circle-fill me-1"></i> منتهي الصلاحية</span>
                     </div>
 
                     <div class="info-list">
@@ -457,7 +457,7 @@
                         <div class="info-item">
                             <span class="info-label">رابط الموقع</span>
                             <span class="info-value">
-                                <a href="@ViewBag.Url">@ViewBag.Url <i class="fas fa-link ms-1 small"></i></a>
+                                <a href="@ViewBag.Url">@ViewBag.Url <i class="bi bi-link-45deg ms-1 small"></i></a>
                             </span>
                         </div>
                         <div class="info-item">
@@ -482,7 +482,7 @@
                     <div>
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <div class="icon-wrapper">
-                                <i class="fas fa-headset"></i>
+                                <i class="bi bi-headset"></i>
                             </div>
                             <h3 class="h5 m-0 fw-bold">إعادة تفعيل الخدمة</h3>
                         </div>
@@ -493,7 +493,7 @@
 
                     <div class="d-grid gap-3">
                         <a href="https://wa.me/775458250?text=أهلاً،%20أريد%20تجديد%20اشتراك%20موقعي%20ٍ@ViewBag.SiteName" target="_blank" class="btn-whatsapp d-flex align-items-center justify-content-center gap-2">
-                            <i class="fab fa-whatsapp fs-5"></i> تواصل معنا عبر الواتساب
+                            <i class="bi bi-whatsapp fs-5"></i> تواصل معنا عبر الواتساب
                         </a>
 
                     </div>
@@ -504,7 +504,7 @@
             <div class="col-12 mt-4">
                 <div class="glass-card faq-section">
                     <h4 class="faq-title">
-                        <i class="fas fa-circle-question"></i> الأسئلة الشائعة وطمأنة العملاء
+                        <i class="bi bi-question-circle-fill"></i> الأسئلة الشائعة وطمأنة العملاء
                     </h4>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -533,6 +533,5 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

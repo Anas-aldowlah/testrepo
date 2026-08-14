@@ -3,8 +3,6 @@
    Light Theme: theme-light | Dark Theme: theme-dark / .dark-mode
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Tajawal:wght@300;400;500;700;800&display=swap');
-
 /* ── LIGHT THEME (الوضع الصباحي - أبيض نقي وذهبي) ── */
 :root,
 .theme-light {
@@ -61,10 +59,67 @@ html {
     scroll-behavior: smooth;
 }
 
-    html.yq-transitioning *,
-    html.yq-transitioning {
-        transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
+html.yq-transitioning :is(
+    body,
+    .yaqut-header__inner,
+    .yaqut-nav,
+    .yaqut-nav a,
+    .yaqut-footer,
+    .glass-effect,
+    .yq-glass,
+    .yq-pcard,
+    .yq-cat-card,
+    .yq-cart-drawer__panel,
+    .yaqut-auth-topbar,
+    .yaqut-auth-card,
+    .yq-admin-sidebar,
+    .yq-admin-topbar,
+    .yq-admin-content,
+    .yq-admin-nav__link,
+    .yq-admin-user__trigger,
+    .yq-admin-user__dropdown,
+    .card,
+    .table,
+    .btn,
+    .form-control,
+    .form-select,
+    .input-group-text,
+    .modal-content
+) {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.yq-transitioning :is(
+        body,
+        .yaqut-header__inner,
+        .yaqut-nav,
+        .yaqut-nav a,
+        .yaqut-footer,
+        .glass-effect,
+        .yq-glass,
+        .yq-pcard,
+        .yq-cat-card,
+        .yq-cart-drawer__panel,
+        .yaqut-auth-topbar,
+        .yaqut-auth-card,
+        .yq-admin-sidebar,
+        .yq-admin-topbar,
+        .yq-admin-content,
+        .yq-admin-nav__link,
+        .yq-admin-user__trigger,
+        .yq-admin-user__dropdown,
+        .card,
+        .table,
+        .btn,
+        .form-control,
+        .form-select,
+        .input-group-text,
+        .modal-content
+    ) {
+        transition: none !important;
     }
+}
 
 body {
     margin: 0;
