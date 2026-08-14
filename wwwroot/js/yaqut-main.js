@@ -29,13 +29,14 @@
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
-    function applyTheme(theme) {
+    function applyTheme(theme, shouldTransition) {
         var isDark = theme === 'dark';
         var root = document.documentElement;
         var body = document.body;
 
-        // إضافة كلاس الانتقال السلس للحظات
-        root.classList.add('yq-transitioning');
+        if (shouldTransition !== false) {
+            root.classList.add('yq-transitioning');
+        }
 
         root.setAttribute('data-theme', theme);
         root.classList.toggle('dark-mode', isDark);
@@ -52,9 +53,11 @@
         updateLogos(!isDark);
         updateThemeToggleUI(isDark);
 
-        setTimeout(function () {
-            root.classList.remove('yq-transitioning');
-        }, 500);
+        if (shouldTransition !== false) {
+            setTimeout(function () {
+                root.classList.remove('yq-transitioning');
+            }, 200);
+        }
     }
 
     function updateLogos(isLight) {
@@ -82,7 +85,7 @@
     }
 
     // تطبيق الثيم فوراً لتجنب الوميض الأبيض (Flicker)
-    applyTheme(getPreferredTheme());
+    applyTheme(getPreferredTheme(), false);
 
     function initThemeToggle() {
         document.querySelectorAll('#yaqutThemeToggle, .yaqut-theme-toggle').forEach(function (btn) {
