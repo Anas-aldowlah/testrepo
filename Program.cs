@@ -379,6 +379,13 @@ app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
+// 1. مسار جديد يدعم بادئات اللغات مثل /en/ أو /ar/
+app.MapControllerRoute(
+    name: "localized",
+    pattern: "{culture}/{controller=Home}/{action=Index}/{id?}",
+    constraints: new { culture = @"^[a-zA-Z]{2}(-[a-zA-Z]{2})?$" });
+
+// 2. المسار الافتراضي الحالي للموقع
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
