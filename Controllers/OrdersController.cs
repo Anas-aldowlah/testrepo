@@ -22,6 +22,7 @@ public class OrdersController : Controller
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
     private readonly ILogger<OrdersController> _logger;
+    private readonly ReceiptStorageService _receiptStorage;
 
     public OrdersController(
         OrderService orderService,
@@ -31,7 +32,8 @@ public class OrdersController : Controller
         StoreSettingsService settingsService,
         NeondbContext context,
         UsersDbContext users,
-        ILogger<OrdersController> logger)
+        ILogger<OrdersController> logger,
+        ReceiptStorageService receiptStorage)
     {
         _context = context;
         _orderService = orderService;
@@ -41,6 +43,7 @@ public class OrdersController : Controller
         _settingsService = settingsService;
         _dbUser = users;
         _logger = logger;
+        _receiptStorage = receiptStorage;
     }
 
     [HttpGet]
@@ -81,20 +84,6 @@ public class OrdersController : Controller
 
         model.Cart = cart;
 
-        // 1. التحقق من أمان الصورة والامتداد قبل إتمام الطلب
-        string safeExtension = string.Empty;
-        if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
-        {
-            var (isValid, errorMessage, detectedExtension) = await IsValidImageFileAsync(model.ReceiptImage);
-            if (!isValid)
-            {
-                ModelState.AddModelError("ReceiptImage", errorMessage);
-                return View("Checkout", model);
-            }
-
-            safeExtension = detectedExtension;
-        }
-
         if (!ModelState.IsValid)
         {
             await PopulateCheckoutPaymentMethodsAsync(model);
@@ -108,20 +97,25 @@ public class OrdersController : Controller
             return View("Checkout", model);
         }
 
+        StagedReceipt? stagedReceipt = null;
         try
         {
             string? receiptUrl = null;
             if (model.ReceiptImage != null && model.ReceiptImage.Length > 0)
             {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
-                Directory.CreateDirectory(uploadsFolder);
-                var fileName = $"receipt_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(model.ReceiptImage.FileName)}";
-                var filePath = Path.Combine(uploadsFolder, fileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                try
                 {
-                    await model.ReceiptImage.CopyToAsync(stream);
+                    stagedReceipt = await _receiptStorage.StageAsync(
+                        model.ReceiptImage,
+                        HttpContext.RequestAborted);
+                    receiptUrl = stagedReceipt.StorageKey;
                 }
-                receiptUrl = Url.Content($"~/uploads/receipts/{fileName}");
+                catch (InvalidDataException exception)
+                {
+                    ModelState.AddModelError("ReceiptImage", exception.Message);
+                    await PopulateCheckoutPaymentMethodsAsync(model);
+                    return View("Checkout", model);
+                }
             }
 
             var order = await _orderService.CreateOrderAsync(
@@ -129,6 +123,10 @@ public class OrdersController : Controller
                 model,
                 receiptUrl,
                 HttpContext.RequestAborted);
+
+            // CreateOrderAsync returns only after its database transaction commits.
+            if (stagedReceipt != null)
+                _receiptStorage.Promote(stagedReceipt);
 
             var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
             if (!string.IsNullOrWhiteSpace(whatsappNumber))
@@ -181,6 +179,10 @@ public class OrdersController : Controller
                 StatusCodes.Status500InternalServerError,
                 "Checkout failed",
                 "تعذر إتمام الطلب حالياً. يرجى المحاولة مرة أخرى.");
+        }
+        finally
+        {
+            ReceiptStorageService.DeleteTemporaryFile(stagedReceipt);
         }
     }
 
@@ -286,17 +288,4 @@ public class OrdersController : Controller
     {
         return string.Concat((value ?? string.Empty).Where(char.IsDigit));
     }
-    private Task<(bool isValid, string errorMessage, string detectedExtension)> IsValidImageFileAsync(IFormFile file)
-{
-    if (file == null || file.Length == 0)
-        return Task.FromResult((false, "لم يتم رفع أي صورة.", string.Empty));
-
-    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-    if (!allowedExtensions.Contains(extension))
-        return Task.FromResult((false, "صيغة الملف غير مدعومة.", extension));
-
-    return Task.FromResult((true, string.Empty, extension));
-}
 }
