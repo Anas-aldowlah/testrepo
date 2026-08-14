@@ -35,7 +35,7 @@
         ? Model.Paymentmethod
         : "غير متوفرة";
     var receiptUrl = !string.IsNullOrWhiteSpace(Model.Receipturl)
-        ? Model.Receipturl
+        ? Url.Action("Receipt", "Orders", new { area = "Admin", id = Model.Id })
         : null;
     var statusLabel = Model.Status switch
     {

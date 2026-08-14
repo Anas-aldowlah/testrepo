@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
@@ -35,6 +36,13 @@ builder.Services.AddControllersWithViews()
     {
         options.MaxModelBindingCollectionSize = 1000;
     });
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
 
 // Performance: In-memory cache for SiteStatus
 builder.Services.AddMemoryCache();
@@ -176,6 +184,7 @@ builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddSingleton<ReceiptStorageService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
@@ -196,6 +205,29 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders =
         ForwardedHeaders.XForwardedFor |
         ForwardedHeaders.XForwardedProto
+});
+
+app.UseResponseCompression();
+
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+        headers["Content-Security-Policy"] =
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
+            "form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+            "img-src 'self' data: blob: https:; connect-src 'self'; upgrade-insecure-requests";
+        return Task.CompletedTask;
+    });
+
+    await next();
 });
 
 // Configure the HTTP request pipeline.

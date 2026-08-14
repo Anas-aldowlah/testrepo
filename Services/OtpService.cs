@@ -47,8 +47,7 @@ namespace YAGOT_2._0.Services
             // Set cooldown for 60 seconds
             _cache.Set(cooldownKey, true, TimeSpan.FromSeconds(60));
 
-            _logger.LogInformation("[OTP SERVICE] Sent OTP {Code} to phone {Phone}", code, cleanPhone);
-            Console.WriteLine($"[YAGOT OTP] Verification code for {cleanPhone} is: {code}");
+            _logger.LogInformation("OTP generated for a validated anonymous destination.");
 
             return Task.FromResult((true, "تم إرسال رمز التحقق بنجاح إلى رقم جوالك.", (string?)code));
         }
@@ -87,7 +86,7 @@ namespace YAGOT_2._0.Services
 
             // Successfully verified -> clear cache key
             _cache.Remove(otpKey);
-            _logger.LogInformation("[OTP SERVICE] Phone {Phone} successfully verified with OTP", cleanPhone);
+            _logger.LogInformation("OTP verification succeeded for an anonymous destination.");
 
             return Task.FromResult((true, "تم تحقق رقم الجوال بنجاح!"));
         }

@@ -185,7 +185,6 @@ public class AccountController : Controller
         if (!externalResult.Succeeded || externalResult.Principal == null)
         {
             _logger.LogWarning(
-                externalResult.Failure,
                 "Google external authentication ticket could not be read. Succeeded={Succeeded}.",
                 externalResult.Succeeded);
             await HttpContext.SignOutAsync(AuthenticationSchemes.External);
@@ -197,14 +196,6 @@ public class AccountController : Controller
         var externalPrincipal = externalResult.Principal;
         var googleClaims = externalPrincipal.Claims.ToList();
         _logger.LogInformation("Google callback received {ClaimCount} claims.", googleClaims.Count);
-        foreach (var claim in googleClaims)
-        {
-            _logger.LogInformation(
-                "Google raw claim: Type={ClaimType}, Value={ClaimValue}, Issuer={Issuer}.",
-                claim.Type,
-                claim.Value,
-                claim.Issuer);
-        }
 
         var email = externalPrincipal.FindFirst(ClaimTypes.Email)?.Value
             ?? externalPrincipal.FindFirst("email")?.Value;
@@ -220,8 +211,7 @@ public class AccountController : Controller
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            _logger.LogWarning("Google callback did not contain an email claim. Available claim types: {ClaimTypes}.",
-                string.Join(", ", googleClaims.Select(claim => claim.Type)));
+            _logger.LogWarning("Google callback did not contain the required email identity indicator.");
             await HttpContext.SignOutAsync(AuthenticationSchemes.External);
             TempData["GoogleLoginErrorTitle"] = "حساب Google غير مرتبط";
             TempData["GoogleLoginError"] = "تعذر الحصول على البريد الإلكتروني من Google.";
@@ -232,11 +222,11 @@ public class AccountController : Controller
         var normalizedEmail = email.ToLowerInvariant();
         var hasVerifiedClaim = bool.TryParse(emailVerifiedClaim, out var isEmailVerified);
         _logger.LogInformation(
-            "Google identity resolved. Email={Email}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, Subject={Subject}.",
-            email,
+            "Google identity resolved. EmailPresent={EmailPresent}, EmailVerified={EmailVerified}, VerificationClaimPresent={VerificationClaimPresent}, SubjectPresent={SubjectPresent}.",
+            true,
             hasVerifiedClaim && isEmailVerified,
             hasVerifiedClaim,
-            sub ?? "<missing>");
+            !string.IsNullOrWhiteSpace(sub));
 
         // The external identity has now been read and must never become the app identity.
         await HttpContext.SignOutAsync(AuthenticationSchemes.External);
@@ -590,10 +580,12 @@ public class AccountController : Controller
                     resetUrl,
                     HttpContext.RequestAborted);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Do not reveal account existence or mail configuration details.
-                _logger.LogError(ex, "Failed to send a password reset email.");
+                _logger.LogError(
+                    "Failed to send a password reset email for user {UserId}; sensitive delivery details were suppressed.",
+                    accountUser.Id);
             }
         }
 

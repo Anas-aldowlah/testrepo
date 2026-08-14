@@ -15,6 +15,7 @@ public class OrdersController : Controller
     private readonly NeondbContext _context;
     private readonly UsersDbContext _dbUser;
     private readonly OrderService _orderService;
+    private readonly ReceiptStorageService _receiptStorage;
 
     private static readonly HashSet<string> AllowedStatuses =
         new(StringComparer.OrdinalIgnoreCase)
@@ -27,11 +28,16 @@ public class OrdersController : Controller
             "Refunded"
         };
 
-    public OrdersController(NeondbContext context, UsersDbContext dbUser, OrderService orderService)
+    public OrdersController(
+        NeondbContext context,
+        UsersDbContext dbUser,
+        OrderService orderService,
+        ReceiptStorageService receiptStorage)
     {
         _context = context;
         _dbUser = dbUser;
         _orderService = orderService;
+        _receiptStorage = receiptStorage;
     }
 
     public async Task<IActionResult> Index(string[]? status, string? search, int page = 1, int pageSize = 10)
@@ -111,6 +117,28 @@ public class OrdersController : Controller
 
         await PopulateUserDisplayDataAsync(new[] { order });
         return View(order);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Admin,Developer")]
+    public async Task<IActionResult> Receipt(int id)
+    {
+        var storedValue = await _context.Orders
+            .AsNoTracking()
+            .Where(order => order.Id == id)
+            .Select(order => order.Receipturl)
+            .SingleOrDefaultAsync(HttpContext.RequestAborted);
+
+        if (string.IsNullOrWhiteSpace(storedValue) ||
+            !_receiptStorage.TryOpen(storedValue, out var stream, out var contentType) ||
+            stream == null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers.CacheControl = "no-store, private";
+        Response.Headers.Pragma = "no-cache";
+        return File(stream, contentType, enableRangeProcessing: true);
     }
 
     private async Task PopulateUserDisplayDataAsync(IEnumerable<Order> orders)

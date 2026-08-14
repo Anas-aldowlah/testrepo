@@ -53,54 +53,46 @@ public sealed class SmtpPasswordResetEmailSender : IPasswordResetEmailSender
             };
 
             _logger.LogInformation(
-                "Sending password reset email through SMTP host {Host}:{Port} with SSL={EnableSsl} to {Recipient}.",
+                "Sending password reset email through SMTP host {Host}:{Port} with SSL={EnableSsl}; recipient suppressed.",
                 smtp.Host,
                 smtp.Port,
-                smtp.EnableSsl,
-                email);
+                smtp.EnableSsl);
 
             cancellationToken.ThrowIfCancellationRequested();
             await client.SendMailAsync(message, cancellationToken);
 
-            _logger.LogInformation("Password reset email accepted by the SMTP server for {Recipient}.", email);
+            _logger.LogInformation("Password reset email accepted by the SMTP server; recipient suppressed.");
         }
         catch (SmtpException ex)
         {
             _logger.LogError(
-                ex,
-                "SMTP delivery failed for password reset email to {Recipient}. Host={Host}, Port={Port}, SSL={EnableSsl}, StatusCode={StatusCode}.",
-                email,
+                "SMTP delivery failed for a password reset email. Host={Host}, Port={Port}, SSL={EnableSsl}, StatusCode={StatusCode}; recipient and exception details suppressed.",
                 smtp.Host,
                 smtp.Port,
                 smtp.EnableSsl,
                 ex.StatusCode);
-            LogDevelopmentFallback(resetUrl);
+            LogDevelopmentFallback();
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(
-                ex,
-                "Password reset email failed before or during SMTP delivery to {Recipient}. Host={Host}, Port={Port}, ExceptionType={ExceptionType}.",
-                email,
+                "Password reset email failed before or during SMTP delivery. Host={Host}, Port={Port}, ExceptionType={ExceptionType}; recipient and exception details suppressed.",
                 smtp.Host,
                 smtp.Port,
                 ex.GetType().FullName);
-            LogDevelopmentFallback(resetUrl);
+            LogDevelopmentFallback();
             throw;
         }
     }
 
-    private void LogDevelopmentFallback(string resetUrl)
+    private void LogDevelopmentFallback()
     {
         if (!_environment.IsDevelopment())
         {
             return;
         }
 
-        Console.WriteLine();
-        Console.WriteLine("[YAGOT DEVELOPMENT] SMTP delivery failed. Use this password reset URL:");
-        Console.WriteLine(resetUrl);
-        Console.WriteLine();
+        _logger.LogWarning("Development SMTP fallback was suppressed because reset URLs contain secret tokens.");
     }
 }

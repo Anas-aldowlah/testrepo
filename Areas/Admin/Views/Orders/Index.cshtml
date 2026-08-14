@@ -240,7 +240,7 @@
                                 ? order.Paymentmethod
                                 : "غير محدد";
                             var receiptImage = !string.IsNullOrWhiteSpace(order.Receipturl)
-                                ? order.Receipturl
+                                ? Url.Action("Receipt", "Orders", new { area = "Admin", id = order.Id })
                                 : null;
 
                             <tr data-order-id="@order.Id">
