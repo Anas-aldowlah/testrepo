@@ -1247,7 +1247,7 @@ a {
     position: relative;
 }
 
-    .yaqut-input-wrap i {
+    .yaqut-input-wrap > i {
         position: absolute;
         right: 1.25rem;
         top: 50%;
@@ -1257,6 +1257,36 @@ a {
         pointer-events: none;
         font-size: 1.1rem;
     }
+
+.yq-toggle-pwd-btn {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--yq-text-soft);
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--yq-ease);
+}
+
+.yq-toggle-pwd-btn i {
+    font-size: 1.1rem;
+    color: inherit;
+}
+
+.yq-toggle-pwd-btn:hover {
+    color: var(--yq-gold);
+}
+
+.yaqut-input-wrap:has(.yq-toggle-pwd-btn) .yaqut-form-input {
+    padding-left: 3rem;
+}
 
 .yaqut-form-input {
     width: 100%;
@@ -1281,6 +1311,11 @@ a {
     .theme-dark .yaqut-form-input::placeholder {
         color: #888888;
     }
+
+.yaqut-form-input::-ms-reveal,
+.yaqut-form-input::-ms-clear {
+    display: none;
+}
 
 .yaqut-form-input:focus {
     outline: none;
@@ -1574,7 +1609,7 @@ a {
     color: #f5f0df;
 }
 
-.yq-login-view .yaqut-input-wrap i {
+.yq-login-view .yaqut-input-wrap > i {
     right: 1rem;
     color: var(--yq-gold);
 }

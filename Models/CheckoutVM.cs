@@ -50,7 +50,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "المحافظة مطلوبة.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "المحافظة مطلوبة.")]
-    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "المحافظة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
+    [RegularExpression(@"^[\u0600-\u06FFa-zA-Z\s]+$", ErrorMessage = "المحافظة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
     public string Governorate
     {
         get => _governorate;
@@ -61,7 +61,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "المدينة مطلوبة.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "المدينة مطلوبة.")]
-    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "المدينة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
+    [RegularExpression(@"^[\u0600-\u06FFa-zA-Z\s]+$", ErrorMessage = "المدينة يجب أن تحتوي على أحرف فقط ولا تقبل أرقاماً.")]
     public string City
     {
         get => _city;
@@ -72,7 +72,7 @@ public class CheckoutVM
 
     [Required(ErrorMessage = "اسم المستلم مطلوب.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "اسم المستلم مطلوب.")]
-    [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "اسم المستلم يجب أن يحتوي على أحرف فقط ولا يقبل أرقاماً.")]
+    [RegularExpression(@"^[\u0600-\u06FFa-zA-Z\s]+$", ErrorMessage = "اسم المستلم يجب أن يحتوي على أحرف فقط ولا يقبل أرقاماً.")]
     public string District
     {
         get => _district;
