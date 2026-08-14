@@ -71,6 +71,7 @@ public class ProductsController : Controller
         return View(model);
     }
 
+    [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> trash(int page = 1, int pageSize = 10)
     {
         var archivedQuery = _context.Products

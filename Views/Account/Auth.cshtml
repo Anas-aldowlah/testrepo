@@ -2,7 +2,8 @@
 @{
     Layout = "_AuthLayout";
     ViewData["Title"] = "بوابة الدخول وإنشاء الحساب";
-    var returnUrl = ViewData["ReturnUrl"] as string ?? "/Home/Index";
+    var requestedReturnUrl = ViewData["ReturnUrl"] as string;
+    var returnUrl = Url.IsLocalUrl(requestedReturnUrl) ? requestedReturnUrl! : "/Home/Index";
     var showRegisterPanel = (ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true;
     var regState = ViewData["RegState"] as RegistrationSessionState ?? new RegistrationSessionState();
     var initialStep = regState.Step > 0 ? regState.Step : 1;

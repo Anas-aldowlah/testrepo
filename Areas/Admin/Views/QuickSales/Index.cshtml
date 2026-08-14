@@ -169,7 +169,7 @@
                                     <td class="text-nowrap"><strong class="pos-text-main fw-bold">@draft.FinalAmount.ToString("N2") ر.س</strong></td>
                                     <td class="pos-text-muted small text-nowrap">@((draft.UpdatedAt ?? draft.CreatedAt).ToString("yyyy/MM/dd HH:mm"))</td>
                                     <td class="text-nowrap">
-                                        <a asp-action="NewSale" asp-route-id="@draft.Id" class="btn btn-sm btn-yaqut-gold fw-bold me-1">
+                                        <a asp-action="NewSale" asp-route-draftId="@draft.Id" class="btn btn-sm btn-yaqut-gold fw-bold me-1">
                                             <i class="bi bi-pencil-square me-1"></i> فتح المسودة
                                         </a>
                                     </td>

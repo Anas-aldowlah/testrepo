@@ -12,6 +12,21 @@ public class QuickSalesIndexViewModel
     public decimal TodayCompletedSalesTotal { get; set; }
 }
 
+public class NewSaleViewModel
+{
+    public Sale Sale { get; init; } = new();
+    public SalesDay SalesDay { get; init; } = new();
+    public IReadOnlyList<ProductSearchResultDto> AvailableProducts { get; init; } = Array.Empty<ProductSearchResultDto>();
+    public IReadOnlyList<QuickSaleCustomerDto> Customers { get; init; } = Array.Empty<QuickSaleCustomerDto>();
+    public bool IsExistingDraft { get; init; }
+}
+
+public class QuickSaleCustomerDto
+{
+    public string Name { get; init; } = string.Empty;
+    public string? Phone { get; init; }
+}
+
 public class OpenSalesDayViewModel
 {
     public DateTime Date { get; set; } = DateTime.Today;

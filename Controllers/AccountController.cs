@@ -93,9 +93,10 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Auth(string? returnUrl = null, bool register = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         if (User.Identity?.IsAuthenticated == true)
         {
-            return LocalRedirect(GetRedirectUrl(returnUrl));
+            return LocalRedirect(returnUrl);
         }
 
         var regState = GetRegistrationState();
@@ -107,7 +108,7 @@ public class AccountController : Controller
 
     public IActionResult AuthR(string? returnUrl = null, string? email = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
+        ViewData["ReturnUrl"] = GetRedirectUrl(returnUrl);
         TempData["Email"] = email;
         var regState = GetRegistrationState();
         ViewData["RegState"] = regState;
@@ -120,6 +121,7 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         ViewData["ReturnUrl"] = returnUrl;
         var phone = model.Phone?.Trim() ?? string.Empty;
        
@@ -160,7 +162,7 @@ public class AccountController : Controller
         await _guestCartService.MergeIntoUserCartAsync(userGloble.Id);
         TempData["UserName"] = userGloble.Name;
         await _visitService.SaveVisitAsync(HttpContext, userGloble.Name);
-        return LocalRedirect(GetRedirectUrl(returnUrl));
+        return LocalRedirect(returnUrl);
     }
 
     #region Google Login Actions
@@ -170,6 +172,7 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         TempData.Remove("GoogleLoginError");
         TempData.Remove("GoogleLoginErrorTitle");
         TempData.Remove("RegistrationNotice");
@@ -188,6 +191,7 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> GoogleResponse(string? returnUrl = null, bool isRegister = false)
     {
+        returnUrl = GetRedirectUrl(returnUrl);
         var externalResult = await HttpContext.AuthenticateAsync(AuthenticationSchemes.External);
         if (!externalResult.Succeeded || externalResult.Principal == null)
         {
@@ -669,11 +673,9 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Auth));
     }
 
-    private static string GetRedirectUrl(string? returnUrl)
+    private string GetRedirectUrl(string? returnUrl)
     {
-        return string.IsNullOrWhiteSpace(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-            ? "/Home/Index"
-            : returnUrl!;
+        return Url.IsLocalUrl(returnUrl) ? returnUrl! : "/Home/Index";
     }
 
     private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)
