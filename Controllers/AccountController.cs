@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -29,6 +31,7 @@ public class AccountController : Controller
     private readonly GuestCartService _guestCartService;
     private readonly IPasswordResetEmailSender _passwordResetEmailSender;
     private readonly ITimeLimitedDataProtector _passwordResetProtector;
+    private readonly Uri _publicBaseUri;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
@@ -39,6 +42,7 @@ public class AccountController : Controller
         GuestCartService guestCartService,
         IPasswordResetEmailSender passwordResetEmailSender,
         IDataProtectionProvider dataProtectionProvider,
+        IOptions<PublicUrlOptions> publicUrlOptions,
         ILogger<AccountController> logger)
     {
         _db = db;
@@ -50,6 +54,7 @@ public class AccountController : Controller
         _passwordResetProtector = dataProtectionProvider
             .CreateProtector("YAGOT.PasswordReset.v1")
             .ToTimeLimitedDataProtector();
+        _publicBaseUri = new Uri(publicUrlOptions.Value.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         _logger = logger;
     }
 
@@ -112,6 +117,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
@@ -161,6 +167,7 @@ public class AccountController : Controller
 
     [AllowAnonymous]
     [HttpGet]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
     {
         TempData.Remove("GoogleLoginError");
@@ -227,6 +234,18 @@ public class AccountController : Controller
             hasVerifiedClaim && isEmailVerified,
             hasVerifiedClaim,
             !string.IsNullOrWhiteSpace(sub));
+
+        if (!hasVerifiedClaim || !isEmailVerified)
+        {
+            _logger.LogWarning(
+                "Rejected Google authentication because the provider did not assert a verified email address. VerificationClaimPresent={VerificationClaimPresent}.",
+                hasVerifiedClaim);
+            await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+            ClearRegistrationState();
+            TempData["GoogleLoginErrorTitle"] = "تعذر التحقق من البريد الإلكتروني";
+            TempData["GoogleLoginError"] = "يجب التحقق من البريد الإلكتروني في حساب Google قبل تسجيل الدخول أو إنشاء حساب.";
+            return RedirectToAction("Auth", "Account", new { returnUrl });
+        }
 
         // The external identity has now been read and must never become the app identity.
         await HttpContext.SignOutAsync(AuthenticationSchemes.External);
@@ -297,6 +316,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> SaveStep2Info([FromBody] Step2InfoRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Phone))
@@ -344,6 +364,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationModel model, string? returnUrl = null)
     {
         if (model == null)
@@ -454,7 +475,9 @@ public class AccountController : Controller
 
     #endregion
 
-    [HttpGet]
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         ClearRegistrationState();
@@ -548,6 +571,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
         var email = model.Email?.Trim();
@@ -567,11 +591,12 @@ public class AccountController : Controller
                 accountUser.Id,
                 ComputePasswordFingerprint(accountUser.Passwordhash)));
             var token = _passwordResetProtector.Protect(payload, TimeSpan.FromMinutes(15));
-            var resetUrl = Url.Action(
+            var resetPath = Url.Action(
                 nameof(ResetPassword),
                 "Account",
-                new { token },
-                Request.Scheme)!;
+                new { token })
+                ?? throw new InvalidOperationException("Could not generate the password-reset route.");
+            var resetUrl = new Uri(_publicBaseUri, resetPath).AbsoluteUri;
 
             try
             {
@@ -607,6 +632,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("Auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
     {
         if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)

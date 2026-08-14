@@ -1,6 +1,6 @@
-using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.WebUtilities;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models;
 
@@ -9,11 +9,16 @@ namespace YAGOT_2._0.Services;
 public class GuestCartService
 {
     private const string CookieName = "YAGOT.GuestCart";
+    private const int MaxCartItems = 25;
+    private const int MaxQuantityPerItem = 99;
+    private const int MaxProtectedCookieLength = 4096;
+    private static readonly JsonSerializerOptions CookieJsonOptions = new() { MaxDepth = 8 };
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly NeondbContext _context;
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<GuestCartService> _logger;
+    private readonly IDataProtector _cookieProtector;
     private List<GuestCartItem>? _currentItems;
 
     public string? Message { get; private set; }
@@ -23,12 +28,14 @@ public class GuestCartService
         NeondbContext context,
         CartLockService cartLock,
         IInventoryService inventoryService,
+        IDataProtectionProvider dataProtectionProvider,
         ILogger<GuestCartService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
         _cartLock = cartLock;
         _inventoryService = inventoryService;
+        _cookieProtector = dataProtectionProvider.CreateProtector("YAGOT.GuestCart.v1");
         _logger = logger;
     }
 
@@ -298,28 +305,31 @@ public class GuestCartService
 
         try
         {
-            var json = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(cookieValue));
-            _currentItems = JsonSerializer.Deserialize<List<GuestCartItem>>(json)?
-                .Where(i => i.ProductId > 0 && i.Quantity > 0)
-                .GroupBy(i => new { i.ProductId, i.RetailPriceId })
-                .Select(g => new GuestCartItem
-                {
-                    ProductId = g.Key.ProductId,
-                    RetailPriceId = g.Key.RetailPriceId,
-                    Quantity = g.Sum(i => i.Quantity)
-                })
-                .ToList() ?? [];
+            if (cookieValue.Length > MaxProtectedCookieLength)
+            {
+                throw new InvalidDataException("The guest-cart cookie exceeds the permitted size.");
+            }
+
+            var json = _cookieProtector.Unprotect(cookieValue);
+            var deserializedItems = JsonSerializer.Deserialize<List<GuestCartItem>>(json, CookieJsonOptions) ?? [];
+            _currentItems = NormalizeItems(deserializedItems);
             return _currentItems;
         }
-        catch (FormatException exception)
+        catch (CryptographicException exception)
         {
-            _logger.LogWarning(exception, "Discarding a malformed guest-cart cookie.");
+            _logger.LogWarning(exception, "Discarding a guest-cart cookie that failed integrity validation.");
             Clear();
             return [];
         }
         catch (JsonException exception)
         {
             _logger.LogWarning(exception, "Discarding an invalid guest-cart cookie payload.");
+            Clear();
+            return [];
+        }
+        catch (InvalidDataException exception)
+        {
+            _logger.LogWarning(exception, "Discarding an oversized guest-cart cookie.");
             Clear();
             return [];
         }
@@ -330,7 +340,7 @@ public class GuestCartService
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext == null) return;
 
-        var validItems = items.Where(i => i.ProductId > 0 && i.Quantity > 0).ToList();
+        var validItems = NormalizeItems(items);
         _currentItems = validItems;
         if (!validItems.Any())
         {
@@ -338,8 +348,15 @@ public class GuestCartService
             return;
         }
 
-        var json = JsonSerializer.Serialize(validItems);
-        var value = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(json));
+        var json = JsonSerializer.Serialize(validItems, CookieJsonOptions);
+        var value = _cookieProtector.Protect(json);
+        if (value.Length > MaxProtectedCookieLength)
+        {
+            _logger.LogWarning("The guest cart was not persisted because its protected payload exceeded the cookie limit.");
+            Clear();
+            return;
+        }
+
         httpContext.Response.Cookies.Append(CookieName, value, new CookieOptions
         {
             HttpOnly = true,
@@ -354,6 +371,25 @@ public class GuestCartService
     {
         _currentItems = [];
         _httpContextAccessor.HttpContext?.Response.Cookies.Delete(CookieName);
+    }
+
+    private static List<GuestCartItem> NormalizeItems(IEnumerable<GuestCartItem> items)
+    {
+        return items
+            .Where(item => item.ProductId > 0
+                           && item.Quantity > 0
+                           && (!item.RetailPriceId.HasValue || item.RetailPriceId.Value > 0))
+            .GroupBy(item => new { item.ProductId, item.RetailPriceId })
+            .Take(MaxCartItems)
+            .Select(group => new GuestCartItem
+            {
+                ProductId = group.Key.ProductId,
+                RetailPriceId = group.Key.RetailPriceId,
+                Quantity = (int)Math.Min(
+                    group.Sum(item => Math.Min((long)item.Quantity, MaxQuantityPerItem)),
+                    MaxQuantityPerItem)
+            })
+            .ToList();
     }
 
     private sealed class GuestCartItem
