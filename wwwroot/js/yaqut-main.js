@@ -7,8 +7,24 @@
     var STORAGE_KEY = 'yaqut-theme';
 
     /* ═══ THEME ENGINE ═══ */
+    function readStoredTheme() {
+        try {
+            return window.localStorage.getItem(STORAGE_KEY);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeStoredTheme(theme) {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, theme);
+        } catch (error) {
+            // Theme persistence is optional.
+        }
+    }
+
     function getPreferredTheme() {
-        var stored = localStorage.getItem(STORAGE_KEY);
+        var stored = readStoredTheme();
         if (stored === 'dark' || stored === 'light') return stored;
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
@@ -32,7 +48,7 @@
             body.classList.toggle('theme-light', !isDark);
         }
 
-        localStorage.setItem(STORAGE_KEY, theme);
+        writeStoredTheme(theme);
         updateLogos(!isDark);
         updateThemeToggleUI(isDark);
 
@@ -92,7 +108,7 @@
         });
 
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-            if (!localStorage.getItem(STORAGE_KEY)) {
+            if (!readStoredTheme()) {
                 applyTheme(e.matches ? 'dark' : 'light');
             }
         });

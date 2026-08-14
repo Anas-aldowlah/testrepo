@@ -259,17 +259,32 @@
 // === Checkout draft persistence ===
 (function() {
     const form = document.getElementById('yqCheckoutForm');
+    if (!form) return;
 
     // === Auto-save form data ===
     const STORAGE_KEY = 'yq-checkout-draft';
-    const formInputs = document.querySelectorAll('.yq-checkout-form input:not([type="hidden"]):not([type="file"]), .yq-checkout-form select, .yq-checkout-form textarea');
+    const formInputs = form.querySelectorAll(
+        'input:not([type="hidden"]):not([type="file"]):not([type="password"]):not([readonly]):not([disabled]), ' +
+        'select:not([disabled]), textarea:not([readonly]):not([disabled])'
+    );
     
     function saveFormData() {
         const data = {};
         formInputs.forEach(input => {
-            if (input.name && input.type !== 'file') {
-                data[input.name] = input.value;
+            if (!input.name) return;
+
+            if (input.type === 'radio') {
+                if (input.checked) data[input.name] = input.value;
+                return;
             }
+
+            if (input.type === 'checkbox') {
+                if (!Array.isArray(data[input.name])) data[input.name] = [];
+                if (input.checked) data[input.name].push(input.value);
+                return;
+            }
+
+            data[input.name] = input.value;
         });
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
     }
@@ -280,10 +295,22 @@
             if (!saved) return;
             const data = JSON.parse(saved);
             formInputs.forEach(input => {
-                if (input.name && data[input.name] !== undefined && !input.value) {
+                if (!input.name || data[input.name] === undefined) return;
+
+                if (input.type === 'radio') {
+                    input.checked = input.value === data[input.name];
+                } else if (input.type === 'checkbox') {
+                    input.checked = Array.isArray(data[input.name]) && data[input.name].indexOf(input.value) !== -1;
+                } else if (input.tagName === 'SELECT' || !input.value) {
                     input.value = data[input.name];
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    return;
                 }
+
+                const eventName = input.type === 'radio' || input.type === 'checkbox' || input.tagName === 'SELECT'
+                    ? 'change'
+                    : 'input';
+                input.dispatchEvent(new Event(eventName, { bubbles: true }));
             });
         } catch(e) {}
     }
