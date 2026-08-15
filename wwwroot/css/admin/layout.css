@@ -2,7 +2,8 @@
    Admin Layout Shell
    Shared admin structure only. Page-specific admin styles belong elsewhere.
    ========================================================================== */
-.bg-dark {
+/* Bootstrap utility overrides stay inside the rendered admin shell. */
+:where(.yq-admin-shell) .bg-dark {
     background-color: #ffffff !important; /* ضع اللون الغامق المناسب لك هنا */
 }
 .yaqut-admin-body {
@@ -1352,18 +1353,14 @@
     }
 }
 
-/* Green Badge & Text Contrast Fix */
-.badge.bg-success,
-.badge.bg-success.text-success,
-.badge.bg-success.bg-opacity-25.text-success,
-.badge.bg-success.bg-opacity-15.text-success,
-.badge.bg-success.bg-opacity-10.text-success {
+/* Admin-only green badge contrast; :where() keeps the root scope specificity-free. */
+:where(.yq-admin-shell) .badge.bg-success {
     color: #ffffff !important;
     background-color: #15803d !important;
     font-weight: 700 !important;
 }
 
-.badge.bg-success * {
+:where(.yq-admin-shell) .badge.bg-success * {
     color: #ffffff !important;
 }
 

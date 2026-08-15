@@ -1240,7 +1240,7 @@
 }
 
 /* Mobile Responsive Fixes */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .yq-categories-table thead { display: none; }
     .yq-categories-table tbody { display: block; }
     .yq-categories-table tbody tr { display: block; margin-bottom: 1rem; padding: 1rem; border-radius: 12px; background: var(--yq-admin-surface); border: 1px solid var(--yq-admin-border); }

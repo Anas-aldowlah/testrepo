@@ -300,7 +300,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .yq-shop-layout {
         grid-template-columns: 1fr;
     }
@@ -337,7 +337,7 @@
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .yq-shop-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -521,7 +521,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .yq-shop-grid {
         --bs-gutter-x: 0.65rem;
         --bs-gutter-y: 0.65rem;
