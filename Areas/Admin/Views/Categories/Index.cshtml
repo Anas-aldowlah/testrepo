@@ -96,7 +96,8 @@
                                     <div class="yq-categories-item">
                                         @if (!string.IsNullOrWhiteSpace(imageUrl))
                                         {
-                                            <img src="@imageUrl" alt="@cat.Name" class="yq-categories-item__image" loading="lazy" />
+                                            <img src="@imageUrl" alt="@cat.Name" class="yq-categories-item__image"
+                                                 width="64" height="64" loading="lazy" decoding="async" />
                                         }
                                         else
                                         {

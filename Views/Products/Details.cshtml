@@ -15,6 +15,38 @@
     var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} {mlLabel}" : $"{pieceAvailableUnits:N0} قطعة";
     var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
     var retailPrices = Model?.RetailPrices?.Where(price => price.IsActive).OrderBy(price => price.SizeMl).ToList() ?? new();
+    var productImageUrl = Url.Content("~/images/placeholder-product.svg");
+    if (!string.IsNullOrWhiteSpace(Model?.Imageurl))
+    {
+        var candidateImageUrl = Model.Imageurl.Trim();
+        if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
+        {
+            if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
+            {
+                productImageUrl = candidateImageUrl;
+            }
+        }
+        else
+        {
+            var localImageUrl = candidateImageUrl.TrimStart('/');
+            while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
+            {
+                localImageUrl = localImageUrl[2..];
+            }
+
+            var pathEnd = localImageUrl.IndexOfAny(new[] { '?', '#' });
+            var localImagePath = pathEnd >= 0 ? localImageUrl[..pathEnd] : localImageUrl;
+            var decodedLocalPath = Uri.UnescapeDataString(localImagePath).Replace('\\', '/');
+            var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
+            if (!string.IsNullOrWhiteSpace(localImagePath) &&
+                !localImagePath.Contains(':') &&
+                !localImagePath.Contains('\\') &&
+                !hasParentSegment)
+            {
+                productImageUrl = Url.Content("~/" + localImageUrl);
+            }
+        }
+    }
 }
 
 @section Styles {
@@ -28,7 +60,7 @@
          data-id="@Model.Id"
          data-name="@Model.Name"
          data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-         data-image="@Model.Imageurl">
+         data-image="@productImageUrl">
 
         <!-- BREADCRUMB -->
         <nav class="yq-pdp-breadcrumb" aria-label="مسار التصفح">
@@ -57,9 +89,10 @@
                             <i class="bi bi-stars"></i> متوفر
                         </span>
                     }
-                    <img src="@Model.Imageurl"
+                    <img src="@productImageUrl"
                          alt="@Model.Name"
                          class="yq-pdp-gallery__img"
+                         fetchpriority="high"
                          data-yaqut-fallback="/images/placeholder-product.svg" />
                 </div>
             </div>

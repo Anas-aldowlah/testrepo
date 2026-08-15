@@ -27,14 +27,46 @@
             @foreach (var cat in categories)
             {
                 var productCount = cat.Products?.Count(p => p.Stockquantity > 0) ?? 0;
+                var categoryImageUrl = Url.Content("~/images/placeholder-product.svg");
+                if (!string.IsNullOrWhiteSpace(cat.Imageurl))
+                {
+                    var candidateImageUrl = cat.Imageurl.Trim();
+                    if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
+                    {
+                        if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
+                        {
+                            categoryImageUrl = candidateImageUrl;
+                        }
+                    }
+                    else
+                    {
+                        var localImageUrl = candidateImageUrl.TrimStart('/');
+                        while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
+                        {
+                            localImageUrl = localImageUrl[2..];
+                        }
+
+                        var pathEnd = localImageUrl.IndexOfAny(new[] { '?', '#' });
+                        var localImagePath = pathEnd >= 0 ? localImageUrl[..pathEnd] : localImageUrl;
+                        var decodedLocalPath = Uri.UnescapeDataString(localImagePath).Replace('\\', '/');
+                        var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
+                        if (!string.IsNullOrWhiteSpace(localImagePath) &&
+                            !localImagePath.Contains(':') &&
+                            !localImagePath.Contains('\\') &&
+                            !hasParentSegment)
+                        {
+                            categoryImageUrl = Url.Content("~/" + localImageUrl);
+                        }
+                    }
+                }
                 <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id"
                    class="yq-cat-luxury-tile yq-reveal">
                     
                     <div class="yq-cat-luxury-tile__bg">
                         @if (!string.IsNullOrEmpty(cat.Imageurl))
                         {
-                            <img src="@Url.Content("~/" + cat.Imageurl)" alt="@cat.Name"
-                                 data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" />
+                            <img src="@categoryImageUrl" alt="@cat.Name"
+                                 data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" decoding="async" />
                         }
                         else
                         {

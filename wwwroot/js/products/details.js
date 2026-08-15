@@ -106,9 +106,10 @@
             img.src = product.image || '/images/placeholder-product.svg';
             img.alt = product.name || '';
             img.loading = 'lazy';
+            img.decoding = 'async';
             img.addEventListener('error', function () {
                 img.src = '/images/placeholder-product.svg';
-            });
+            }, { once: true });
             media.appendChild(img);
 
             var name = document.createElement('span');

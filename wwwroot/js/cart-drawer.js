@@ -61,6 +61,16 @@
         return escapeHtml(value).replace(/`/g, '&#96;');
     }
 
+    function bindImageFallbacks(root) {
+        if (!root) return;
+        root.querySelectorAll('[data-yaqut-fallback]').forEach(function (img) {
+            img.addEventListener('error', function () {
+                var fallback = img.getAttribute('data-yaqut-fallback');
+                if (fallback && img.getAttribute('src') !== fallback) img.src = fallback;
+            }, { once: true });
+        });
+    }
+
     function parseMoney(text) {
         var normalized = normalizeDigits(text).replace(/[^\d.,]/g, '').replace(/,/g, '');
         var value = parseFloat(normalized);
@@ -131,7 +141,7 @@
         var total = escapeHtml(totalText || '');
 
         el.innerHTML = [
-            '<img class="yq-cart-toast__img" src="' + imgSrc + '" alt="" />',
+            '<img class="yq-cart-toast__img" src="' + imgSrc + '" alt="" data-yaqut-fallback="/images/placeholder-product.svg" decoding="async" />',
             '<div class="yq-cart-toast__body">',
             '  <p class="yq-cart-toast__title">',
             '    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>',
@@ -145,6 +155,7 @@
             '<button type="button" class="yq-cart-toast__close" aria-label="إغلاق"><i class="bi bi-x" aria-hidden="true"></i></button>',
             '<span class="yq-cart-toast__progress" style="transition-duration: ' + autoHideDuration + 'ms"></span>'
         ].join('');
+        bindImageFallbacks(el);
 
         // close button
         var closeBtn = el.querySelector('.yq-cart-toast__close');
@@ -431,7 +442,7 @@
         ghost.style.width = sourceRect.width + 'px';
         ghost.style.height = sourceRect.height + 'px';
         ghost.innerHTML = [
-            '<img src="' + escapeAttr(snapshot.imageSrc) + '" alt="" aria-hidden="true" />',
+            '<img src="' + escapeAttr(snapshot.imageSrc) + '" alt="" aria-hidden="true" decoding="async" />',
             '<span>+' + snapshot.quantity + '</span>'
         ].join('');
         layer.appendChild(ghost);
@@ -472,7 +483,7 @@
             '</div>',
             '<div class="yq-cart-drawer__item is-highlighted">',
             '<a class="yq-cart-drawer__media" href="' + itemHref + '">',
-            '<img src="' + itemImage + '" alt="' + itemAlt + '" data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" />',
+            '<img src="' + itemImage + '" alt="' + itemAlt + '" data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" decoding="async" />',
             '</a>',
             '<div class="yq-cart-drawer__item-body">',
             '<div>',
@@ -487,6 +498,7 @@
             '</div>',
             '</div>'
         ].join('');
+        bindImageFallbacks(body);
 
         if (footer) footer.hidden = false;
         setCheckoutAvailable(true);
@@ -531,7 +543,7 @@
         return [
             '<li class="yq-cart-drawer__item' + (highlighted ? ' is-highlighted' : '') + '" data-yq-drawer-item data-product-id="' + productId + '">',
             '<a class="yq-cart-drawer__media" href="' + itemHref + '">',
-            '<img src="' + itemImage + '" alt="' + itemAlt + '" data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" />',
+            '<img src="' + itemImage + '" alt="' + itemAlt + '" data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" decoding="async" />',
             '</a>',
             '<div class="yq-cart-drawer__item-body">',
             '<div class="yq-cart-drawer__item-head">',
@@ -595,6 +607,7 @@
             body.innerHTML = '<ul class="yq-cart-drawer__list">' + items.map(function (item) {
                 return renderItem(item, options && options.highlightProductId);
             }).join('') + '</ul>';
+            bindImageFallbacks(body);
 
             if (footer) footer.hidden = false;
             setCheckoutAvailable(true);
