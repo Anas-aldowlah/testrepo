@@ -45,7 +45,11 @@
         function getRecent() {
             try {
                 var raw = localStorage.getItem(STORAGE_KEY);
-                return raw ? JSON.parse(raw) : [];
+                var parsed = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(function (term) {
+                    return typeof term === 'string' && term.length > 0;
+                }).slice(0, MAX_RECENT);
             } catch (e) {
                 return [];
             }
@@ -76,12 +80,15 @@
             });
             if (!recent.length) return;
 
-            list.innerHTML = '';
+            list.replaceChildren();
             recent.forEach(function (term) {
                 var chip = document.createElement('a');
                 chip.className = 'yq-recent-search-chip';
                 chip.href = '/Products?search=' + encodeURIComponent(term);
-                chip.innerHTML = '<i class="bi bi-clock-history"></i>' + term;
+                var icon = document.createElement('i');
+                icon.className = 'bi bi-clock-history';
+                icon.setAttribute('aria-hidden', 'true');
+                chip.append(icon, document.createTextNode(term));
                 list.appendChild(chip);
             });
 

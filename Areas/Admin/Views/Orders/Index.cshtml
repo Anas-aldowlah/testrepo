@@ -306,10 +306,14 @@
                                                 data-bs-toggle="popover"
                                                 data-bs-trigger="click"
                                                 data-bs-placement="top"
-                                                data-bs-html="true"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--location"
-                                                title='<i class="bi bi-geo-alt-fill"></i> معلومات التوصيل والمستلم'
-                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>اسم العميل:</span> <strong>@customerName</strong></div><div class="yq-popover-row"><span>اسم المستلم:</span> <strong>@district</strong></div><div class="yq-popover-row"><span>رقم الجوال:</span> <strong dir="ltr">@recipientPhone</strong></div><div class="yq-popover-row"><span>المحافظة:</span> <strong>@governorate</strong></div><div class="yq-popover-row"><span>المنطقة:</span> <strong>@region</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> فتح التفاصيل الكاملة</a></div></div>'
+                                                data-yq-popover-type="location"
+                                                data-yq-customer-name="@customerName"
+                                                data-yq-recipient-name="@district"
+                                                data-yq-recipient-phone="@recipientPhone"
+                                                data-yq-governorate="@governorate"
+                                                data-yq-region="@region"
+                                                data-yq-details-url="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })"
                                                 aria-label="معلومات التوصيل">
                                             <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
                                         </button>
@@ -320,10 +324,11 @@
                                                 data-bs-toggle="popover"
                                                 data-bs-trigger="click"
                                                 data-bs-placement="top"
-                                                data-bs-html="true"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--payment"
-                                                title='<i class="bi bi-credit-card-fill"></i> معلومات الدفع'
-                                                data-bs-content='<div class="yq-popover-card"><div class="yq-popover-row"><span>وسيلة الدفع:</span> <strong>@paymentMethod</strong></div><div class="yq-popover-row"><span>حالة الطلب:</span> <strong>@statusLabel</strong></div><div class="yq-popover-footer"><a href="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })" class="yq-popover-link"><i class="bi bi-box-arrow-up-right"></i> عرض تفاصيل الدفع الكاملة</a></div></div>'
+                                                data-yq-popover-type="payment"
+                                                data-yq-payment-method="@paymentMethod"
+                                                data-yq-status-label="@statusLabel"
+                                                data-yq-details-url="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })"
                                                 aria-label="معلومات الدفع">
                                             <i class="bi bi-credit-card-fill" aria-hidden="true"></i>
                                         </button>
@@ -334,17 +339,10 @@
                                                 data-bs-toggle="popover"
                                                 data-bs-trigger="click"
                                                 data-bs-placement="top"
-                                                data-bs-html="true"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--receipt"
-                                                title='<i class="bi bi-receipt-cutoff"></i> إيصال الدفع'
-                                                data-bs-content='@if (!string.IsNullOrEmpty(receiptImage)) {
-                                                <div class="yq-popover-receipt"><div class="yq-popover-thumb"><img src="@receiptImage" alt="إيصال الدفع" /></div><div class="yq-popover-actions"><button type="button" class="yq-popover-btn js-zoom-receipt" id="btn-receipt-@order.Id"><i class="bi bi-zoom-in"></i> عرض الصورة مكبرة</button><a href="@receiptImage" target="_blank" class="yq-popover-btn yq-popover-btn--outline"><i class="bi bi-box-arrow-up-right"></i> فتح في تبويب جديد</a></div></div>
-                                            } else
-                                            {
-
-                                                <div class="yq-popover-empty"><i class="bi bi-image-alt"></i><span>لا يوجد إيصال مرفق لهذا الطلب</span></div>
-                                            }
-    '
+                                                data-yq-popover-type="receipt"
+                                                data-yq-order-id="@order.Id"
+                                                data-yq-receipt-image="@receiptImage"
                                                 aria-label="إيصال الدفع">
                                             <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
                                         </button>
@@ -435,8 +433,123 @@
         document.addEventListener('DOMContentLoaded', function () {
             // === Bootstrap Popovers ===
             const popoverTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="popover"]'));
+
+            function createPopoverTitle(iconClass, text) {
+                const title = document.createElement('span');
+                const icon = document.createElement('i');
+                icon.className = iconClass;
+                icon.setAttribute('aria-hidden', 'true');
+                title.append(icon, document.createTextNode(' ' + text));
+                return title;
+            }
+
+            function appendPopoverRow(card, label, value, direction) {
+                const row = document.createElement('div');
+                row.className = 'yq-popover-row';
+                const labelElement = document.createElement('span');
+                labelElement.textContent = label;
+                const valueElement = document.createElement('strong');
+                valueElement.textContent = value == null ? '' : String(value);
+                if (direction) valueElement.dir = direction;
+                row.append(labelElement, document.createTextNode(' '), valueElement);
+                card.appendChild(row);
+            }
+
+            function appendPopoverLink(card, href, text) {
+                const footer = document.createElement('div');
+                footer.className = 'yq-popover-footer';
+                const link = document.createElement('a');
+                link.className = 'yq-popover-link';
+                link.href = href;
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-box-arrow-up-right';
+                icon.setAttribute('aria-hidden', 'true');
+                link.append(icon, document.createTextNode(' ' + text));
+                footer.appendChild(link);
+                card.appendChild(footer);
+            }
+
+            function buildPopoverContent(trigger) {
+                const type = trigger.dataset.yqPopoverType;
+                if (type === 'receipt') {
+                    const imageSrc = trigger.dataset.yqReceiptImage;
+                    if (!imageSrc) {
+                        const empty = document.createElement('div');
+                        empty.className = 'yq-popover-empty';
+                        const icon = document.createElement('i');
+                        icon.className = 'bi bi-image-alt';
+                        icon.setAttribute('aria-hidden', 'true');
+                        const text = document.createElement('span');
+                        text.textContent = 'لا يوجد إيصال مرفق لهذا الطلب';
+                        empty.append(icon, text);
+                        return empty;
+                    }
+
+                    const receipt = document.createElement('div');
+                    receipt.className = 'yq-popover-receipt';
+                    const thumb = document.createElement('div');
+                    thumb.className = 'yq-popover-thumb';
+                    const image = document.createElement('img');
+                    image.src = imageSrc;
+                    image.alt = 'إيصال الدفع';
+                    thumb.appendChild(image);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'yq-popover-actions';
+                    const zoomButton = document.createElement('button');
+                    zoomButton.type = 'button';
+                    zoomButton.className = 'yq-popover-btn js-zoom-receipt';
+                    zoomButton.id = 'btn-receipt-' + trigger.dataset.yqOrderId;
+                    const zoomIcon = document.createElement('i');
+                    zoomIcon.className = 'bi bi-zoom-in';
+                    zoomIcon.setAttribute('aria-hidden', 'true');
+                    zoomButton.append(zoomIcon, document.createTextNode(' عرض الصورة مكبرة'));
+
+                    const openLink = document.createElement('a');
+                    openLink.href = imageSrc;
+                    openLink.target = '_blank';
+                    openLink.rel = 'noopener';
+                    openLink.className = 'yq-popover-btn yq-popover-btn--outline';
+                    const openIcon = document.createElement('i');
+                    openIcon.className = 'bi bi-box-arrow-up-right';
+                    openIcon.setAttribute('aria-hidden', 'true');
+                    openLink.append(openIcon, document.createTextNode(' فتح في تبويب جديد'));
+                    actions.append(zoomButton, openLink);
+                    receipt.append(thumb, actions);
+                    return receipt;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'yq-popover-card';
+                if (type === 'payment') {
+                    appendPopoverRow(card, 'وسيلة الدفع:', trigger.dataset.yqPaymentMethod);
+                    appendPopoverRow(card, 'حالة الطلب:', trigger.dataset.yqStatusLabel);
+                    appendPopoverLink(card, trigger.dataset.yqDetailsUrl, 'عرض تفاصيل الدفع الكاملة');
+                    return card;
+                }
+
+                appendPopoverRow(card, 'اسم العميل:', trigger.dataset.yqCustomerName);
+                appendPopoverRow(card, 'اسم المستلم:', trigger.dataset.yqRecipientName);
+                appendPopoverRow(card, 'رقم الجوال:', trigger.dataset.yqRecipientPhone, 'ltr');
+                appendPopoverRow(card, 'المحافظة:', trigger.dataset.yqGovernorate);
+                appendPopoverRow(card, 'المنطقة:', trigger.dataset.yqRegion);
+                appendPopoverLink(card, trigger.dataset.yqDetailsUrl, 'فتح التفاصيل الكاملة');
+                return card;
+            }
+
             popoverTriggerList.forEach(el => {
-                new bootstrap.Popover(el, { sanitize: false, container: 'body' });
+                const type = el.dataset.yqPopoverType;
+                const isReceipt = type === 'receipt';
+                const isPayment = type === 'payment';
+                new bootstrap.Popover(el, {
+                    container: 'body',
+                    html: true,
+                    title: () => createPopoverTitle(
+                        isReceipt ? 'bi bi-receipt-cutoff' : isPayment ? 'bi bi-credit-card-fill' : 'bi bi-geo-alt-fill',
+                        isReceipt ? 'إيصال الدفع' : isPayment ? 'معلومات الدفع' : 'معلومات التوصيل والمستلم'
+                    ),
+                    content: () => buildPopoverContent(el)
+                });
             });
 
             document.addEventListener('click', function (e) {
@@ -536,8 +649,7 @@
                 alert.setAttribute('role', 'alert');
                 alert.textContent = message;
                 alert.style.animation = 'fadeIn 0.3s ease';
-                area.innerHTML = '';
-                area.appendChild(alert);
+                area.replaceChildren(alert);
                 setTimeout(() => {
                     alert.style.opacity = '0';
                     alert.style.transition = 'opacity 0.4s ease';

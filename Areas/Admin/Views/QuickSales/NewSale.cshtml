@@ -643,66 +643,69 @@ html[data-theme="dark"] .form-select,
 </div>
 
 @section Scripts {
+    @{
+    var initialAvailableProductsJson = System.Text.Json.JsonSerializer.Serialize(Model.AvailableProducts.Select(product => new {
+        id = product.Id,
+        name = product.Name,
+        brand = product.Brand,
+        price = product.Price,
+        stock = product.Stock,
+        stockUnit = product.StockUnit,
+        volumeMl = product.VolumeMl,
+        isRetailEnabled = product.IsRetailEnabled,
+        retailPrices = product.RetailPrices.Select(price => new { id = price.Id, sizeMl = price.SizeMl, price = price.Price }),
+        imageUrl = product.ImageUrl
+    }));
+    var initialModelItemsJson = System.Text.Json.JsonSerializer.Serialize(sale.SaleItems.Select(si => new {
+        productId = si.ProductId,
+        retailPriceId = si.RetailPriceId,
+        retailSizeMl = si.RetailSizeMl,
+        productName = si.ProductName ?? si.Product?.Name ?? "",
+        quantity = si.Quantity,
+        unitPrice = si.UnitPrice,
+        discount = si.Discount,
+        stock = si.Product?.Stockquantity ?? 99,
+        stockUnit = si.Product?.StockUnit ?? "Piece",
+        volumeMl = si.Product?.VolumeMl,
+        isRetailEnabled = si.Product != null && si.Product.IsRetailEnabled,
+        retailPrices = (si.Product != null && si.Product.RetailPrices != null && si.Product.RetailPrices.Any())
+            ? si.Product.RetailPrices.Where(r => r.IsActive).OrderBy(r => r.SizeMl).Select(r => (object)new { id = r.Id, sizeMl = r.SizeMl, price = r.Price }).ToList()
+            : new List<object>(),
+        imageUrl = string.IsNullOrWhiteSpace(si.Product?.Imageurl) ? "/images/yaqut-logo.png" : si.Product.Imageurl
+    }));
+    var initialModelPaymentsJson = System.Text.Json.JsonSerializer.Serialize(sale.SalePayments.Select(sp => new {
+        paymentMethodId = sp.PaymentMethodId,
+        amount = sp.Amount,
+        transactionReference = sp.TransactionReference ?? ""
+    }));
+    var initialAvailableProductsBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(initialAvailableProductsJson));
+    var initialModelItemsBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(initialModelItemsJson));
+    var initialModelPaymentsBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(initialModelPaymentsJson));
+    }
+
     <script>
+        function parseBase64Json(encoded) {
+            var binary = window.atob(encoded);
+            var bytes = Uint8Array.from(binary, function(character) { return character.charCodeAt(0); });
+            return JSON.parse(new TextDecoder().decode(bytes));
+        }
+
         var posRowsCount = 0;
-        var initialModelItems = [];
-        var initialAvailableProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableProducts.Select(product => new {
-            id = product.Id,
-            name = product.Name,
-            brand = product.Brand,
-            price = product.Price,
-            stock = product.Stock,
-            stockUnit = product.StockUnit,
-            volumeMl = product.VolumeMl,
-            isRetailEnabled = product.IsRetailEnabled,
-            retailPrices = product.RetailPrices.Select(price => new { id = price.Id, sizeMl = price.SizeMl, price = price.Price }),
-            imageUrl = product.ImageUrl
-        })));
+        var initialModelItems = parseBase64Json('@initialModelItemsBase64');
+        var initialAvailableProducts = parseBase64Json('@initialAvailableProductsBase64');
         var availablePaymentMethods = [];
-        var initialModelPayments = [];
+        var initialModelPayments = parseBase64Json('@initialModelPaymentsBase64');
 
-        @if (sale.SaleItems.Any())
-        {
-            <text>
-            initialModelItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(sale.SaleItems.Select(si => new {
-                productId = si.ProductId,
-                retailPriceId = si.RetailPriceId,
-                retailSizeMl = si.RetailSizeMl,
-                productName = si.ProductName ?? si.Product?.Name ?? "",
-                quantity = si.Quantity,
-                unitPrice = si.UnitPrice,
-                discount = si.Discount,
-                stock = si.Product?.Stockquantity ?? 99,
-                stockUnit = si.Product?.StockUnit ?? "Piece",
-                volumeMl = si.Product?.VolumeMl,
-                isRetailEnabled = si.Product != null && si.Product.IsRetailEnabled,
-                retailPrices = (si.Product != null && si.Product.RetailPrices != null && si.Product.RetailPrices.Any())
-                    ? si.Product.RetailPrices.Where(r => r.IsActive).OrderBy(r => r.SizeMl).Select(r => (object)new { id = r.Id, sizeMl = r.SizeMl, price = r.Price }).ToList()
-                    : new List<object>(),
-                imageUrl = string.IsNullOrWhiteSpace(si.Product?.Imageurl) ? "/images/yaqut-logo.png" : si.Product.Imageurl
-            })));
-            </text>
-        }
-
-        @if (sale.SalePayments.Any())
-        {
-            <text>
-            initialModelPayments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(sale.SalePayments.Select(sp => new {
-                paymentMethodId = sp.PaymentMethodId,
-                amount = sp.Amount,
-                transactionReference = sp.TransactionReference ?? ""
-            })));
-            </text>
-        }
-
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+        function getSafeProductImageUrl(value) {
+            if (!value) return '/images/yaqut-logo.png';
+            try {
+                var url = new URL(String(value), window.location.href);
+                return url.protocol === 'http:' || url.protocol === 'https:'
+                    ? url.href
+                    : '/images/yaqut-logo.png';
+            } catch (error) {
+                return '/images/yaqut-logo.png';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -842,24 +845,16 @@ html[data-theme="dark"] .form-select,
             var rowDiv = document.createElement('div');
             rowDiv.className = 'pos-payment-row';
 
-            var methodOptionsHtml = '';
-            availablePaymentMethods.forEach(function(pm, index) {
-                var selected = pmData ? (pmData.paymentMethodId === pm.id ? 'selected' : '') : (index === 0 ? 'selected' : '');
-                methodOptionsHtml += `<option value="${pm.id}" ${selected}>${pm.name}</option>`;
-            });
-
             var amt = pmData ? pmData.amount : 0;
 
             rowDiv.innerHTML = `
                 <label class="pos-payment-field pos-payment-field--method">
                     <span class="pos-payment-label">طريقة الدفع</span>
-                    <select class="form-select form-select-sm bg-dark text-white border-secondary pos-payment-method-select fw-bold" aria-label="طريقة الدفع">
-                        ${methodOptionsHtml}
-                    </select>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary pos-payment-method-select fw-bold" aria-label="طريقة الدفع"></select>
                 </label>
                 <label class="pos-payment-field pos-payment-field--amount">
                     <span class="pos-payment-label">المبلغ المدفوع</span>
-                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end bg-dark text-white border-secondary pos-payment-amount-input fw-bold" placeholder="0.00" value="${amt > 0 ? amt.toFixed(2) : ''}" aria-label="المبلغ المدفوع" />
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end bg-dark text-white border-secondary pos-payment-amount-input fw-bold" placeholder="0.00" aria-label="المبلغ المدفوع" />
                 </label>
                 <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove-payment p-1" title="حذف" aria-label="حذف طريقة الدفع"><i class="bi bi-x-lg"></i></button>
             `;
@@ -868,6 +863,17 @@ html[data-theme="dark"] .form-select,
 
             var amtInput = rowDiv.querySelector('.pos-payment-amount-input');
             var selectElem = rowDiv.querySelector('.pos-payment-method-select');
+            availablePaymentMethods.forEach(function(pm, index) {
+                var option = document.createElement('option');
+                option.value = String(pm.id);
+                option.textContent = pm.name == null ? '' : String(pm.name);
+                option.selected = pmData
+                    ? String(pmData.paymentMethodId) === String(pm.id)
+                    : index === 0;
+                selectElem.appendChild(option);
+            });
+            var numericAmount = Number(amt);
+            amtInput.value = Number.isFinite(numericAmount) && numericAmount > 0 ? numericAmount.toFixed(2) : '';
 
             amtInput.addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
 
@@ -923,7 +929,7 @@ html[data-theme="dark"] .form-select,
             var pQty = itemData ? itemData.quantity : 1;
             var pDisc = itemData ? itemData.discount : 0;
             var pStock = itemData ? itemData.stock : 0;
-            var pImg = itemData ? itemData.imageUrl : '/images/yaqut-logo.png';
+            var pImg = getSafeProductImageUrl(itemData ? itemData.imageUrl : null);
             var pRetailId = itemData && itemData.retailPriceId ? itemData.retailPriceId : '';
             var pRetailSize = itemData && itemData.retailSizeMl ? itemData.retailSizeMl : '';
 
@@ -934,38 +940,38 @@ html[data-theme="dark"] .form-select,
                 </td>
                 <td class="pos-cell-search">
                     <span class="pos-mobile-label">البحث عن المنتج</span>
-                    <input type="hidden" class="pos-product-id" value="${pId}" />
-                    <input type="hidden" class="pos-retail-price-id" value="${pRetailId}" />
-                    <input type="hidden" class="pos-retail-size-ml" value="${pRetailSize}" />
-                    <input type="hidden" class="pos-stock-unit" value="${itemData && itemData.stockUnit ? itemData.stockUnit : 'Piece'}" />
-                    <input type="hidden" class="pos-volume-ml" value="${itemData && itemData.volumeMl ? itemData.volumeMl : ''}" />
-                    <input type="hidden" class="pos-product-stock" value="${pStock}" />
-                    <input type="text" class="form-control pos-product-search-input" value="${pName}" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" aria-label="البحث عن المنتج" />
+                    <input type="hidden" class="pos-product-id" />
+                    <input type="hidden" class="pos-retail-price-id" />
+                    <input type="hidden" class="pos-retail-size-ml" />
+                    <input type="hidden" class="pos-stock-unit" />
+                    <input type="hidden" class="pos-volume-ml" />
+                    <input type="hidden" class="pos-product-stock" />
+                    <input type="text" class="form-control pos-product-search-input" placeholder="اكتب للبحث عن المنتج..." autocomplete="off" aria-label="البحث عن المنتج" />
                     <div class="pos-autocomplete-dropdown"></div>
-                    <div class="pos-stock-hint mt-1 fs-7" ${pId > 0 ? '' : 'style="display:none;"'}>
-                        <span class="badge bg-light text-dark border me-1">المتوفر: <strong class="pos-stock-val">${pStock}</strong></span>
-                        <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val">${pStock - pQty <= 0 ? 0 : (pStock - pQty)}</strong></span>
+                    <div class="pos-stock-hint mt-1 fs-7">
+                        <span class="badge bg-light text-dark border me-1">المتوفر: <strong class="pos-stock-val"></strong></span>
+                        <span class="badge pos-remaining-badge bg-success text-white px-2 py-1 fw-bold">المتبقي: <strong class="pos-remaining-val"></strong></span>
                     </div>
                 </td>
                 <td class="text-center pos-cell-image">
                     <span class="pos-mobile-label">الصورة</span>
-                    <img src="${pImg}" class="pos-product-thumb rounded-2 border" style="width: 40px; height: 40px; object-fit: cover;" alt="منتج" />
+                    <img class="pos-product-thumb rounded-2 border" style="width: 40px; height: 40px; object-fit: cover;" alt="منتج" />
                 </td>
                 <td class="text-center pos-cell-quantity">
                     <span class="pos-mobile-label">الكمية</span>
                     <div class="input-group input-group-sm">
                         <button type="button" class="btn btn-outline-secondary pos-qty-minus" aria-label="إنقاص الكمية"><i class="bi bi-dash"></i></button>
-                        <input type="number" class="form-control text-center pos-qty-input fw-bold" value="${pQty}" min="1" aria-label="الكمية" />
+                        <input type="number" class="form-control text-center pos-qty-input fw-bold" min="1" aria-label="الكمية" />
                         <button type="button" class="btn btn-outline-secondary pos-qty-plus" aria-label="زيادة الكمية"><i class="bi bi-plus"></i></button>
                     </div>
                 </td>
                 <td class="text-end pos-cell-price">
                     <span class="pos-mobile-label">سعر الوحدة</span>
-                    <input type="text" class="form-control form-control-sm text-end fw-bold bg-light pos-price-input" readonly value="${pPrice.toFixed(2)}" aria-label="سعر الوحدة" />
+                    <input type="text" class="form-control form-control-sm text-end fw-bold bg-light pos-price-input" readonly aria-label="سعر الوحدة" />
                 </td>
                 <td class="text-end pos-cell-discount">
                     <span class="pos-mobile-label">الخصم</span>
-                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end pos-discount-input" value="${pDisc.toFixed(2)}" aria-label="الخصم" />
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end pos-discount-input" aria-label="الخصم" />
                 </td>
                 <td class="text-end pos-cell-total">
                     <span class="pos-mobile-label">الإجمالي</span>
@@ -975,6 +981,25 @@ html[data-theme="dark"] .form-select,
                     <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove" aria-label="إزالة الصنف"><i class="bi bi-trash"></i><span class="pos-btn-remove__text">إزالة الصنف</span></button>
                 </td>
             `;
+
+            tr.querySelector('.pos-product-id').value = pId;
+            tr.querySelector('.pos-retail-price-id').value = pRetailId;
+            tr.querySelector('.pos-retail-size-ml').value = pRetailSize;
+            tr.querySelector('.pos-stock-unit').value = itemData && itemData.stockUnit ? itemData.stockUnit : 'Piece';
+            tr.querySelector('.pos-volume-ml').value = itemData && itemData.volumeMl ? itemData.volumeMl : '';
+            tr.querySelector('.pos-product-stock').value = pStock;
+            tr.querySelector('.pos-product-search-input').value = pName == null ? '' : String(pName);
+            tr.querySelector('.pos-stock-hint').style.display = pId > 0 ? '' : 'none';
+            tr.querySelector('.pos-stock-val').textContent = pStock;
+            tr.querySelector('.pos-remaining-val').textContent = Math.max(0, pStock - pQty);
+            tr.querySelector('.pos-qty-input').value = pQty;
+            tr.querySelector('.pos-price-input').value = pPrice.toFixed(2);
+            tr.querySelector('.pos-discount-input').value = pDisc.toFixed(2);
+            var productImage = tr.querySelector('.pos-product-thumb');
+            productImage.src = pImg;
+            productImage.addEventListener('error', function() {
+                productImage.src = '/images/yaqut-logo.png';
+            }, { once: true });
 
             tbody.appendChild(tr);
             ensureRetailSelect(tr, itemData);
@@ -1000,12 +1025,22 @@ html[data-theme="dark"] .form-select,
 
             if (!isMlUnit(stockUnit) || !isRetailOn) {
                 select.style.display = 'none';
-                select.innerHTML = '<option value="" data-size="" data-price="' + (itemData?.unitPrice || 0) + '">كامل</option>';
+                var wholeOption = document.createElement('option');
+                wholeOption.value = '';
+                wholeOption.dataset.size = '';
+                wholeOption.dataset.price = Number(itemData?.unitPrice || 0);
+                wholeOption.textContent = 'كامل';
+                select.appendChild(wholeOption);
             } else {
                 select.style.display = 'block';
                 var fullPrice = itemData?.unitPrice || 0;
                 var fullLabel = '📦 بالعبوة الكاملة' + (itemData?.volumeMl ? ' (' + itemData.volumeMl + ' ml)' : '');
-                select.innerHTML = '<option value="" data-size="" data-price="' + fullPrice + '">' + fullLabel + '</option>';
+                var fullOption = document.createElement('option');
+                fullOption.value = '';
+                fullOption.dataset.size = '';
+                fullOption.dataset.price = Number(fullPrice) || 0;
+                fullOption.textContent = fullLabel;
+                select.appendChild(fullOption);
                 if (prices.length > 0) {
                     prices.forEach(function(price) {
                         var size = price.sizeMl || price.SizeMl || 0;
@@ -1208,7 +1243,13 @@ html[data-theme="dark"] .form-select,
                 selectedResultIndex = -1;
 
                 positionSearchPanel(searchInput);
-                panel.innerHTML = '<div class="p-3 text-muted text-center small"><i class="bi bi-hourglass-split me-1 spinner-border spinner-border-sm text-warning"></i> جاري البحث عن المنتجات...</div>';
+                var loadingMessage = document.createElement('div');
+                loadingMessage.className = 'p-3 text-muted text-center small';
+                var loadingIcon = document.createElement('i');
+                loadingIcon.className = 'bi bi-hourglass-split me-1 spinner-border spinner-border-sm text-warning';
+                loadingIcon.setAttribute('aria-hidden', 'true');
+                loadingMessage.append(loadingIcon, document.createTextNode(' جاري البحث عن المنتجات...'));
+                panel.replaceChildren(loadingMessage);
                 panel.style.display = 'block';
 
                 clearTimeout(searchTimeout);
@@ -1220,39 +1261,72 @@ html[data-theme="dark"] .form-select,
 
                     fetch('/Admin/QuickSales/SearchProducts?q=' + encodeURIComponent(query), {
                         signal: activeSearchController.signal
-                    })
+                        })
                         .then(res => res.json())
                         .then(data => {
-                            panel.innerHTML = '';
+                            panel.replaceChildren();
                             if (!data || data.length === 0) {
-                                panel.innerHTML = '<div class="p-3 text-muted text-center small"><i class="bi bi-exclamation-circle me-1 text-warning"></i> لا توجد منتجات مطابقة</div>';
+                                var emptyMessage = document.createElement('div');
+                                emptyMessage.className = 'p-3 text-muted text-center small';
+                                var emptyIcon = document.createElement('i');
+                                emptyIcon.className = 'bi bi-exclamation-circle me-1 text-warning';
+                                emptyIcon.setAttribute('aria-hidden', 'true');
+                                emptyMessage.append(emptyIcon, document.createTextNode(' لا توجد منتجات مطابقة'));
+                                panel.appendChild(emptyMessage);
                             } else {
                                 var header = document.createElement('div');
                                 header.className = 'pos-search-panel-header p-2 bg-slate-900 text-warning fw-bold small border-bottom border-secondary d-flex align-items-center justify-content-between px-3';
-                                header.innerHTML = `<span><i class="bi bi-search me-1"></i> نتائج البحث (${data.length})</span><span class="pos-search-panel-hint fs-8 text-muted">استخدم الأسهم 🡱🡳 و Enter</span>`;
+                                var resultLabel = document.createElement('span');
+                                var searchIcon = document.createElement('i');
+                                searchIcon.className = 'bi bi-search me-1';
+                                searchIcon.setAttribute('aria-hidden', 'true');
+                                resultLabel.append(searchIcon, document.createTextNode(' نتائج البحث (' + data.length + ')'));
+                                var keyboardHint = document.createElement('span');
+                                keyboardHint.className = 'pos-search-panel-hint fs-8 text-muted';
+                                keyboardHint.textContent = 'استخدم الأسهم 🡱🡳 و Enter';
+                                header.append(resultLabel, keyboardHint);
                                 panel.appendChild(header);
 
                                 data.forEach(function(p, idx) {
                                     var itemCard = document.createElement('div');
                                     itemCard.className = 'pos-search-card';
                                     var unitLabel = isMlUnit(p.stockUnit) ? 'ml' : 'قطعة';
-                                    var volInfo = isMlUnit(p.stockUnit) && p.volumeMl > 0 ? ` (عبوة ${p.volumeMl} ml)` : '';
-                                    var imgPath = p.imageUrl && p.imageUrl.trim() !== '' ? escapeHtml(p.imageUrl) : '/images/yaqut-logo.png';
+                                    var volInfo = isMlUnit(p.stockUnit) && Number(p.volumeMl) > 0 ? ' (عبوة ' + Number(p.volumeMl) + ' ml)' : '';
 
-                                    itemCard.innerHTML = `
-                                        <div class="pos-search-card__identity d-flex align-items-center gap-3">
-                                            <img src="${imgPath}" onerror="this.onerror=null; this.src='/images/yaqut-logo.png';" class="pos-search-card-img" alt="${escapeHtml(p.name)}" />
-                                            <div class="pos-search-card__copy">
-                                                <div class="pos-search-card__name fw-bold fs-7 text-truncate">${escapeHtml(p.name)}</div>
-                                                <div class="pos-search-card__meta small opacity-75 text-truncate">${escapeHtml(p.brand ? p.brand : 'قسم ياقوت')}${volInfo}</div>
-                                                <div class="fs-8 text-success fw-bold">المخزون المتوفر: ${p.stock} ${unitLabel}</div>
-                                            </div>
-                                        </div>
-                                        <div class="pos-search-card__price text-end flex-shrink-0">
-                                            <div class="fw-bold text-warning fs-6">${p.price.toFixed(2)} ر.س</div>
-                                            <div class="fs-8 text-muted">اضغط للاختيار</div>
-                                        </div>
-                                    `;
+                                    var identity = document.createElement('div');
+                                    identity.className = 'pos-search-card__identity d-flex align-items-center gap-3';
+                                    var image = document.createElement('img');
+                                    image.src = getSafeProductImageUrl(p.imageUrl);
+                                    image.className = 'pos-search-card-img';
+                                    image.alt = p.name == null ? '' : String(p.name);
+                                    image.addEventListener('error', function() {
+                                        image.src = '/images/yaqut-logo.png';
+                                    }, { once: true });
+
+                                    var copy = document.createElement('div');
+                                    copy.className = 'pos-search-card__copy';
+                                    var name = document.createElement('div');
+                                    name.className = 'pos-search-card__name fw-bold fs-7 text-truncate';
+                                    name.textContent = p.name == null ? '' : String(p.name);
+                                    var meta = document.createElement('div');
+                                    meta.className = 'pos-search-card__meta small opacity-75 text-truncate';
+                                    meta.textContent = (p.brand ? String(p.brand) : 'قسم ياقوت') + volInfo;
+                                    var stock = document.createElement('div');
+                                    stock.className = 'fs-8 text-success fw-bold';
+                                    stock.textContent = 'المخزون المتوفر: ' + (Number(p.stock) || 0) + ' ' + unitLabel;
+                                    copy.append(name, meta, stock);
+                                    identity.append(image, copy);
+
+                                    var price = document.createElement('div');
+                                    price.className = 'pos-search-card__price text-end flex-shrink-0';
+                                    var amount = document.createElement('div');
+                                    amount.className = 'fw-bold text-warning fs-6';
+                                    amount.textContent = (Number(p.price) || 0).toFixed(2) + ' ر.س';
+                                    var actionHint = document.createElement('div');
+                                    actionHint.className = 'fs-8 text-muted';
+                                    actionHint.textContent = 'اضغط للاختيار';
+                                    price.append(amount, actionHint);
+                                    itemCard.append(identity, price);
                                     itemCard.addEventListener('click', function() {
                                         selectProductForRow(tr, p);
                                         hideGlobalSearchPanel();
@@ -1265,7 +1339,13 @@ html[data-theme="dark"] .form-select,
                         })
                         .catch(err => {
                             if (err.name === 'AbortError') return;
-                            panel.innerHTML = '<div class="p-3 text-danger text-center small"><i class="bi bi-x-circle me-1"></i> تعذر تحميل المنتجات</div>';
+                            var errorMessage = document.createElement('div');
+                            errorMessage.className = 'p-3 text-danger text-center small';
+                            var errorIcon = document.createElement('i');
+                            errorIcon.className = 'bi bi-x-circle me-1';
+                            errorIcon.setAttribute('aria-hidden', 'true');
+                            errorMessage.append(errorIcon, document.createTextNode(' تعذر تحميل المنتجات'));
+                            panel.replaceChildren(errorMessage);
                             panel.style.display = 'block';
                         });
                 }, 150);
@@ -1373,7 +1453,7 @@ html[data-theme="dark"] .form-select,
             tr.querySelector('.pos-retail-size-ml').value = '';
             tr.querySelector('.pos-stock-unit').value = product.stockUnit || 'Piece';
             tr.querySelector('.pos-volume-ml').value = product.volumeMl || '';
-            tr.querySelector('.pos-product-thumb').src = product.imageUrl;
+            tr.querySelector('.pos-product-thumb').src = getSafeProductImageUrl(product.imageUrl);
 
             var retailSelect = tr.querySelector('.pos-retail-select');
             if (retailSelect) {
@@ -1383,7 +1463,13 @@ html[data-theme="dark"] .form-select,
                 if (isMl && hasRetail) {
                     retailSelect.style.display = 'block';
                     var fullLabel = '📦 بالعبوة الكاملة' + (product.volumeMl ? ' (' + product.volumeMl + ' ml)' : '') + ' — ' + Number(product.price).toFixed(2) + ' ر.س';
-                    retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">' + fullLabel + '</option>';
+                    retailSelect.replaceChildren();
+                    var fullOption = document.createElement('option');
+                    fullOption.value = '';
+                    fullOption.dataset.size = '';
+                    fullOption.dataset.price = Number(product.price) || 0;
+                    fullOption.textContent = fullLabel;
+                    retailSelect.appendChild(fullOption);
                     if (prices.length) {
                         prices.forEach(function(price) {
                             var size = price.sizeMl || price.SizeMl || 0;
@@ -1399,7 +1485,13 @@ html[data-theme="dark"] .form-select,
                     }
                 } else {
                     retailSelect.style.display = 'none';
-                    retailSelect.innerHTML = '<option value="" data-size="" data-price="' + product.price + '">كامل</option>';
+                    retailSelect.replaceChildren();
+                    var wholeOption = document.createElement('option');
+                    wholeOption.value = '';
+                    wholeOption.dataset.size = '';
+                    wholeOption.dataset.price = Number(product.price) || 0;
+                    wholeOption.textContent = 'كامل';
+                    retailSelect.appendChild(wholeOption);
                 }
             }
 
@@ -1840,10 +1932,18 @@ html[data-theme="dark"] .form-select,
             var alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-lg rounded-3 fw-bold d-flex align-items-center justify-content-between mb-2 p-3`;
             alertDiv.setAttribute('role', 'alert');
-            alertDiv.innerHTML = `
-                <span class="pos-alert-message"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ${message}</span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
+            var alertMessage = document.createElement('span');
+            alertMessage.className = 'pos-alert-message';
+            var alertIcon = document.createElement('i');
+            alertIcon.className = 'bi bi-exclamation-triangle-fill me-2 fs-5';
+            alertIcon.setAttribute('aria-hidden', 'true');
+            alertMessage.append(alertIcon, document.createTextNode(' ' + String(message)));
+            var closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'btn-close';
+            closeButton.setAttribute('data-bs-dismiss', 'alert');
+            closeButton.setAttribute('aria-label', 'Close');
+            alertDiv.append(alertMessage, closeButton);
             alertContainer.appendChild(alertDiv);
 
             setTimeout(function() {
