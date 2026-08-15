@@ -595,6 +595,13 @@ html[data-theme="dark"] .form-select,
                     <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft">
                         <i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)
                     </button>
+                    <p id="draftSaveStatus"
+                       class="small text-white-50 mb-0"
+                       role="status"
+                       aria-live="polite"
+                       aria-atomic="true">
+                        @(sale.Id > 0 ? "المسودة الحالية محفوظة." : "لم تُحفظ مسودة بعد.")
+                    </p>
                 </div>
             </div>
         </div>
@@ -771,7 +778,46 @@ html[data-theme="dark"] .form-select,
             });
         });
 
+        function setDraftSaveStatus(state, message) {
+            var status = document.getElementById('draftSaveStatus');
+            if (!status) return;
+
+            status.classList.remove('text-white-50', 'text-warning', 'text-success', 'text-danger');
+            status.classList.add(state === 'saved'
+                ? 'text-success'
+                : state === 'error'
+                    ? 'text-danger'
+                    : state === 'dirty'
+                        ? 'text-warning'
+                        : 'text-white-50');
+            status.textContent = message;
+        }
+
+        function handleDraftSaveSettled(result) {
+            calculateTotals();
+
+            if (!result || !result.success) {
+                setDraftSaveStatus('error', 'فشل حفظ المسودة — اضغط «حفظ كمسودة» لإعادة المحاولة.');
+                return;
+            }
+
+            if (draftSaveCoordinator.getState().dirty) {
+                setDraftSaveStatus('saving', 'جارٍ حفظ أحدث التغييرات...');
+                return;
+            }
+
+            if (result.skipped) {
+                setDraftSaveStatus('idle', 'لا توجد بيانات مسودة تحتاج إلى الحفظ.');
+                return;
+            }
+
+            var savedAt = new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+            setDraftSaveStatus('saved', 'تم حفظ المسودة الساعة ' + savedAt + '.');
+        }
+
         async function persistDraftSnapshot(data, context) {
+            setDraftSaveStatus('saving', 'جارٍ حفظ المسودة...');
+
             if (!data || data.salesDayId <= 0) {
                 return { success: false, skipped: true, message: 'يجب فتح يوم بيع أولاً قبل الحفظ.' };
             }
@@ -822,11 +868,12 @@ html[data-theme="dark"] .form-select,
             delay: 1000,
             getSnapshot: collectSaleData,
             save: persistDraftSnapshot,
-            onSettled: calculateTotals
+            onSettled: handleDraftSaveSettled
         });
 
         function scheduleAutoSave() {
             draftSaveCoordinator.markDirty();
+            setDraftSaveStatus('dirty', 'تغييرات غير محفوظة — سيتم الحفظ تلقائياً.');
             if (isCompletingSale) {
                 draftSaveCoordinator.clearScheduled();
             }
