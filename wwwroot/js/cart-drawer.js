@@ -24,6 +24,7 @@
     var checkoutLink = drawer.querySelector('[data-yq-cart-checkout]');
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     var restoreFocusEl = null;
+    var drawerTransitionVersion = 0;
     var cachedCartDoc = null;
     var peekAutoCloseTimer = null;
     var peekOpenedAt = 0;
@@ -664,13 +665,20 @@
     }
 
     function openDrawer(trigger, shouldLoad) {
+        var transitionVersion = ++drawerTransitionVersion;
         restoreFocusEl = trigger || document.activeElement;
         drawer.hidden = false;
+        drawer.inert = false;
         drawer.setAttribute('aria-hidden', 'false');
         clearPeekAutoCloseTimer();
 
         window.requestAnimationFrame(function () {
+            if (transitionVersion !== drawerTransitionVersion) return;
             drawer.classList.add('is-open');
+            var initialFocus = drawer.querySelector('[data-yq-cart-close]:not([tabindex="-1"])') || drawer.querySelector('.yq-cart-drawer__panel');
+            if (initialFocus && typeof initialFocus.focus === 'function') {
+                initialFocus.focus({ preventScroll: true });
+            }
         });
 
         if (shouldLoad) {
@@ -680,6 +688,7 @@
     }
 
     function closeDrawer() {
+        var transitionVersion = ++drawerTransitionVersion;
         clearPeekAutoCloseTimer();
         peekOpenedAt = 0;
         if (peekTimer) {
@@ -687,13 +696,18 @@
             peekTimer.style.removeProperty('--yq-peek-duration');
         }
         drawer.classList.remove('is-open');
+        if (restoreFocusEl && document.contains(restoreFocusEl) && drawer.contains(document.activeElement)) {
+            restoreFocusEl.focus({ preventScroll: true });
+        }
+        if (drawer.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
+        drawer.inert = true;
         drawer.setAttribute('aria-hidden', 'true');
 
         window.setTimeout(function () {
+            if (transitionVersion !== drawerTransitionVersion) return;
             drawer.hidden = true;
-            if (restoreFocusEl && document.contains(restoreFocusEl) && drawer.contains(document.activeElement)) {
-                restoreFocusEl.focus({ preventScroll: true });
-            }
         }, reduceMotion.matches ? 0 : 240);
     }
 
@@ -1055,6 +1069,31 @@
         if (event.key === 'Escape') {
             event.preventDefault();
             closeDrawer();
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            var candidates = Array.prototype.slice.call(drawer.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ));
+            var focusable = candidates.filter(function (element) {
+                var style = window.getComputedStyle(element);
+                return !element.closest('[hidden]') && style.display !== 'none' && style.visibility !== 'hidden';
+            });
+            if (!focusable.length) {
+                event.preventDefault();
+                return;
+            }
+
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         }
     }
 

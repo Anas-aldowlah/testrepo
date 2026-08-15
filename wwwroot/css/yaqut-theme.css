@@ -1284,6 +1284,12 @@ a {
     color: var(--yq-gold);
 }
 
+.yq-toggle-pwd-btn:focus-visible {
+    outline: 2px solid var(--yq-gold);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+}
+
 .yaqut-input-wrap:has(.yq-toggle-pwd-btn) .yaqut-form-input {
     padding-left: 3rem;
 }
@@ -1451,11 +1457,13 @@ a {
     color: #c0392b;
 }
 
-.yaqut-form-input.is-invalid {
+.yaqut-form-input.is-invalid,
+.yaqut-form-input.input-validation-error {
     border-color: #ff6b7b !important;
 }
 
-.theme-light .yaqut-form-input.is-invalid {
+.theme-light .yaqut-form-input.is-invalid,
+.theme-light .yaqut-form-input.input-validation-error {
     border-color: #c0392b !important;
 }
 

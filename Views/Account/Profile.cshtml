@@ -70,19 +70,19 @@
                     <label asp-for="Name" class="yaqut-form-label">الاسم الكامل</label>
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-person"></i>
-                        <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" />
+                        <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" aria-describedby="ProfileNameValidation" />
                     </div>
-                    <span asp-validation-for="Name" class="text-danger small"></span>
+                    <span asp-validation-for="Name" id="ProfileNameValidation" class="text-danger small"></span>
                 </div>
 
                 <div class="yaqut-form-group">
                     <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-envelope"></i>
-                        <input asp-for="Email" type="email" class="yaqut-form-input" readonly />
+                        <input asp-for="Email" type="email" class="yaqut-form-input" readonly aria-describedby="ProfileEmailValidation ProfileEmailHelp" />
                     </div>
-                    <span asp-validation-for="Email" class="text-danger small"></span>
-                    <small class="text-muted">تم توثيق البريد عبر Google ولا يمكن تغييره من الملف الشخصي.</small>
+                    <span asp-validation-for="Email" id="ProfileEmailValidation" class="text-danger small"></span>
+                    <small id="ProfileEmailHelp" class="text-muted">تم توثيق البريد عبر Google ولا يمكن تغييره من الملف الشخصي.</small>
                 </div>
 
                 <div class="yaqut-form-group">

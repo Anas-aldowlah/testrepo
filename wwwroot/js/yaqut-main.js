@@ -485,6 +485,25 @@
         });
     }
 
+    function initValidationDescriptionSync() {
+        document.querySelectorAll('[data-valmsg-for][id]').forEach(function (message) {
+            var form = message.closest('form');
+            var field = form && form.elements.namedItem(message.getAttribute('data-valmsg-for'));
+            if (!field || !field.getAttribute) return;
+
+            function syncDescriptions() {
+                var ids = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(function (id) {
+                    return id && document.getElementById(id);
+                });
+                if (ids.length) field.setAttribute('aria-describedby', ids.join(' '));
+                else field.removeAttribute('aria-describedby');
+            }
+
+            new MutationObserver(syncDescriptions).observe(message, { childList: true, subtree: true });
+            syncDescriptions();
+        });
+    }
+
     /* ═══ SCROLL REVEAL (تأثير الظهور الفخم عند التمرير) ═══ */
     function initScrollReveal() {
         var elements = document.querySelectorAll('.yq-reveal');
@@ -614,6 +633,7 @@
         initHeroSlider();
         initAuthPanels();
         initFormValidation();
+        initValidationDescriptionSync();
         initSupportWidget();
         initScrollReveal();
         initImageFallbacks();
