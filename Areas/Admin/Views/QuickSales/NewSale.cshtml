@@ -589,7 +589,7 @@ html[data-theme="dark"] .form-select,
 
                 <!-- PRIMARY ACTION BUTTONS -->
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm" id="btnCompleteSale" onclick="completeSale()">
+                    <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm" id="btnCompleteSale">
                         <i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون
                     </button>
                     <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft">
@@ -643,6 +643,7 @@ html[data-theme="dark"] .form-select,
 </div>
 
 @section Scripts {
+    <script src="~/js/quick-sales/draft-save-coordinator.js" asp-append-version="true"></script>
     @{
     var initialAvailableProductsJson = System.Text.Json.JsonSerializer.Serialize(Model.AvailableProducts.Select(product => new {
         id = product.Id,
@@ -770,61 +771,65 @@ html[data-theme="dark"] .form-select,
             });
         });
 
-        var autoSaveTimer = null;
-        var isAutoSaving = false;
-        function scheduleAutoSave() {
-            clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(function() {
-                autoSaveDraft();
-            }, 1000);
-        }
-
-        function autoSaveDraft() {
-            if (isAutoSaving || isSavingDraft) return;
-            var data = collectSaleData();
-            if (!data || data.salesDayId <= 0) return;
+        async function persistDraftSnapshot(data, context) {
+            if (!data || data.salesDayId <= 0) {
+                return { success: false, skipped: true, message: 'يجب فتح يوم بيع أولاً قبل الحفظ.' };
+            }
 
             var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
             if (data.items.length === 0) {
-                if (data.saleId > 0) {
-                    isAutoSaving = true;
-                    fetch(`/Admin/QuickSales/DeleteDraft?id=${data.saleId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'RequestVerificationToken': token
-                        }
-                    })
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.success) {
-                            document.getElementById('posSaleId').value = '0';
-                        }
-                    })
-                    .catch(() => {})
-                    .finally(() => { isAutoSaving = false; });
+                if (context.manual) {
+                    return { success: false, skipped: true, message: 'يرجى اختيار منتج واحد على الأقل وإدخال كميته لحفظ المسودة.' };
                 }
-                return;
+
+                if (!data.saleId) {
+                    return { success: true, skipped: true };
+                }
+
+                var deleteResponse = await fetch(`/Admin/QuickSales/DeleteDraft?id=${data.saleId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    }
+                });
+                var deleteResult = await deleteResponse.json();
+                if (deleteResponse.ok && deleteResult.success) {
+                    document.getElementById('posSaleId').value = '0';
+                }
+                deleteResult.success = deleteResponse.ok && deleteResult.success;
+                return deleteResult;
             }
 
-            isAutoSaving = true;
-            fetch('/Admin/QuickSales/SaveDraft', {
+            var response = await fetch('/Admin/QuickSales/SaveDraft', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'RequestVerificationToken': token
                 },
                 body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.success && res.saleId > 0) {
-                    document.getElementById('posSaleId').value = res.saleId;
-                }
-            })
-            .catch(() => {})
-            .finally(() => { isAutoSaving = false; });
+            });
+            var result = await response.json();
+            if (response.ok && result.success && result.saleId > 0) {
+                document.getElementById('posSaleId').value = result.saleId;
+            }
+            result.success = response.ok && result.success;
+            return result;
+        }
+
+        var draftSaveCoordinator = window.YaqutDraftSaveCoordinator.create({
+            delay: 1000,
+            getSnapshot: collectSaleData,
+            save: persistDraftSnapshot,
+            onSettled: calculateTotals
+        });
+
+        function scheduleAutoSave() {
+            draftSaveCoordinator.markDirty();
+            if (isCompletingSale) {
+                draftSaveCoordinator.clearScheduled();
+            }
         }
 
         function loadPaymentMethods(callback) {
@@ -1634,7 +1639,7 @@ html[data-theme="dark"] .form-select,
             var btnComplete = document.getElementById('btnCompleteSale');
             var btnSave = document.getElementById('btnSaveDraft');
             if (btnComplete) {
-                btnComplete.disabled = hasStockError;
+                btnComplete.disabled = hasStockError || isCompletingSale;
                 if (hasStockError) {
                     btnComplete.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
                 } else {
@@ -1642,7 +1647,8 @@ html[data-theme="dark"] .form-select,
                 }
             }
             if (btnSave) {
-                btnSave.disabled = hasStockError;
+                var saveState = draftSaveCoordinator.getState();
+                btnSave.disabled = hasStockError || isCompletingSale || saveState.requestInFlight || saveState.requestPending;
                 if (hasStockError) {
                     btnSave.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
                 } else {
@@ -1751,10 +1757,8 @@ html[data-theme="dark"] .form-select,
             };
         }
 
-        var isSavingDraft = false;
-
         async function saveDraftSale() {
-            if (isSavingDraft) return;
+            if (isCompletingSale) return;
 
             var data = collectSaleData();
 
@@ -1773,12 +1777,80 @@ html[data-theme="dark"] .form-select,
                 btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
             }
 
-            isSavingDraft = true;
+            try {
+                var res = await draftSaveCoordinator.request(true);
+
+                if (res.success) {
+                    showAlert(`تم حفظ المسودة بنجاح! رقم الفاتورة: (${res.invoiceNumber})`, 'success');
+                } else {
+                    showAlert(res.message || res.error?.message || 'حدث خطأ أثناء حفظ المسودة.', 'danger');
+                }
+            } catch (err) {
+                console.error('SaveDraft error:', err);
+                showAlert(err.message || 'تعذر الاتصال بالسيرفر لحفظ المسودة.', 'danger');
+            } finally {
+                if (btnSave) {
+                    btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
+                }
+                calculateTotals();
+            }
+        }
+
+        var isCompletingSale = false;
+
+        async function completeSale() {
+            var btnComplete = document.getElementById('btnCompleteSale');
+            var btnSave = document.getElementById('btnSaveDraft');
+            if (isCompletingSale) return;
+
+            isCompletingSale = true;
+            var saleCompleted = false;
+            btnComplete.disabled = true;
+            btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التحقق واعتماد البيع...';
+            if (btnSave) btnSave.disabled = true;
 
             try {
-                var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                draftSaveCoordinator.clearScheduled();
+                await draftSaveCoordinator.waitForIdle();
 
-                var response = await fetch('/Admin/QuickSales/SaveDraft', {
+                var data = collectSaleData();
+
+                if (data.salesDayId <= 0) {
+                    showAlert('يجب فتح يوم بيع أولاً قبل الاعتماد.', 'danger');
+                    return;
+                }
+                if (data.items.length === 0) {
+                    showAlert('يرجى إضافة منتج واحد على الأقل للبيع.', 'warning');
+                    return;
+                }
+                if (data.payments.length === 0) {
+                    showAlert('يرجى اختيار وإدخال مبلغ طريقة الدفع.', 'warning');
+                    return;
+                }
+
+                var itemsSubtotal = data.items.reduce(function(sum, item) {
+                    var lineTot = (item.unitPrice * item.quantity) - (item.discount || 0);
+                    return sum + Math.max(0, lineTot);
+                }, 0);
+                var overallDiscount = parseFloat(document.getElementById('posOverallDiscount')?.value) || 0;
+                var calcFinalTotal = Math.max(0, itemsSubtotal - overallDiscount);
+                var totalPaid = data.payments.reduce(function(sum, p) { return sum + (p.amount || 0); }, 0);
+
+                if (Math.abs(totalPaid - calcFinalTotal) > 0.01) {
+                    showAlert(`مجموع الدفعات المدخلة (${totalPaid.toFixed(2)} ر.س) لا يطابق المبلغ النهائي المطلوب (${calcFinalTotal.toFixed(2)} ر.س).`, 'warning');
+                    return;
+                }
+
+                if (!data.saleId) {
+                    var draftResult = await draftSaveCoordinator.request(false);
+                    if (!draftResult.success || !draftResult.saleId) {
+                        throw new Error(draftResult.message || draftResult.error?.message || 'تعذر حفظ المسودة قبل اعتماد البيع.');
+                    }
+                    data = collectSaleData();
+                }
+
+                var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                var response = await fetch('/Admin/QuickSales/CompleteSale', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1786,118 +1858,10 @@ html[data-theme="dark"] .form-select,
                     },
                     body: JSON.stringify(data)
                 });
-
-                if (!response.ok) {
-                    throw new Error('تعذر الاتصال بالسيرفر لحفظ المسودة.');
-                }
-
                 var res = await response.json();
 
                 if (res.success) {
-                    document.getElementById('posSaleId').value = res.saleId;
-                    showAlert(`تم حفظ المسودة بنجاح! رقم الفاتورة: (${res.invoiceNumber})`, 'success');
-                } else {
-                    showAlert(res.message || 'حدث خطأ أثناء حفظ المسودة.', 'danger');
-                }
-            } catch (err) {
-                console.error('SaveDraft error:', err);
-                showAlert(err.message || 'تعذر الاتصال بالسيرفر لحفظ المسودة.', 'danger');
-            } finally {
-                isSavingDraft = false;
-                if (btnSave) {
-                    btnSave.disabled = false;
-                    btnSave.innerHTML = '<i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)';
-                }
-            }
-        }
-
-        async function completeSale() {
-            clearTimeout(autoSaveTimer);
-
-            // Completion must always reference a persisted Draft so the server can
-            // lock one stable row and reject duplicate submissions deterministically.
-            for (var waitAttempt = 0; (isAutoSaving || isSavingDraft) && waitAttempt < 100; waitAttempt++) {
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-
-            if (isAutoSaving || isSavingDraft) {
-                showAlert('لا يزال حفظ المسودة قيد التنفيذ. يرجى المحاولة بعد لحظات.', 'warning');
-                return;
-            }
-
-            var data = collectSaleData();
-
-            if (data.salesDayId <= 0) {
-                showAlert('يجب فتح يوم بيع أولاً قبل الاعتماد.', 'danger');
-                return;
-            }
-            if (data.items.length === 0) {
-                showAlert('يرجى إضافة منتج واحد على الأقل للبيع.', 'warning');
-                return;
-            }
-            if (data.payments.length === 0) {
-                showAlert('يرجى اختيار وإدخال مبلغ طريقة الدفع.', 'warning');
-                return;
-            }
-
-            // Client-side Payment Total vs Final Amount Match Check
-            var itemsSubtotal = data.items.reduce(function(sum, item) {
-                var lineTot = (item.unitPrice * item.quantity) - (item.discount || 0);
-                return sum + Math.max(0, lineTot);
-            }, 0);
-            var overallDiscount = parseFloat(document.getElementById('posOverallDiscount')?.value) || 0;
-            var calcFinalTotal = Math.max(0, itemsSubtotal - overallDiscount);
-            var totalPaid = data.payments.reduce(function(sum, p) { return sum + (p.amount || 0); }, 0);
-
-            if (Math.abs(totalPaid - calcFinalTotal) > 0.01) {
-                showAlert(`مجموع الدفعات المدخلة (${totalPaid.toFixed(2)} ر.س) لا يطابق المبلغ النهائي المطلوب (${calcFinalTotal.toFixed(2)} ر.س).`, 'warning');
-                return;
-            }
-
-            if (!data.saleId) {
-                try {
-                    var draftToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-                    var draftResponse = await fetch('/Admin/QuickSales/SaveDraft', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': draftToken
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    var draftResult = await draftResponse.json();
-                    if (!draftResponse.ok || !draftResult.success || !draftResult.saleId) {
-                        throw new Error(draftResult.message || 'تعذر حفظ المسودة قبل اعتماد البيع.');
-                    }
-
-                    data.saleId = draftResult.saleId;
-                    document.getElementById('posSaleId').value = draftResult.saleId;
-                } catch (error) {
-                    showAlert(error.message || 'تعذر حفظ المسودة قبل اعتماد البيع.', 'danger');
-                    return;
-                }
-            }
-
-            var btnComplete = document.getElementById('btnCompleteSale');
-            btnComplete.disabled = true;
-            btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التحقق واعتماد البيع...';
-
-            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
-            fetch('/Admin/QuickSales/CompleteSale', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
-                btnComplete.disabled = false;
-                btnComplete.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون';
-
-                if (res.success) {
+                    saleCompleted = true;
                     document.getElementById('successInvoiceNum').textContent = res.invoiceNumber || '-';
                     document.getElementById('successFinalAmount').textContent = res.finalAmount.toFixed(2) + ' ر.س';
                     document.getElementById('successCompletedAt').textContent = res.completedAt || '-';
@@ -1909,12 +1873,17 @@ html[data-theme="dark"] .form-select,
                 } else {
                     showAlert(res.message || 'تعذر اعتماد عملية البيع.', 'danger');
                 }
-            })
-            .catch(() => {
-                btnComplete.disabled = false;
+            } catch (error) {
+                console.error('CompleteSale error:', error);
+                showAlert(error.message || 'تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
+            } finally {
+                isCompletingSale = false;
+                if (!saleCompleted && draftSaveCoordinator.getState().dirty) {
+                    draftSaveCoordinator.request(false);
+                }
                 btnComplete.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون';
-                showAlert('تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
-            });
+                calculateTotals();
+            }
         }
 
         function showAlert(message, type) {
