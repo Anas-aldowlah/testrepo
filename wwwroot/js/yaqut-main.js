@@ -565,10 +565,22 @@
             var targetId = input.getAttribute('data-yaqut-image-input');
             var preview = document.getElementById(targetId);
             if (!preview) return;
+            var previewObjectUrl = null;
+
+            function releasePreviewObjectUrl() {
+                if (!previewObjectUrl || !window.URL || typeof window.URL.revokeObjectURL !== 'function') return;
+                window.URL.revokeObjectURL(previewObjectUrl);
+                previewObjectUrl = null;
+            }
+
             input.addEventListener('change', function () {
+                releasePreviewObjectUrl();
                 var file = input.files && input.files[0];
-                if (file) preview.src = URL.createObjectURL(file);
+                if (!file || !window.URL || typeof window.URL.createObjectURL !== 'function') return;
+                previewObjectUrl = window.URL.createObjectURL(file);
+                preview.src = previewObjectUrl;
             });
+            window.addEventListener('pagehide', releasePreviewObjectUrl, { once: true });
         });
     }
 
