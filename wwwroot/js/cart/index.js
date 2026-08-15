@@ -68,6 +68,7 @@
 
             form.addEventListener('submit', function (event) {
                 if (item.classList.contains('is-removing')) return;
+                if (typeof window.fetch !== 'function') return;
                 event.preventDefault();
                 item.classList.add('is-removing');
                 

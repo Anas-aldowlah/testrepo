@@ -60,7 +60,11 @@
     function getRecentList() {
         try {
             var raw = localStorage.getItem(RECENT_KEY);
-            return raw ? JSON.parse(raw) : [];
+            var parsed = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter(function (product) {
+                return product && typeof product === 'object' && typeof product.id === 'string';
+            });
         } catch (e) {
             return [];
         }

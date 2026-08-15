@@ -6,6 +6,12 @@
 
     var STORAGE_KEY = 'yaqut-theme';
 
+    function getMediaQuery(query) {
+        return typeof window.matchMedia === 'function'
+            ? window.matchMedia(query)
+            : { matches: false };
+    }
+
     /* ═══ THEME ENGINE ═══ */
     function readStoredTheme() {
         try {
@@ -26,7 +32,7 @@
     function getPreferredTheme() {
         var stored = readStoredTheme();
         if (stored === 'dark' || stored === 'light') return stored;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        return getMediaQuery('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
     function applyTheme(theme, shouldTransition) {
@@ -110,11 +116,17 @@
             });
         });
 
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        var colorSchemeQuery = getMediaQuery('(prefers-color-scheme: dark)');
+        var onColorSchemeChange = function (e) {
             if (!readStoredTheme()) {
                 applyTheme(e.matches ? 'dark' : 'light');
             }
-        });
+        };
+        if (colorSchemeQuery.addEventListener) {
+            colorSchemeQuery.addEventListener('change', onColorSchemeChange);
+        } else if (colorSchemeQuery.addListener) {
+            colorSchemeQuery.addListener(onColorSchemeChange);
+        }
     }
 
     /* ═══ NAVIGATION ═══ */
@@ -381,7 +393,7 @@
         var feedback = widget.querySelector('[data-yq-contact-feedback]');
         var supportNumber = (widget.getAttribute('data-yq-contact-number') || '').replace(/[^\d]/g, '');
         var storeName = widget.getAttribute('data-yq-contact-store-name') || 'المتجر';
-        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        var reduceMotion = getMediaQuery('(prefers-reduced-motion: reduce)');
         var restoreFocusEl = null;
 
         widget.dataset.yqContactBound = '1';
@@ -499,7 +511,9 @@
                 else field.removeAttribute('aria-describedby');
             }
 
-            new MutationObserver(syncDescriptions).observe(message, { childList: true, subtree: true });
+            if (typeof window.MutationObserver === 'function') {
+                new window.MutationObserver(syncDescriptions).observe(message, { childList: true, subtree: true });
+            }
             syncDescriptions();
         });
     }

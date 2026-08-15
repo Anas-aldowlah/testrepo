@@ -406,10 +406,16 @@ else
             var key = 'yq_wishlist';
 
             function getWishlist() {
-                try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+                try {
+                    var parsed = JSON.parse(localStorage.getItem(key) || '[]');
+                    return Array.isArray(parsed) ? parsed.filter(function (id) { return typeof id === 'string'; }) : [];
+                } catch { return []; }
             }
             function saveWishlist(list) {
-                localStorage.setItem(key, JSON.stringify(list));
+                try {
+                    localStorage.setItem(key, JSON.stringify(list));
+                    return true;
+                } catch { return false; }
             }
             function updateUI(isWishlisted) {
                 icon.className = isWishlisted ? 'bi bi-heart-fill' : 'bi bi-heart';
@@ -430,7 +436,7 @@ else
                 } else {
                     list.splice(idx, 1);
                 }
-                saveWishlist(list);
+                if (!saveWishlist(list)) return;
                 updateUI(list.includes(productId));
 
                 // Micro animation

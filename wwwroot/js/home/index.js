@@ -3,7 +3,7 @@
 
     function initAuthStorageCleanup() {
         var root = document.querySelector('[data-yq-auth-clear="true"]');
-        if (!root || !window.localStorage) return;
+        if (!root) return;
 
         try {
             ['regName', 'regPhone', 'regConfirmPhone', 'regPassword', 'regConfirm', 'AuthPanel']
@@ -18,7 +18,8 @@
         var dots = Array.prototype.slice.call(carousel.querySelectorAll('[data-yq-hero-dot]'));
         var previousButton = carousel.querySelector('[data-yq-hero-prev]');
         var nextButton = carousel.querySelector('[data-yq-hero-next]');
-        var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var prefersReducedMotion = typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var currentIndex = 0;
         var autoplayTimer = null;
         var touchStartX = 0;
