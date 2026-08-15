@@ -1,6 +1,6 @@
 /**
  * ياقوت — Products / Index page interactions
- * (Sort + client-side pagination. Filtering/search stays in yaqut-main.js)
+ * Single owner for filtering, sorting, result count, empty state, and pagination.
  */
 (function (window, document) {
     'use strict';
@@ -16,8 +16,15 @@
     var filtersClose = document.getElementById('yqFiltersClose');
     var searchInput = document.getElementById('yaqutSearchInput');
 
-    var paginationActive = true;
     var visibleCount = PAGE_SIZE;
+    var filterState = {
+        search: '',
+        brands: [],
+        families: [],
+        sizes: [],
+        concentrations: [],
+        sort: sortSelect ? sortSelect.value : 'newest'
+    };
 
     function getItems() {
         return Array.prototype.slice.call(grid.querySelectorAll('.yq-col-item'));
@@ -25,12 +32,10 @@
 
     function updateLoadMoreVisibility(remaining) {
         if (!loadMoreBtn) return;
-        var show = paginationActive && remaining > 0;
+        var show = remaining > 0;
         loadMoreBtn.style.display = show ? '' : 'none';
-        if (show) {
-            var counter = loadMoreBtn.querySelector('[data-yq-remaining]');
-            if (counter) counter.textContent = remaining;
-        }
+        var counter = loadMoreBtn.querySelector('[data-yq-remaining]');
+        if (counter) counter.textContent = Math.max(0, remaining);
     }
     /* ── Recent Searches (client-side, storefront-wide within this page) ── */
     (function () {
@@ -98,29 +103,47 @@
         if (currentTerm) trackSearch(currentTerm);
         renderRecent();
     })();
-    function applyPagination() {
-        var items = getItems();
-
-        if (!paginationActive) {
-            items.forEach(function (item) { item.classList.remove('yq-page-hidden'); });
-            updateLoadMoreVisibility(0);
-            return;
-        }
-
-        items.forEach(function (item, idx) {
-            item.classList.toggle('yq-page-hidden', idx >= visibleCount);
-        });
-        updateLoadMoreVisibility(items.length - visibleCount);
+    function getChecked(name) {
+        if (!filtersRoot) return [];
+        return Array.prototype.slice.call(filtersRoot.querySelectorAll('input[name="' + name + '"]:checked'))
+            .map(function (checkbox) { return checkbox.value.toLowerCase(); });
     }
 
-    function disablePagination() {
-        if (!paginationActive) return;
-        paginationActive = false;
-        applyPagination();
+    function readFilterState() {
+        filterState.search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        filterState.brands = getChecked('brand');
+        filterState.families = getChecked('family');
+        filterState.sizes = getChecked('size');
+        filterState.concentrations = getChecked('concentration');
+        filterState.sort = sortSelect ? sortSelect.value : 'newest';
     }
 
-    function applySort(value) {
-        var items = getItems();
+    function getCard(item) {
+        return item.querySelector('[data-yaqut-product]');
+    }
+
+    function includesValue(selected, value) {
+        return selected.length === 0 || selected.indexOf(value) !== -1;
+    }
+
+    function matchesFilters(item) {
+        var card = getCard(item);
+        if (!card) return false;
+
+        var name = (card.getAttribute('data-name') || '').toLowerCase();
+        var brand = (item.getAttribute('data-brand') || '').toLowerCase();
+        var family = (card.getAttribute('data-family') || '').toLowerCase();
+        var size = (card.getAttribute('data-size') || 'all').toLowerCase();
+        var concentration = (card.getAttribute('data-concentration') || 'all').toLowerCase();
+
+        return (!filterState.search || name.indexOf(filterState.search) !== -1)
+            && includesValue(filterState.brands, brand)
+            && includesValue(filterState.families, family)
+            && includesValue(filterState.sizes, size)
+            && includesValue(filterState.concentrations, concentration);
+    }
+
+    function getComparer(value) {
         var compare;
 
         if (value === 'price-asc') {
@@ -133,69 +156,63 @@
             compare = function (a, b) { return parseFloat(b.dataset.created) - parseFloat(a.dataset.created); };
         }
 
-        items.sort(compare).forEach(function (item) { grid.appendChild(item); });
+        return compare;
+    }
 
-        visibleCount = PAGE_SIZE;
-        applyPagination();
+    function applyProductState(resetPage) {
+        if (resetPage) visibleCount = PAGE_SIZE;
+        readFilterState();
+
+        var items = getItems().sort(getComparer(filterState.sort));
+        items.forEach(function (item) { grid.appendChild(item); });
+
+        var filteredItems = items.filter(matchesFilters);
+        var filteredSet = new Set(filteredItems);
+        filteredItems.forEach(function (item, index) {
+            item.style.display = '';
+            item.classList.toggle('yq-page-hidden', index >= visibleCount);
+        });
+        items.forEach(function (item) {
+            if (!filteredSet.has(item)) {
+                item.style.display = 'none';
+                item.classList.remove('yq-page-hidden');
+            }
+        });
+
+        var countEl = document.getElementById('yaqutResultsCount');
+        if (countEl) countEl.textContent = filteredItems.length + ' عطر';
+
+        var noResults = document.getElementById('yqClientNoResults');
+        if (noResults) noResults.hidden = filteredItems.length !== 0;
+
+        updateLoadMoreVisibility(Math.max(0, filteredItems.length - visibleCount));
     }
 
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', function () {
             visibleCount += PAGE_SIZE;
-            applyPagination();
+            applyProductState(false);
         });
     }
 
     if (sortSelect) {
         sortSelect.addEventListener('change', function () {
-            applySort(sortSelect.value);
+            applyProductState(true);
         });
-    }
-
-    /* ── Brand filter (client-side) ── */
-    function applyBrandFilter() {
-        var brandCheckboxes = filtersRoot
-            ? filtersRoot.querySelectorAll('input[name="brand"]:checked')
-            : [];
-        var selectedBrands = Array.prototype.slice.call(brandCheckboxes).map(function (cb) {
-            return cb.value.toLowerCase();
-        });
-
-        var items = getItems();
-        var visibleAfterFilter = 0;
-
-        items.forEach(function (item) {
-            if (selectedBrands.length === 0) {
-                item.style.display = '';
-                visibleAfterFilter++;
-            } else {
-                var itemBrand = (item.dataset.brand || '').toLowerCase();
-                var matches = selectedBrands.indexOf(itemBrand) !== -1;
-                item.style.display = matches ? '' : 'none';
-                if (matches) visibleAfterFilter++;
-            }
-        });
-
-        // Update results count
-        var countEl = document.getElementById('yaqutResultsCount');
-        if (countEl) {
-            countEl.textContent = visibleAfterFilter + ' عطر';
-        }
     }
 
     if (filtersRoot) {
         filtersRoot.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
             cb.addEventListener('change', function () {
-                disablePagination();
-                if (cb.name === 'brand') {
-                    applyBrandFilter();
-                }
+                applyProductState(true);
             });
         });
     }
 
     if (searchInput) {
-        searchInput.addEventListener('input', disablePagination);
+        searchInput.addEventListener('input', function () {
+            applyProductState(true);
+        });
     }
 
     if (filtersClose && filtersRoot) {
@@ -204,5 +221,5 @@
         });
     }
 
-    applyPagination();
+    applyProductState(true);
 })(window, document);

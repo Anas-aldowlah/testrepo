@@ -539,63 +539,6 @@
         });
     }
 
-    function initProductFilters() {
-        var grid = document.getElementById('yaqutProductsGrid');
-        var filters = document.getElementById('yaqutFilters');
-        if (!grid || !filters) return;
-
-        var cards = grid.querySelectorAll('[data-yaqut-product]');
-        var countEl = document.getElementById('yaqutResultsCount');
-        var searchInput = document.getElementById('yaqutSearchInput');
-        var urlSearch = new URLSearchParams(window.location.search).get('search') || '';
-        if (searchInput && urlSearch) searchInput.value = urlSearch;
-
-        function getChecked(name) {
-            var vals = [];
-            filters.querySelectorAll('input[name="' + name + '"]:checked').forEach(function (cb) {
-                vals.push(cb.value);
-            });
-            return vals;
-        }
-
-        function applyFilters() {
-            var sizes = getChecked('size');
-            var concentrations = getChecked('concentration');
-            var families = getChecked('family');
-            var search = (searchInput ? searchInput.value : urlSearch).toLowerCase().trim();
-            var visible = 0;
-
-            cards.forEach(function (card) {
-                var name = (card.getAttribute('data-name') || '').toLowerCase();
-                var size = card.getAttribute('data-size') || 'all';
-                var conc = card.getAttribute('data-concentration') || 'all';
-                var family = card.getAttribute('data-family') || '';
-
-                var matchSize = sizes.length === 0 || sizes.indexOf(size) !== -1;
-                var matchConc = concentrations.length === 0 || concentrations.indexOf(conc) !== -1 || conc === 'all';
-                var matchFamily = families.length === 0 || families.indexOf(family) !== -1;
-                var matchSearch = !search || name.indexOf(search) !== -1;
-
-                if (sizes.length && size === 'all') matchSize = false;
-                if (concentrations.length && conc === 'all') matchConc = false;
-
-                var show = matchSize && matchConc && matchFamily && matchSearch;
-                card.classList.toggle('yq-hidden', !show);
-                var col = card.closest('[class*="col-"]');
-                if (col) col.classList.toggle('yq-hidden', !show);
-                if (show) visible++;
-            });
-
-            if (countEl) countEl.textContent = visible + ' عطر';
-        }
-
-        filters.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-            cb.addEventListener('change', applyFilters);
-        });
-        if (searchInput) searchInput.addEventListener('input', applyFilters);
-        applyFilters();
-    }
-
     function initMobileFilters() {
         var toggle = document.getElementById('yaqutFilterToggle');
         var filters = document.getElementById('yaqutFilters');
@@ -675,7 +618,6 @@
         initScrollReveal();
         initImageFallbacks();
         initImagePreviews();
-        initProductFilters();
         initMobileFilters();
         initConfirmForms();
         initAdminNav();

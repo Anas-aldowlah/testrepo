@@ -127,7 +127,7 @@
 
     <!-- TOOLBAR -->
     <div class="yq-shop-toolbar yq-reveal">
-        <p id="yaqutResultsCount" class="yq-shop-toolbar__count">@productList.Count عطر</p>
+        <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@productList.Count عطر</p>
 
         <div class="yq-shop-toolbar__actions">
             <div class="yq-shop-sort">
@@ -231,6 +231,12 @@
                         <i class="bi bi-arrow-down-circle"></i>
                         عرض المزيد (<span data-yq-remaining>0</span>)
                     </button>
+                </div>
+
+                <div id="yqClientNoResults" class="yaqut-empty yq-glass yq-shop-empty" hidden>
+                    <i class="bi bi-search yaqut-empty__icon" aria-hidden="true"></i>
+                    <h2 class="yq-shop-empty__title">لا توجد منتجات تطابق معايير البحث</h2>
+                    <p class="yaqut-empty__text">جرّب تعديل الفلاتر أو البحث بكلمات مختلفة.</p>
                 </div>
             }
             else if (isSearchMode || isBrandMode)
