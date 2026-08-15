@@ -145,25 +145,6 @@
         if (spinner) spinner.hidden = !isUpdating;
     }
 
-    function refreshCartFromHtml(html, message) {
-        var doc = new window.DOMParser().parseFromString(html, 'text/html');
-        var nextCart = doc.querySelector('[data-yq-cart-page]');
-        var currentCart = document.querySelector('[data-yq-cart-page]');
-
-        if (!nextCart || !currentCart) {
-            window.location.reload();
-            return;
-        }
-
-        // Instead of replacing the whole innerHTML, we just update what might be out of sync
-        // if we are doing optimistic updates. Actually, for a fully optimistic approach,
-        // we can just silently succeed. Let's just update the badge just in case.
-        updateHeaderBadge();
-        
-        // If we want to show a toast message:
-        // announce(message || 'تم تحديث السلة.');
-    }
-
     function calculateAndUpdateTotals() {
         var items = toArray(document.querySelectorAll('[data-yq-cart-item]'));
         var subtotal = 0;
