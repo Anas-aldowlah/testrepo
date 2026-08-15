@@ -93,7 +93,7 @@
         <section class="yq-contact-form-wrap yq-glass yq-reveal">
             @if (isSuccess)
             {
-                <div class="yq-contact-success" id="yqContactSuccess">
+                <div class="yq-contact-success" id="yqContactSuccess" role="status" aria-live="polite">
                     <div class="yq-contact-success__icon"><i class="bi bi-check-lg"></i></div>
                     <h2>تم إرسال رسالتك بنجاح</h2>
                     <p>شكراً لتواصلك مع ياقوت. سنقوم بالرد عليك في أقرب وقت ممكن.</p>
@@ -112,18 +112,18 @@
                             <label asp-for="Name" class="yaqut-form-label">الاسم الكامل</label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-person"></i>
-                                <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" />
+                                <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" aria-describedby="ContactNameValidation" />
                             </div>
-                            <span asp-validation-for="Name" class="text-danger small"></span>
+                            <span asp-validation-for="Name" id="ContactNameValidation" class="text-danger small"></span>
                         </div>
 
                         <div class="yaqut-form-group">
                             <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-envelope"></i>
-                                <input asp-for="Email" type="email" class="yaqut-form-input" placeholder="example@email.com" required />
+                                <input asp-for="Email" type="email" class="yaqut-form-input" placeholder="example@email.com" required aria-describedby="ContactEmailValidation" />
                             </div>
-                            <span asp-validation-for="Email" class="text-danger small"></span>
+                            <span asp-validation-for="Email" id="ContactEmailValidation" class="text-danger small"></span>
                         </div>
                     </div>
 
@@ -132,25 +132,25 @@
                             <label asp-for="Phone" class="yaqut-form-label">رقم الجوال <span class="yq-contact-optional">(اختياري)</span></label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-phone"></i>
-                                <input asp-for="Phone" type="tel" class="yaqut-form-input" placeholder="05XXXXXXXX" />
+                                <input asp-for="Phone" type="tel" class="yaqut-form-input" placeholder="05XXXXXXXX" aria-describedby="ContactPhoneValidation" />
                             </div>
-                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                            <span asp-validation-for="Phone" id="ContactPhoneValidation" class="text-danger small"></span>
                         </div>
 
                         <div class="yaqut-form-group">
                             <label asp-for="Subject" class="yaqut-form-label">الموضوع</label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-chat-text"></i>
-                                <input asp-for="Subject" class="yaqut-form-input" placeholder="موضوع رسالتك" required />
+                                <input asp-for="Subject" class="yaqut-form-input" placeholder="موضوع رسالتك" required aria-describedby="ContactSubjectValidation" />
                             </div>
-                            <span asp-validation-for="Subject" class="text-danger small"></span>
+                            <span asp-validation-for="Subject" id="ContactSubjectValidation" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="yaqut-form-group">
                         <label asp-for="Message" class="yaqut-form-label">الرسالة</label>
-                        <textarea asp-for="Message" rows="5" class="yaqut-form-input" placeholder="اكتب رسالتك هنا..." required minlength="10"></textarea>
-                        <span asp-validation-for="Message" class="text-danger small"></span>
+                        <textarea asp-for="Message" rows="5" class="yaqut-form-input" placeholder="اكتب رسالتك هنا..." required minlength="10" aria-describedby="ContactMessageValidation"></textarea>
+                        <span asp-validation-for="Message" id="ContactMessageValidation" class="text-danger small"></span>
                     </div>
 
                     <button type="submit" class="btn-yaqut-gold yq-contact-submit-btn">

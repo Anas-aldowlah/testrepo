@@ -31,9 +31,10 @@
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-envelope"></i>
                         <input asp-for="Email" type="email" class="yaqut-form-input"
-                               required autocomplete="email" placeholder="name@example.com" />
+                               required autocomplete="email" placeholder="name@example.com"
+                               aria-describedby="RecoveryEmailValidation" />
                     </div>
-                    <span asp-validation-for="Email" class="yq-field-error"></span>
+                    <span asp-validation-for="Email" id="RecoveryEmailValidation" class="yq-field-error"></span>
                 </div>
 
                 <button type="submit" class="btn-yaqut-gold yaqut-auth-submit">
@@ -46,3 +47,7 @@
         </div>
     </article>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

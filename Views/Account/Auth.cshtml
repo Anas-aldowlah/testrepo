@@ -79,8 +79,7 @@
                  class="auth-panel @(showRegisterPanel ? "d-none" : "")"
                  role="tabpanel"
                  aria-labelledby="loginToggle"
-                 aria-hidden="@(showRegisterPanel ? "true" : "false")"
-                 tabindex="0">
+                 aria-hidden="@(showRegisterPanel ? "true" : "false")">
 
                 <!-- GOOGLE LOGIN BUTTON AT TOP OF LOGIN PANEL -->
                 <div class="yaqut-auth-google-login-wrap mb-3 text-center">
@@ -158,8 +157,8 @@
                                    autocomplete="current-password"
                                    minlength="6"
                                    aria-describedby="loginPasswordError" />
-                            <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
-                                <i class="bi bi-eye"></i>
+                            <button type="button" class="yq-toggle-pwd-btn" aria-controls="loginPassword" aria-pressed="false" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
                         </div>
                         <div id="loginPasswordError" class="yq-field-error" data-yq-error-for="loginPassword" aria-live="polite"></div>
@@ -180,8 +179,7 @@
                  class="auth-panel yq-register-panel @(showRegisterPanel ? "" : "d-none")"
                  role="tabpanel"
                  aria-labelledby="registerToggle"
-                 aria-hidden="@(showRegisterPanel ? "false" : "true")"
-                 tabindex="0">
+                 aria-hidden="@(showRegisterPanel ? "false" : "true")">
 
                 <!-- STEP PROGRESS BAR -->
                 <div class="yq-stepper-container" aria-label="خطوات التسجيل">
@@ -356,8 +354,8 @@
                                 <input id="regPassword" type="password" class="yaqut-form-input"
                                        placeholder="6 أحرف على الأقل"
                                        required minlength="6" autocomplete="new-password" />
-                                <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
-                                    <i class="bi bi-eye"></i>
+                                <button type="button" class="yq-toggle-pwd-btn" aria-controls="regPassword" aria-pressed="false" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <!-- PASSWORD STRENGTH METER -->
@@ -377,8 +375,8 @@
                                 <input id="regConfirmPassword" type="password" class="yaqut-form-input"
                                        placeholder="أعد كتابة كلمة المرور"
                                        required minlength="6" autocomplete="new-password" />
-                                <button type="button" class="yq-toggle-pwd-btn" tabindex="-1" title="إظهار/إخفاء كلمة المرور">
-                                    <i class="bi bi-eye"></i>
+                                <button type="button" class="yq-toggle-pwd-btn" aria-controls="regConfirmPassword" aria-pressed="false" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <div class="yq-field-error" id="regConfirmPasswordError"></div>
@@ -433,6 +431,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 var isPwd = input.type === 'password';
                 input.type = isPwd ? 'text' : 'password';
                 btn.querySelector('i').className = isPwd ? 'bi bi-eye-slash' : 'bi bi-eye';
+                btn.setAttribute('aria-pressed', isPwd ? 'true' : 'false');
+                btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+                btn.setAttribute('title', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
             }
         });
     });
