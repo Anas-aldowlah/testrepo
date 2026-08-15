@@ -56,11 +56,46 @@
                 {
                     var lineTotal = item.Quantity * UnitPrice(item);
                     var maxUnits = MaxUnits(item);
+                    var productImageUrl = Url.Content("~/images/placeholder-product.svg");
+                    if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
+                    {
+                        var candidateImageUrl = item.Product.Imageurl.Trim();
+                        if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
+                        {
+                            if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
+                            {
+                                productImageUrl = candidateImageUrl;
+                            }
+                        }
+                        else
+                        {
+                            var localImageUrl = candidateImageUrl.TrimStart('/');
+                            while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
+                            {
+                                localImageUrl = localImageUrl[2..];
+                            }
+
+                            var pathEnd = localImageUrl.IndexOfAny(new[] { '?', '#' });
+                            var localImagePath = pathEnd >= 0 ? localImageUrl[..pathEnd] : localImageUrl;
+                            var decodedLocalPath = Uri.UnescapeDataString(localImagePath).Replace('\\', '/');
+                            var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
+                            if (!string.IsNullOrWhiteSpace(localImagePath) &&
+                                !localImagePath.Contains(':') &&
+                                !localImagePath.Contains('\\') &&
+                                !hasParentSegment)
+                            {
+                                productImageUrl = Url.Content("~/" + localImageUrl);
+                            }
+                        }
+                    }
                     <article class="yq-cart-item yq-glass" data-yq-cart-item>
                         <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Product?.Id"
                            class="yq-cart-item__media">
-                            <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
+                            <img src="@productImageUrl"
                                  alt="@item.Product?.Name"
+                                 width="110"
+                                 height="110"
+                                 decoding="async"
                                  data-yaqut-fallback="/images/placeholder-product.svg" />
                         </a>
 
