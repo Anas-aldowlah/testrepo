@@ -14,7 +14,7 @@
             var theme;
             try { theme = window.localStorage.getItem('yaqut-theme'); } catch (error) { }
             if (theme !== 'dark' && theme !== 'light') {
-                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                theme = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
             var root = document.documentElement;
             var isDark = theme === 'dark';

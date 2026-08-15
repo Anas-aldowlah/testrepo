@@ -4,7 +4,17 @@
 (function (window, document) {
     'use strict';
 
-    var COLLAPSED_NAV_QUERY = window.matchMedia('(max-width: 991.98px)');
+    var COLLAPSED_NAV_QUERY = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(max-width: 991.98px)')
+        : { matches: false };
+
+    function requestFrame(callback) {
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(callback);
+        } else {
+            window.setTimeout(callback, 0);
+        }
+    }
 
     /* ── History panel state ──────────────────────
        Strategy:
@@ -34,7 +44,7 @@
 
         function onScroll() {
             if (!ticking) {
-                window.requestAnimationFrame(update);
+                requestFrame(update);
                 ticking = true;
             }
         }
@@ -137,14 +147,16 @@
         var wasOpen = false;
 
         // Push a fake history entry the moment the drawer opens
-        var observer = new MutationObserver(function () {
-            var isNowOpen = drawer.classList.contains('is-open');
-            if (isNowOpen && !wasOpen) {
-                pushPanelState();
-            }
-            wasOpen = isNowOpen;
-        });
-        observer.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+        if (typeof window.MutationObserver === 'function') {
+            var observer = new window.MutationObserver(function () {
+                var isNowOpen = drawer.classList.contains('is-open');
+                if (isNowOpen && !wasOpen) {
+                    pushPanelState();
+                }
+                wasOpen = isNowOpen;
+            });
+            observer.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+        }
 
         // Back button: close drawer instead of navigating away.
         // Same rule — do NOT re-push after closing.

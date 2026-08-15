@@ -4,6 +4,24 @@
 (function (window, document) {
     'use strict';
 
+    function copyWithSelection(text) {
+        var temp = null;
+        try {
+            temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            if (typeof temp.select !== 'function') return false;
+            temp.select();
+            return typeof document.execCommand === 'function' && document.execCommand('copy');
+        } catch (error) {
+            return false;
+        } finally {
+            if (temp && temp.parentNode) temp.parentNode.removeChild(temp);
+        }
+    }
+
     function initCopyTracking() {
         var btn = document.getElementById('yqCopyTrackingBtn');
         var value = document.getElementById('yqTrackingNumber');
@@ -25,16 +43,12 @@
             }
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(showCopied);
-            } else {
-                var temp = document.createElement('textarea');
-                temp.value = text;
-                document.body.appendChild(temp);
-                temp.select();
-                try { document.execCommand('copy'); } catch (e) { /* clipboard unavailable */ }
-                document.body.removeChild(temp);
-                showCopied();
-            }
+                Promise.resolve().then(function () {
+                    return navigator.clipboard.writeText(text);
+                }).then(showCopied).catch(function () {
+                    if (copyWithSelection(text)) showCopied();
+                });
+            } else if (copyWithSelection(text)) showCopied();
         });
     }
 
