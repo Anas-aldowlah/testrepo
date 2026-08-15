@@ -757,7 +757,7 @@
     }
 
 /* ── Responsive ── */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .yq-checkout-layout {
         grid-template-columns: 1fr;
     }
@@ -768,7 +768,7 @@
     }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .yq-checkout-card,
     .yq-checkout-summary {
         padding: 1.25rem;

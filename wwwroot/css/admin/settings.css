@@ -576,7 +576,7 @@
 }
 
 /* Settings Responsive Overrides */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .yq-settings-grid, .yq-settings-grid--split {
         grid-template-columns: 1fr;
         gap: 1.25rem;
