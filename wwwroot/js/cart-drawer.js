@@ -477,71 +477,6 @@
         }, 820);
     }
 
-    function renderInstantAdd(snapshot) {
-        var itemName = escapeHtml(snapshot.name);
-        var itemNameAttr = escapeAttr(snapshot.name);
-        var itemHref = escapeAttr(snapshot.href);
-        var itemImage = escapeAttr(snapshot.imageSrc);
-        var itemAlt = escapeAttr(snapshot.imageAlt || snapshot.name);
-        var category = escapeHtml(snapshot.category);
-        var priceText = escapeHtml(snapshot.priceText);
-        var quantityText = snapshot.quantity > 1 ? '<span class="yq-cart-drawer__instant-qty">الكمية ' + snapshot.quantity + '</span>' : '';
-
-        setPeekTitle('تمت الإضافة إلى السلة', 'اختيارك أضيف بنجاح');
-        body.innerHTML = [
-            '<div class="yq-cart-drawer__instant" role="status">',
-            '<div class="yq-cart-drawer__instant-head">',
-            '<span class="yq-cart-drawer__instant-check"><i class="bi bi-check2" aria-hidden="true"></i></span>',
-            '<div>',
-            '<h3>' + itemName + '</h3>',
-            '<p>أضيف إلى سلتك. تقدر تكمل التسوق أو تنتقل لإتمام الطلب.</p>',
-            '</div>',
-            '</div>',
-            '<div class="yq-cart-drawer__item is-highlighted">',
-            '<a class="yq-cart-drawer__media" href="' + itemHref + '">',
-            '<img src="' + itemImage + '" alt="' + itemAlt + '" data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" decoding="async" />',
-            '</a>',
-            '<div class="yq-cart-drawer__item-body">',
-            '<div>',
-            snapshot.category ? '<span class="yq-cart-drawer__category">' + category + '</span>' : '',
-            '<a class="yq-cart-drawer__name" href="' + itemHref + '">' + itemName + '</a>',
-            '</div>',
-            '<div class="yq-cart-drawer__instant-meta">',
-            quantityText,
-            priceText ? '<strong>' + priceText + '</strong>' : '',
-            '</div>',
-            '</div>',
-            '</div>',
-            '</div>'
-        ].join('');
-        bindImageFallbacks(body);
-
-        if (footer) footer.hidden = false;
-        setCheckoutAvailable(true);
-        if (totalEl && snapshot.priceText) totalEl.textContent = snapshot.priceText;
-        if (shipping) shipping.hidden = true;
-        peekOpenedAt = Date.now();
-        schedulePeekAutoClose(3000);
-    }
-
-    function renderAddError(message, options) {
-        var hasExistingItems = Boolean(options && options.hasItems);
-        setPeekTitle('ما تمت الإضافة', 'حاول مرة أخرى');
-        body.innerHTML = [
-            '<div class="yq-cart-drawer__empty" role="alert">',
-            '<span class="yq-cart-drawer__empty-icon"><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span>',
-            '<h3>ما تمت الإضافة</h3>',
-            '<p>' + escapeHtml(message || 'تعذّرت الإضافة الآن. حاول مرة أخرى.') + '</p>',
-            '</div>'
-        ].join('');
-        if (footer) footer.hidden = false;
-        setCheckoutAvailable(hasExistingItems);
-        if (totalEl && options && options.totalText) totalEl.textContent = options.totalText;
-        else if (totalEl && !hasExistingItems) totalEl.textContent = '0 ر.س';
-        if (shipping) shipping.hidden = true;
-        clearPeekAutoCloseTimer();
-    }
-
     function renderItem(item, highlightProductId) {
         var highlighted = highlightProductId && String(item.productId) === String(highlightProductId);
         var disabledMinus = item.quantity <= 1 ? ' disabled' : '';
@@ -633,37 +568,6 @@
 
         announce(options && options.announcement ? options.announcement : message);
         return { items: items, totalQuantity: totalQuantity, message: message, hasError: hasError };
-    }
-
-    function syncCartMeta(doc, options) {
-        var items = extractItems(doc);
-        var uniqueCount = items.length;
-        var totalQuantity = items.reduce(function (sum, item) { return sum + item.quantity; }, 0);
-        var summary = getSummary(doc);
-        var message = getCartMessage(doc);
-        var hasError = isErrorMessage(message);
-
-        cachedCartDoc = doc;
-        setBadge(totalQuantity);
-        setPeekTitle(
-            hasError ? 'ما تمت الإضافة' : 'تمت الإضافة إلى السلة',
-            hasError ? 'حاول مرة أخرى' : productCountLabel(uniqueCount)
-        );
-        showNotice(options && options.notice ? options.notice : (hasError ? message : ''), hasError);
-        setCheckoutAvailable(items.length > 0);
-        if (totalEl) totalEl.textContent = summary.totalText || '0 ر.س';
-        if (items.length && !hasError) updateShipping(summary);
-        else if (shipping) shipping.hidden = true;
-        announce(options && options.announcement ? options.announcement : message);
-
-        if (items.length && !hasError) {
-            var elapsed = peekOpenedAt ? Date.now() - peekOpenedAt : 0;
-            schedulePeekAutoClose(Math.max(0, 3000 - elapsed));
-        } else {
-            clearPeekAutoCloseTimer();
-        }
-
-        return { items: items, totalQuantity: totalQuantity, message: message, hasError: hasError, summary: summary };
     }
 
     function setDrawerLoading(allowCheckout) {

@@ -142,65 +142,6 @@
     }
     window.toggleAdminNav = toggleAdminNav;
 
-    /* ═══ HERO SLIDER ═══ */
-    function initHeroSlider() {
-        var slider = document.querySelector('.yq-hero__track');
-        var dotsContainer = document.querySelector('.yq-hero__dots');
-        if (!slider) return;
-
-        var slides = slider.querySelectorAll('.yq-hero__slide');
-        if (slides.length < 2) return;
-
-        var index = 0;
-        var intervalId = null;
-
-        // تهيئة الشريحة الأولى
-        slides.forEach(function (s, i) {
-            s.classList.toggle('is-active', i === 0);
-        });
-
-        // بناء المؤشرات الرقمية (Dots) ديناميكياً
-        if (dotsContainer) {
-            dotsContainer.innerHTML = '';
-            slides.forEach(function (_, i) {
-                var dot = document.createElement('button');
-                dot.type = 'button';
-                dot.className = 'yq-hero__dot' + (i === 0 ? ' is-active' : '');
-                dot.setAttribute('aria-label', 'الذهاب للشريحة ' + (i + 1));
-                dot.addEventListener('click', function () {
-                    goToSlide(i);
-                    restartAutoplay();
-                });
-                dotsContainer.appendChild(dot);
-            });
-        }
-
-        function goToSlide(nextIndex) {
-            slides[index].classList.remove('is-active');
-            var dots = document.querySelectorAll('.yq-hero__dot');
-            if (dots[index]) dots[index].classList.remove('is-active');
-
-            index = nextIndex;
-
-            slides[index].classList.add('is-active');
-            if (dots[index]) dots[index].classList.add('is-active');
-        }
-
-        function startAutoplay() {
-            intervalId = setInterval(function () {
-                var next = (index + 1) % slides.length;
-                goToSlide(next);
-            }, 6000);
-        }
-
-        function restartAutoplay() {
-            if (intervalId) clearInterval(intervalId);
-            startAutoplay();
-        }
-
-        startAutoplay();
-    }
-
     /* ═══ AUTH TABS ═══ */
     function initAuthPanels() {
         var root = document.querySelector('[data-yq-auth-root]');
@@ -656,7 +597,6 @@
 
     function init() {
         initThemeToggle();
-        initHeroSlider();
         initAuthPanels();
         initFormValidation();
         initValidationDescriptionSync();

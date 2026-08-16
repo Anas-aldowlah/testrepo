@@ -1,6 +1,6 @@
 ﻿/**
  * ياقوت — Products / Details page interactions
- * Quantity stepper, detail tabs, recently viewed (client-side only)
+ * Quantity stepper and recently viewed (client-side only)
  */
 (function (window, document) {
     'use strict';
@@ -30,30 +30,6 @@
 
         input.addEventListener('change', function () {
             input.value = clamp(parseInt(input.value, 10) || 1);
-        });
-    }
-
-    function initTabs() {
-        var tabs = document.querySelectorAll('.yq-pdp-tab');
-        var panels = document.querySelectorAll('.yq-pdp-tab-panel');
-        if (!tabs.length) return;
-
-        tabs.forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                var target = tab.getAttribute('data-yq-tab');
-
-                tabs.forEach(function (t) {
-                    var isActive = t === tab;
-                    t.classList.toggle('is-active', isActive);
-                    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                });
-
-                panels.forEach(function (panel) {
-                    var isActive = panel.getAttribute('data-yq-panel') === target;
-                    panel.classList.toggle('is-active', isActive);
-                    panel.hidden = !isActive;
-                });
-            });
         });
     }
 
@@ -144,7 +120,6 @@
 
     function init() {
         initQtyStepper();
-        initTabs();
         initRecentlyViewed();
     }
 
