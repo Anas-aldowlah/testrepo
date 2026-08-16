@@ -49,19 +49,22 @@ public class CartController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Add(int productId, int quantity, int? retailPriceId)
+    public async Task<IActionResult> Add(AddCartItemInput input)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         try
         {
             string? message;
             if (TryResolveUserId(out var userId))
             {
-                await _cartService.AddToCartAsync(userId, productId, quantity, retailPriceId);
+                await _cartService.AddToCartAsync(userId, input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _cartService.MESSAGE;
             }
             else
             {
-                await _guestCartService.AddToCartAsync(productId, quantity, retailPriceId);
+                await _guestCartService.AddToCartAsync(input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _guestCartService.Message;
             }
 
@@ -71,8 +74,8 @@ public class CartController : Controller
                     success: true,
                     conflict: false,
                     message,
-                    productId: productId,
-                    retailPriceId: retailPriceId));
+                    productId: input.ProductId,
+                    retailPriceId: input.RetailPriceId));
             }
 
             TempData["Message"] = message;
@@ -90,13 +93,11 @@ public class CartController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update(
-        int cartItemId,
-        int productId,
-        int quantity,
-        int? retailPriceId,
-        int? expectedQuantity)
+    public async Task<IActionResult> Update(UpdateCartItemInput input)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         try
         {
             string? message;
@@ -104,14 +105,14 @@ public class CartController : Controller
             {
                 await _cartService.UpdateQuantityAsync(
                     userId,
-                    cartItemId,
-                    quantity,
-                    expectedQuantity);
+                    input.CartItemId,
+                    input.Quantity,
+                    input.ExpectedQuantity);
                 message = _cartService.MESSAGE;
             }
             else
             {
-                await _guestCartService.UpdateQuantityAsync(productId, quantity, retailPriceId);
+                await _guestCartService.UpdateQuantityAsync(input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _guestCartService.Message;
             }
 
@@ -121,9 +122,9 @@ public class CartController : Controller
                     success: true,
                     conflict: false,
                     message,
-                    cartItemId,
-                    productId,
-                    retailPriceId));
+                    input.CartItemId,
+                    input.ProductId,
+                    input.RetailPriceId));
             }
 
             TempData["Message"] = message;
@@ -140,9 +141,9 @@ public class CartController : Controller
                 success: false,
                 conflict: true,
                 exception.Message,
-                cartItemId,
-                productId,
-                retailPriceId);
+                input.CartItemId,
+                input.ProductId,
+                input.RetailPriceId);
             return StatusCode(StatusCodes.Status409Conflict, state);
         }
         catch (Exception exception)
@@ -210,15 +211,30 @@ public class CartController : Controller
             : items.FirstOrDefault(item =>
                 item.Productid == productId &&
                 item.RetailPriceId == retailPriceId);
-        var subtotal = items.Sum(item =>
-            item.Quantity * (item.RetailPrice?.Price ?? item.Product.Price));
+        decimal subtotal = 0m;
+        int totalQuantity = 0;
+        checked
+        {
+            foreach (var item in items)
+            {
+                subtotal += item.Quantity * (item.RetailPrice?.Price ?? item.Product.Price);
+                totalQuantity += item.Quantity;
+            }
+        }
+
+        if (subtotal > 1000000.00m)
+            throw new OverflowException("Cart subtotal exceeds the allowed currency limit.");
+
+        var lineTotal = targetItem == null
+            ? 0m
+            : checked(targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price));
 
         return new
         {
             success = success && targetItem?.Quantity > 0,
             conflict,
             message,
-            totalQuantity = items.Sum(item => item.Quantity),
+            totalQuantity,
             uniqueItemCount = items.Count,
             subtotal,
             subtotalText = $"{subtotal:N0} ر.س",
@@ -230,8 +246,8 @@ public class CartController : Controller
                     productId = targetItem.Productid,
                     retailPriceId = targetItem.RetailPriceId,
                     quantity = targetItem.Quantity,
-                    lineTotal = targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price),
-                    lineTotalText = $"{targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price):N0} ر.س"
+                    lineTotal,
+                    lineTotalText = $"{lineTotal:N0} ر.س"
                 }
         };
     }
@@ -252,18 +268,27 @@ public class CartController : Controller
 
     private IActionResult HandleCartFailure(Exception exception, string operationName)
     {
+        var isOverflow = exception is OverflowException;
         var isConcurrencyConflict = exception is CartConcurrencyException or DbUpdateConcurrencyException;
         var isDatabaseFailure = exception is DbUpdateException or NpgsqlException or TimeoutException;
-        var statusCode = isConcurrencyConflict
+        var statusCode = isOverflow
+            ? StatusCodes.Status400BadRequest
+            : isConcurrencyConflict
             ? StatusCodes.Status409Conflict
             : isDatabaseFailure
                 ? StatusCodes.Status503ServiceUnavailable
                 : StatusCodes.Status500InternalServerError;
-        var detail = isConcurrencyConflict
+        var detail = isOverflow
+            ? "القيمة الرقمية أو إجمالي السلة يتجاوز الحد المسموح."
+            : isConcurrencyConflict
             ? "تغيرت السلة في نافذة أو جهاز آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى."
             : "تعذر تحديث السلة حالياً. يرجى المحاولة مرة أخرى.";
 
-        if (isConcurrencyConflict)
+        if (isOverflow)
+        {
+            _logger.LogWarning(exception, "Rejected {OperationName} because a numeric value overflowed.", operationName);
+        }
+        else if (isConcurrencyConflict)
         {
             _logger.LogWarning(exception, "Could not {OperationName} because the cart changed concurrently.", operationName);
         }

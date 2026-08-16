@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Models.Admin;
@@ -30,6 +31,8 @@ public class QuickSaleCustomerDto
 public class OpenSalesDayViewModel
 {
     public DateTime Date { get; set; } = DateTime.Today;
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Opening balance must be between 0 and 1,000,000.00.")]
     public decimal OpeningBalance { get; set; } = 0m;
     public string? Notes { get; set; }
 }
@@ -41,6 +44,8 @@ public class SaveDraftRequestModel
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Discount total must be between 0 and 1,000,000.00.")]
     public decimal DiscountTotal { get; set; }
     public List<SaveDraftItemModel> Items { get; set; } = new();
 }
@@ -49,10 +54,19 @@ public class SaveDraftItemModel
 {
     public int ProductId { get; set; }
     public int? RetailPriceId { get; set; }
+    [Range(0, 1000000, ErrorMessage = "Retail size must be between 0 and 1,000,000 ml.")]
     public int? RetailSizeMl { get; set; }
     public string? ProductName { get; set; }
+    [Required]
+    [Range(0, 1000000, ErrorMessage = "Quantity must be between 0 and 1,000,000.")]
     public int Quantity { get; set; }
+
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Unit price must be between 0 and 1,000,000.00.")]
     public decimal UnitPrice { get; set; }
+
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Discount must be between 0 and 1,000,000.00.")]
     public decimal Discount { get; set; }
 }
 
@@ -84,6 +98,8 @@ public class CompleteSaleRequestModel
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Discount total must be between 0 and 1,000,000.00.")]
     public decimal DiscountTotal { get; set; }
     public List<SaveDraftItemModel> Items { get; set; } = new();
     public List<CompleteSalePaymentModel> Payments { get; set; } = new();
@@ -92,6 +108,8 @@ public class CompleteSaleRequestModel
 public class CompleteSalePaymentModel
 {
     public int PaymentMethodId { get; set; }
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Payment amount must be between 0 and 1,000,000.00.")]
     public decimal Amount { get; set; }
     public string? TransactionReference { get; set; }
 }

@@ -114,9 +114,7 @@ public class QuickSalesController : Controller
         }
 
         if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
+            return ValidationProblem(ModelState);
 
         var existingOpenDay = await _context.SalesDays
             .FirstOrDefaultAsync(sd => sd.Status == "Open");
@@ -351,6 +349,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveDraft([FromBody] SaveDraftRequestModel model)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         if (model == null)
         {
             return Json(new { success = false, message = "بيانات طلب المسودة غير صالحة." });
@@ -458,10 +459,7 @@ public class QuickSalesController : Controller
                     var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
 
-                    if (draftDeductionGroups.ContainsKey(product.Id))
-                        draftDeductionGroups[product.Id] += deductionAmount;
-                    else
-                        draftDeductionGroups[product.Id] = deductionAmount;
+                    AddChecked(draftDeductionGroups, product.Id, deductionAmount);
                 }
 
                 foreach (var kvp in draftDeductionGroups)
@@ -487,13 +485,18 @@ public class QuickSalesController : Controller
                     var product = dbProducts[item.ProductId];
                     var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                    var lineGross = unitPrice * item.Quantity;
-                    var lineDiscount = Math.Max(0m, item.Discount);
-                    if (lineDiscount > lineGross) lineDiscount = lineGross;
-                    var lineTotal = lineGross - lineDiscount;
-
-                    grossSubtotal += lineGross;
-                    lineDiscountsTotal += lineDiscount;
+                    decimal lineGross;
+                    decimal lineDiscount;
+                    decimal lineTotal;
+                    checked
+                    {
+                        lineGross = unitPrice * item.Quantity;
+                        lineDiscount = Math.Max(0m, item.Discount);
+                        if (lineDiscount > lineGross) lineDiscount = lineGross;
+                        lineTotal = lineGross - lineDiscount;
+                        grossSubtotal += lineGross;
+                        lineDiscountsTotal += lineDiscount;
+                    }
 
                     newItems.Add(new SaleItem
                     {
@@ -509,11 +512,12 @@ public class QuickSalesController : Controller
                 }
 
                 var overallDiscount = Math.Max(0m, model.DiscountTotal);
-                var totalDiscounts = lineDiscountsTotal + overallDiscount;
+                var totalDiscounts = checked(lineDiscountsTotal + overallDiscount);
+                EnsureCurrencyLimit(grossSubtotal, totalDiscounts);
 
                 sale.TotalAmount = grossSubtotal;
                 sale.DiscountTotal = totalDiscounts;
-                sale.FinalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
+                sale.FinalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
 
                 if (sale.Id == 0)
                 {
@@ -536,6 +540,12 @@ public class QuickSalesController : Controller
                     invoiceNumber = sale.InvoiceNumber,
                     message = "تم حفظ المسودة في قاعدة البيانات بنجاح."
                 });
+            }
+            catch (OverflowException ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogWarning(ex, "Rejected POS draft {SaleId} because a numeric calculation overflowed.", model.SaleId);
+                return BadRequest(new { success = false, message = "إحدى الكميات أو إجماليات المسودة تتجاوز الحد الرقمي المسموح." });
             }
             catch (Exception ex)
             {
@@ -580,7 +590,7 @@ public class QuickSalesController : Controller
 
         var strategy = _context.Database.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async () =>
+        return await strategy.ExecuteAsync<IActionResult>(async () =>
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -691,6 +701,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteSale([FromBody] CompleteSaleRequestModel model)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         if (model == null || model.Items == null || !model.Items.Any())
         {
             return Json(new CompleteSaleResponseDto { Success = false, Message = "يجب إدخال منتج واحد على الأقل لاعتماد عملية البيع." });
@@ -720,16 +733,26 @@ public class QuickSalesController : Controller
         var activePaymentMethodIds = activePaymentMethods.Select(pm => pm.Id).ToHashSet();
 
         // Aggregate duplicate payments if same method selected twice
-        var aggregatedPayments = model.Payments
-            .Where(p => p.PaymentMethodId > 0 && p.Amount > 0)
-            .GroupBy(p => p.PaymentMethodId)
-            .Select(g => new CompleteSalePaymentModel
-            {
-                PaymentMethodId = g.Key,
-                Amount = g.Sum(x => x.Amount),
-                TransactionReference = g.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.TransactionReference))?.TransactionReference
-            })
-            .ToList();
+        List<CompleteSalePaymentModel> aggregatedPayments;
+        try
+        {
+            aggregatedPayments = model.Payments
+                .Where(p => p.PaymentMethodId > 0 && p.Amount > 0)
+                .GroupBy(p => p.PaymentMethodId)
+                .Select(g => new CompleteSalePaymentModel
+                {
+                    PaymentMethodId = g.Key,
+                    Amount = CheckedDecimalSum(g.Select(x => x.Amount)),
+                    TransactionReference = g.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.TransactionReference))?.TransactionReference
+                })
+                .ToList();
+        }
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Rejected POS sale {SaleId} because payment aggregation overflowed.", model.SaleId);
+            ModelState.AddModelError(nameof(model.Payments), "The payment total exceeds the supported numeric range.");
+            return ValidationProblem(ModelState);
+        }
 
         if (!aggregatedPayments.Any())
         {
@@ -836,10 +859,7 @@ public class QuickSalesController : Controller
                         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                         var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
 
-                        if (deductionGroups.ContainsKey(product.Id))
-                            deductionGroups[product.Id] += deductionAmount;
-                        else
-                            deductionGroups[product.Id] = deductionAmount;
+                        AddChecked(deductionGroups, product.Id, deductionAmount);
                     }
 
                     // Deduct stock per product
@@ -873,13 +893,18 @@ public class QuickSalesController : Controller
                         var product = dbProducts[item.ProductId];
                         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                         var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                        var lineGross = unitPrice * item.Quantity;
-                        var lineDiscount = Math.Max(0m, item.Discount);
-                        if (lineDiscount > lineGross) lineDiscount = lineGross;
-                        var lineTotal = lineGross - lineDiscount;
-
-                        grossSubtotal += lineGross;
-                        lineDiscountsTotal += lineDiscount;
+                        decimal lineGross;
+                        decimal lineDiscount;
+                        decimal lineTotal;
+                        checked
+                        {
+                            lineGross = unitPrice * item.Quantity;
+                            lineDiscount = Math.Max(0m, item.Discount);
+                            if (lineDiscount > lineGross) lineDiscount = lineGross;
+                            lineTotal = lineGross - lineDiscount;
+                            grossSubtotal += lineGross;
+                            lineDiscountsTotal += lineDiscount;
+                        }
 
                         newSaleItems.Add(new SaleItem
                         {
@@ -895,12 +920,13 @@ public class QuickSalesController : Controller
                     }
 
                     var overallDiscount = Math.Max(0m, model.DiscountTotal);
-                    var totalDiscounts = lineDiscountsTotal + overallDiscount;
-                    var finalAmount = Math.Max(0m, grossSubtotal - totalDiscounts);
-                    var totalPaid = aggregatedPayments.Sum(p => p.Amount);
+                    var totalDiscounts = checked(lineDiscountsTotal + overallDiscount);
+                    var finalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
+                    var totalPaid = CheckedDecimalSum(aggregatedPayments.Select(p => p.Amount));
+                    EnsureCurrencyLimit(grossSubtotal, totalDiscounts, finalAmount, totalPaid);
 
                     // 6. Validate Payment Total Matches Final Amount Exactly
-                    if (Math.Abs(totalPaid - finalAmount) > 0.01m)
+                    if (Math.Abs(checked(totalPaid - finalAmount)) > 0.01m)
                     {
                         await transaction.RollbackAsync();
                         return Json(new CompleteSaleResponseDto
@@ -961,6 +987,16 @@ public class QuickSalesController : Controller
                         FinalAmount = sale.FinalAmount,
                         TotalPaid = totalPaid,
                         CompletedAt = sale.CompletedAt?.ToString("yyyy/MM/dd HH:mm")
+                    });
+                }
+                catch (OverflowException ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogWarning(ex, "Rejected POS sale {SaleId} because a numeric calculation overflowed.", model.SaleId);
+                    return BadRequest(new CompleteSaleResponseDto
+                    {
+                        Success = false,
+                        Message = "إحدى الكميات أو إجماليات البيع تتجاوز الحد الرقمي المسموح."
                     });
                 }
                 catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
@@ -1143,7 +1179,7 @@ public class QuickSalesController : Controller
 
         var strategy = _context.Database.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async () =>
+        return await strategy.ExecuteAsync<IActionResult>(async () =>
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -1181,7 +1217,7 @@ public class QuickSalesController : Controller
                     .Where(s => s.SalesDayId == salesDay.Id && s.Status == "Completed")
                     .ToListAsync();
 
-                var totalSales = completedSales.Sum(s => s.FinalAmount);
+                var totalSales = CheckedDecimalSum(completedSales.Select(s => s.FinalAmount));
 
                 var paymentTotals = await _context.SalePayments
                     .Where(sp => sp.Sale.SalesDayId == salesDay.Id && sp.Sale.Status == "Completed")
@@ -1190,10 +1226,10 @@ public class QuickSalesController : Controller
                     .ToListAsync();
 
                 salesDay.TotalSales = totalSales;
-                salesDay.TotalCash = paymentTotals.Where(p => p.Type != null && (p.Type.Equals("Cash", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("cash") || p.Type.Contains("نقدي"))).Sum(p => p.Total);
-                salesDay.TotalWallet = paymentTotals.Where(p => p.Type != null && (p.Type.Equals("Wallet", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("wallet") || p.Type.Contains("محفظة"))).Sum(p => p.Total);
+                salesDay.TotalCash = CheckedDecimalSum(paymentTotals.Where(p => p.Type != null && (p.Type.Equals("Cash", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("cash") || p.Type.Contains("نقدي"))).Select(p => p.Total));
+                salesDay.TotalWallet = CheckedDecimalSum(paymentTotals.Where(p => p.Type != null && (p.Type.Equals("Wallet", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("wallet") || p.Type.Contains("محفظة"))).Select(p => p.Total));
                 // TotalTransfer aggregates all remaining electronic/bank/custom payment methods (Al-Amqi, Al-Kuraimi, Transfer, Card, Custom, etc.) so NO payment is dropped
-                salesDay.TotalTransfer = paymentTotals.Where(p => !(p.Type != null && (p.Type.Equals("Cash", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("cash") || p.Type.Contains("نقدي"))) && !(p.Type != null && (p.Type.Equals("Wallet", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("wallet") || p.Type.Contains("محفظة")))).Sum(p => p.Total);
+                salesDay.TotalTransfer = CheckedDecimalSum(paymentTotals.Where(p => !(p.Type != null && (p.Type.Equals("Cash", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("cash") || p.Type.Contains("نقدي"))) && !(p.Type != null && (p.Type.Equals("Wallet", StringComparison.OrdinalIgnoreCase) || p.Type.Contains("wallet") || p.Type.Contains("محفظة")))).Select(p => p.Total));
                 salesDay.NetTotal = totalSales;
 
                 if (!string.IsNullOrWhiteSpace(model.Notes))
@@ -1214,6 +1250,12 @@ public class QuickSalesController : Controller
                     message = $"تم إغلاق يوم البيع بتاريخ {salesDay.Date:yyyy/MM/dd} وتوثيق السجل اليومي بنجاح.",
                     salesDayId = salesDay.Id
                 });
+            }
+            catch (OverflowException ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogWarning(ex, "Rejected closing sales day {SalesDayId} because total aggregation overflowed.", model.SalesDayId);
+                return BadRequest(new { success = false, message = "إجماليات يوم البيع تتجاوز الحد الرقمي المسموح." });
             }
             catch (Exception ex)
             {
@@ -1334,5 +1376,31 @@ public class QuickSalesController : Controller
         };
 
         return View(viewModel);
+    }
+
+    private static void AddChecked(IDictionary<int, int> totals, int key, int amount)
+    {
+        checked
+        {
+            totals[key] = totals.TryGetValue(key, out var current) ? current + amount : amount;
+        }
+    }
+
+    private static decimal CheckedDecimalSum(IEnumerable<decimal> values)
+    {
+        decimal total = 0m;
+        checked
+        {
+            foreach (var value in values)
+                total += value;
+        }
+
+        return total;
+    }
+
+    private static void EnsureCurrencyLimit(params decimal[] values)
+    {
+        if (values.Any(value => value is < 0m or > 1000000.00m))
+            throw new OverflowException("A transaction amount exceeds the allowed currency range.");
     }
 }

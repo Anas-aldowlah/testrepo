@@ -7,9 +7,10 @@ public class CheckoutVM
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public Cart Cart { get; set; } = new();
 
-    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
     public List<CheckoutCartItemSnapshot> SubmittedCartItems { get; set; } = [];
 
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Cart total must be between 0 and 1,000,000.00.")]
     public decimal SubmittedCartTotal { get; set; }
 
     private string _customerName = string.Empty;
@@ -124,9 +125,14 @@ public sealed class CheckoutCartItemSnapshot
 
     public int? RetailPriceId { get; set; }
 
+    [Range(0, 1000000, ErrorMessage = "Retail size must be between 0 and 1,000,000 ml.")]
     public int? RetailSizeMl { get; set; }
 
+    [Required]
+    [Range(0, 1000000, ErrorMessage = "Quantity must be between 0 and 1,000,000.")]
     public int Quantity { get; set; }
 
+    [Required]
+    [Range(0, 1000000.00, ErrorMessage = "Unit price must be between 0 and 1,000,000.00.")]
     public decimal UnitPrice { get; set; }
 }

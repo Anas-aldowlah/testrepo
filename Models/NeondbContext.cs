@@ -94,7 +94,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("cartitems_pkey");
 
-            entity.ToTable("cartitems");
+            entity.ToTable("cartitems", t =>
+                t.HasCheckConstraint("ck_cartitems_quantity_nonnegative", "quantity >= 0"));
 
             entity.HasIndex(e => new { e.Cartid, e.Productid, e.RetailPriceId }, "ix_cartitems_cart_product_retail");
 
@@ -168,7 +169,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("orders_pkey");
 
-            entity.ToTable("orders");
+            entity.ToTable("orders", t =>
+                t.HasCheckConstraint("ck_orders_totalamount_nonnegative", "totalamount >= 0"));
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Notes)
@@ -266,7 +268,11 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("orderitems_pkey");
 
-            entity.ToTable("orderitems");
+            entity.ToTable("orderitems", t =>
+            {
+                t.HasCheckConstraint("ck_orderitems_quantity_positive", "quantity > 0");
+                t.HasCheckConstraint("ck_orderitems_unitprice_nonnegative", "unitprice >= 0");
+            });
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Orderid).HasColumnName("orderid");
@@ -339,6 +345,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 t.HasCheckConstraint("ck_products_stock_unit", "stock_unit IN ('Piece', 'Ml')");
                 t.HasCheckConstraint("ck_products_volume_for_ml", "(stock_unit = 'Piece' AND volume_ml IS NULL) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
                 t.HasCheckConstraint("ck_products_retail_requires_ml", "(is_retail_enabled = false) OR (stock_unit = 'Ml' AND volume_ml IS NOT NULL AND volume_ml > 0)");
+                t.HasCheckConstraint("ck_products_price_nonnegative", "price >= 0");
+                t.HasCheckConstraint("ck_products_stockquantity_nonnegative", "stockquantity >= 0");
             });
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
@@ -542,7 +550,11 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("sales_days_pkey");
 
-            entity.ToTable("sales_days");
+            entity.ToTable("sales_days", t =>
+            {
+                t.HasCheckConstraint("ck_sales_days_opening_balance_nonnegative", "opening_balance >= 0");
+                t.HasCheckConstraint("ck_sales_days_totals_nonnegative", "total_sales >= 0 AND total_cash >= 0 AND total_transfer >= 0 AND total_wallet >= 0 AND total_returns >= 0 AND net_total >= 0");
+            });
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Date)
@@ -600,7 +612,10 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("sales_pkey");
 
-            entity.ToTable("sales");
+            entity.ToTable("sales", t =>
+                t.HasCheckConstraint(
+                    "ck_sales_amounts_nonnegative",
+                    "total_amount >= 0 AND discount_total >= 0 AND final_amount >= 0"));
 
             entity.HasIndex(e => e.SalesDayId, "ix_sales_sales_day_id");
             entity.HasIndex(e => e.InvoiceNumber, "ix_sales_invoice_number").IsUnique();
@@ -657,7 +672,11 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("sale_items_pkey");
 
-            entity.ToTable("sale_items", t => t.HasCheckConstraint("CK_SaleItem_Quantity_Positive", "quantity > 0"));
+            entity.ToTable("sale_items", t =>
+            {
+                t.HasCheckConstraint("CK_SaleItem_Quantity_Positive", "quantity > 0");
+                t.HasCheckConstraint("ck_sale_items_amounts_nonnegative", "unit_price >= 0 AND discount >= 0 AND total >= 0");
+            });
 
             entity.HasIndex(e => e.SaleId, "ix_sale_items_sale_id");
             entity.HasIndex(e => e.ProductId, "ix_sale_items_product_id");
