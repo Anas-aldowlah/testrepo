@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    @{
+        const string defaultDescription = "ياقوت للعطور الفاخرة - اكتشف منتجاتنا من أرقى العطور الشرقية والغربية في المملكة.";
+        var pageDescription = ViewData["Description"] as string;
+        var metaDescription = string.IsNullOrWhiteSpace(pageDescription)
+            ? defaultDescription
+            : pageDescription.Trim();
+    }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ياقوت للعطور الفاخرة - اكتشف منتجاتنا من أرقى العطور الشرقية والغربية في المملكة." />
+    <meta name="description" content="@metaDescription" />
     <title>@ViewData["Title"] - ياقوت</title>
     <link rel="icon" type="image/svg+xml" href="~/images/favicon.svg" asp-append-version="true" />
     <link rel="apple-touch-icon" href="~/images/yaqut-logo.png" asp-append-version="true" />
