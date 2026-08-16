@@ -56,7 +56,7 @@
 @if (Model != null)
 {
     <div class="yq-pdp"
-         data-yq-recent-item
+         data-yq-product-details
          data-id="@Model.Id"
          data-name="@Model.Name"
          data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
@@ -365,86 +365,4 @@ else
 
 @section Scripts {
     <script src="~/js/products/details.js" asp-append-version="true"></script>
-    <script>
-        // Wishlist toggle logic using localStorage
-        document.addEventListener('DOMContentLoaded', function () {
-            var choices = document.querySelectorAll('input[name="retailChoice"]');
-            var retailInput = document.getElementById('yqRetailPriceId');
-            var qtyInput = document.getElementById('yqQtyInput');
-            var priceBox = document.querySelector('.yq-pdp-price');
-            if (choices.length && retailInput && qtyInput && priceBox) {
-                function syncRetailChoice(selected) {
-                    retailInput.value = selected.value || '';
-                    var max = parseInt(selected.dataset.max || '1', 10);
-                    qtyInput.max = Math.max(1, max).toString();
-                    if ((parseInt(qtyInput.value || '1', 10) || 1) > max) qtyInput.value = Math.max(1, max);
-                    var price = parseFloat(selected.dataset.price || '0') || 0;
-                    priceBox.innerHTML = price.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
-
-                    var stockTexts = document.querySelectorAll('.yq-available-stock-text');
-                    var label = (max >= 3 && max <= 10) ? 'عبوات' : 'عبوة';
-                    stockTexts.forEach(function(el) {
-                        el.innerText = max + ' ' + label;
-                    });
-                }
-
-                choices.forEach(function (choice) {
-                    choice.addEventListener('change', function () {
-                        if (choice.checked) syncRetailChoice(choice);
-                    });
-                });
-
-                var checkedChoice = document.querySelector('input[name="retailChoice"]:checked');
-                if (checkedChoice) syncRetailChoice(checkedChoice);
-            }
-
-            var btn  = document.getElementById('yqWishlistBtn');
-            var icon = document.getElementById('yqWishlistIcon');
-            if (!btn || !icon) return;
-
-            var productId = btn.dataset.productId;
-            var key = 'yq_wishlist';
-
-            function getWishlist() {
-                try {
-                    var parsed = JSON.parse(localStorage.getItem(key) || '[]');
-                    return Array.isArray(parsed) ? parsed.filter(function (id) { return typeof id === 'string'; }) : [];
-                } catch { return []; }
-            }
-            function saveWishlist(list) {
-                try {
-                    localStorage.setItem(key, JSON.stringify(list));
-                    return true;
-                } catch { return false; }
-            }
-            function updateUI(isWishlisted) {
-                icon.className = isWishlisted ? 'bi bi-heart-fill' : 'bi bi-heart';
-                btn.classList.toggle('is-wishlisted', isWishlisted);
-                btn.setAttribute('aria-label', isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة');
-                btn.title = isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة';
-            }
-
-            // Init state
-            var wishlist = getWishlist();
-            updateUI(wishlist.includes(productId));
-
-            btn.addEventListener('click', function () {
-                var list = getWishlist();
-                var idx = list.indexOf(productId);
-                if (idx === -1) {
-                    list.push(productId);
-                } else {
-                    list.splice(idx, 1);
-                }
-                if (!saveWishlist(list)) return;
-                updateUI(list.includes(productId));
-
-                // Micro animation
-                btn.classList.add('yq-pdp-wishlist--pop');
-                btn.addEventListener('animationend', function () {
-                    btn.classList.remove('yq-pdp-wishlist--pop');
-                }, { once: true });
-            });
-        });
-    </script>
 }
