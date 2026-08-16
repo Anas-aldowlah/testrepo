@@ -685,6 +685,9 @@ public class AccountController : Controller
             return null;
         }
 
+        // Normalize form-encoded token values where '+' characters were converted to spaces (' ') during POST
+        token = token.Replace(" ", "+");
+
         try
         {
             var json = _passwordResetProtector.Unprotect(token, out _);

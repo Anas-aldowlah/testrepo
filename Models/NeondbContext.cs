@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace YAGOT_2._0.Models;
 
-public partial class NeondbContext : DbContext
+public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 {
     public NeondbContext()
     {
@@ -14,6 +15,8 @@ public partial class NeondbContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
 
     public virtual DbSet<Cart> Carts { get; set; }
 

@@ -16,6 +16,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -232,6 +233,10 @@ builder.Services.AddDbContext<NeondbContext>(options =>
         {
             npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
         }));
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("YAGOT")
+    .PersistKeysToDbContext<NeondbContext>();
 
 builder.Services.AddDbContext<UsersDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("User"),
