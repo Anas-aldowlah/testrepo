@@ -108,13 +108,18 @@ public class OrdersController : Controller
                     stagedReceipt = await _receiptStorage.StageAsync(
                         model.ReceiptImage,
                         HttpContext.RequestAborted);
+                    _receiptStorage.Promote(stagedReceipt);
                     receiptUrl = stagedReceipt.StorageKey;
                 }
-                catch (InvalidDataException exception)
+                catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
                 {
-                    ModelState.AddModelError("ReceiptImage", exception.Message);
-                    await PopulateCheckoutPaymentMethodsAsync(model);
-                    return View("Checkout", model);
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    // Receipt storage is optional; WhatsApp remains the fallback.
+                    _logger.LogWarning(exception, "Optional receipt storage failed for user {UserId}; checkout will continue.", userId);
+                    receiptUrl = null;
                 }
             }
 
@@ -124,18 +129,23 @@ public class OrdersController : Controller
                 receiptUrl,
                 HttpContext.RequestAborted);
 
-            // CreateOrderAsync returns only after its database transaction commits.
-            if (stagedReceipt != null)
-                _receiptStorage.Promote(stagedReceipt);
-
-            var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
-            if (!string.IsNullOrWhiteSpace(whatsappNumber))
+            try
             {
-                var request = HttpContext.Request;
-                var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
-                var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
-                var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرقم التتبع: {orderLink}\nتم رفع سند الدفع: {(string.IsNullOrEmpty(receiptUrl) ? "لا" : "نعم")}");
-                TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
+                var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
+                if (!string.IsNullOrWhiteSpace(whatsappNumber))
+                {
+                    var request = HttpContext.Request;
+                    var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+                    var orderLink = $"{baseUrl}/Orders/Details/{order.Id}";
+                    var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرقم التتبع: {orderLink}\nتم رفع سند الدفع: {(string.IsNullOrEmpty(receiptUrl) ? "لا" : "نعم")}");
+                    TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
+                }
+            }
+            catch (Exception exception)
+            {
+                // An already committed order must never be reported as failed because
+                // the optional WhatsApp handoff could not be prepared.
+                _logger.LogWarning(exception, "WhatsApp handoff preparation failed for order {OrderId}.", order.Id);
             }
 
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
