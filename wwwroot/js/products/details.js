@@ -1,6 +1,6 @@
 ﻿/**
  * ياقوت — Products / Details page interactions
- * Quantity stepper and recently viewed (client-side only)
+ * Quantity, retail choice, wishlist, and recently viewed interactions
  */
 (function (window, document) {
     'use strict';
@@ -8,10 +8,10 @@
     var RECENT_KEY = 'yaqut-recently-viewed';
     var MAX_RECENT = 6;
 
-    function initQtyStepper() {
-        var input = document.getElementById('yqQtyInput');
-        var decreaseBtn = document.querySelector('[data-yq-qty-decrease]');
-        var increaseBtn = document.querySelector('[data-yq-qty-increase]');
+    function initQtyStepper(root) {
+        var input = root.querySelector('#yqQtyInput');
+        var decreaseBtn = root.querySelector('[data-yq-qty-decrease]');
+        var increaseBtn = root.querySelector('[data-yq-qty-increase]');
         if (!input || !decreaseBtn || !increaseBtn) return;
 
         function clamp(value) {
@@ -67,14 +67,14 @@
     }
 
     function renderRecentlyViewed(root) {
-        var section = document.getElementById('yqRecentlyViewed');
-        var grid = document.getElementById('yqRecentlyViewedGrid');
+        var section = root.querySelector('#yqRecentlyViewed');
+        var grid = root.querySelector('#yqRecentlyViewedGrid');
         if (!section || !grid) return;
 
         var list = getRecentList().filter(function (p) { return p.id !== root.dataset.id; });
         if (!list.length) return;
 
-        grid.innerHTML = '';
+        grid.replaceChildren();
         list.forEach(function (product) {
             var card = document.createElement('a');
             card.className = 'yq-pdp-recent__card';
@@ -110,17 +110,113 @@
         section.hidden = false;
     }
 
-    function initRecentlyViewed() {
-        var root = document.querySelector('[data-yq-recent-item]');
-        if (!root) return;
-
+    function initRecentlyViewed(root) {
         renderRecentlyViewed(root);
         trackCurrentProduct(root);
     }
 
+    function initRetailChoice(root) {
+        var choices = root.querySelectorAll('input[name="retailChoice"]');
+        var retailInput = root.querySelector('#yqRetailPriceId');
+        var qtyInput = root.querySelector('#yqQtyInput');
+        var priceBox = root.querySelector('.yq-pdp-price');
+        if (!choices.length || !retailInput || !qtyInput || !priceBox) return;
+
+        function syncRetailChoice(selected) {
+            retailInput.value = selected.value || '';
+            var max = parseInt(selected.dataset.max || '1', 10);
+            qtyInput.max = Math.max(1, max).toString();
+            if ((parseInt(qtyInput.value || '1', 10) || 1) > max) {
+                qtyInput.value = Math.max(1, max);
+            }
+
+            var price = parseFloat(selected.dataset.price || '0') || 0;
+            var currency = document.createElement('small');
+            currency.textContent = 'ر.س';
+            priceBox.replaceChildren(
+                document.createTextNode(price.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' '),
+                currency
+            );
+
+            var label = (max >= 3 && max <= 10) ? 'عبوات' : 'عبوة';
+            root.querySelectorAll('.yq-available-stock-text').forEach(function (stockText) {
+                stockText.textContent = max + ' ' + label;
+            });
+        }
+
+        choices.forEach(function (choice) {
+            choice.addEventListener('change', function () {
+                if (choice.checked) syncRetailChoice(choice);
+            });
+        });
+
+        var checkedChoice = root.querySelector('input[name="retailChoice"]:checked');
+        if (checkedChoice) syncRetailChoice(checkedChoice);
+    }
+
+    function initWishlist(root) {
+        var button = root.querySelector('#yqWishlistBtn');
+        var icon = root.querySelector('#yqWishlistIcon');
+        if (!button || !icon) return;
+
+        var productId = button.dataset.productId;
+        var key = 'yq_wishlist';
+
+        function getWishlist() {
+            try {
+                var parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
+                return Array.isArray(parsed)
+                    ? parsed.filter(function (id) { return typeof id === 'string'; })
+                    : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function saveWishlist(list) {
+            try {
+                window.localStorage.setItem(key, JSON.stringify(list));
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function updateUi(isWishlisted) {
+            icon.className = isWishlisted ? 'bi bi-heart-fill' : 'bi bi-heart';
+            button.classList.toggle('is-wishlisted', isWishlisted);
+            button.setAttribute('aria-label', isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة');
+            button.title = isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة';
+        }
+
+        updateUi(getWishlist().includes(productId));
+
+        button.addEventListener('click', function () {
+            var list = getWishlist();
+            var index = list.indexOf(productId);
+            if (index === -1) {
+                list.push(productId);
+            } else {
+                list.splice(index, 1);
+            }
+            if (!saveWishlist(list)) return;
+
+            updateUi(list.includes(productId));
+            button.classList.add('yq-pdp-wishlist--pop');
+            button.addEventListener('animationend', function () {
+                button.classList.remove('yq-pdp-wishlist--pop');
+            }, { once: true });
+        });
+    }
+
     function init() {
-        initQtyStepper();
-        initRecentlyViewed();
+        var root = document.querySelector('[data-yq-product-details]');
+        if (!root) return;
+
+        initQtyStepper(root);
+        initRetailChoice(root);
+        initWishlist(root);
+        initRecentlyViewed(root);
     }
 
     if (document.readyState === 'loading') {
