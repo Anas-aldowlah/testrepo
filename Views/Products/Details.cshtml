@@ -1,6 +1,7 @@
 @model YAGOT_2._0.Models.Product
 @{
-    ViewData["Title"] = $"{Model?.Name} | ياقوت للعطور";
+    ViewData["Title"] = Model?.Name;
+    ViewData["Description"] = Model?.Description?.Trim();
     var desc = Model?.Description ?? "";
     var parts = desc.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     var topNote    = parts.Length > 0 ? parts[0] : "";

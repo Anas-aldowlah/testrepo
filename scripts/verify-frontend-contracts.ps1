@@ -25,11 +25,15 @@ $ordersScriptPath = Join-Path $repoRoot 'wwwroot\js\admin\orders\index.js'
 $legacyOrdersScriptPath = Join-Path $repoRoot 'wwwroot\js\admin\orders.js'
 $newSalePath = Join-Path $repoRoot 'Areas\Admin\Views\QuickSales\NewSale.cshtml'
 $validationPath = Join-Path $repoRoot 'Views\Shared\_ValidationScriptsPartial.cshtml'
+$publicLayoutPath = Join-Path $repoRoot 'Views\Shared\_Layout.cshtml'
+$productDetailsPath = Join-Path $repoRoot 'Views\Products\Details.cshtml'
 
 $ordersView = Get-Content -LiteralPath $ordersViewPath -Raw
 $ordersScript = Get-Content -LiteralPath $ordersScriptPath -Raw
 $newSale = Get-Content -LiteralPath $newSalePath -Raw
 $validation = Get-Content -LiteralPath $validationPath -Raw
+$publicLayout = Get-Content -LiteralPath $publicLayoutPath -Raw
+$productDetails = Get-Content -LiteralPath $productDetailsPath -Raw
 
 Assert-Contract (([regex]::Matches($ordersView, 'data-yq-orders-page')).Count -eq 1) 'Admin Orders has one page root'
 Assert-Contract (([regex]::Matches($ordersView, 'data-yq-update-status-url')).Count -eq 1) 'Admin Orders has one encoded status URL contract'
@@ -51,6 +55,12 @@ $jqueryPosition = $validation.IndexOf('jquery.min.js', [StringComparison]::Ordin
 $validatePosition = $validation.IndexOf('jquery.validate.min.js', [StringComparison]::OrdinalIgnoreCase)
 $unobtrusivePosition = $validation.IndexOf('jquery.validate.unobtrusive.min.js', [StringComparison]::OrdinalIgnoreCase)
 Assert-Contract ($jqueryPosition -ge 0 -and $jqueryPosition -lt $validatePosition -and $validatePosition -lt $unobtrusivePosition) 'Validation dependency order remains jQuery then Validate then Unobtrusive'
+
+Assert-Contract (([regex]::Matches($publicLayout, '(?is)<meta\s+name="description"')).Count -eq 1) 'Public layout has one meta description owner'
+Assert-Contract ($publicLayout.Contains('ViewData["Description"]') -and $publicLayout.Contains('string.IsNullOrWhiteSpace(pageDescription)')) 'Public layout supports a non-empty page description with fallback'
+Assert-Contract (([regex]::Matches($productDetails, 'ViewData\["Title"\]\s*=')).Count -eq 1 -and $productDetails.Contains('ViewData["Title"] = Model?.Name;')) 'Product Details leaves the brand suffix to the public layout'
+Assert-Contract ($productDetails.Contains('ViewData["Description"] = Model?.Description?.Trim();')) 'Product Details supplies its trimmed model description'
+Assert-Contract (-not [regex]::IsMatch("$publicLayout`n$productDetails", '(?i)Html\.Raw\s*\(')) 'Product metadata avoids Html.Raw construction'
 
 $frontendFiles = Get-ChildItem -Path $repoRoot -Recurse -File -Include *.cshtml,*.js |
     Where-Object { $_.FullName -notmatch '\\(bin|obj|\.git|\.vs|artifacts|lib)\\' }
