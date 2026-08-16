@@ -249,35 +249,39 @@ public class OrdersController : Controller
                 : RedirectToAction(nameof(Index));
         }
 
-        if (paymentStatus == "Refunded")
+        try
         {
-            try
-            {
-                if (!await _orderService.UpdateStatusAsync(id, "Refunded", paymentStatus))
-                    return NotFound();
+            // Paid and Refunded both pass through the same Serializable transaction,
+            // product row locks, and Stockdeducted checks as order status updates.
+            if (!await _orderService.UpdatePaymentStatusAsync(id, paymentStatus))
+                return NotFound();
 
-                TempData["Success"] = $"تم استرداد الطلب #{id} وإعادة مخزونه بنجاح.";
-            }
-            catch (InvalidOperationException ex)
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                TempData["Error"] = ex.Message;
+                return Json(new
+                {
+                    success = true,
+                    message = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.",
+                    status = paymentStatus
+                });
             }
 
-            return returnToDetails
-                ? RedirectToAction(nameof(Details), new { id })
-                : RedirectToAction(nameof(Index));
+            TempData["Success"] = paymentStatus == "Refunded"
+                ? $"تم استرداد الطلب #{id} وإعادة مخزونه بنجاح."
+                : $"تم تحديث حالة الدفع للطلب #{id} بنجاح.";
         }
-
-        var order = await _context.Orders.FindAsync(id);
-        if (order == null) return NotFound();
-
-        order.Paymentstatus = paymentStatus;
-        await _context.SaveChangesAsync();
-        
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            return Json(new { success = true, message = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.", status = order.Paymentstatus });
-
-        TempData["Success"] = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.";
+        catch (InvalidOperationException ex)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = ex.Message });
+            TempData["Error"] = ex.Message;
+        }
+        catch
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء تحديث حالة الدفع." });
+            TempData["Error"] = "An unexpected error occurred while updating payment status.";
+        }
 
         return returnToDetails 
             ? RedirectToAction(nameof(Details), new { id })

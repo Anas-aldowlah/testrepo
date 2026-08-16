@@ -62,10 +62,6 @@ public class OrderService
 
                 ValidateSubmittedCart(checkout, cart.Cartitems, products);
 
-                var deductionByProduct = BuildCartDeductions(cart.Cartitems, products);
-                foreach (var deduction in deductionByProduct)
-                    await _inventoryService.DeductStockAsync(deduction.Key, deduction.Value, cancellationToken);
-
                 var orderTotal = cart.Cartitems.Sum(item =>
                     item.Quantity * _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice));
 
@@ -74,7 +70,9 @@ public class OrderService
                     Userid = userId,
                     Orderdate = DateTime.UtcNow,
                     Status = "Pending",
-                    Stockdeducted = true,
+                    // Pending orders do not reserve inventory. Stock is claimed only
+                    // when an admin moves the order into a fulfilling status.
+                    Stockdeducted = false,
                     Totalamount = orderTotal,
                     Trackingnumber = $"YAG-{Guid.NewGuid().ToString()[..8].ToUpper()}",
                     Paymentmethod = checkout.PaymentMethod,
@@ -228,11 +226,11 @@ public class OrderService
         return status.Trim().ToLowerInvariant() switch
         {
             "pending" or "قيد الانتظار" => "Pending",
-            "processed" or "processing" or "قيد المعالجة" => "Processed",
+            "processed" or "processing" or "قيد المعالجة" or "تم الدفع" or "جاري التجهيز" => "Processed",
             "shipped" or "تم الشحن" => "Shipped",
-            "delivered" or "completed" or "تم التوصيل" => "Delivered",
+            "delivered" or "completed" or "تم التوصيل" or "مكتمل" => "Delivered",
             "cancelled" or "canceled" or "ملغي" => "Cancelled",
-            "refunded" or "مرتجع" => "Refunded",
+            "refunded" or "مرتجع" or "مسترجع" => "Refunded",
             _ => null
         };
     }
@@ -242,6 +240,35 @@ public class OrderService
         var status = NormalizeStatus(requestedStatus)
             ?? throw new ArgumentException("Invalid order status.", nameof(requestedStatus));
 
+        return await UpdateOrderStateAsync(orderId, _ => status, paymentStatus, status);
+    }
+
+    public async Task<bool> UpdatePaymentStatusAsync(int orderId, string paymentStatus)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(paymentStatus);
+
+        return await UpdateOrderStateAsync(
+            orderId,
+            order => paymentStatus switch
+            {
+                // Paying a Pending order is the inventory-claiming transition.
+                "Paid" when string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase) => "Processed",
+                "Paid" when FulfillingStatuses.Contains(order.Status) => order.Status,
+                "Paid" => throw new InvalidOperationException("لا يمكن تعليم طلب ملغي أو مسترجع كمدفوع."),
+                "Refunded" => "Refunded",
+                _ => order.Status
+            },
+            paymentStatus,
+            $"payment:{paymentStatus}");
+    }
+
+    private async Task<bool> UpdateOrderStateAsync(
+        int orderId,
+        Func<Order, string> resolveStatus,
+        string? paymentStatus,
+        string operationName)
+    {
+
         var strategy = _context.Database.CreateExecutionStrategy();
         try
         {
@@ -249,53 +276,82 @@ public class OrderService
             {
                 _context.ChangeTracker.Clear();
                 await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-                var order = await _context.Orders
-                    .FromSqlInterpolated($"SELECT * FROM orders WHERE id = {orderId} FOR UPDATE")
-                    .SingleOrDefaultAsync();
-
-                if (order == null)
+                try
                 {
+                    var order = await _context.Orders
+                        .FromSqlInterpolated($"SELECT * FROM orders WHERE id = {orderId} FOR UPDATE")
+                        .SingleOrDefaultAsync();
+
+                    if (order == null)
+                    {
+                        await transaction.CommitAsync();
+                        return false;
+                    }
+
+                    var status = resolveStatus(order);
+                    var statusChanged = !string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase);
+                    var shouldDeductStock = statusChanged &&
+                                            FulfillingStatuses.Contains(status) &&
+                                            !order.Stockdeducted;
+                    var shouldRestoreStock = statusChanged &&
+                                             ReleasingStatuses.Contains(status) &&
+                                             order.Stockdeducted;
+
+                    if (!statusChanged && FulfillingStatuses.Contains(status) && !order.Stockdeducted)
+                    {
+                        throw new InvalidOperationException("حالة الطلب غير متسقة: الطلب منفذ دون خصم المخزون.");
+                    }
+
+                    if (shouldDeductStock || shouldRestoreStock)
+                    {
+                        var orderItems = await _context.Orderitems
+                            .Where(item => item.Orderid == orderId)
+                            .ToListAsync();
+                        if (orderItems.Count == 0)
+                            throw new InvalidOperationException("لا يمكن تحديث المخزون لأن الطلب لا يحتوي على منتجات.");
+
+                        var products = await LockProductsAsync(orderItems);
+                        var requiredAmounts = BuildOrderDeductions(orderItems, products);
+
+                        foreach (var amount in requiredAmounts)
+                        {
+                            if (shouldDeductStock)
+                                await _inventoryService.DeductStockAsync(amount.Key, amount.Value);
+                            else
+                                await _inventoryService.RestoreStockAsync(amount.Key, amount.Value);
+                        }
+
+                        order.Stockdeducted = shouldDeductStock;
+                    }
+
+                    order.Status = status;
+                    order.TimeState = DateTime.Now;
+                    if (paymentStatus != null)
+                        order.Paymentstatus = paymentStatus;
+
+                    await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return false;
+                    return true;
                 }
-
-                var orderItems = await _context.Orderitems
-                    .Where(item => item.Orderid == orderId)
-                    .ToListAsync();
-                var products = await LockProductsAsync(orderItems);
-                var requiredAmounts = BuildOrderDeductions(orderItems, products);
-
-                if (FulfillingStatuses.Contains(status) && !order.Stockdeducted)
+                catch
                 {
-                    foreach (var amount in requiredAmounts)
-                        await _inventoryService.DeductStockAsync(amount.Key, amount.Value);
+                    try
+                    {
+                        await transaction.RollbackAsync(CancellationToken.None);
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        _logger.LogWarning(rollbackException, "Rollback failed while updating order {OrderId}.", orderId);
+                    }
 
-                    order.Stockdeducted = true;
+                    _context.ChangeTracker.Clear();
+                    throw;
                 }
-                else if (ReleasingStatuses.Contains(status) &&
-                         order.Stockdeducted &&
-                         !string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase))
-                {
-                    foreach (var amount in requiredAmounts)
-                        await _inventoryService.RestoreStockAsync(amount.Key, amount.Value);
-
-                    order.Stockdeducted = false;
-                }
-
-                order.Status = status;
-                order.TimeState = DateTime.Now;
-                if (paymentStatus != null)
-                    order.Paymentstatus = paymentStatus;
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return true;
             });
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Updating order {OrderId} to status {Status} failed.", orderId, status);
+            _logger.LogError(exception, "Updating order {OrderId} with operation {Operation} failed.", orderId, operationName);
             throw;
         }
     }
@@ -315,16 +371,6 @@ public class OrderService
 
         return products;
     }
-
-    private Dictionary<int, int> BuildCartDeductions(IEnumerable<Cartitem> cartItems, IReadOnlyDictionary<int, Product> products) =>
-        cartItems
-            .GroupBy(item => item.Productid)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Sum(item => _inventoryService.CalculateDeductionAmount(
-                    products[item.Productid],
-                    item.Quantity,
-                    item.RetailPrice?.SizeMl)));
 
     private Dictionary<int, int> BuildOrderDeductions(IEnumerable<Orderitem> orderItems, IReadOnlyDictionary<int, Product> products) =>
         orderItems
