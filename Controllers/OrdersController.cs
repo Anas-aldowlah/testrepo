@@ -85,10 +85,7 @@ public class OrdersController : Controller
         model.Cart = cart;
 
         if (!ModelState.IsValid)
-        {
-            await PopulateCheckoutPaymentMethodsAsync(model);
-            return View("Checkout", model);
-        }
+            return ValidationProblem(ModelState);
 
         if (!TryResolveUserId(out var userId))
         {
@@ -153,6 +150,14 @@ public class OrdersController : Controller
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Checkout was rejected for user {UserId} because a numeric calculation overflowed.", userId);
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Checkout numeric limit exceeded",
+                detail: "إحدى الكميات أو إجمالي الطلب يتجاوز الحد الرقمي المسموح.");
         }
         catch (Exception exception) when (exception is CartConcurrencyException or DbUpdateConcurrencyException)
         {

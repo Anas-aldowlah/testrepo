@@ -20,12 +20,19 @@ public class ProductsController : Controller
     private readonly ProductService _productService;
     private readonly NeondbContext _context;
     private readonly Image _imageService;
+    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(ProductService productService, NeondbContext context, IWebHostEnvironment webHostEnvironment, Image imageService)
+    public ProductsController(
+        ProductService productService,
+        NeondbContext context,
+        IWebHostEnvironment webHostEnvironment,
+        Image imageService,
+        ILogger<ProductsController> logger)
     {
         _productService = productService;
         _context = context;
         _imageService = imageService;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
@@ -119,11 +126,19 @@ public class ProductsController : Controller
             ModelState.AddModelError(string.Empty, exception.Message);
         }
 
-        if (ModelState.IsValid)
-        {
-            string? filename = await _imageService.UploadImage(productvw.Imagefile, "products");
-            var stockQuantity = CalculateInitialStock(productvw);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
+        try
+        {
+            var stockQuantity = CalculateInitialStock(productvw);
+            if (stockQuantity > 1000000)
+            {
+                ModelState.AddModelError(nameof(ProductVW.Stockquantity), "The calculated stock quantity must not exceed 1,000,000.");
+                return ValidationProblem(ModelState);
+            }
+
+            string? filename = await _imageService.UploadImage(productvw.Imagefile, "products");
             var newProduct = new Product
             {
                 Name = productvw.Name,
@@ -153,9 +168,12 @@ public class ProductsController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
-        ViewBag.Categoryid = new SelectList(_context.Categories, "Id", "Name", productvw.Categoryid);
-        return View(productvw);
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Rejected product creation because its initial stock calculation overflowed.");
+            ModelState.AddModelError(nameof(ProductVW.Stockquantity), "The calculated stock quantity exceeds the supported numeric range.");
+            return ValidationProblem(ModelState);
+        }
     }
 
     public async Task<IActionResult> Edit(int id)
@@ -190,7 +208,10 @@ public class ProductsController : Controller
             ModelState.AddModelError(string.Empty, exception.Message);
         }
 
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        try
         {
             string? fileName = productVW.Existingimage;
             if (productVW.Imagefile != null && productVW.Imagefile.Length > 0)
@@ -216,31 +237,67 @@ public class ProductsController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
-        ViewBag.Categories = await _productService.GetCategoriesAsync();
-        productVW.Stockquantity = product.Stockquantity;
-        productVW.Existingimage = product.Imageurl;
-        return View(productVW);
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Rejected update for product {ProductId} because a numeric value overflowed.", productVW.Id);
+            ModelState.AddModelError(string.Empty, "A product numeric value exceeds the supported range.");
+            return ValidationProblem(ModelState);
+        }
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddStock(ProductVW input)
+    public async Task<IActionResult> AddStock(StockAdjustmentViewModel input)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == input.Id);
         if (product == null) return NotFound();
 
-        var amount = product.StockUnit == "Ml"
-            ? input.AddedBottleCount * (product.VolumeMl ?? 0)
-            : input.AddedStockQuantity;
+        int amount;
+        try
+        {
+            if (product.StockUnit == "Ml" && input.VolumeMl is not > 0)
+            {
+                ModelState.AddModelError(nameof(StockAdjustmentViewModel.VolumeMl), "A valid bottle volume is required for ml products.");
+                return ValidationProblem(ModelState);
+            }
+
+            amount = product.StockUnit == "Ml"
+                ? checked(input.AddedBottleCount * input.VolumeMl!.Value)
+                : input.AddedStockQuantity;
+        }
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Rejected stock adjustment for product {ProductId} because the amount overflowed.", input.Id);
+            ModelState.AddModelError(string.Empty, "The stock adjustment exceeds the supported numeric range.");
+            return ValidationProblem(ModelState);
+        }
 
         if (amount <= 0)
         {
-            TempData["Error"] = "أدخل كمية مخزون صحيحة.";
-            return RedirectToAction(nameof(Edit), new { id = input.Id });
+            ModelState.AddModelError(string.Empty, "Stock adjustment quantity must be greater than zero.");
+            return ValidationProblem(ModelState);
         }
 
-        product.Stockquantity += amount;
+        try
+        {
+            var resultingStock = checked(product.Stockquantity + amount);
+            if (resultingStock > 1000000)
+            {
+                ModelState.AddModelError(string.Empty, "The resulting stock quantity must not exceed 1,000,000.");
+                return ValidationProblem(ModelState);
+            }
+
+            product.Stockquantity = resultingStock;
+        }
+        catch (OverflowException exception)
+        {
+            _logger.LogWarning(exception, "Rejected stock adjustment for product {ProductId} because the resulting stock overflowed.", input.Id);
+            ModelState.AddModelError(string.Empty, "The resulting stock quantity exceeds the supported numeric range.");
+            return ValidationProblem(ModelState);
+        }
         await _context.SaveChangesAsync();
         TempData["Message"] = "تمت إضافة المخزون بنجاح.";
         return RedirectToAction(nameof(Edit), new { id = input.Id });
@@ -339,7 +396,7 @@ public class ProductsController : Controller
     private static int CalculateInitialStock(ProductVW model)
     {
         if (NormalizeStockUnit(model.StockUnit) == "Ml")
-            return model.Stockquantity * (model.VolumeMl ?? 0);
+            return checked(model.Stockquantity * (model.VolumeMl ?? 0));
 
         return model.Stockquantity;
     }

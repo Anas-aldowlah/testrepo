@@ -156,16 +156,17 @@
             <div class="yq-product-form__grid yq-stock-add-grid">
                 @if (isMlStock)
                 {
+                    <input id="StockAdjustmentVolumeMl" name="VolumeMl" type="hidden" value="@Model?.VolumeMl" />
                     <div class="yaqut-form-group yq-product-field">
-                        <label asp-for="AddedBottleCount" class="yaqut-form-label">عدد العبوات المضافة</label>
-                        <input asp-for="AddedBottleCount" type="number" min="0" class="yaqut-form-input" />
+                        <label for="AddedBottleCount" class="yaqut-form-label">عدد العبوات المضافة</label>
+                        <input id="AddedBottleCount" name="AddedBottleCount" type="number" min="0" max="1000000" value="0" class="yaqut-form-input" />
                     </div>
                 }
                 else
                 {
                     <div class="yaqut-form-group yq-product-field">
-                        <label asp-for="AddedStockQuantity" class="yaqut-form-label">عدد القطع المضافة</label>
-                        <input asp-for="AddedStockQuantity" type="number" min="0" class="yaqut-form-input" />
+                        <label for="AddedStockQuantity" class="yaqut-form-label">عدد القطع المضافة</label>
+                        <input id="AddedStockQuantity" name="AddedStockQuantity" type="number" min="0" max="1000000" value="0" class="yaqut-form-input" />
                     </div>
                 }
             </div>
@@ -183,7 +184,15 @@
             const retailList = document.querySelector('[data-retail-price-list]');
             const addRetailButton = document.querySelector('[data-add-retail-price]');
             const volumeField = document.querySelector('[data-volume-field]');
+            const volumeInput = document.getElementById('VolumeMl');
+            const stockAdjustmentVolumeInput = document.getElementById('StockAdjustmentVolumeMl');
             let retailIndex = @rows.Count;
+
+            function syncStockAdjustmentVolume() {
+                if (volumeInput && stockAdjustmentVolumeInput) {
+                    stockAdjustmentVolumeInput.value = volumeInput.value;
+                }
+            }
 
             function addRetailRow() {
                 if (!retailList) return;
@@ -217,12 +226,14 @@
             }
 
             stockUnit?.addEventListener('change', syncForm);
+            volumeInput?.addEventListener('input', syncStockAdjustmentVolume);
             retailToggle?.addEventListener('change', syncForm);
             addRetailButton?.addEventListener('click', addRetailRow);
             retailList?.addEventListener('click', function (event) {
                 const removeButton = event.target.closest('[data-remove-retail-price]');
                 if (removeButton) removeButton.closest('.yq-retail-price-row')?.remove();
             });
+            syncStockAdjustmentVolume();
             syncForm();
         });
     </script>

@@ -62,8 +62,7 @@ public class OrderService
 
                 ValidateSubmittedCart(checkout, cart.Cartitems, products);
 
-                var orderTotal = cart.Cartitems.Sum(item =>
-                    item.Quantity * _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice));
+                var orderTotal = CalculateOrderTotal(cart.Cartitems, products);
 
                 var order = new Order
                 {
@@ -171,7 +170,7 @@ public class OrderService
             {
                 group.Key.ProductId,
                 group.Key.RetailPriceId,
-                Quantity = group.Sum(item => item.Quantity),
+                Quantity = CheckedQuantitySum(group.Select(item => item.Quantity)),
                 UnitPrices = group.Select(item => item.UnitPrice).Distinct().ToArray()
             })
             .OrderBy(item => item.ProductId)
@@ -187,7 +186,7 @@ public class OrderService
                 {
                     ProductId = group.Key.Productid,
                     group.Key.RetailPriceId,
-                    Quantity = group.Sum(item => item.Quantity),
+                    Quantity = CheckedQuantitySum(group.Select(item => item.Quantity)),
                     UnitPrice = _inventoryService.GetUnitPrice(products[group.Key.Productid], sample.RetailPrice)
                 };
             })
@@ -213,7 +212,12 @@ public class OrderService
             }
         }
 
-        var currentTotal = currentItems.Sum(item => item.Quantity * item.UnitPrice);
+        decimal currentTotal = 0m;
+        checked
+        {
+            foreach (var item in currentItems)
+                currentTotal += item.Quantity * item.UnitPrice;
+        }
         if (checkout.SubmittedCartTotal != currentTotal)
             throw new InvalidOperationException(staleCartMessage);
     }
@@ -372,15 +376,54 @@ public class OrderService
         return products;
     }
 
-    private Dictionary<int, int> BuildOrderDeductions(IEnumerable<Orderitem> orderItems, IReadOnlyDictionary<int, Product> products) =>
-        orderItems
-            .GroupBy(item => item.Productid)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Sum(item => _inventoryService.CalculateDeductionAmount(
+    private Dictionary<int, int> BuildOrderDeductions(
+        IEnumerable<Orderitem> orderItems,
+        IReadOnlyDictionary<int, Product> products)
+    {
+        var totals = new Dictionary<int, int>();
+        checked
+        {
+            foreach (var item in orderItems)
+            {
+                var amount = _inventoryService.CalculateDeductionAmount(
                     products[item.Productid],
                     item.Quantity,
-                    item.RetailSizeMl)));
+                    item.RetailSizeMl);
+                totals[item.Productid] = totals.GetValueOrDefault(item.Productid) + amount;
+            }
+        }
+
+        return totals;
+    }
+
+    private decimal CalculateOrderTotal(
+        IEnumerable<Cartitem> cartItems,
+        IReadOnlyDictionary<int, Product> products)
+    {
+        decimal total = 0m;
+        checked
+        {
+            foreach (var item in cartItems)
+                total += item.Quantity * _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice);
+        }
+
+        if (total > 1000000.00m)
+            throw new OverflowException("Order total exceeds the allowed currency limit.");
+
+        return total;
+    }
+
+    private static int CheckedQuantitySum(IEnumerable<int> quantities)
+    {
+        var total = 0;
+        checked
+        {
+            foreach (var quantity in quantities)
+                total += quantity;
+        }
+
+        return total;
+    }
 
     private async Task ValidateCheckoutAsync(CheckoutVM checkout, CancellationToken cancellationToken)
     {

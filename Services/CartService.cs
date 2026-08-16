@@ -82,7 +82,7 @@ public class CartService
 
             if (existingItem != null)
             {
-                var requestedQuantity = existingItem.Quantity + quantityToAdd;
+                var requestedQuantity = checked(existingItem.Quantity + quantityToAdd);
                 existingItem.Quantity = Math.Min(requestedQuantity, maxUnits);
                 if (requestedQuantity > maxUnits)
                     MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";

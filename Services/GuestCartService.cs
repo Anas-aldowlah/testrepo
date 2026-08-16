@@ -113,7 +113,7 @@ public class GuestCartService
         var existingItem = items.FirstOrDefault(i =>
             i.ProductId == productId &&
             i.RetailPriceId == retailPriceId);
-        var requestedQuantity = (existingItem?.Quantity ?? 0) + quantity;
+        var requestedQuantity = checked((existingItem?.Quantity ?? 0) + quantity);
 
         if (requestedQuantity > maxUnits)
         {
@@ -204,7 +204,7 @@ public class GuestCartService
             {
                 ProductId = group.Key.ProductId,
                 RetailPriceId = group.Key.RetailPriceId,
-                Quantity = group.Sum(item => item.Quantity)
+                Quantity = CheckedQuantitySum(group.Select(item => item.Quantity))
             })
             .ToList();
         if (guestItems.Count == 0) return;
@@ -251,7 +251,7 @@ public class GuestCartService
                     var key = (guestItem.ProductId, guestItem.RetailPriceId);
                     if (existingItems.TryGetValue(key, out var existingItem))
                     {
-                        existingItem.Quantity = Math.Min(existingItem.Quantity + guestItem.Quantity, maxUnits);
+                        existingItem.Quantity = Math.Min(checked(existingItem.Quantity + guestItem.Quantity), maxUnits);
                         continue;
                     }
 
@@ -390,6 +390,18 @@ public class GuestCartService
                     MaxQuantityPerItem)
             })
             .ToList();
+    }
+
+    private static int CheckedQuantitySum(IEnumerable<int> quantities)
+    {
+        var total = 0;
+        checked
+        {
+            foreach (var quantity in quantities)
+                total += quantity;
+        }
+
+        return total;
     }
 
     private sealed class GuestCartItem
