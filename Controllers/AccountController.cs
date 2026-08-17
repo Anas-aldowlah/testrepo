@@ -424,19 +424,74 @@ public class AccountController : Controller
             Createdat = DateTime.UtcNow
         };
 
-        _dbUser.Users.Add(user);
-        await _dbUser.SaveChangesAsync();
-
-        var userSite = new UserSite
+        try
         {
-            UserId = user.Id,
-            Role = "Customer"
-        };
-        _db.UserSites.Add(userSite);
-        await _db.SaveChangesAsync();
+            _dbUser.Users.Add(user);
+            await _dbUser.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create user record in UsersDbContext during registration for email {Email}.", state.GoogleEmail);
+            return Json(new { success = false, message = "حدث خطأ أثناء إنشاء حساب المستخدم. يرجى المحاولة مرة أخرى." });
+        }
 
-        await SignInUserAsync(user, user.Id);
-        await _guestCartService.MergeIntoUserCartAsync(user.Id);
+        var createdUserId = user.Id;
+
+        try
+        {
+            var userSite = new UserSite
+            {
+                UserId = createdUserId,
+                Role = "Customer"
+            };
+            _db.UserSites.Add(userSite);
+            await _db.SaveChangesAsync();
+
+            await SignInUserAsync(user, createdUserId);
+            try
+            {
+                await _guestCartService.MergeIntoUserCartAsync(createdUserId);
+            }
+            catch (Exception cartEx)
+            {
+                _logger.LogWarning(cartEx, "Could not merge guest cart during registration for user {UserId}.", createdUserId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Registration completed partially: User {UserId} was created in UsersDbContext, but secondary initialization failed. Executing compensating deletion.", createdUserId);
+
+            try
+            {
+                var userSiteToDelete = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == createdUserId);
+                if (userSiteToDelete != null)
+                {
+                    _db.UserSites.Remove(userSiteToDelete);
+                    await _db.SaveChangesAsync();
+                }
+            }
+            catch (Exception siteRollbackEx)
+            {
+                _logger.LogWarning(siteRollbackEx, "Could not remove UserSite for user {UserId} during compensating rollback.", createdUserId);
+            }
+
+            try
+            {
+                var userToDelete = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == createdUserId);
+                if (userToDelete != null)
+                {
+                    _dbUser.Users.Remove(userToDelete);
+                    await _dbUser.SaveChangesAsync();
+                    _logger.LogInformation("Compensating deletion succeeded for user {UserId}.", createdUserId);
+                }
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogCritical(rollbackEx, "CRITICAL: Compensating deletion failed for user {UserId} in UsersDbContext.", createdUserId);
+            }
+
+            return Json(new { success = false, message = "تعذر إكمال عملية التسجيل حالياً. يرجى المحاولة مرة أخرى." });
+        }
 
         TempData["UserName"] = user.Name;
         TempData["Success"] = true;
