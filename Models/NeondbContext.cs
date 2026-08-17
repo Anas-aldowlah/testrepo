@@ -556,6 +556,10 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 t.HasCheckConstraint("ck_sales_days_totals_nonnegative", "total_sales >= 0 AND total_cash >= 0 AND total_transfer >= 0 AND total_wallet >= 0 AND total_returns >= 0 AND net_total >= 0");
             });
 
+            entity.HasIndex(e => new { e.CreatedBy, e.Status }, "ux_sales_days_created_by_open")
+                .IsUnique()
+                .HasFilter("status = 'Open'");
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Date)
                 .HasColumnType("timestamp without time zone")

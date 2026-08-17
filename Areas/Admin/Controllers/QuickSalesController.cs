@@ -116,8 +116,9 @@ public class QuickSalesController : Controller
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        var currentUser = User.Identity?.Name ?? "المدير";
         var existingOpenDay = await _context.SalesDays
-            .FirstOrDefaultAsync(sd => sd.Status == "Open");
+            .FirstOrDefaultAsync(sd => sd.Status == "Open" && sd.CreatedBy == currentUser);
 
         if (existingOpenDay != null)
         {
@@ -131,12 +132,21 @@ public class QuickSalesController : Controller
             OpeningBalance = model.OpeningBalance,
             Notes = model.Notes?.Trim(),
             Status = "Open",
-            CreatedBy = User.Identity?.Name ?? "المدير",
+            CreatedBy = currentUser,
             CreatedAt = DateTime.Now
         };
 
-        _context.SalesDays.Add(newSalesDay);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.SalesDays.Add(newSalesDay);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            _logger.LogWarning(ex, "Concurrent OpenDay request rejected for user {CreatedBy}.", currentUser);
+            TempData["WarningMessage"] = "يوجد يوم بيع مفتوح بالفعل لهذا المستخدم.";
+            return RedirectToAction(nameof(Index));
+        }
 
         TempData["SuccessMessage"] = $"تم فتح يوم بيع جديد بتاريخ {newSalesDay.Date:yyyy/MM/dd} بنجاح.";
         return RedirectToAction(nameof(Index));
@@ -778,8 +788,23 @@ public class QuickSalesController : Controller
                 await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
                 try
                 {
-                    // Lock the persisted draft first. Concurrent completions wait here and then
-                    // observe the committed status before inventory or payment rows are touched.
+                    // 1. Lock the sales_days row first to enforce consistent lock acquisition order with CloseDay
+                    var lockedSalesDays = await _context.SalesDays
+                        .FromSqlInterpolated($"SELECT * FROM sales_days WHERE id = {model.SalesDayId} FOR UPDATE")
+                        .ToListAsync();
+                    var openSalesDay = lockedSalesDays.SingleOrDefault();
+
+                    if (openSalesDay == null || !string.Equals(openSalesDay.Status, "Open", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await transaction.RollbackAsync();
+                        return Conflict(new CompleteSaleResponseDto
+                        {
+                            Success = false,
+                            Message = "تم إغلاق يوم البيع أثناء تنفيذ العملية. لم يتم خصم المخزون أو اعتماد الدفعات."
+                        });
+                    }
+
+                    // 2. Lock the persisted draft sale under the verified open sales day
                     var lockedSales = await _context.Sales
                         .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId.Value} AND sales_day_id = {model.SalesDayId} FOR UPDATE")
                         .ToListAsync();
@@ -806,19 +831,6 @@ public class QuickSalesController : Controller
                             InvoiceNumber = sale.InvoiceNumber,
                             FinalAmount = sale.FinalAmount,
                             CompletedAt = sale.CompletedAt?.ToString("yyyy/MM/dd HH:mm")
-                        });
-                    }
-
-                    var salesDayIsOpen = await _context.SalesDays
-                        .AsNoTracking()
-                        .AnyAsync(sd => sd.Id == model.SalesDayId && sd.Status == "Open");
-                    if (!salesDayIsOpen)
-                    {
-                        await transaction.RollbackAsync();
-                        return Conflict(new CompleteSaleResponseDto
-                        {
-                            Success = false,
-                            Message = "تم إغلاق يوم البيع أثناء تنفيذ العملية. لم يتم خصم المخزون أو اعتماد الدفعات."
                         });
                     }
 
@@ -1181,11 +1193,14 @@ public class QuickSalesController : Controller
 
         return await strategy.ExecuteAsync<IActionResult>(async () =>
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            _context.ChangeTracker.Clear();
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                var salesDay = await _context.SalesDays
-                    .FirstOrDefaultAsync(sd => sd.Id == model.SalesDayId);
+                var lockedSalesDays = await _context.SalesDays
+                    .FromSqlInterpolated($"SELECT * FROM sales_days WHERE id = {model.SalesDayId} FOR UPDATE")
+                    .ToListAsync();
+                var salesDay = lockedSalesDays.SingleOrDefault();
 
                 if (salesDay == null)
                 {
@@ -1193,7 +1208,7 @@ public class QuickSalesController : Controller
                     return Json(new { success = false, message = "يوم البيع المطلوب غير موجود." });
                 }
 
-                if (salesDay.Status == "Closed")
+                if (string.Equals(salesDay.Status, "Closed", StringComparison.OrdinalIgnoreCase))
                 {
                     await transaction.RollbackAsync();
                     return Json(new { success = false, message = "يوم البيع مغلق بالفعل." });
