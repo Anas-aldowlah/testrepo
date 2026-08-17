@@ -14,6 +14,8 @@ namespace YAGOT_2._0.Areas.Admin.Controllers;
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
 public class CategoriesController : Controller
 {
+    private const string DefaultCategoryImageUrl = "/images/categories/category_8428362.png";
+
     private readonly NeondbContext _context;
     private readonly CategoryServer _categoryService;
     private readonly Image _ImageServes;
@@ -66,7 +68,7 @@ public class CategoriesController : Controller
         {
             Name = categoryVW.Name,
             Description = categoryVW.Description,
-            Imageurl = imageUrl != null ? "images/categories/" +imageUrl : "images/categories/category_8428362.png",
+            Imageurl = imageUrl != null ? GetCategoryImageUrl(imageUrl) : DefaultCategoryImageUrl,
         };
 
 
@@ -103,22 +105,36 @@ public class CategoriesController : Controller
 
         var category = await _categoryService.GetCategoryByID(categoryVW.Id);
         if (category==null) return NotFound();
-        string? fileName = categoryVW.Existingimage;
+        category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
         if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
         {
-            fileName = await _ImageServes.UpdateImage(categoryVW.ImageFile, "categories", categoryVW.Existingimage ?? string.Empty);
-            category.Imageurl = fileName != null ? "/images/categories/" + fileName : "images/categories/category_8428362.png";
+            var updatedImageUrl = await _ImageServes.UpdateImage(
+                categoryVW.ImageFile,
+                "categories",
+                categoryVW.Existingimage ?? string.Empty);
+
+            if (updatedImageUrl != null)
+            {
+                category.Imageurl = updatedImageUrl;
+            }
         }
         category.Name = categoryVW.Name;
         category.Description = categoryVW.Description;
-        category.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
-            ? "/images/categories/" + fileName
-            : fileName;
 
         _context.Update(category);
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
 
+    }
+
+    private static string GetCategoryImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return DefaultCategoryImageUrl;
+        }
+
+        return $"/images/categories/{Path.GetFileName(imageUrl)}";
     }
 
     [HttpPost]
