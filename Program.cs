@@ -265,6 +265,9 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<NeondbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var userDbContext = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+    await userDbContext.Database.MigrateAsync();
 }
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
