@@ -107,8 +107,7 @@ namespace YAGOT_2._0.Services
                 }
             }
 
-            // حافظت على نفس طريقة الإرجاع حتى لا يتأثر مشروعك
-            return "/images/products/" + uniqueFileName;
+            return $"/images/{subFolder}/{uniqueFileName}";
         }
     }
 }
