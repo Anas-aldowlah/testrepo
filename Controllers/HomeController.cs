@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -86,5 +87,15 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("/loaderio-86ef8410-61d6-41b7-82de-626c68bc3532.txt")]
+    public IActionResult LoaderIoVerification()
+    {
+        return Content(
+            "loaderio-86ef8410-61d6-41b7-82de-626c68bc3532",
+            "text/plain"
+        );
     }
 }
