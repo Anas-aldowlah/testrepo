@@ -94,7 +94,7 @@ public class HomeController : Controller
     public IActionResult LoaderIoVerification()
     {
         return Content(
-            "loaderio-86ef8410-61d6-41b7-82de-626c68bc3532",
+            "loaderio-03aae8d3-af62-4d5c-9e36-16d1795c99cf",
             "text/plain"
         );
     }
