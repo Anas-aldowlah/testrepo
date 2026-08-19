@@ -110,8 +110,10 @@
           id="yqCheckoutForm"
           data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
           data-yq-auth-modal="yqCheckoutAuthModal"
+          data-yq-checkout-user="@(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty)"
           novalidate>
         @Html.AntiForgeryToken()
+        <input asp-for="CheckoutDraftId" type="hidden" data-yq-checkout-draft-id />
         <input type="hidden" asp-for="SubmittedCartTotal" value="@subtotal" />
         @for (var snapshotIndex = 0; snapshotIndex < items.Count; snapshotIndex++)
         {
@@ -136,6 +138,17 @@
         {
             <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger yq-reveal" role="alert"></div>
         }
+
+        <section class="yq-checkout-draft-recovery yq-glass" data-yq-checkout-draft-recovery hidden aria-labelledby="yqCheckoutDraftRecoveryTitle">
+            <div>
+                <h2 id="yqCheckoutDraftRecoveryTitle">هل تريد استعادة بيانات التوصيل السابقة؟</h2>
+                <p>عثرنا على مسودة مؤقتة محفوظة لهذا الحساب.</p>
+            </div>
+            <div class="yq-checkout-draft-recovery__actions">
+                <button type="button" class="btn-yaqut-gold" data-yq-checkout-draft-restore>استعادة بيانات التوصيل السابقة</button>
+                <button type="button" class="yq-checkout-draft-recovery__fresh" data-yq-checkout-draft-fresh>البدء من جديد</button>
+            </div>
+        </section>
 
         <div class="yq-checkout-layout">
 

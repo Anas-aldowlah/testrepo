@@ -10,6 +10,7 @@
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
     var customerPhone = Model.User?.Phone ?? User.FindFirst(ClaimTypes.MobilePhone)?.Value;
+    var checkoutDraftIdToClear = ViewData["CheckoutDraftIdToClear"] as string ?? string.Empty;
 
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
@@ -29,7 +30,9 @@
     <link rel="stylesheet" href="~/css/orders/confirmation.css" asp-append-version="true" />
 }
 
-<div class="yq-confirm-page">
+<div class="yq-confirm-page"
+     data-yq-confirmation-page
+     data-yq-clear-checkout-draft-id="@checkoutDraftIdToClear">
 
     <!-- SUCCESS HERO -->
     <section class="yq-confirm-hero yq-reveal">

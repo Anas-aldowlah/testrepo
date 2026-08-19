@@ -13,6 +13,9 @@ public class CheckoutVM
     [Range(0, 1000000.00, ErrorMessage = "Cart total must be between 0 and 1,000,000.00.")]
     public decimal SubmittedCartTotal { get; set; }
 
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
+    public string? CheckoutDraftId { get; set; }
+
     private string _customerName = string.Empty;
 
     [Required(ErrorMessage = "اسم العميل مطلوب.")]
