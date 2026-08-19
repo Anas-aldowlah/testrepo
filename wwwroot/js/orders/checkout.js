@@ -134,11 +134,6 @@
             }
 
             setSubmitting(true);
-            try {
-                window.localStorage.removeItem('yq-checkout-draft');
-            } catch (error) {
-                // Storage availability must never block checkout.
-            }
 
             // If a later submit listener cancels the request, restore the controls.
             window.setTimeout(function () {
@@ -256,66 +251,101 @@
     }
 })(window, document);
 
-// === Checkout draft persistence ===
-(function() {
+// === Checkout draft recovery UI ===
+(function (window, document) {
+    'use strict';
+
     const form = document.getElementById('yqCheckoutForm');
-    if (!form) return;
+    const draftStorage = window.YaqutCheckoutDraft;
+    if (!form || !draftStorage) return;
 
-    // === Auto-save form data ===
-    const STORAGE_KEY = 'yq-checkout-draft';
-    const formInputs = form.querySelectorAll(
-        'input:not([type="hidden"]):not([type="file"]):not([type="password"]):not([readonly]):not([disabled]), ' +
-        'select:not([disabled]), textarea:not([readonly]):not([disabled])'
-    );
-    
+    const userId = form.getAttribute('data-yq-checkout-user');
+    const recovery = document.querySelector('[data-yq-checkout-draft-recovery]');
+    const restoreButton = recovery && recovery.querySelector('[data-yq-checkout-draft-restore]');
+    const freshButton = recovery && recovery.querySelector('[data-yq-checkout-draft-fresh]');
+    const draftIdInput = form.querySelector('[data-yq-checkout-draft-id]');
+    const fields = draftStorage.allowedFields.map(name => form.elements.namedItem(name)).filter(Boolean);
+    let recoveryPending = false;
+    let saveTimer = 0;
+    const draft = draftStorage.read(userId);
+    let draftId = draft ? draft.draftId : (userId ? draftStorage.createDraftId() : null);
+
+    function syncDraftIdInput() {
+        if (draftIdInput) draftIdInput.value = draftId || '';
+    }
+
+    function fieldValues() {
+        const values = {};
+        fields.forEach(field => { values[field.name] = String(field.value || ''); });
+        return values;
+    }
+
+    function hasDeliveryValues() {
+        return fields.some(field => String(field.value || '').trim().length > 0);
+    }
+
     function saveFormData() {
-        const data = {};
-        formInputs.forEach(input => {
-            if (!input.name) return;
+        if (recoveryPending || !userId) return;
+        if (!hasDeliveryValues()) {
+            draftStorage.clear();
+            return;
+        }
+        if (!draftId) draftId = draftStorage.createDraftId();
+        syncDraftIdInput();
+        draftStorage.write(userId, draftId, fieldValues());
+    }
 
-            if (input.type === 'radio') {
-                if (input.checked) data[input.name] = input.value;
-                return;
-            }
+    function scheduleSave() {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(saveFormData, 500);
+    }
 
-            if (input.type === 'checkbox') {
-                if (!Array.isArray(data[input.name])) data[input.name] = [];
-                if (input.checked) data[input.name].push(input.value);
-                return;
-            }
+    function hideRecovery() {
+        recoveryPending = false;
+        if (recovery) recovery.hidden = true;
+    }
 
-            data[input.name] = input.value;
-        });
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+    function showRecovery() {
+        recoveryPending = true;
+        if (recovery) recovery.hidden = false;
     }
 
     function restoreFormData() {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) return;
-            const data = JSON.parse(saved);
-            formInputs.forEach(input => {
-                if (!input.name || data[input.name] === undefined) return;
+        const record = draftStorage.read(userId);
+        if (!record) {
+            hideRecovery();
+            return;
+        }
 
-                if (input.type === 'radio') {
-                    input.checked = input.value === data[input.name];
-                } else if (input.type === 'checkbox') {
-                    input.checked = Array.isArray(data[input.name]) && data[input.name].indexOf(input.value) !== -1;
-                } else if (input.tagName === 'SELECT' || !input.value) {
-                    input.value = data[input.name];
-                } else {
-                    return;
-                }
-
-                const eventName = input.type === 'radio' || input.type === 'checkbox' || input.tagName === 'SELECT'
-                    ? 'change'
-                    : 'input';
-                input.dispatchEvent(new Event(eventName, { bubbles: true }));
-            });
-        } catch(e) {}
+        fields.forEach(field => {
+            field.value = record.fields[field.name];
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        hideRecovery();
+        if (typeof window.updateCities === 'function') window.updateCities();
     }
 
-    restoreFormData();
-    setInterval(saveFormData, 30000);
-    formInputs.forEach(input => input.addEventListener('change', saveFormData));
-})();
+    function startFresh() {
+        draftStorage.clear();
+        draftId = userId ? draftStorage.createDraftId() : null;
+        syncDraftIdInput();
+        hideRecovery();
+    }
+
+    syncDraftIdInput();
+    if (draft && !hasDeliveryValues() && recovery && restoreButton && freshButton) showRecovery();
+
+    fields.forEach(field => {
+        field.addEventListener('input', scheduleSave);
+        field.addEventListener('change', scheduleSave);
+    });
+    if (restoreButton) restoreButton.addEventListener('click', restoreFormData);
+    if (freshButton) freshButton.addEventListener('click', startFresh);
+
+    form.addEventListener('submit', saveFormData, true);
+    window.addEventListener('pagehide', saveFormData);
+    window.addEventListener('storage', function (event) {
+        if (event.key === draftStorage.key && !event.newValue) hideRecovery();
+    });
+})(window, document);

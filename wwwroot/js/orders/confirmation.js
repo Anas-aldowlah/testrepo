@@ -52,7 +52,15 @@
         });
     }
 
+    function clearSuccessfulCheckoutDraft() {
+        var page = document.querySelector('[data-yq-confirmation-page]');
+        var draftId = page && page.getAttribute('data-yq-clear-checkout-draft-id');
+        if (!draftId || !window.YaqutCheckoutDraft) return;
+        window.YaqutCheckoutDraft.remove(draftId);
+    }
+
     function init() {
+        clearSuccessfulCheckoutDraft();
         initCopyTracking();
     }
 

@@ -14,6 +14,8 @@ namespace YAGOT_2._0.Controllers;
 [ServiceFilter(typeof(SiteStatusFilter))]
 public class OrdersController : Controller
 {
+    private const string CheckoutSuccessMarkerTempDataPrefix = "YAGOT_CheckoutSuccess";
+
     private readonly OrderService _orderService;
     private readonly CartService _cartService;
     private readonly GuestCartService _guestCartService;
@@ -145,6 +147,10 @@ public class OrdersController : Controller
                 _logger.LogWarning(exception, "WhatsApp handoff preparation failed for order {OrderId}.", order.Id);
             }
 
+            if (Guid.TryParseExact(model.CheckoutDraftId, "D", out var checkoutDraftId))
+            {
+                TempData[CheckoutSuccessMarkerKey(order.Id)] = $"{order.Id}:{checkoutDraftId:D}";
+            }
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -207,6 +213,7 @@ public class OrdersController : Controller
         var userId = await ResolveUserIdAsync();
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
+        ViewData["CheckoutDraftIdToClear"] = ConsumeCheckoutSuccessMarker(id);
         return View(order);
     }
 
@@ -298,6 +305,26 @@ public class OrdersController : Controller
             Request.Headers["X-Requested-With"],
             "XMLHttpRequest",
             StringComparison.OrdinalIgnoreCase);
+
+    private string? ConsumeCheckoutSuccessMarker(int orderId)
+    {
+        var markerKey = CheckoutSuccessMarkerKey(orderId);
+        var markerValue = TempData.Peek(markerKey)?.ToString();
+        var separatorIndex = markerValue?.IndexOf(':') ?? -1;
+        if (separatorIndex <= 0 ||
+            !int.TryParse(markerValue![..separatorIndex], out var successfulOrderId) ||
+            successfulOrderId != orderId ||
+            !Guid.TryParseExact(markerValue[(separatorIndex + 1)..], "D", out var checkoutDraftId))
+        {
+            return null;
+        }
+
+        TempData.Remove(markerKey);
+        return checkoutDraftId.ToString("D");
+    }
+
+    private static string CheckoutSuccessMarkerKey(int orderId) =>
+        $"{CheckoutSuccessMarkerTempDataPrefix}:{orderId}";
 
     private static string NormalizeWhatsAppNumber(string? value)
     {

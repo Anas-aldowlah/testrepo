@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Checkout draft privacy harness</title>
+</head>
+<body>
+    <form id="yqCheckoutForm" action="/Orders/Checkout" method="post" data-yq-checkout-user="101" data-yq-auth-required="false">
+        <input name="CheckoutDraftId" type="hidden" data-yq-checkout-draft-id />
+        <input name="Governorate" />
+        <input name="City" />
+        <input name="District" />
+        <input name="Street" type="tel" />
+        <textarea name="DeliveryNotes"></textarea>
+        <input name="PaymentMethod" type="radio" value="server-payment" checked />
+        <input name="SubmittedCartTotal" type="hidden" value="999" />
+    </form>
+    <section data-yq-checkout-draft-recovery hidden aria-labelledby="recoveryTitle">
+        <h2 id="recoveryTitle">استعادة المسودة</h2>
+        <button type="button" data-yq-checkout-draft-restore>استعادة</button>
+        <button type="button" data-yq-checkout-draft-fresh>البدء من جديد</button>
+    </section>
+    <form id="logoutForm" action="/Account/Logout" method="post"></form>
+    <main data-yq-confirmation-page data-yq-clear-checkout-draft-id=""></main>
+    <output id="harnessResult"></output>
+
+    <script>
+        (function () {
+            const scenario = new URLSearchParams(location.search).get('scenario') || 'valid';
+            const now = Date.now();
+            const draftId1 = '11111111-1111-4111-8111-111111111111';
+            const draftId2 = '22222222-2222-4222-8222-222222222222';
+            const fields = {
+                Governorate: 'حضرموت',
+                City: 'المكلا',
+                District: 'المستلم',
+                Street: '771234567',
+                DeliveryNotes: 'اتصل قبل الوصول'
+            };
+            const record = {
+                version: 2,
+                userId: '101',
+                draftId: draftId1,
+                savedAt: now,
+                expiresAt: now + (2 * 60 * 60 * 1000),
+                fields
+            };
+
+            localStorage.clear();
+            if (scenario === 'malformed') localStorage.setItem('yq-checkout-draft', '{bad-json');
+            else if (scenario === 'legacy') localStorage.setItem('yq-checkout-draft', JSON.stringify(fields));
+            else if (scenario === 'expired') {
+                record.savedAt = now - (3 * 60 * 60 * 1000);
+                record.expiresAt = record.savedAt + (2 * 60 * 60 * 1000);
+                localStorage.setItem('yq-checkout-draft', JSON.stringify(record));
+            } else if (scenario === 'mismatch') {
+                record.userId = '202';
+                localStorage.setItem('yq-checkout-draft', JSON.stringify(record));
+            } else if (scenario !== 'save' && scenario !== 'storage-disabled') {
+                localStorage.setItem('yq-checkout-draft', JSON.stringify(record));
+            }
+
+            if (scenario === 'server') document.querySelector('[name="Governorate"]').value = 'عدن';
+            if (scenario === 'storage-disabled') {
+                ['getItem', 'setItem', 'removeItem'].forEach(function (name) {
+                    Storage.prototype[name] = function () { throw new Error('storage disabled'); };
+                });
+            }
+            window.checkoutHarness = { scenario, fields, record, draftId1, draftId2 };
+        })();
+    </script>
+    <script src="../../wwwroot/js/checkout-draft-storage.js"></script>
+    <script src="../../wwwroot/js/orders/checkout.js"></script>
+    <script src="checkout-draft-harness-tests.js"></script>
+</body>
+</html>
