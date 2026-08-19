@@ -23,7 +23,6 @@
          data-name="@Model.Name.ToLowerInvariant()"
          data-family="@categoryName"
          data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-         data-size="@(Model.Name.Contains("100") || (Model.Description?.Contains("100") ?? false) ? "100" : Model.Name.Contains("50") || (Model.Description?.Contains("50") ?? false) ? "50" : "all")"
          data-concentration="@(Model.Name.Contains("EDP", StringComparison.OrdinalIgnoreCase) || (Model.Description?.Contains("EDP", StringComparison.OrdinalIgnoreCase) ?? false) ? "edp" : Model.Name.Contains("EDT", StringComparison.OrdinalIgnoreCase) || (Model.Description?.Contains("EDT", StringComparison.OrdinalIgnoreCase) ?? false) ? "edt" : Model.Name.Contains("Parfum", StringComparison.OrdinalIgnoreCase) ? "parfum" : "all")">
 
     <div class="yq-pcard__media">
