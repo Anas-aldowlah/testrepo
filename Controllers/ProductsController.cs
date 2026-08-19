@@ -10,70 +10,21 @@ namespace YAGOT_2._0.Controllers;
 public class ProductsController : Controller
 {
     private readonly NeondbContext _context;
+    private readonly ProductCatalogService _catalogService;
 
-    public ProductsController(NeondbContext context)
+    public ProductsController(NeondbContext context, ProductCatalogService catalogService)
     {
         _context = context;
+        _catalogService = catalogService;
     }
 
-    public async Task<IActionResult> Index(int? categoryId, string? search, string? brand)
+    public async Task<IActionResult> Index(ProductsCatalogRequest request, CancellationToken cancellationToken)
     {
-        search = search?.Trim();
-        brand = brand?.Trim();
-        if (brand == "-")
-        {
-            brand = null;
-        }
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        var productsQuery = _context.Products
-            .Include(p => p.Category)
-            .Where(p => p.Stockquantity > 0);
-
-        if (categoryId.HasValue && categoryId.Value != -100)
-        {
-            productsQuery = productsQuery.Where(p => p.Categoryid == categoryId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand))
-        {
-            var normalizedBrand = brand.ToLower();
-            productsQuery = productsQuery.Where(p => p.Brand != null && p.Brand.ToLower() == normalizedBrand);
-        }
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            productsQuery = productsQuery.Where(p =>
-                p.Name.Contains(search) ||
-                (!string.IsNullOrWhiteSpace(p.Description) && p.Description.Contains(search)) ||
-                (!string.IsNullOrWhiteSpace(p.Brand) && p.Brand.Contains(search)));
-        }
-
-        var productsFromDb = await productsQuery.Take(100).ToListAsync();
-        var categoriesFromDb = await _context.Categories.ToListAsync();
-        var model = new ViewModels
-        {
-            Products = productsFromDb,
-            Categories = categoriesFromDb
-        };
-        var categoryList = model.Categories.ToList();
-        ViewBag.Categories = categoryList.ToList();
-
-        ViewBag.Search = search ?? string.Empty;
-        ViewBag.Brand = brand ?? string.Empty;
-
-        if (categoryId.HasValue)
-        {
-            var category = categoryList.FirstOrDefault(c => c.Id == categoryId.Value);
-            // تجيب اسم ورقم القسم للصفحة اذا المستخدم حدد ذلك
-            ViewBag.CategoryName = category?.Name;
-            ViewBag.CategoryId = categoryId;
-        }
-        else
-        {
-            ViewBag.CategoryId = null;
-        }
-
-        return View(model.Products.ToList());
+        var model = await _catalogService.GetCatalogAsync(request, cancellationToken);
+        return View(model);
     }
 
     public async Task<IActionResult> Details(int id)

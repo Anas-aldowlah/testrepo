@@ -102,6 +102,8 @@
     color: var(--yq-text);
     background: var(--yq-bg-elevated);
     transition: all var(--yq-ease);
+    cursor: pointer;
+    font-family: inherit;
 }
 
     .yq-shop-pill:hover {
@@ -276,8 +278,39 @@
     --bs-gutter-y: 1rem;
 }
 
-.yq-page-hidden {
-    display: none !important;
+.yq-shop-price-range {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.yq-shop-price-range label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--yq-text-soft);
+    font-size: 0.8rem;
+}
+
+.yq-shop-price-range input {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--yq-border);
+    border-radius: var(--yq-radius-sm);
+    background: var(--yq-bg-elevated);
+    color: var(--yq-text);
+    font: inherit;
+}
+
+.yq-shop-price-range input:focus {
+    outline: none;
+    border-color: var(--yq-gold-bright);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
+.yq-shop-apply {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.75rem;
 }
 
 /* ── Load More ── */

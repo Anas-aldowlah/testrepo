@@ -1,52 +1,28 @@
-@model IEnumerable<YAGOT_2._0.Models.Product>
+@model YAGOT_2._0.Models.ProductsCatalogViewModel
 @{
-    var categories = ViewBag.Categories as List<YAGOT_2._0.Models.Category>;
-    int? currentCategoryId = ViewBag.CategoryId as int?;
-    var searchTerm = Context.Request.Query["search"].ToString();
-    var selectedBrand = Context.Request.Query["brand"].ToString();
-    var isSearchMode = !string.IsNullOrWhiteSpace(searchTerm);
-    var isBrandMode = !string.IsNullOrWhiteSpace(selectedBrand);
-    var productList = Model.ToList();
-
-    if (isBrandMode)
-    {
-        productList = productList
-            .Where(p => string.Equals(p.Brand, selectedBrand, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-    }
-
-    if (isSearchMode)
-    {
-        productList = productList
-            .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                     || (p.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-                     || (p.Brand?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
-            .ToList();
-    }
+    var request = Model.Request;
+    var selectedCategory = Model.SelectedCategory;
+    var isSearchMode = !string.IsNullOrWhiteSpace(request.Search);
+    var isBrandMode = !string.IsNullOrWhiteSpace(request.Brand);
+    var hasActiveFilter = selectedCategory != null
+        || isSearchMode
+        || isBrandMode
+        || request.MinPrice.HasValue
+        || request.MaxPrice.HasValue
+        || request.Retail != "all"
+        || request.RetailSize.Length > 0;
 
     ViewData["Title"] = isSearchMode
-        ? $"نتائج البحث: {searchTerm}"
-        : (isBrandMode ? $"منتجات: {selectedBrand}"
-        : (ViewBag.CategoryName != null ? $"منتجات: {ViewBag.CategoryName}" : "جميع المنتجات"));
-
-    var familyNames = categories?.Select(c => c.Name).Distinct().ToList() ?? new List<string>();
-    var brandNames = productList
-        .Where(p => !string.IsNullOrWhiteSpace(p.Brand))
-        .Select(p => p.Brand!.Trim())
-        .Where(brand => brand != "-")
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .OrderBy(brand => brand)
-        .ToList();
-    var hasActiveFilter = ViewBag.CategoryName != null || isSearchMode || isBrandMode;
+        ? $"نتائج البحث: {request.Search}"
+        : (isBrandMode ? $"منتجات: {request.Brand}"
+        : (selectedCategory != null ? $"منتجات: {selectedCategory.Name}" : "جميع المنتجات"));
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/products/index.css" asp-append-version="true" />
 }
 
-<div class="yq-shop" data-yq-search-term="@searchTerm">
-
-    <!-- PAGE HEADER -->
+<div class="yq-shop" data-yq-search-term="@request.Search">
     <header class="yq-shop-header yq-reveal">
         <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
             <a asp-controller="Home" asp-action="Index">الرئيسية</a>
@@ -59,9 +35,7 @@
             }
             else
             {
-                <span>
-                    @(ViewBag.CategoryName != null ? ViewBag.CategoryName : "جميع المنتجات")
-                </span>
+                <span>@(selectedCategory?.Name ?? "جميع المنتجات")</span>
             }
         </nav>
 
@@ -71,9 +45,9 @@
                 <div class="yq-search-banner__icon"><i class="bi @(isBrandMode && !isSearchMode ? "bi-building" : "bi-search")"></i></div>
                 <div class="yq-search-banner__text">
                     <span class="yq-search-banner__label">@(isBrandMode && !isSearchMode ? "منتجات الشركة" : "نتائج البحث عن")</span>
-                    <h1 class="yq-search-banner__query">"@(isBrandMode && !isSearchMode ? selectedBrand : searchTerm)"</h1>
+                    <h1 class="yq-search-banner__query">"@(isBrandMode && !isSearchMode ? request.Brand : request.Search)"</h1>
                     <p class="yq-search-banner__count">
-                        تم العثور على <strong>@productList.Count</strong> @(productList.Count == 1 ? "منتج" : "منتجات")
+                        تم العثور على <strong>@Model.TotalCount</strong> @(Model.TotalCount == 1 ? "منتج" : "منتجات")
                     </p>
                 </div>
                 <a asp-action="Index" class="yq-search-banner__clear">
@@ -85,61 +59,49 @@
         {
             <div class="yq-shop-header__row">
                 <div>
-                    <h1 class="yq-shop-header__title">
-                        <span>@(ViewBag.CategoryName != null ? ViewBag.CategoryName : "جميع المنتجات")</span>
-                    </h1>
+                    <h1 class="yq-shop-header__title"><span>@(selectedCategory?.Name ?? "جميع المنتجات")</span></h1>
                     <p class="yq-shop-header__sub">تصفّح منتجاتنا الفاخرة والأصيلة</p>
                 </div>
-
                 @if (hasActiveFilter)
                 {
-                    <a asp-action="Index" class="yq-shop-clear-link">
-                        <i class="bi bi-x-circle"></i> إزالة الفلاتر
-                    </a>
+                    <a asp-action="Index" class="yq-shop-clear-link"><i class="bi bi-x-circle"></i> إزالة الفلاتر</a>
                 }
             </div>
         }
     </header>
 
-    <!-- RECENT SEARCHES -->
     <div class="yq-recent-searches" id="yqRecentSearches" hidden>
         <span class="yq-recent-searches__label"><i class="bi bi-clock-history"></i> عمليات بحث سابقة</span>
         <div class="yq-recent-searches__list" id="yqRecentSearchesList"></div>
     </div>
 
-    <!-- CATEGORY PILLS -->
-    @if (categories != null && categories.Any())
+    @if (Model.Categories.Count > 0)
     {
         <nav class="yq-shop-pills yq-reveal" aria-label="تصفية حسب التصنيف">
-            <a asp-action="Index" asp-route-search="@searchTerm" asp-route-brand="@selectedBrand"
-               class="yq-shop-pill @(currentCategoryId == null ? "is-active" : "")">
+            <button type="button" class="yq-shop-pill @(request.CategoryId == null ? "is-active" : "")" data-yq-category="">
                 <i class="bi bi-grid"></i> الكل
-            </a>
-            @foreach (var cat in categories)
+            </button>
+            @foreach (var category in Model.Categories)
             {
-                <a asp-action="Index" asp-route-categoryId="@cat.Id" asp-route-search="@searchTerm" asp-route-brand="@selectedBrand"
-                   class="yq-shop-pill @(currentCategoryId == cat.Id ? "is-active" : "")">
-                    @cat.Name
-                </a>
+                <button type="button" class="yq-shop-pill @(request.CategoryId == category.Id ? "is-active" : "")" data-yq-category="@category.Id">
+                    @category.Name
+                </button>
             }
         </nav>
     }
 
-    <!-- TOOLBAR -->
     <div class="yq-shop-toolbar yq-reveal">
-        <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@productList.Count عطر</p>
-
+        <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@Model.TotalCount عطر</p>
         <div class="yq-shop-toolbar__actions">
             <div class="yq-shop-sort">
                 <label for="yqSortSelect"><i class="bi bi-sort-down"></i> ترتيب حسب</label>
-                <select id="yqSortSelect" class="yq-shop-sort__select">
-                    <option value="newest">الأحدث</option>
-                    <option value="price-asc">السعر: الأقل أولاً</option>
-                    <option value="price-desc">السعر: الأعلى أولاً</option>
-                    <option value="name-asc">الاسم (أ-ي)</option>
+                <select id="yqSortSelect" name="sort" form="yqCatalogFilters" class="yq-shop-sort__select" data-yq-auto-submit>
+                    <option value="newest" selected="@(request.Sort == "newest")">الأحدث</option>
+                    <option value="price-asc" selected="@(request.Sort == "price-asc")">السعر: الأقل أولاً</option>
+                    <option value="price-desc" selected="@(request.Sort == "price-desc")">السعر: الأعلى أولاً</option>
+                    <option value="name" selected="@(request.Sort == "name")">الاسم (أ-ي)</option>
                 </select>
             </div>
-
             <button type="button" id="yaqutFilterToggle" class="btn-yaqut-outline yq-shop-filter-toggle">
                 <i class="bi bi-sliders"></i> الفلاتر
             </button>
@@ -147,8 +109,6 @@
     </div>
 
     <div class="yq-shop-layout">
-
-        <!-- FILTERS SIDEBAR -->
         <aside id="yaqutFilters" class="yq-shop-filters yq-glass">
             <div class="yq-shop-filters__head">
                 <h3><i class="bi bi-sliders"></i> تصفية المنتجات</h3>
@@ -157,115 +117,88 @@
                 </button>
             </div>
 
-            <div class="yq-shop-filter-group">
-                <span class="yq-shop-filter-group__label">الحجم</span>
-                <div class="yq-shop-filter-options">
-                    <label class="yq-shop-filter-option"><input type="checkbox" name="size" value="50" /> 50 مل</label>
-                    <label class="yq-shop-filter-option"><input type="checkbox" name="size" value="100" /> 100 مل</label>
-                </div>
-            </div>
+            <form id="yqCatalogFilters" asp-action="Index" method="get">
+                <input type="hidden" name="search" value="@request.Search" />
+                <input type="hidden" id="yqCategoryId" name="categoryId" value="@request.CategoryId" />
 
-            <div class="yq-shop-filter-group">
-                <span class="yq-shop-filter-group__label">التركيز</span>
-                <div class="yq-shop-filter-options">
-                    <label class="yq-shop-filter-option"><input type="checkbox" name="concentration" value="edt" /> Eau de Toilette</label>
-                    <label class="yq-shop-filter-option"><input type="checkbox" name="concentration" value="edp" /> Eau de Parfum</label>
-                    <label class="yq-shop-filter-option"><input type="checkbox" name="concentration" value="parfum" /> Parfum</label>
-                </div>
-            </div>
-
-            @if (familyNames.Any())
-            {
                 <div class="yq-shop-filter-group">
-                    <span class="yq-shop-filter-group__label">التصنيف</span>
+                    <span class="yq-shop-filter-group__label">نطاق السعر</span>
+                    <div class="yq-shop-price-range">
+                        <label>من <input type="number" name="minPrice" value="@request.MinPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.01" inputmode="decimal" /></label>
+                        <label>إلى <input type="number" name="maxPrice" value="@request.MaxPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.01" inputmode="decimal" /></label>
+                    </div>
+                    <button type="submit" class="btn-yaqut-outline yq-shop-apply">تطبيق السعر</button>
+                </div>
+
+                <div class="yq-shop-filter-group">
+                    <span class="yq-shop-filter-group__label">البيع بالتجزئة</span>
                     <div class="yq-shop-filter-options">
-                        @foreach (var family in familyNames)
-                        {
-                            <label class="yq-shop-filter-option">
-                                <input type="checkbox" name="family" value="@family" /> @family
-                            </label>
-                        }
+                        <label class="yq-shop-filter-option"><input type="radio" name="retail" value="all" checked="@(request.Retail == "all")" data-yq-auto-submit /> الكل</label>
+                        <label class="yq-shop-filter-option"><input type="radio" name="retail" value="yes" checked="@(request.Retail == "yes")" data-yq-auto-submit /> نعم</label>
+                        <label class="yq-shop-filter-option"><input type="radio" name="retail" value="no" checked="@(request.Retail == "no")" data-yq-auto-submit /> لا</label>
                     </div>
                 </div>
-            }
 
-            @if (brandNames.Any())
-            {
-                <div class="yq-shop-filter-group">
-                    <span class="yq-shop-filter-group__label">الشركة المنتجة</span>
-                    <div class="yq-shop-filter-options">
-                        @foreach (var brand in brandNames)
-                        {
-                            var isSelectedBrand = string.Equals(brand, selectedBrand, StringComparison.OrdinalIgnoreCase);
-                            <label class="yq-shop-filter-option">
-                                <input type="checkbox" name="brand" value="@brand" @(isSelectedBrand ? "checked" : "") /> @brand
-                            </label>
-                        }
+                @if (Model.RetailSizes.Count > 0)
+                {
+                    <div class="yq-shop-filter-group">
+                        <span class="yq-shop-filter-group__label">حجم بيع التجزئة</span>
+                        <div class="yq-shop-filter-options">
+                            @foreach (var size in Model.RetailSizes)
+                            {
+                                <label class="yq-shop-filter-option">
+                                    <input type="checkbox" name="retailSize" value="@size" checked="@request.RetailSize.Contains(size)" data-yq-auto-submit /> @size مل
+                                </label>
+                            }
+                        </div>
                     </div>
-                </div>
-            }
+                }
+
+                @if (Model.Brands.Count > 0)
+                {
+                    <div class="yq-shop-filter-group">
+                        <span class="yq-shop-filter-group__label">الشركة المنتجة</span>
+                        <div class="yq-shop-filter-options">
+                            <label class="yq-shop-filter-option"><input type="radio" name="brand" value="" checked="@(request.Brand == null)" data-yq-auto-submit /> الكل</label>
+                            @foreach (var brand in Model.Brands)
+                            {
+                                <label class="yq-shop-filter-option">
+                                    <input type="radio" name="brand" value="@brand" checked="@string.Equals(request.Brand, brand, StringComparison.OrdinalIgnoreCase)" data-yq-auto-submit /> @brand
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
+            </form>
         </aside>
 
-        <!-- PRODUCT GRID -->
         <div class="yq-shop-main">
-            @if (productList.Any())
+            @if (Model.Products.Count > 0)
             {
                 <div id="yaqutProductsGrid" class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 yq-shop-grid">
-                    @foreach (var item in productList)
+                    @foreach (var item in Model.Products)
                     {
-                        var createdMs = item.Createdat.HasValue
-                        ? new DateTimeOffset(item.Createdat.Value, TimeSpan.Zero).ToUnixTimeMilliseconds()
-                        : 0;
-                        <div class="col yq-col-item"
-                             data-price="@item.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                             data-created="@createdMs"
-                             data-name="@item.Name"
-                             data-brand="@(item.Brand ?? "")">
+                        <div class="col yq-col-item" data-product-id="@item.Id">
                             <partial name="_ProductCard" model="item" />
                         </div>
                     }
                 </div>
 
                 <div class="yq-shop-load-more">
-                    <button type="button" id="yqLoadMoreBtn" class="btn-yaqut-outline">
+                    <button type="button" id="yqLoadMoreBtn" class="btn-yaqut-outline" data-current-page="@Model.CurrentPage" hidden="@(!Model.HasNextPage)">
                         <i class="bi bi-arrow-down-circle"></i>
-                        عرض المزيد (<span data-yq-remaining>0</span>)
+                        عرض المزيد (<span data-yq-remaining>@Model.RemainingCount</span>)
                     </button>
                 </div>
-
-                <div id="yqClientNoResults" class="yaqut-empty yq-glass yq-shop-empty" hidden>
-                    <i class="bi bi-search yaqut-empty__icon" aria-hidden="true"></i>
-                    <h2 class="yq-shop-empty__title">لا توجد منتجات تطابق معايير البحث</h2>
-                    <p class="yaqut-empty__text">جرّب تعديل الفلاتر أو البحث بكلمات مختلفة.</p>
-                </div>
+                <p id="yqCatalogStatus" class="visually-hidden" role="status" aria-live="polite"></p>
             }
             else if (isSearchMode || isBrandMode)
             {
                 <div class="yaqut-empty yq-glass yq-search-empty">
                     <i class="bi bi-search yaqut-empty__icon"></i>
-                    <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@(isBrandMode && !isSearchMode ? selectedBrand : searchTerm)"</h2>
-                    <p class="yaqut-empty__text">
-                        @(isBrandMode && !isSearchMode
-                            ? "لا توجد منتجات مرتبطة بهذه الشركة حالياً. جرّب شركة أخرى أو اعرض جميع المنتجات."
-                            : "تأكد من كتابة الاسم بشكل صحيح، أو جرّب كلمات بحث أخرى أو أكثر عمومية.")
-                    </p>
-
-                    @if (categories != null && categories.Any())
-                    {
-                        <div class="yq-search-empty__categories">
-                            <span>أو تصفّح حسب التصنيف</span>
-                            <div class="yq-search-empty__pills">
-                                @foreach (var cat in categories.Take(6))
-                                {
-                                    <a asp-action="Index" asp-route-categoryId="@cat.Id" class="yaqut-pill">@cat.Name</a>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    <a asp-action="Index" class="btn-yaqut-gold mt-3">
-                        <i class="bi bi-stars"></i> عرض جميع المنتجات
-                    </a>
+                    <h2 class="yq-shop-empty__title">لم نعثر على نتائج لـ "@(isBrandMode && !isSearchMode ? request.Brand : request.Search)"</h2>
+                    <p class="yaqut-empty__text">جرّب تعديل الفلاتر أو البحث بكلمات مختلفة.</p>
+                    <a asp-action="Index" class="btn-yaqut-gold mt-3"><i class="bi bi-stars"></i> عرض جميع المنتجات</a>
                 </div>
             }
             else

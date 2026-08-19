@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../../wwwroot/css/products/index.css" />
+    <title>Products catalog harness</title>
+</head>
+<body>
+    <div class="yq-shop" data-yq-search-term="عود">
+        <div id="yqRecentSearches" hidden><div id="yqRecentSearchesList"></div></div>
+        <button type="button" data-yq-category="7">Category</button>
+        <form id="yqCatalogFilters" method="get">
+            <input id="yqCategoryId" name="categoryId" value="" />
+            <input type="radio" name="retail" value="yes" data-yq-auto-submit />
+        </form>
+        <div id="yaqutProductsGrid"></div>
+        <button type="button" id="yqLoadMoreBtn" data-current-page="1">
+            <span data-yq-remaining>3</span>
+        </button>
+        <p id="yqCatalogStatus"></p>
+    </div>
+    <div id="harnessResult">RUNNING</div>
+    <script>
+        window.catalogHarness = { submissions: 0, requests: [], errors: [] };
+        window.addEventListener('error', function (event) {
+            window.catalogHarness.errors.push(event.message);
+        });
+        HTMLFormElement.prototype.requestSubmit = function () {
+            window.catalogHarness.submissions += 1;
+            if (this.querySelector('[name="page"]')) throw new Error('Filter submission retained page state.');
+        };
+        window.fetch = async function (url) {
+            window.catalogHarness.requests.push(url);
+            return { ok: false };
+        };
+    </script>
+    <script src="../../wwwroot/js/products/index.js"></script>
+    <script>
+        (async function () {
+            function assert(condition, message) {
+                if (!condition) throw new Error(message);
+            }
+            try {
+                var originalUrl = window.location.href;
+                document.querySelector('[data-yq-category]').click();
+                assert(document.getElementById('yqCategoryId').value === '7', 'Category state was not updated.');
+                document.querySelector('[data-yq-auto-submit]').dispatchEvent(new Event('change'));
+                assert(window.catalogHarness.submissions === 2, 'Filter controls did not reset through form submission.');
+
+                var button = document.getElementById('yqLoadMoreBtn');
+                button.click();
+                await new Promise(function (resolve) { setTimeout(resolve, 50); });
+                assert(window.catalogHarness.requests.length === 1 && new URL(window.catalogHarness.requests[0]).searchParams.get('page') === '2', 'Load More did not request server page 2.');
+                assert(button.dataset.currentPage === '1', 'Failed request advanced the current server page.');
+                assert(!button.disabled, 'Load More remained disabled after a failed request.');
+                assert(document.getElementById('yqCatalogStatus').textContent.indexOf('تعذر') !== -1, 'Failed request did not expose a safe status.');
+                assert(window.location.href === originalUrl, 'Load More changed browser history or the current URL.');
+                assert(document.documentElement.dir === 'rtl', 'RTL document direction changed.');
+                assert(document.documentElement.scrollWidth <= window.innerWidth, 'Catalog harness overflowed horizontally.');
+                assert(window.catalogHarness.errors.length === 0, 'Browser runtime errors occurred.');
+                document.getElementById('harnessResult').dataset.result = 'pass';
+                document.getElementById('harnessResult').textContent = 'PASS: next-page request, reset, failure state, URL, RTL, and runtime checks';
+            } catch (error) {
+                document.getElementById('harnessResult').dataset.result = 'fail';
+                document.getElementById('harnessResult').textContent = 'FAIL: ' + error.message;
+            }
+        })();
+    </script>
+</body>
+</html>
