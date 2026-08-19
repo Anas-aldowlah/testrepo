@@ -18,6 +18,12 @@
             }
         }
 
+        function cancelPending() {
+            clearScheduled();
+            requestPending = false;
+            manualPending = false;
+        }
+
         function drain() {
             return (async function () {
                 var lastResult = { success: false, skipped: true };
@@ -103,6 +109,7 @@
         }
 
         return {
+            cancelPending: cancelPending,
             clearScheduled: clearScheduled,
             getState: getState,
             markDirty: markDirty,

@@ -19,12 +19,24 @@
         await flush();
     }
 
-    function queueJson(ok, data) {
+    function response(status, contentType, data, parseError) {
+        return {
+            ok: status >= 200 && status < 300,
+            status,
+            headers: {
+                get: function (name) {
+                    return name.toLowerCase() === 'content-type' ? contentType : null;
+                }
+            },
+            json: function () {
+                return parseError ? Promise.reject(parseError) : Promise.resolve(data);
+            }
+        };
+    }
+
+    function queueJson(status, data) {
         state.fetchQueue.push(function () {
-            return Promise.resolve({
-                ok,
-                json: function () { return Promise.resolve(data); }
-            });
+            return Promise.resolve(response(status, 'application/json; charset=utf-8', data));
         });
     }
 
@@ -76,45 +88,56 @@
 
         const select = document.getElementById('statusSelect');
         const badge = document.querySelector('[data-order-badge="42"]');
-        queueJson(true, { success: true, message: 'ok' });
+        queueJson(200, { success: true, message: 'ok' });
         check(await changeStatus(select, 'Delivered') === 1, 'one successful change issues one request');
         check(state.fetchCalls[0].url === '/Admin/Orders/UpdateStatus', 'DOM endpoint contract is used');
         check(state.fetchCalls[0].options.method === 'POST', 'POST method is preserved');
         check(state.fetchCalls[0].options.headers['Content-Type'] === 'application/x-www-form-urlencoded', 'form content type is preserved');
+        check(state.fetchCalls[0].options.headers.Accept === 'application/json', 'JSON response contract is requested');
         check(state.fetchCalls[0].options.headers['X-Requested-With'] === 'XMLHttpRequest', 'AJAX header is preserved');
         check(state.fetchCalls[0].options.headers.RequestVerificationToken === 'test-token', 'antiforgery header is preserved');
         check(state.fetchCalls[0].options.body === 'id=42&status=Delivered', 'payload contract is preserved');
         check(!select.disabled && select.style.opacity === '1' && select.dataset.originalStatus === 'Delivered', 'success releases control and advances state');
         check(badge.textContent === 'تم التوصيل' && badge.classList.contains('yq-orders-badge--delivered'), 'success updates badge safely');
 
-        queueJson(true, { success: false, message: '<img src=x onerror=alert(3)>' });
+        queueJson(200, { success: false, message: '<img src=x onerror=alert(3)>' });
         check(await changeStatus(select, 'Shipped') === 1, 'success=false issues one request');
         check(select.value === 'Delivered' && !select.disabled, 'success=false reverts and releases control');
         const alertArea = document.getElementById('yqOrdersAlertArea');
         check(alertArea.textContent.includes('<img src=x onerror=alert(3)>') && alertArea.querySelectorAll('img').length === 0, 'server failure message is inert text');
 
         for (const statusCode of [400, 401, 403, 404, 409, 500]) {
-            queueJson(false, { success: false, message: `status ${statusCode}` });
+            queueJson(statusCode, { success: false, message: `status ${statusCode}` });
             check(await changeStatus(select, 'Shipped') === 1, `${statusCode} issues one request`);
             check(select.value === 'Delivered' && !select.disabled && select.style.opacity === '1', `${statusCode} reverts and restores UI`);
-            check(alertArea.textContent.includes('حدث خطأ'), `${statusCode} shows a safe Arabic fallback`);
+            const expected = statusCode === 401
+                ? 'انتهت جلسة تسجيل الدخول'
+                : statusCode === 403
+                    ? 'ليس لديك صلاحية'
+                    : statusCode === 500
+                        ? 'حدث خطأ في الخادم'
+                        : `status ${statusCode}`;
+            check(alertArea.textContent.includes(expected), `${statusCode} shows its controlled error category`);
         }
 
         state.fetchQueue.push(function () { return Promise.reject(new Error('network')); });
         check(await changeStatus(select, 'Shipped') === 1, 'network rejection issues one request');
         check(select.value === 'Delivered' && !select.disabled, 'network rejection reverts and releases control');
+        check(alertArea.textContent.includes('تعذر الاتصال بالخادم'), 'network rejection has a controlled network message');
 
         state.fetchQueue.push(function () {
-            return Promise.resolve({ ok: true, json: function () { return Promise.reject(new SyntaxError('empty')); } });
+            return Promise.resolve(response(200, 'text/html; charset=utf-8', null));
         });
-        check(await changeStatus(select, 'Shipped') === 1, 'empty response issues one request');
-        check(select.value === 'Delivered' && !select.disabled, 'empty response reverts and releases control');
+        check(await changeStatus(select, 'Shipped') === 1, 'unexpected HTML response issues one request');
+        check(select.value === 'Delivered' && !select.disabled, 'unexpected HTML response reverts and releases control');
+        check(alertArea.textContent.includes('استجابة غير متوقعة'), 'unexpected HTML has a controlled content-type message');
 
         state.fetchQueue.push(function () {
-            return Promise.resolve({ ok: true, json: function () { return Promise.reject(new SyntaxError('malformed')); } });
+            return Promise.resolve(response(200, 'application/json', null, new SyntaxError('malformed')));
         });
         check(await changeStatus(select, 'Shipped') === 1, 'malformed JSON issues one request');
         check(select.value === 'Delivered' && !select.disabled, 'malformed JSON reverts and releases control');
+        check(alertArea.textContent.includes('تعذر قراءة استجابة الخادم'), 'malformed JSON has a controlled parse message');
 
         let resolveSlow;
         state.fetchQueue.push(function () {
@@ -124,11 +147,11 @@
         select.value = 'Shipped';
         select.dispatchEvent(new Event('change', { bubbles: true }));
         check(select.disabled && state.fetchCalls.length - beforeSlow === 1, 'slow response keeps one owned request pending');
-        resolveSlow({ ok: true, json: function () { return Promise.resolve({ success: true }); } });
+        resolveSlow(response(200, 'application/json', { success: true }));
         await settle();
         check(!select.disabled && select.dataset.originalStatus === 'Shipped', 'slow success releases control for a later change');
 
-        queueJson(true, { success: true });
+        queueJson(200, { success: true });
         check(await changeStatus(select, 'Delivered') === 1, 'a new change remains possible after settlement');
 
         const receipt = state.popovers.get(document.getElementById('receiptTrigger')).options.content();
