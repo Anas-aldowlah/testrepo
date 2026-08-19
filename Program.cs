@@ -310,7 +310,21 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        if (!context.Context.Request.Path.StartsWithSegments("/fonts", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var extension = Path.GetExtension(context.File.Name);
+        context.Context.Response.Headers.CacheControl = extension is ".woff" or ".woff2"
+            ? "public,max-age=31536000,immutable"
+            : "public,max-age=604800";
+    }
+});
 app.UseRouting();
 app.UseRateLimiter();
 app.UseCors("AllowAll");

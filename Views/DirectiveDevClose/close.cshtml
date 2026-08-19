@@ -8,11 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>تجديد الاشتراك | المنصة الإلكترونية</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/fonts/font-delivery.css" asp-append-version="true" />
     <style>
         /* ===== RESET & BASE ===== */
         * {
@@ -21,8 +17,18 @@
             box-sizing: border-box;
         }
 
+        .fa-solid.fa-arrow-right-from-bracket::before {
+            content: "\f1c3";
+            display: inline-block;
+            font-family: "bootstrap-icons";
+            font-style: normal;
+            font-weight: normal;
+            line-height: 1;
+            vertical-align: -.125em;
+        }
+
         body {
-            font-family: 'Cairo', 'Segoe UI', sans-serif;
+            font-family: 'Tajawal', 'Segoe UI', sans-serif;
             background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
             color: #f1f5f9;
             min-height: 100vh;
