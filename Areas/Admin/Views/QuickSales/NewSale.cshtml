@@ -446,9 +446,14 @@ html[data-theme="dark"] .form-select,
 @Html.AntiForgeryToken()
 <input type="hidden" id="posSalesDayId" value="@(openSalesDay?.Id ?? sale.SalesDayId)" />
 <input type="hidden" id="posSaleId" value="@sale.Id" />
+<input type="hidden" id="posDraftRevision" value="@sale.DraftRevision" />
 
 <div class="container-fluid px-0 yq-pos">
     <div id="posAlertContainer" class="pos-alert-container" aria-live="polite" aria-atomic="true"></div>
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+        <span>يمكن للجميع عرض المسودة، والتعديل متاح لجلسة واحدة فقط.</span>
+        <button type="button" class="btn btn-sm btn-primary" id="btnEnterDraftEdit">بدء التعديل</button>
+    </div>
 
     @if (TempData["WarningMessage"] != null)
     {
@@ -595,6 +600,9 @@ html[data-theme="dark"] .form-select,
                     <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft">
                         <i class="bi bi-save2 me-1"></i> حفظ كمسودة فقط (بدون خصم)
                     </button>
+                    <button type="button" class="btn btn-outline-danger py-2 fw-bold small" id="btnDeleteDraft">
+                        <i class="bi bi-trash me-1"></i> حذف المسودة
+                    </button>
                     <p id="draftSaveStatus"
                        class="small text-white-50 mb-0"
                        role="status"
@@ -651,6 +659,7 @@ html[data-theme="dark"] .form-select,
 
 @section Scripts {
     <script src="~/js/quick-sales/draft-save-coordinator.js" asp-append-version="true"></script>
+    <script src="~/js/quick-sales/draft-edit-session.js" asp-append-version="true"></script>
     @{
     var initialAvailableProductsJson = System.Text.Json.JsonSerializer.Serialize(Model.AvailableProducts.Select(product => new {
         id = product.Id,
@@ -703,6 +712,7 @@ html[data-theme="dark"] .form-select,
         var initialAvailableProducts = parseBase64Json('@initialAvailableProductsBase64');
         var availablePaymentMethods = [];
         var initialModelPayments = parseBase64Json('@initialModelPaymentsBase64');
+        var draftEditSession = null;
 
         function getSafeProductImageUrl(value) {
             if (!value) return '/images/yaqut-logo.png';
@@ -796,6 +806,8 @@ html[data-theme="dark"] .form-select,
         function handleDraftSaveSettled(result) {
             calculateTotals();
 
+            if (draftEditSession) draftEditSession.handleWriteResult(result);
+
             if (!result || !result.success) {
                 setDraftSaveStatus('error', 'فشل حفظ المسودة — اضغط «حفظ كمسودة» لإعادة المحاولة.');
                 return;
@@ -818,6 +830,11 @@ html[data-theme="dark"] .form-select,
         async function persistDraftSnapshot(data, context) {
             setDraftSaveStatus('saving', 'جارٍ حفظ المسودة...');
 
+            if (!draftEditSession || !draftEditSession.canWrite()) {
+                return { success: false, code: 'session_mismatch', message: 'هذه الصفحة لا تملك جلسة التعديل الحالية.' };
+            }
+            data = draftEditSession.attachWriteContract(data);
+
             if (!data || data.salesDayId <= 0) {
                 return { success: false, skipped: true, message: 'يجب فتح يوم بيع أولاً قبل الحفظ.' };
             }
@@ -833,12 +850,13 @@ html[data-theme="dark"] .form-select,
                     return { success: true, skipped: true };
                 }
 
-                var deleteResponse = await fetch(`/Admin/QuickSales/DeleteDraft?id=${data.saleId}`, {
+                var deleteResponse = await fetch('/Admin/QuickSales/DeleteDraft', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                         'RequestVerificationToken': token
-                    }
+                    },
+                    body: JSON.stringify(data)
                 });
                 var deleteResult = await deleteResponse.json();
                 if (deleteResponse.ok && deleteResult.success) {
@@ -872,6 +890,7 @@ html[data-theme="dark"] .form-select,
         });
 
         function scheduleAutoSave() {
+            if (!draftEditSession || !draftEditSession.canWrite()) return;
             draftSaveCoordinator.markDirty();
             setDraftSaveStatus('dirty', 'تغييرات غير محفوظة — سيتم الحفظ تلقائياً.');
             if (isCompletingSale) {
@@ -1695,7 +1714,7 @@ html[data-theme="dark"] .form-select,
             var btnComplete = document.getElementById('btnCompleteSale');
             var btnSave = document.getElementById('btnSaveDraft');
             if (btnComplete) {
-                btnComplete.disabled = hasStockError || isCompletingSale;
+                btnComplete.disabled = hasStockError || isCompletingSale || !draftEditSession || !draftEditSession.canWrite();
                 if (hasStockError) {
                     btnComplete.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
                 } else {
@@ -1704,7 +1723,7 @@ html[data-theme="dark"] .form-select,
             }
             if (btnSave) {
                 var saveState = draftSaveCoordinator.getState();
-                btnSave.disabled = hasStockError || isCompletingSale || saveState.requestInFlight || saveState.requestPending;
+                btnSave.disabled = hasStockError || isCompletingSale || !draftEditSession || !draftEditSession.canWrite() || saveState.requestInFlight || saveState.requestPending;
                 if (hasStockError) {
                     btnSave.setAttribute('title', 'الكمية المطلوبة لمنتج أو أكثر تتجاوز المخزون المتوفر');
                 } else {
@@ -1858,9 +1877,14 @@ html[data-theme="dark"] .form-select,
             var btnComplete = document.getElementById('btnCompleteSale');
             var btnSave = document.getElementById('btnSaveDraft');
             if (isCompletingSale) return;
+            if (!draftEditSession || !draftEditSession.canWrite()) {
+                showAlert('اعتماد البيع متاح فقط لجلسة التعديل الحالية.', 'danger');
+                return;
+            }
 
             isCompletingSale = true;
             var saleCompleted = false;
+            draftEditSession.setEditingEnabled(false);
             btnComplete.disabled = true;
             btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التحقق واعتماد البيع...';
             if (btnSave) btnSave.disabled = true;
@@ -1897,13 +1921,11 @@ html[data-theme="dark"] .form-select,
                     return;
                 }
 
-                if (!data.saleId) {
-                    var draftResult = await draftSaveCoordinator.request(false);
-                    if (!draftResult.success || !draftResult.saleId) {
-                        throw new Error(draftResult.message || draftResult.error?.message || 'تعذر حفظ المسودة قبل اعتماد البيع.');
-                    }
-                    data = collectSaleData();
+                var draftResult = await draftSaveCoordinator.request(true);
+                if (!draftResult.success || !draftResult.saleId) {
+                    throw new Error(draftResult.message || draftResult.error?.message || 'تعذر حفظ أحدث حالة للمسودة قبل اعتماد البيع.');
                 }
+                data = draftEditSession.attachWriteContract(collectSaleData());
 
                 var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
                 var response = await fetch('/Admin/QuickSales/CompleteSale', {
@@ -1934,6 +1956,9 @@ html[data-theme="dark"] .form-select,
                 showAlert(error.message || 'تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
             } finally {
                 isCompletingSale = false;
+                if (!saleCompleted && draftEditSession.canWrite()) {
+                    draftEditSession.setEditingEnabled(true);
+                }
                 if (!saleCompleted && draftSaveCoordinator.getState().dirty) {
                     draftSaveCoordinator.request(false);
                 }
@@ -1977,5 +2002,23 @@ html[data-theme="dark"] .form-select,
                 }
             }, 5000);
         }
+
+        draftEditSession = window.YaqutDraftEditSession.create({
+            saleId: @sale.Id,
+            initialRevision: @sale.DraftRevision,
+            editRequested: @Model.EditRequested.ToString().ToLowerInvariant(),
+            root: document.querySelector('.yq-pos'),
+            token: document.querySelector('input[name="__RequestVerificationToken"]')?.value || '',
+            coordinator: draftSaveCoordinator,
+            acquireUrl: '/Admin/QuickSales/AcquireDraftEditSession',
+            renewUrl: '/Admin/QuickSales/RenewDraftEditSession',
+            releaseUrl: '/Admin/QuickSales/ReleaseDraftEditSession',
+            stateUrl: '/Admin/QuickSales/DraftState',
+            deleteUrl: '/Admin/QuickSales/DeleteDraft',
+            draftsUrl: '/Admin/QuickSales/Drafts',
+            setStatus: setDraftSaveStatus,
+            showAlert: showAlert
+        });
+        document.addEventListener('DOMContentLoaded', draftEditSession.start);
     </script>
 }

@@ -20,6 +20,7 @@ public class NewSaleViewModel
     public IReadOnlyList<ProductSearchResultDto> AvailableProducts { get; init; } = Array.Empty<ProductSearchResultDto>();
     public IReadOnlyList<QuickSaleCustomerDto> Customers { get; init; } = Array.Empty<QuickSaleCustomerDto>();
     public bool IsExistingDraft { get; init; }
+    public bool EditRequested { get; init; }
 }
 
 public class QuickSaleCustomerDto
@@ -41,6 +42,8 @@ public class SaveDraftRequestModel
 {
     public int? SaleId { get; set; }
     public int SalesDayId { get; set; }
+    public Guid EditSessionId { get; set; }
+    public long ExpectedDraftRevision { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
@@ -95,6 +98,8 @@ public class CompleteSaleRequestModel
 {
     public int? SaleId { get; set; }
     public int SalesDayId { get; set; }
+    public Guid EditSessionId { get; set; }
+    public long ExpectedDraftRevision { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
@@ -131,6 +136,17 @@ public class CompleteSaleResponseDto
     public decimal FinalAmount { get; set; }
     public decimal TotalPaid { get; set; }
     public string? CompletedAt { get; set; }
+}
+
+public class DraftEditSessionRequestModel
+{
+    public int SaleId { get; set; }
+    public Guid EditSessionId { get; set; }
+}
+
+public class DeleteDraftRequestModel : DraftEditSessionRequestModel
+{
+    public long ExpectedDraftRevision { get; set; }
 }
 
 public class SalesDayLedgerViewModel

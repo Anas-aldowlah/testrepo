@@ -21,15 +21,18 @@ public class QuickSalesController : Controller
 {
     private readonly NeondbContext _context;
     private readonly IInventoryService _inventoryService;
+    private readonly IDraftEditSessionService _draftEditSessions;
     private readonly ILogger<QuickSalesController> _logger;
 
     public QuickSalesController(
         NeondbContext context,
         IInventoryService inventoryService,
+        IDraftEditSessionService draftEditSessions,
         ILogger<QuickSalesController> logger)
     {
         _context = context;
         _inventoryService = inventoryService;
+        _draftEditSessions = draftEditSessions;
         _logger = logger;
     }
 
@@ -154,7 +157,7 @@ public class QuickSalesController : Controller
 
     // 3. NEW SALE / EDIT DRAFT INTERFACE
     [HttpGet]
-    public async Task<IActionResult> NewSale(int? draftId, int? id = null)
+    public async Task<IActionResult> NewSale(int? draftId, int? id = null, bool edit = false)
     {
         var openDay = await _context.SalesDays
             .AsNoTracking()
@@ -169,7 +172,7 @@ public class QuickSalesController : Controller
         // Preserve old links while making draftId the canonical route value.
         if (!draftId.HasValue && id.HasValue && id.Value > 0)
         {
-            return RedirectToAction(nameof(NewSale), new { draftId = id.Value });
+            return RedirectToAction(nameof(NewSale), new { draftId = id.Value, edit });
         }
 
         if (draftId.HasValue && draftId.Value > 0)
@@ -187,7 +190,7 @@ public class QuickSalesController : Controller
 
             if (requestedDraft != null)
             {
-                var model = await BuildNewSaleViewModelAsync(requestedDraft, openDay, isExistingDraft: true);
+                var model = await BuildNewSaleViewModelAsync(requestedDraft, openDay, isExistingDraft: true, edit);
                 return View(model);
             }
 
@@ -242,13 +245,14 @@ public class QuickSalesController : Controller
         }
 
         // PRG: render only after a clean GET reloads the saved draft and all related data.
-        return RedirectToAction(nameof(NewSale), new { draftId = workingDraftId });
+        return RedirectToAction(nameof(NewSale), new { draftId = workingDraftId, edit = true });
     }
 
     private async Task<NewSaleViewModel> BuildNewSaleViewModelAsync(
         Sale sale,
         SalesDay salesDay,
-        bool isExistingDraft)
+        bool isExistingDraft,
+        bool editRequested)
     {
         var availableProducts = await _context.Products
             .AsNoTracking()
@@ -307,7 +311,8 @@ public class QuickSalesController : Controller
             SalesDay = salesDay,
             AvailableProducts = availableProducts,
             Customers = customers,
-            IsExistingDraft = isExistingDraft
+            IsExistingDraft = isExistingDraft,
+            EditRequested = editRequested
         };
     }
 
@@ -367,6 +372,11 @@ public class QuickSalesController : Controller
             return Json(new { success = false, message = "بيانات طلب المسودة غير صالحة." });
         }
 
+        if (!model.SaleId.HasValue || model.SaleId.Value <= 0)
+        {
+            return Conflict(new { success = false, message = "يجب فتح مسودة صالحة وامتلاك جلسة تعديل قبل الحفظ." });
+        }
+
         var openDay = await _context.SalesDays
             .FirstOrDefaultAsync(sd => sd.Id == model.SalesDayId && sd.Status == "Open");
 
@@ -405,53 +415,29 @@ public class QuickSalesController : Controller
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                if (!model.SaleId.HasValue || model.SaleId.Value <= 0)
-                {
-                    var existingDraft = await _context.Sales
-                        .Where(s => s.SalesDayId == openDay.Id && s.Status == "Draft")
-                        .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
-                        .FirstOrDefaultAsync();
+                var lockedDrafts = await _context.Sales
+                    .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId.Value} AND sales_day_id = {openDay.Id} FOR UPDATE")
+                    .ToListAsync();
+                var sale = lockedDrafts.SingleOrDefault();
 
-                    if (existingDraft != null)
-                    {
-                        model.SaleId = existingDraft.Id;
-                    }
+                if (sale == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Conflict(new { success = false, code = "draft_unavailable", message = "المسودة المحددة غير موجودة أو لم تعد متاحة." });
                 }
 
-                Sale? sale;
-                if (model.SaleId.HasValue && model.SaleId.Value > 0)
+                var rejection = _draftEditSessions.ValidateWrite(sale, model.EditSessionId, model.ExpectedDraftRevision, DateTime.UtcNow);
+                if (rejection != DraftWriteRejection.None)
                 {
-                    var lockedDrafts = await _context.Sales
-                        .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId.Value} AND sales_day_id = {openDay.Id} AND status = 'Draft' FOR UPDATE")
-                        .ToListAsync();
-                    sale = lockedDrafts.SingleOrDefault();
-
-                    if (sale == null)
-                    {
-                        await transaction.RollbackAsync();
-                        return Conflict(new { success = false, message = "المسودة المحددة غير موجودة أو لم تعد بحالة مسودة." });
-                    }
-
-                    await _context.SaleItems
-                        .Where(si => si.SaleId == sale.Id)
-                        .ExecuteDeleteAsync();
-
-                    sale.UpdatedAt = DateTime.Now;
+                    await transaction.RollbackAsync();
+                    return DraftWriteConflict(rejection, sale.DraftRevision);
                 }
-                else
-                {
-                    var invoiceNum = $"POS-{openDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
-                    sale = new Sale
-                    {
-                        SalesDayId = openDay.Id,
-                        InvoiceNumber = invoiceNum,
-                        Status = "Draft",
-                        CreatedBy = User.Identity?.Name ?? "المدير",
-                        CreatedAt = DateTime.Now
-                    };
 
-                    _context.Sales.Add(sale);
-                }
+                await _context.SaleItems
+                    .Where(si => si.SaleId == sale.Id)
+                    .ExecuteDeleteAsync();
+
+                sale.UpdatedAt = DateTime.Now;
 
                 sale.CustomerName = model.CustomerName?.Trim();
                 sale.CustomerPhone = model.CustomerPhone?.Trim();
@@ -529,17 +515,13 @@ public class QuickSalesController : Controller
                 sale.DiscountTotal = totalDiscounts;
                 sale.FinalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
 
-                if (sale.Id == 0)
-                {
-                    await _context.SaveChangesAsync();
-                }
-
                 foreach (var item in newItems)
                 {
                     item.SaleId = sale.Id;
                     _context.SaleItems.Add(item);
                 }
 
+                _draftEditSessions.AdvanceRevisionAndLease(sale, DateTime.UtcNow);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -547,6 +529,7 @@ public class QuickSalesController : Controller
                 {
                     success = true,
                     saleId = sale.Id,
+                    draftRevision = sale.DraftRevision,
                     invoiceNumber = sale.InvoiceNumber,
                     message = "تم حفظ المسودة في قاعدة البيانات بنجاح."
                 });
@@ -563,6 +546,71 @@ public class QuickSalesController : Controller
                 Console.WriteLine($"[SaveDraft Error] {ex}");
                 return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء حفظ المسودة. يرجى المحاولة مرة أخرى." });
             }
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AcquireDraftEditSession([FromBody] DraftEditSessionRequestModel model)
+    {
+        if (model == null || model.SaleId <= 0)
+            return BadRequest(new { success = false, message = "معرف المسودة غير صالح." });
+
+        var result = await _draftEditSessions.AcquireAsync(model.SaleId, User.Identity?.Name ?? "المدير", HttpContext.RequestAborted);
+        if (!result.Acquired)
+        {
+            return Conflict(new
+            {
+                success = false,
+                code = result.Exists ? "locked" : "draft_unavailable",
+                message = result.Exists
+                    ? "المسودة قيد التعديل في جلسة أخرى. يمكنك عرضها فقط حتى تتحرر جلسة التعديل."
+                    : "المسودة غير موجودة أو لم تعد بحالة مسودة."
+            });
+        }
+
+        return Json(new
+        {
+            success = true,
+            editSessionId = result.EditSessionId,
+            draftRevision = result.DraftRevision,
+            expiresAt = result.ExpiresAt
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RenewDraftEditSession([FromBody] DraftEditSessionRequestModel model)
+    {
+        var renewed = model != null && await _draftEditSessions.RenewAsync(model.SaleId, model.EditSessionId, HttpContext.RequestAborted);
+        return renewed
+            ? Json(new { success = true })
+            : Conflict(new { success = false, code = "lock_lost", message = "انتهت جلسة التعديل أو انتقلت إلى جلسة أخرى." });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReleaseDraftEditSession([FromBody] DraftEditSessionRequestModel model)
+    {
+        var released = model != null && await _draftEditSessions.ReleaseAsync(model.SaleId, model.EditSessionId, HttpContext.RequestAborted);
+        return Json(new { success = released });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DraftState(int saleId, Guid? editSessionId = null)
+    {
+        if (saleId <= 0)
+            return BadRequest(new { success = false, message = "معرف المسودة غير صالح." });
+
+        var state = await _draftEditSessions.GetStateAsync(saleId, editSessionId, HttpContext.RequestAborted);
+        return Json(new
+        {
+            success = true,
+            exists = state.Exists,
+            state = state.State,
+            draftRevision = state.DraftRevision,
+            ownsEditLock = state.OwnsEditLock,
+            expiresAt = state.ExpiresAt
         });
     }
 
@@ -591,9 +639,9 @@ public class QuickSalesController : Controller
     // 7. DELETE / CANCEL DRAFT (ATOMIC TRANSACTION)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteDraft(int id)
+    public async Task<IActionResult> DeleteDraft([FromBody] DeleteDraftRequestModel model)
     {
-        if (id <= 0)
+        if (model == null || model.SaleId <= 0)
         {
             return Json(new { success = false, message = "معرف المسودة غير صالح." });
         }
@@ -605,13 +653,22 @@ public class QuickSalesController : Controller
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var draft = await _context.Sales
-                    .FirstOrDefaultAsync(s => s.Id == id && s.Status == "Draft");
+                var drafts = await _context.Sales
+                    .FromSqlInterpolated($"SELECT * FROM sales WHERE id = {model.SaleId} FOR UPDATE")
+                    .ToListAsync();
+                var draft = drafts.SingleOrDefault();
 
                 if (draft == null)
                 {
                     await transaction.RollbackAsync();
-                    return Json(new { success = false, message = "المسودة غير موجودة أو تم معالجتها سابقاً." });
+                    return Conflict(new { success = false, code = "draft_unavailable", message = "المسودة غير موجودة أو تم معالجتها سابقاً." });
+                }
+
+                var rejection = _draftEditSessions.ValidateWrite(draft, model.EditSessionId, model.ExpectedDraftRevision, DateTime.UtcNow);
+                if (rejection != DraftWriteRejection.None)
+                {
+                    await transaction.RollbackAsync();
+                    return DraftWriteConflict(rejection, draft.DraftRevision);
                 }
 
                 await _context.SaleItems
@@ -820,17 +877,39 @@ public class QuickSalesController : Controller
                         });
                     }
 
-                    if (!string.Equals(sale.Status, "Draft", StringComparison.Ordinal))
+                    var writeRejection = _draftEditSessions.ValidateWrite(
+                        sale,
+                        model.EditSessionId,
+                        model.ExpectedDraftRevision,
+                        DateTime.UtcNow);
+                    if (writeRejection != DraftWriteRejection.None)
+                    {
+                        await transaction.RollbackAsync();
+                        return DraftWriteConflict(writeRejection, sale.DraftRevision);
+                    }
+
+                    var persistedItems = await _context.SaleItems
+                        .AsNoTracking()
+                        .Where(si => si.SaleId == sale.Id)
+                        .Select(si => new SaveDraftItemModel
+                        {
+                            ProductId = si.ProductId,
+                            RetailPriceId = si.RetailPriceId,
+                            RetailSizeMl = si.RetailSizeMl,
+                            ProductName = si.ProductName,
+                            Quantity = si.Quantity,
+                            UnitPrice = si.UnitPrice,
+                            Discount = si.Discount
+                        })
+                        .ToListAsync();
+
+                    if (persistedItems.Count == 0)
                     {
                         await transaction.RollbackAsync();
                         return Conflict(new CompleteSaleResponseDto
                         {
                             Success = false,
-                            Message = "تم اعتماد عملية البيع هذه سابقاً أو لم تعد بحالة مسودة. لا يمكن اعتمادها مرتين.",
-                            SaleId = sale.Id,
-                            InvoiceNumber = sale.InvoiceNumber,
-                            FinalAmount = sale.FinalAmount,
-                            CompletedAt = sale.CompletedAt?.ToString("yyyy/MM/dd HH:mm")
+                            Message = "يجب حفظ أحدث عناصر المسودة بنجاح قبل اعتماد البيع."
                         });
                     }
 
@@ -844,7 +923,7 @@ public class QuickSalesController : Controller
                         .ExecuteDeleteAsync();
 
                     // 5. Product Stock Validation & Atomic Deductions
-                    var productIds = model.Items.Select(i => i.ProductId).Distinct().ToList();
+                    var productIds = persistedItems.Select(i => i.ProductId).Distinct().ToList();
 
                     // Fetch products from DB
                     var dbProducts = await _context.Products
@@ -854,7 +933,7 @@ public class QuickSalesController : Controller
 
                     // Group deductions per ProductId to safely validate and deduct inventory even if product appears in multiple rows
                     var deductionGroups = new Dictionary<int, int>();
-                    foreach (var item in model.Items)
+                    foreach (var item in persistedItems)
                     {
                         if (!dbProducts.TryGetValue(item.ProductId, out var product))
                         {
@@ -900,7 +979,7 @@ public class QuickSalesController : Controller
                     decimal lineDiscountsTotal = 0m;
                     var newSaleItems = new List<SaleItem>();
 
-                    foreach (var item in model.Items)
+                    foreach (var item in persistedItems)
                     {
                         var product = dbProducts[item.ProductId];
                         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
@@ -931,7 +1010,8 @@ public class QuickSalesController : Controller
                         });
                     }
 
-                    var overallDiscount = Math.Max(0m, model.DiscountTotal);
+                    var persistedLineDiscounts = CheckedDecimalSum(persistedItems.Select(item => Math.Max(0m, item.Discount)));
+                    var overallDiscount = Math.Max(0m, checked(sale.DiscountTotal - persistedLineDiscounts));
                     var totalDiscounts = checked(lineDiscountsTotal + overallDiscount);
                     var finalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
                     var totalPaid = CheckedDecimalSum(aggregatedPayments.Select(p => p.Amount));
@@ -961,14 +1041,15 @@ public class QuickSalesController : Controller
                     }
 
                     // Complete Sale Object Status
-                    sale.CustomerName = model.CustomerName?.Trim();
-                    sale.CustomerPhone = model.CustomerPhone?.Trim();
-                    sale.Notes = model.Notes?.Trim();
                     sale.TotalAmount = grossSubtotal;
                     sale.DiscountTotal = totalDiscounts;
                     sale.FinalAmount = finalAmount;
                     sale.Status = "Completed";
                     sale.CompletedAt = DateTime.Now;
+                    _draftEditSessions.AdvanceRevisionAndLease(sale, DateTime.UtcNow);
+                    sale.EditSessionId = null;
+                    sale.EditLockedBy = null;
+                    sale.EditLockExpiresAt = null;
 
                     // Save Sale Header First
                     await _context.SaveChangesAsync();
@@ -1391,6 +1472,19 @@ public class QuickSalesController : Controller
         };
 
         return View(viewModel);
+    }
+
+    private IActionResult DraftWriteConflict(DraftWriteRejection rejection, long currentRevision)
+    {
+        var (code, message) = rejection switch
+        {
+            DraftWriteRejection.StaleRevision => ("stale_revision", "تم حفظ إصدار أحدث من المسودة. حدّث الصفحة قبل متابعة التعديل."),
+            DraftWriteRejection.NotDraft => ("draft_unavailable", "المسودة لم تعد مفتوحة؛ ربما تم اعتمادها أو حذفها."),
+            DraftWriteRejection.LockExpired => ("lock_expired", "انتهت جلسة التعديل. لا يمكن لهذه الجلسة القديمة استعادة صلاحية الكتابة."),
+            _ => ("session_mismatch", "جلسة أخرى تملك حق تعديل هذه المسودة.")
+        };
+
+        return Conflict(new { success = false, code, currentRevision, message });
     }
 
     private static void AddChecked(IDictionary<int, int> totals, int key, int amount)

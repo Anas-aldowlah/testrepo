@@ -250,6 +250,7 @@ builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<CartLockService>();
 builder.Services.AddScoped<GuestCartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IDraftEditSessionService, DraftEditSessionService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddSingleton<ReceiptStorageService>();
 builder.Services.AddScoped<ProductService>();

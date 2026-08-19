@@ -33,6 +33,14 @@ public partial class Sale
 
     public DateTime? UpdatedAt { get; set; }
 
+    public long DraftRevision { get; set; }
+
+    public Guid? EditSessionId { get; set; }
+
+    public string? EditLockedBy { get; set; }
+
+    public DateTime? EditLockExpiresAt { get; set; }
+
     public virtual SalesDay SalesDay { get; set; } = null!;
 
     public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();

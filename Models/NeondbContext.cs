@@ -665,6 +665,16 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
+            entity.Property(e => e.DraftRevision)
+                .HasDefaultValue(0L)
+                .HasColumnName("draft_revision");
+            entity.Property(e => e.EditSessionId).HasColumnName("edit_session_id");
+            entity.Property(e => e.EditLockedBy)
+                .HasMaxLength(256)
+                .HasColumnName("edit_locked_by");
+            entity.Property(e => e.EditLockExpiresAt)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("edit_lock_expires_at");
 
             entity.HasOne(d => d.SalesDay).WithMany(p => p.Sales)
                 .HasForeignKey(d => d.SalesDayId)
