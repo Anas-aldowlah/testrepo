@@ -323,6 +323,19 @@
 
 @section Scripts {
     <script>
+        function ledgerAjaxHeaders(includeBody) {
+            var headers = {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+            if (includeBody) headers['Content-Type'] = 'application/json';
+            return headers;
+        }
+
+        function ledgerRequestError(value) {
+            return window.YaqutAdminAjax.normalizeError(value);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             var btnOpenCloseModal = document.getElementById('btnOpenCloseModal');
             if (btnOpenCloseModal) {
@@ -359,8 +372,8 @@
 
             modalBody.innerHTML = '<div class="text-center py-4"><span class="spinner-border text-warning"></span><p class="text-muted small mt-2">جاري التحميل...</p></div>';
 
-            fetch(`/Admin/QuickSales/SaleDetails?id=${saleId}`)
-                .then(res => res.json())
+            fetch(`/Admin/QuickSales/SaleDetails?id=${saleId}`, { headers: ledgerAjaxHeaders(false) })
+                .then(window.YaqutAdminAjax.readJson)
                 .then(data => {
                     if (!data.success) {
                         modalBody.innerHTML = `<div class="alert alert-danger">${escapeHtml(data.message)}</div>`;
@@ -441,8 +454,9 @@
                         </div>
                     `;
                 })
-                .catch(() => {
-                    modalBody.innerHTML = '<div class="alert alert-danger">تعذر تحميل تفاصيل الفاتورة.</div>';
+                .catch(value => {
+                    var requestError = ledgerRequestError(value);
+                    modalBody.innerHTML = `<div class="alert alert-danger">${escapeHtml(requestError.message)}</div>`;
                 });
         }
 
@@ -458,20 +472,10 @@
 
             fetch('/Admin/QuickSales/CloseDay', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
+                headers: Object.assign(ledgerAjaxHeaders(true), { 'RequestVerificationToken': token }),
                 body: JSON.stringify({ salesDayId: salesDayId, notes: notes })
             })
-            .then(res => {
-                if (!res.ok) {
-                    return res.text().then(text => {
-                        throw new Error(`خطأ في الاستجابة (${res.status}): ${text.substring(0, 150)}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(window.YaqutAdminAjax.readJson)
             .then(data => {
                 if (data.success) {
                     window.location.reload();
@@ -481,7 +485,8 @@
                     alert(data.message || 'تعذر إغلاق يوم البيع.');
                 }
             })
-            .catch(err => {
+            .catch(value => {
+                var err = ledgerRequestError(value);
                 btnConfirm.disabled = false;
                 btnConfirm.innerHTML = '<i class="bi bi-lock-fill me-1"></i> تأكيد وإغلاق اليوم نهائياً';
                 alert(err.message || 'تعذر الاتصال بالسيرفر لإغلاق اليوم.');

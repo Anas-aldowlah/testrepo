@@ -7,6 +7,7 @@
         var editSessionId = null;
         var ownsLock = false;
         var terminal = false;
+        var authenticationFailed = false;
         var lastSaveFailed = false;
         var editingEnabled = false;
         var originalDisabled = new WeakMap();
@@ -18,29 +19,52 @@
         function headers() {
             return {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'RequestVerificationToken': token
             };
         }
 
         async function readJson(response) {
-            var result;
             try {
-                result = await response.json();
-            } catch (error) {
-                result = { success: false, message: 'استجابة الخادم غير صالحة.' };
+                var result = await global.YaqutAdminAjax.readJson(response);
+                result.success = result.success === true;
+                result.status = response.status;
+                return result;
+            } catch (value) {
+                var requestError = global.YaqutAdminAjax.normalizeError(value);
+                if (requestError.kind === 'http' && requestError.payload) {
+                    requestError.payload.success = false;
+                    requestError.payload.status = requestError.status;
+                    return requestError.payload;
+                }
+
+                if (requestError.kind === 'session_expired' || requestError.kind === 'forbidden') {
+                    expireAuthentication(requestError.message);
+                    if (typeof options.onAuthFailure === 'function') options.onAuthFailure(requestError);
+                }
+
+                return {
+                    success: false,
+                    code: requestError.kind,
+                    message: requestError.message,
+                    status: requestError.status
+                };
             }
-            result.success = response.ok && result.success === true;
-            result.status = response.status;
-            return result;
         }
 
         async function post(url, body, keepalive) {
-            return readJson(await global.fetch(url, {
-                method: 'POST',
-                headers: headers(),
-                body: JSON.stringify(body),
-                keepalive: keepalive === true
-            }));
+            try {
+                return await readJson(await global.fetch(url, {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify(body),
+                    keepalive: keepalive === true
+                }));
+            } catch (value) {
+                var requestError = global.YaqutAdminAjax.normalizeError(value);
+                return { success: false, code: requestError.kind, message: requestError.message, status: requestError.status };
+            }
         }
 
         function editableControls() {
@@ -58,7 +82,7 @@
             var enterButton = document.getElementById('btnEnterDraftEdit');
             if (enterButton) {
                 enterButton.hidden = ownsLock || terminal;
-                enterButton.disabled = terminal;
+                enterButton.disabled = terminal || authenticationFailed;
             }
         }
 
@@ -80,6 +104,12 @@
             stateTimer = null;
         }
 
+        function expireAuthentication(message) {
+            authenticationFailed = true;
+            stopTimers();
+            setViewer(message);
+        }
+
         function handleTerminal(state) {
             if (terminal) return;
             terminal = true;
@@ -95,7 +125,7 @@
         }
 
         async function acquire() {
-            if (terminal || saleId <= 0) return false;
+            if (terminal || authenticationFailed || saleId <= 0) return false;
             var result = await post(options.acquireUrl, { saleId: saleId, editSessionId: '00000000-0000-0000-0000-000000000000' });
             if (!result.success) {
                 setViewer(result.message || 'تعذر الحصول على جلسة تعديل للمسودة.');
@@ -131,7 +161,13 @@
             var query = '?saleId=' + encodeURIComponent(saleId);
             if (editSessionId) query += '&editSessionId=' + encodeURIComponent(editSessionId);
             try {
-                var result = await readJson(await global.fetch(options.stateUrl + query, { cache: 'no-store' }));
+                var result = await readJson(await global.fetch(options.stateUrl + query, {
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }));
                 if (!result.success) return;
                 if (!result.exists || result.state === 'Deleted') {
                     handleTerminal('Deleted');
@@ -265,7 +301,7 @@
             });
 
             global.addEventListener('beforeunload', function (event) {
-                if (!ownsLock) return;
+                if (!ownsLock && !authenticationFailed) return;
                 var state = options.coordinator.getState();
                 if (!state.dirty && !state.requestInFlight && !lastSaveFailed) return;
                 event.preventDefault();
@@ -277,6 +313,8 @@
                 release(true);
             });
 
+            if (authenticationFailed) return;
+
             renewTimer = global.setInterval(renew, 30000);
             stateTimer = global.setInterval(pollState, 10000);
             pollState();
@@ -287,6 +325,7 @@
             attachWriteContract: attachWriteContract,
             canWrite: function () { return ownsLock && !terminal; },
             getRevision: function () { return revision; },
+            handleAuthFailure: expireAuthentication,
             handleWriteResult: handleWriteResult,
             setEditingEnabled: function (enabled) { if (ownsLock) setEditable(enabled); },
             start: start

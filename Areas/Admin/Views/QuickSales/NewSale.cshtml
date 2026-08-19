@@ -713,6 +713,34 @@ html[data-theme="dark"] .form-select,
         var availablePaymentMethods = [];
         var initialModelPayments = parseBase64Json('@initialModelPaymentsBase64');
         var draftEditSession = null;
+        var posSessionExpired = false;
+
+        function handlePosAjaxError(value) {
+            var requestError = window.YaqutAdminAjax.normalizeError(value);
+            if (requestError.kind === 'session_expired' || requestError.kind === 'forbidden') {
+                var firstAuthFailure = !posSessionExpired;
+                posSessionExpired = true;
+                if (typeof draftSaveCoordinator !== 'undefined') draftSaveCoordinator.cancelPending();
+                if (draftEditSession) draftEditSession.handleAuthFailure(requestError.message);
+                setDraftSaveStatus('error', requestError.message);
+                if (firstAuthFailure) showAlert(requestError.message, 'danger');
+            }
+            return requestError;
+        }
+
+        async function readPosJson(response) {
+            try {
+                return await window.YaqutAdminAjax.readJson(response);
+            } catch (value) {
+                var requestError = handlePosAjaxError(value);
+                if (requestError.kind === 'http' && requestError.payload) {
+                    requestError.payload.success = false;
+                    requestError.payload.status = requestError.status;
+                    return requestError.payload;
+                }
+                throw requestError;
+            }
+        }
 
         function getSafeProductImageUrl(value) {
             if (!value) return '/images/yaqut-logo.png';
@@ -809,7 +837,10 @@ html[data-theme="dark"] .form-select,
             if (draftEditSession) draftEditSession.handleWriteResult(result);
 
             if (!result || !result.success) {
-                setDraftSaveStatus('error', 'فشل حفظ المسودة — اضغط «حفظ كمسودة» لإعادة المحاولة.');
+                var message = 'فشل حفظ المسودة — اضغط «حفظ كمسودة» لإعادة المحاولة.';
+                if (result && result.error) message = handlePosAjaxError(result.error).message;
+                else if (result && result.message) message = result.message;
+                setDraftSaveStatus('error', message);
                 return;
             }
 
@@ -854,11 +885,13 @@ html[data-theme="dark"] .form-select,
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'RequestVerificationToken': token
                     },
                     body: JSON.stringify(data)
                 });
-                var deleteResult = await deleteResponse.json();
+                var deleteResult = await readPosJson(deleteResponse);
                 if (deleteResponse.ok && deleteResult.success) {
                     document.getElementById('posSaleId').value = '0';
                 }
@@ -870,11 +903,13 @@ html[data-theme="dark"] .form-select,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'RequestVerificationToken': token
                 },
                 body: JSON.stringify(data)
             });
-            var result = await response.json();
+            var result = await readPosJson(response);
             if (response.ok && result.success && result.saleId > 0) {
                 document.getElementById('posSaleId').value = result.saleId;
             }
@@ -890,7 +925,7 @@ html[data-theme="dark"] .form-select,
         });
 
         function scheduleAutoSave() {
-            if (!draftEditSession || !draftEditSession.canWrite()) return;
+            if (posSessionExpired || !draftEditSession || !draftEditSession.canWrite()) return;
             draftSaveCoordinator.markDirty();
             setDraftSaveStatus('dirty', 'تغييرات غير محفوظة — سيتم الحفظ تلقائياً.');
             if (isCompletingSale) {
@@ -899,14 +934,22 @@ html[data-theme="dark"] .form-select,
         }
 
         function loadPaymentMethods(callback) {
-            fetch('/Admin/QuickSales/GetPaymentMethods')
-                .then(res => res.json())
+            fetch('/Admin/QuickSales/GetPaymentMethods', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(readPosJson)
                 .then(data => {
                     availablePaymentMethods = data || [];
                     if (callback) callback();
                 })
-                .catch(() => {
+                .catch(value => {
+                    var requestError = handlePosAjaxError(value);
+                    if (requestError.kind === 'session_expired' || requestError.kind === 'forbidden') return;
                     availablePaymentMethods = [{ id: 1, name: 'نقدي', type: 'Cash' }];
+                    showAlert(requestError.message, 'warning');
                     if (callback) callback();
                 });
         }
@@ -1328,7 +1371,12 @@ html[data-theme="dark"] .form-select,
 
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(function() {
-                    var searchOptions = {};
+                    var searchOptions = {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    };
                     if (typeof window.AbortController === 'function') {
                         if (activeSearchController) {
                             activeSearchController.abort();
@@ -1340,7 +1388,7 @@ html[data-theme="dark"] .form-select,
                     }
 
                     fetch('/Admin/QuickSales/SearchProducts?q=' + encodeURIComponent(query), searchOptions)
-                        .then(res => res.json())
+                        .then(readPosJson)
                         .then(data => {
                             if (requestVersion !== searchRequestVersion || activeSearchInput !== searchInput || searchInput.value.trim() !== query) return;
                             panel.replaceChildren();
@@ -1419,12 +1467,13 @@ html[data-theme="dark"] .form-select,
                         .catch(err => {
                             if (err.name === 'AbortError') return;
                             if (requestVersion !== searchRequestVersion || activeSearchInput !== searchInput || searchInput.value.trim() !== query) return;
+                            var requestError = handlePosAjaxError(err);
                             var errorMessage = document.createElement('div');
                             errorMessage.className = 'p-3 text-danger text-center small';
                             var errorIcon = document.createElement('i');
                             errorIcon.className = 'bi bi-x-circle me-1';
                             errorIcon.setAttribute('aria-hidden', 'true');
-                            errorMessage.append(errorIcon, document.createTextNode(' تعذر تحميل المنتجات'));
+                            errorMessage.append(errorIcon, document.createTextNode(' ' + requestError.message));
                             panel.replaceChildren(errorMessage);
                             panel.style.display = 'block';
                         });
@@ -1857,7 +1906,7 @@ html[data-theme="dark"] .form-select,
 
                 if (res.success) {
                     showAlert(`تم حفظ المسودة بنجاح! رقم الفاتورة: (${res.invoiceNumber})`, 'success');
-                } else {
+                } else if (!posSessionExpired) {
                     showAlert(res.message || res.error?.message || 'حدث خطأ أثناء حفظ المسودة.', 'danger');
                 }
             } catch (err) {
@@ -1923,7 +1972,9 @@ html[data-theme="dark"] .form-select,
 
                 var draftResult = await draftSaveCoordinator.request(true);
                 if (!draftResult.success || !draftResult.saleId) {
-                    throw new Error(draftResult.message || draftResult.error?.message || 'تعذر حفظ أحدث حالة للمسودة قبل اعتماد البيع.');
+                    if (draftResult.error) throw draftResult.error;
+                    showAlert(draftResult.message || 'تعذر حفظ أحدث حالة للمسودة قبل اعتماد البيع.', 'danger');
+                    return;
                 }
                 data = draftEditSession.attachWriteContract(collectSaleData());
 
@@ -1932,11 +1983,13 @@ html[data-theme="dark"] .form-select,
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'RequestVerificationToken': token
                     },
                     body: JSON.stringify(data)
                 });
-                var res = await response.json();
+                var res = await window.YaqutAdminAjax.readJson(response);
 
                 if (res.success) {
                     saleCompleted = true;
@@ -1952,14 +2005,17 @@ html[data-theme="dark"] .form-select,
                     showAlert(res.message || 'تعذر اعتماد عملية البيع.', 'danger');
                 }
             } catch (error) {
+                error = handlePosAjaxError(error);
                 console.error('CompleteSale error:', error);
-                showAlert(error.message || 'تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
+                if (error.kind !== 'session_expired' && error.kind !== 'forbidden') {
+                    showAlert(error.message || 'تعذر الاتصال بالسيرفر أثناء الاعتماد.', 'danger');
+                }
             } finally {
                 isCompletingSale = false;
-                if (!saleCompleted && draftEditSession.canWrite()) {
+                if (!saleCompleted && !posSessionExpired && draftEditSession.canWrite()) {
                     draftEditSession.setEditingEnabled(true);
                 }
-                if (!saleCompleted && draftSaveCoordinator.getState().dirty) {
+                if (!saleCompleted && !posSessionExpired && draftSaveCoordinator.getState().dirty) {
                     draftSaveCoordinator.request(false);
                 }
                 btnComplete.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون';
@@ -2017,7 +2073,8 @@ html[data-theme="dark"] .form-select,
             deleteUrl: '/Admin/QuickSales/DeleteDraft',
             draftsUrl: '/Admin/QuickSales/Drafts',
             setStatus: setDraftSaveStatus,
-            showAlert: showAlert
+            showAlert: showAlert,
+            onAuthFailure: handlePosAjaxError
         });
         document.addEventListener('DOMContentLoaded', draftEditSession.start);
     </script>

@@ -138,10 +138,28 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
         options.Events.OnRedirectToLogin = context =>
         {
-            if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+            if (IsAjaxOrJsonRequest(context.Request))
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
+                return WriteAuthJsonAsync(
+                    context.HttpContext,
+                    StatusCodes.Status401Unauthorized,
+                    "session_expired",
+                    "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى.");
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (IsAjaxOrJsonRequest(context.Request))
+            {
+                return WriteAuthJsonAsync(
+                    context.HttpContext,
+                    StatusCodes.Status403Forbidden,
+                    "forbidden",
+                    "ليس لديك صلاحية لتنفيذ هذا الطلب.");
             }
 
             context.Response.Redirect(context.RedirectUri);
@@ -353,11 +371,31 @@ app.Use(async (context, next) =>
     {
         if (!isAuthenticated)
         {
+            if (IsAjaxOrJsonRequest(context.Request))
+            {
+                await WriteAuthJsonAsync(
+                    context,
+                    StatusCodes.Status401Unauthorized,
+                    "session_expired",
+                    "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى.");
+                return;
+            }
+
             context.Response.Redirect($"/Account/Auth?returnUrl={Uri.EscapeDataString(path + context.Request.QueryString)}");
             return;
         }
         if (!context.User.IsInRole("Admin") && !context.User.IsInRole("Developer"))
         {
+            if (IsAjaxOrJsonRequest(context.Request))
+            {
+                await WriteAuthJsonAsync(
+                    context,
+                    StatusCodes.Status403Forbidden,
+                    "forbidden",
+                    "ليس لديك صلاحية لتنفيذ هذا الطلب.");
+                return;
+            }
+
             context.Response.Redirect("/Account/Auth");
             return;
         }
@@ -416,3 +454,33 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+static bool IsAjaxOrJsonRequest(HttpRequest request)
+{
+    if (request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    if (request.Headers["X-Requested-With"].Any(value =>
+            string.Equals(value, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)))
+    {
+        return true;
+    }
+
+    if (request.Headers.Accept.Any(value => value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+    {
+        return true;
+    }
+
+    return request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true;
+}
+
+static Task WriteAuthJsonAsync(HttpContext context, int statusCode, string code, string message)
+{
+    context.Response.StatusCode = statusCode;
+    context.Response.Headers.CacheControl = "no-store";
+    return context.Response.WriteAsJsonAsync(
+        new { success = false, code, message },
+        context.RequestAborted);
+}

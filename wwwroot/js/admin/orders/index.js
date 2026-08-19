@@ -187,14 +187,13 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         'RequestVerificationToken': token
                     },
                     body: `id=${orderId}&status=${encodeURIComponent(newStatus)}`
                 });
-                if (!response.ok) throw new Error('Order status request failed.');
-
-                const data = await response.json();
+                const data = await window.YaqutAdminAjax.readJson(response);
                 if (data.success) {
                     const badge = root.querySelector(`[data-order-badge="${orderId}"]`);
                     if (badge) {
@@ -207,9 +206,10 @@
                     this.value = this.dataset.originalStatus;
                     showOrderAlert('danger', data.message || 'حدث خطأ أثناء تحديث الحالة');
                 }
-            } catch (error) {
+            } catch (value) {
+                const error = window.YaqutAdminAjax.normalizeError(value);
                 this.value = this.dataset.originalStatus;
-                showOrderAlert('danger', 'حدث خطأ في الاتصال بالخادم');
+                showOrderAlert('danger', error.message);
             } finally {
                 this.disabled = false;
                 this.style.opacity = '1';
