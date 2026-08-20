@@ -1,7 +1,8 @@
-@model ProductVW
+@using YAGOT_2._0.Models.Admin
+@model AdminProductCreateViewModel
 @{
     ViewData["Title"] = "إضافة منتج";
-    var rows = Model?.RetailPrices ?? new List<ProductRetailPriceInput>();
+    var rows = Model.RetailPrices;
 }
 
 @section Styles {
@@ -35,6 +36,7 @@
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Name" class="yaqut-form-label">اسم المنتج</label>
                     <input asp-for="Name" class="yaqut-form-input" autocomplete="off" />
+                    <span asp-validation-for="Name" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Brand" class="yaqut-form-label">الماركة</label>
@@ -54,6 +56,7 @@
                     <select asp-for="Categoryid" asp-items="@ViewBag.Categoryid" class="yaqut-form-input">
                         <option value="">-- اختر التصنيف --</option>
                     </select>
+                    <span asp-validation-for="Categoryid" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field yq-product-field--wide">
                     <label asp-for="Description" class="yaqut-form-label">الوصف</label>
@@ -62,6 +65,7 @@
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Price" class="yaqut-form-label">سعر البيع</label>
                     <input asp-for="Price" type="number" step="0.01" min="0" class="yaqut-form-input" />
+                    <span asp-validation-for="Price" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Imagefile" class="yaqut-form-label">الصورة</label>
@@ -85,14 +89,17 @@
                         <option value="Piece">قطعة</option>
                         <option value="Ml">مل</option>
                     </select>
+                    <span asp-validation-for="StockUnit" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field" data-volume-field>
                     <label asp-for="VolumeMl" class="yaqut-form-label">الحجم</label>
                     <input asp-for="VolumeMl" type="number" min="1" class="yaqut-form-input" placeholder="مثال: 200" />
+                    <span asp-validation-for="VolumeMl" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Stockquantity" class="yaqut-form-label">الكمية</label>
                     <input asp-for="Stockquantity" type="number" min="0" class="yaqut-form-input" />
+                    <span asp-validation-for="Stockquantity" class="yq-product-validation"></span>
                     <span class="yq-product-help">قطعة = عدد القطع. مل = عدد العبوات.</span>
                 </div>
                 <label class="yaqut-form-group yq-product-field yq-product-field--wide yq-retail-toggle">
@@ -109,17 +116,17 @@
                 <div class="yq-product-form__grid yq-retail-prices__grid" data-retail-price-list>
                     @for (var i = 0; i < rows.Count; i++)
                     {
-                        var sizeInputId = $"RetailPrices_{i}__SizeMl";
-                        var priceInputId = $"RetailPrices_{i}__Price";
                         <div class="yq-retail-price-row">
-                            <input type="hidden" name="RetailPrices[@i].Id" value="@rows[i].Id" />
+                            <input type="hidden" asp-for="RetailPrices[i].Id" />
                             <div class="yaqut-form-group yq-product-field">
-                                <label class="yaqut-form-label" for="@sizeInputId">الحجم ml</label>
-                                <input id="@sizeInputId" name="RetailPrices[@i].SizeMl" value="@rows[i].SizeMl" type="number" min="0" class="yaqut-form-input" />
+                                <label asp-for="RetailPrices[i].SizeMl" class="yaqut-form-label">الحجم ml</label>
+                                <input asp-for="RetailPrices[i].SizeMl" type="number" min="0" class="yaqut-form-input" />
+                                <span asp-validation-for="RetailPrices[i].SizeMl" class="yq-product-validation"></span>
                             </div>
                             <div class="yaqut-form-group yq-product-field">
-                                <label class="yaqut-form-label" for="@priceInputId">السعر</label>
-                                <input id="@priceInputId" name="RetailPrices[@i].Price" value="@rows[i].Price" type="number" step="0.01" min="0" class="yaqut-form-input" />
+                                <label asp-for="RetailPrices[i].Price" class="yaqut-form-label">السعر</label>
+                                <input asp-for="RetailPrices[i].Price" type="number" step="0.01" min="0" class="yaqut-form-input" />
+                                <span asp-validation-for="RetailPrices[i].Price" class="yq-product-validation"></span>
                                 <input type="hidden" name="RetailPrices[@i].IsActive" value="true" />
                             </div>
                             <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة">
@@ -143,6 +150,7 @@
 </section>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const stockUnit = document.querySelector('[data-stock-unit]');
