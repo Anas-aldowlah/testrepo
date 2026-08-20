@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
@@ -114,6 +115,15 @@ static void AssertArabicValidationConfiguration()
     };
     AssertArabicDataAnnotations(product, "Product Edit");
     AssertArabicDataAnnotations(new ProductRetailPriceInput { SizeMl = 0, Price = 0 }, "RetailPrices");
+    AssertArabicDataAnnotations(new AdminProductCreateViewModel
+    {
+        Name = string.Empty,
+        Categoryid = null,
+        Price = null,
+        Stockquantity = null,
+        StockUnit = string.Empty
+    }, "Product Create");
+    AssertArabicDataAnnotations(new AdminProductCreateRetailPriceInput { SizeMl = 0, Price = 0 }, "Product Create retail prices");
     AssertArabicDataAnnotations(new StockAdjustmentViewModel
     {
         Id = 0,
@@ -123,7 +133,13 @@ static void AssertArabicValidationConfiguration()
         Quantity = 0
     }, "Stock adjustment");
 
-    Console.WriteLine("PASS: Arabic DataAnnotations and framework model-binding messages.");
+    var invalidImage = new FormFile(Stream.Null, 0, 1, "Imagefile", "product.exe");
+    var oversizedImage = new FormFile(Stream.Null, 0, (5 * 1024 * 1024) + 1, "Imagefile", "product.png");
+    Assert(IsArabicUserMessage(Image.GetValidationError(invalidImage)), "Product Create image extension error is not Arabic.");
+    Assert(IsArabicUserMessage(Image.GetValidationError(oversizedImage)), "Product Create image size error is not Arabic.");
+    Assert(Image.GetValidationError(null) == null, "Optional Product Create image must accept an empty value.");
+
+    Console.WriteLine("PASS: Arabic Product Create/Edit annotations, image validation, and framework model-binding messages.");
 }
 
 static void AssertArabicDataAnnotations(object model, string scenario)
