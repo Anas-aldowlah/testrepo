@@ -394,7 +394,8 @@
                             <button type="button" class="btn btn-outline-secondary px-4 yq-btn-back" data-back-to="2">
                                 <i class="bi bi-arrow-right"></i> السابق
                             </button>
-                            <button type="button" class="btn-yaqut-gold px-4" id="btnCompleteRegistration">
+                            <button type="button" class="btn-yaqut-gold px-4" id="btnCompleteRegistration"
+                                    data-yq-complete-registration-url="@Url.Action("CompleteRegistration", "Account", new { returnUrl })">
                                 <i class="bi bi-stars"></i> إنشاء الحساب
                             </button>
                         </div>
@@ -652,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btnComplete.disabled = true;
             btnComplete.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري إنشاء الحساب...';
 
-            fetch('/Account/CompleteRegistration?returnUrl=' + encodeURIComponent('@returnUrl'), {
+            fetch(btnComplete.dataset.yqCompleteRegistrationUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
