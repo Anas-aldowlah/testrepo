@@ -26,13 +26,10 @@ namespace YAGOT_2._0.Services
             if (imageFile == null || imageFile.Length == 0)
                 return null;
 
-            if (imageFile.Length > MaxFileSize)
+            if (GetValidationError(imageFile) != null)
                 return null;
 
             string extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-            if (!AllowedExtensions.Contains(extension))
-                return null;
 
             // تحديد المسار
             string uploadsFolder = Path.Combine(
@@ -56,6 +53,20 @@ namespace YAGOT_2._0.Services
             }
 
             return uniqueFileName;
+        }
+
+        public static string? GetValidationError(IFormFile? imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+                return null;
+
+            if (imageFile.Length > MaxFileSize)
+                return "يجب ألا يتجاوز حجم الصورة 5 ميجابايت.";
+
+            string extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            return AllowedExtensions.Contains(extension)
+                ? null
+                : "صيغة الصورة غير مدعومة. استخدم صورة بصيغة مدعومة.";
         }
 
         public async Task<string?> UpdateImage(

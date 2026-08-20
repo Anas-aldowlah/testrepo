@@ -103,11 +103,10 @@ public class ProductsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        ViewBag.Categoryid = new SelectList(_context.Categories.ToList(), "Id", "Name");
-        ViewBag.Brands = _context.Products.Where(p => !string.IsNullOrWhiteSpace(p.Brand)).Select(p => p.Brand!.Trim()).Distinct().ToList();
-        return View(new ProductVW
+        await PopulateCreateOptionsAsync();
+        return View(new AdminProductCreateViewModel
         {
             StockUnit = "Piece",
             RetailPrices = []
@@ -117,8 +116,25 @@ public class ProductsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<IActionResult> Create(ProductVW productvw)
+    public async Task<IActionResult> Create(AdminProductCreateViewModel input)
     {
+        ValidateCreateConfiguration(input);
+        var productvw = ToProductViewModel(input);
+        ValidateRetailPrices(productvw, product: null, modelPrefix: null);
+
+        var imageError = Image.GetValidationError(input.Imagefile);
+        if (imageError != null)
+            ModelState.AddModelError(nameof(AdminProductCreateViewModel.Imagefile), imageError);
+
+        if (ModelState.IsValid &&
+            !await _context.Categories.AsNoTracking().AnyAsync(category => category.Id == input.Categoryid!.Value))
+        {
+            ModelState.AddModelError(nameof(AdminProductCreateViewModel.Categoryid), "التصنيف المحدد غير صالح.");
+        }
+
+        if (!ModelState.IsValid)
+            return await CreateValidationViewAsync(input);
+
         NormalizeRetailRows(productvw);
         try
         {
@@ -130,15 +146,15 @@ public class ProductsController : Controller
         }
 
         if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            return await CreateValidationViewAsync(input);
 
         try
         {
             var stockQuantity = CalculateInitialStock(productvw);
             if (stockQuantity > 1000000)
             {
-                ModelState.AddModelError(nameof(ProductVW.Stockquantity), "يجب ألا تتجاوز كمية المخزون المحسوبة 1,000,000.");
-                return ValidationProblem(ModelState);
+                ModelState.AddModelError(nameof(AdminProductCreateViewModel.Stockquantity), "يجب ألا تتجاوز كمية المخزون المحسوبة 1,000,000.");
+                return await CreateValidationViewAsync(input);
             }
 
             string? filename = await _imageService.UploadImage(productvw.Imagefile, "products");
@@ -174,8 +190,8 @@ public class ProductsController : Controller
         catch (OverflowException exception)
         {
             _logger.LogWarning(exception, "Rejected product creation because its initial stock calculation overflowed.");
-            ModelState.AddModelError(nameof(ProductVW.Stockquantity), "تتجاوز كمية المخزون المحسوبة النطاق الرقمي المدعوم.");
-            return ValidationProblem(ModelState);
+            ModelState.AddModelError(nameof(AdminProductCreateViewModel.Stockquantity), "تتجاوز كمية المخزون المحسوبة النطاق الرقمي المدعوم.");
+            return await CreateValidationViewAsync(input);
         }
     }
 
@@ -209,7 +225,7 @@ public class ProductsController : Controller
             ModelState.AddModelError(string.Empty, exception.Message);
         }
 
-        ValidateRetailPrices(productVW, product);
+        ValidateRetailPrices(productVW, product, nameof(AdminProductEditViewModel.Product));
 
         if (!ModelState.IsValid)
             return await EditValidationViewAsync(productVW, product);
@@ -386,6 +402,68 @@ public class ProductsController : Controller
             .ToListAsync();
     }
 
+    private static ProductVW ToProductViewModel(AdminProductCreateViewModel input) => new()
+    {
+        Categoryid = input.Categoryid.GetValueOrDefault(),
+        Name = input.Name ?? string.Empty,
+        Description = input.Description,
+        Price = input.Price.GetValueOrDefault(),
+        Stockquantity = input.Stockquantity.GetValueOrDefault(),
+        StockUnit = input.StockUnit ?? string.Empty,
+        VolumeMl = input.VolumeMl,
+        IsRetailEnabled = input.IsRetailEnabled,
+        Brand = input.Brand,
+        Imagefile = input.Imagefile,
+        RetailPrices = input.RetailPrices.Select(price => new ProductRetailPriceInput
+        {
+            Id = price.Id,
+            SizeMl = price.SizeMl.GetValueOrDefault(),
+            Price = price.Price.GetValueOrDefault(),
+            IsActive = price.IsActive
+        }).ToList()
+    };
+
+    private async Task PopulateCreateOptionsAsync()
+    {
+        ViewBag.Categoryid = new SelectList(
+            await _context.Categories.AsNoTracking().OrderBy(category => category.Name).ToListAsync(),
+            "Id",
+            "Name");
+        ViewBag.Brands = await _context.Products
+            .AsNoTracking()
+            .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
+            .Select(product => product.Brand!.Trim())
+            .Distinct()
+            .OrderBy(brand => brand)
+            .ToListAsync();
+    }
+
+    private async Task<IActionResult> CreateValidationViewAsync(AdminProductCreateViewModel submitted)
+    {
+        await PopulateCreateOptionsAsync();
+        return View("Create", submitted);
+    }
+
+    private void ValidateCreateConfiguration(AdminProductCreateViewModel input)
+    {
+        if (!string.Equals(input.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase))
+        {
+            if (input.IsRetailEnabled)
+                AddModelErrorIfAbsent(nameof(AdminProductCreateViewModel.IsRetailEnabled), "لا يمكن تفعيل التجزئة إلا للمنتجات التي وحدتها مل.");
+
+            return;
+        }
+
+        if (!input.VolumeMl.HasValue)
+            AddModelErrorIfAbsent(nameof(AdminProductCreateViewModel.VolumeMl), "حجم العبوة مطلوب للمنتجات التي تُدار بالمل.");
+    }
+
+    private void AddModelErrorIfAbsent(string key, string message)
+    {
+        if (!ModelState.TryGetValue(key, out var entry) || entry.Errors.Count == 0)
+            ModelState.AddModelError(key, message);
+    }
+
     private async Task<IActionResult> EditValidationViewAsync(ProductVW submitted, Product product)
     {
         ModelState.Remove($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Stockquantity)}");
@@ -409,43 +487,44 @@ public class ProductsController : Controller
         return View("Edit", BuildEditViewModel(product, submittedAdjustment: submitted));
     }
 
-    private void ValidateRetailPrices(ProductVW model, Product product)
+    private void ValidateRetailPrices(ProductVW model, Product? product, string? modelPrefix)
     {
         if (!string.Equals(model.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase) || !model.IsRetailEnabled)
             return;
 
-        var knownIds = product.RetailPrices.Select(price => price.Id).ToHashSet();
+        var knownIds = product?.RetailPrices.Select(price => price.Id).ToHashSet() ?? [];
         var submittedIds = new HashSet<int>();
         var sizeIndexes = new Dictionary<int, int>();
+        var fieldPrefix = string.IsNullOrEmpty(modelPrefix) ? string.Empty : $"{modelPrefix}.";
         for (var index = 0; index < model.RetailPrices.Count; index++)
         {
             var row = model.RetailPrices[index];
-            var prefix = $"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.RetailPrices)}[{index}]";
+            var prefix = $"{fieldPrefix}{nameof(ProductVW.RetailPrices)}[{index}]";
 
-            if (row.Id.HasValue && !knownIds.Contains(row.Id.Value))
-                ModelState.AddModelError(prefix, "سعر التجزئة المحدد لا ينتمي إلى هذا المنتج.");
-            else if (row.Id.HasValue && !submittedIds.Add(row.Id.Value))
-                ModelState.AddModelError(prefix, "لا يمكن إرسال سعر التجزئة نفسه أكثر من مرة.");
+            if (product != null && row.Id.HasValue && !knownIds.Contains(row.Id.Value))
+                AddModelErrorIfAbsent(prefix, "سعر التجزئة المحدد لا ينتمي إلى هذا المنتج.");
+            else if (product != null && row.Id.HasValue && !submittedIds.Add(row.Id.Value))
+                AddModelErrorIfAbsent(prefix, "لا يمكن إرسال سعر التجزئة نفسه أكثر من مرة.");
 
             if (row.SizeMl <= 0)
-                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "حجم التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
+                AddModelErrorIfAbsent($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "حجم التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
             else if (model.VolumeMl is > 0 && row.SizeMl >= model.VolumeMl.Value)
-                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "يجب أن يكون حجم التجزئة أصغر من حجم العبوة الأساسي.");
-            else if (row.Id.HasValue && product.RetailPrices.Any(price =>
+                AddModelErrorIfAbsent($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "يجب أن يكون حجم التجزئة أصغر من حجم العبوة الأساسي.");
+            else if (product != null && row.Id.HasValue && product.RetailPrices.Any(price =>
                          price.Id != row.Id.Value && price.SizeMl == row.SizeMl))
-                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "هذا الحجم موجود مسبقاً لهذا المنتج، حتى لو كان غير نشط.");
+                AddModelErrorIfAbsent($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "هذا الحجم موجود مسبقاً لهذا المنتج، حتى لو كان غير نشط.");
 
             if (row.Price <= 0)
-                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.Price)}", "سعر التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
+                AddModelErrorIfAbsent($"{prefix}.{nameof(ProductRetailPriceInput.Price)}", "سعر التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
 
             if (row.SizeMl <= 0)
                 continue;
 
             if (sizeIndexes.TryGetValue(row.SizeMl, out var firstIndex))
             {
-                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "لا يمكن تكرار حجم التجزئة للمنتج نفسه.");
-                ModelState.AddModelError(
-                    $"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.RetailPrices)}[{firstIndex}].{nameof(ProductRetailPriceInput.SizeMl)}",
+                AddModelErrorIfAbsent($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "لا يمكن تكرار حجم التجزئة للمنتج نفسه.");
+                AddModelErrorIfAbsent(
+                    $"{fieldPrefix}{nameof(ProductVW.RetailPrices)}[{firstIndex}].{nameof(ProductRetailPriceInput.SizeMl)}",
                     "لا يمكن تكرار حجم التجزئة للمنتج نفسه.");
             }
             else
