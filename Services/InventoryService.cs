@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Models.Admin;
 
 namespace YAGOT_2._0.Services;
 
 public class InventoryService : IInventoryService
 {
+    public const int MaximumStockQuantity = StockAdjustmentLimits.MaximumQuantity;
+
     private readonly NeondbContext _context;
 
     public InventoryService(NeondbContext context)
@@ -94,6 +97,71 @@ public class InventoryService : IInventoryService
             cancellationToken);
     }
 
+    public async Task<StockAdjustmentResult> AdjustStockAsync(
+        StockAdjustmentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _context.Products
+            .AsNoTracking()
+            .Include(candidate => candidate.RetailPrices)
+            .SingleOrDefaultAsync(candidate => candidate.Id == request.ProductId, cancellationToken);
+        if (product == null)
+            return StockAdjustmentResult.MissingProduct;
+
+        var calculation = CalculateStockAdjustment(product, request);
+        if (!calculation.Succeeded)
+            return StockAdjustmentResult.Failure(calculation.Field, calculation.Error!);
+        var amount = calculation.Amount;
+
+        var affectedRows = request.Operation == StockAdjustmentOperation.Subtract
+            ? await _context.Products
+                .Where(candidate => candidate.Id == request.ProductId && candidate.Stockquantity >= amount)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(
+                    candidate => candidate.Stockquantity,
+                    candidate => candidate.Stockquantity - amount), cancellationToken)
+            : await _context.Products
+                .Where(candidate =>
+                    candidate.Id == request.ProductId &&
+                    candidate.Stockquantity <= MaximumStockQuantity - amount)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(
+                    candidate => candidate.Stockquantity,
+                    candidate => candidate.Stockquantity + amount), cancellationToken);
+
+        if (affectedRows == 1)
+            return StockAdjustmentResult.Success;
+
+        return request.Operation == StockAdjustmentOperation.Subtract
+            ? StockAdjustmentResult.Failure(null, "لا يمكن الخصم لأن الرصيد الحالي أقل من قيمة التسوية. حدّث الصفحة وراجع الرصيد.")
+            : StockAdjustmentResult.Failure(null, "لا يمكن الإضافة لأن الرصيد الناتج سيتجاوز 1,000,000. حدّث الصفحة وراجع الرصيد.");
+    }
+
+    public static StockAdjustmentCalculationResult CalculateStockAdjustment(Product product, StockAdjustmentRequest request)
+    {
+        if (!Enum.IsDefined(request.Operation))
+            return StockAdjustmentCalculationResult.Failure(nameof(StockAdjustmentViewModel.Operation), "اختر إضافة أو خصماً صالحاً.");
+
+        if (request.Quantity <= 0)
+            return StockAdjustmentCalculationResult.Failure(nameof(StockAdjustmentViewModel.Quantity), "الكمية مطلوبة ويجب أن تكون أكبر من صفر.");
+
+        var sizeResult = ResolveAdjustmentUnitSize(product, request);
+        if (!sizeResult.Succeeded)
+            return StockAdjustmentCalculationResult.Failure(sizeResult.Field, sizeResult.Error!);
+
+        int amount;
+        try
+        {
+            amount = checked(sizeResult.SizeMl * request.Quantity);
+        }
+        catch (OverflowException)
+        {
+            return StockAdjustmentCalculationResult.Failure(null, "قيمة تسوية المخزون تتجاوز النطاق الرقمي المدعوم.");
+        }
+
+        return amount is > 0 and <= MaximumStockQuantity
+            ? StockAdjustmentCalculationResult.Success(amount)
+            : StockAdjustmentCalculationResult.Failure(null, "يجب أن تكون قيمة تسوية المخزون بين 1 و1,000,000.");
+    }
+
     private static int GetUnitAmount(Product product, int? retailSizeMl)
     {
         if (retailSizeMl.HasValue)
@@ -116,5 +184,50 @@ public class InventoryService : IInventoryService
         }
 
         return 1;
+    }
+
+    private static StockUnitSizeResult ResolveAdjustmentUnitSize(Product product, StockAdjustmentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.SizeOption))
+            return StockUnitSizeResult.Failure(nameof(StockAdjustmentViewModel.SizeOption), "اختر حجماً صالحاً من القائمة.");
+
+        if (!string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(request.SizeOption, StockAdjustmentSizeOptions.Base, StringComparison.OrdinalIgnoreCase)
+                ? StockUnitSizeResult.Success(1)
+                : StockUnitSizeResult.Failure(nameof(StockAdjustmentViewModel.SizeOption), "اختيار الحجم غير صالح لمنتج يُدار بالقطعة.");
+        }
+
+        if (product.VolumeMl is not > 0)
+            return StockUnitSizeResult.Failure(null, "لا يمكن تسوية مخزون هذا المنتج لأن حجم العبوة الأساسي غير صالح.");
+
+        if (string.Equals(request.SizeOption, StockAdjustmentSizeOptions.Base, StringComparison.OrdinalIgnoreCase))
+            return StockUnitSizeResult.Success(product.VolumeMl.Value);
+
+        if (string.Equals(request.SizeOption, StockAdjustmentSizeOptions.Custom, StringComparison.OrdinalIgnoreCase))
+            return request.CustomSizeMl is > 0
+                ? StockUnitSizeResult.Success(request.CustomSizeMl.Value)
+                : StockUnitSizeResult.Failure(nameof(StockAdjustmentViewModel.CustomSizeMl), "الحجم المخصص مطلوب ويجب أن يكون أكبر من صفر.");
+
+        if (request.SizeOption.StartsWith(StockAdjustmentSizeOptions.RetailPrefix, StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(request.SizeOption[StockAdjustmentSizeOptions.RetailPrefix.Length..], out var retailPriceId))
+        {
+            var retailPrice = product.RetailPrices.FirstOrDefault(price =>
+                price.Id == retailPriceId &&
+                price.IsActive &&
+                price.SizeMl > 0 &&
+                price.SizeMl < product.VolumeMl.Value);
+            return retailPrice != null && product.IsRetailEnabled
+                ? StockUnitSizeResult.Success(retailPrice.SizeMl)
+                : StockUnitSizeResult.Failure(nameof(StockAdjustmentViewModel.SizeOption), "حجم التجزئة المحدد غير صالح أو غير نشط.");
+        }
+
+        return StockUnitSizeResult.Failure(nameof(StockAdjustmentViewModel.SizeOption), "اختر حجماً صالحاً من القائمة.");
+    }
+
+    private sealed record StockUnitSizeResult(bool Succeeded, int SizeMl, string? Field = null, string? Error = null)
+    {
+        public static StockUnitSizeResult Success(int sizeMl) => new(true, sizeMl);
+        public static StockUnitSizeResult Failure(string? field, string error) => new(false, 0, field, error);
     }
 }

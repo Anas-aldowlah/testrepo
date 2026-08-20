@@ -20,6 +20,7 @@ public class ProductsController : Controller
     private readonly ProductService _productService;
     private readonly NeondbContext _context;
     private readonly Image _imageService;
+    private readonly IInventoryService _inventoryService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -27,11 +28,13 @@ public class ProductsController : Controller
         NeondbContext context,
         IWebHostEnvironment webHostEnvironment,
         Image imageService,
+        IInventoryService inventoryService,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
         _context = context;
         _imageService = imageService;
+        _inventoryService = inventoryService;
         _logger = logger;
     }
 
@@ -134,7 +137,7 @@ public class ProductsController : Controller
             var stockQuantity = CalculateInitialStock(productvw);
             if (stockQuantity > 1000000)
             {
-                ModelState.AddModelError(nameof(ProductVW.Stockquantity), "The calculated stock quantity must not exceed 1,000,000.");
+                ModelState.AddModelError(nameof(ProductVW.Stockquantity), "يجب ألا تتجاوز كمية المخزون المحسوبة 1,000,000.");
                 return ValidationProblem(ModelState);
             }
 
@@ -171,7 +174,7 @@ public class ProductsController : Controller
         catch (OverflowException exception)
         {
             _logger.LogWarning(exception, "Rejected product creation because its initial stock calculation overflowed.");
-            ModelState.AddModelError(nameof(ProductVW.Stockquantity), "The calculated stock quantity exceeds the supported numeric range.");
+            ModelState.AddModelError(nameof(ProductVW.Stockquantity), "تتجاوز كمية المخزون المحسوبة النطاق الرقمي المدعوم.");
             return ValidationProblem(ModelState);
         }
     }
@@ -183,22 +186,20 @@ public class ProductsController : Controller
             .SingleOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
 
-        var model = ToProductViewModel(product);
-        ViewBag.Categories = await _productService.GetCategoriesAsync();
-        ViewBag.Brands = await _context.Products.Where(p => !string.IsNullOrWhiteSpace(p.Brand)).Select(p => p.Brand!.Trim()).Distinct().ToListAsync();
-        return View(model);
+        await PopulateEditOptionsAsync();
+        return View(BuildEditViewModel(product));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(ProductVW productVW)
+    public async Task<IActionResult> Edit(
+        [Bind(Prefix = nameof(AdminProductEditViewModel.Product))] ProductVW productVW)
     {
         var product = await _context.Products
             .Include(p => p.RetailPrices)
             .SingleOrDefaultAsync(p => p.Id == productVW.Id);
         if (product == null) return NotFound();
 
-        NormalizeRetailRows(productVW);
         try
         {
             ValidateProductConfiguration(productVW, isCreate: false, existingProduct: product);
@@ -208,8 +209,10 @@ public class ProductsController : Controller
             ModelState.AddModelError(string.Empty, exception.Message);
         }
 
+        ValidateRetailPrices(productVW, product);
+
         if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            return await EditValidationViewAsync(productVW, product);
 
         try
         {
@@ -240,66 +243,47 @@ public class ProductsController : Controller
         catch (OverflowException exception)
         {
             _logger.LogWarning(exception, "Rejected update for product {ProductId} because a numeric value overflowed.", productVW.Id);
-            ModelState.AddModelError(string.Empty, "A product numeric value exceeds the supported range.");
-            return ValidationProblem(ModelState);
+            ModelState.AddModelError(string.Empty, "تتجاوز إحدى القيم الرقمية للمنتج النطاق المدعوم.");
+            return await EditValidationViewAsync(productVW, product);
+        }
+        catch (DbUpdateException exception)
+        {
+            _logger.LogWarning(exception, "Rejected update for product {ProductId} because retail pricing conflicted with persisted constraints.", productVW.Id);
+            ModelState.AddModelError(string.Empty, "تعذر حفظ أسعار التجزئة. تحقق من الأحجام والأسعار ثم أعد المحاولة.");
+            return await EditValidationViewAsync(productVW, product);
         }
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddStock(StockAdjustmentViewModel input)
+    public async Task<IActionResult> AdjustStock(
+        [Bind(Prefix = nameof(AdminProductEditViewModel.StockAdjustment))] StockAdjustmentViewModel input)
     {
         if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            return await StockValidationViewAsync(input);
 
-        var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == input.Id);
-        if (product == null) return NotFound();
+        var request = new StockAdjustmentRequest(
+            input.Id,
+            input.Operation!.Value,
+            input.SizeOption,
+            input.CustomSizeMl,
+            input.Quantity!.Value);
+        var result = await _inventoryService.AdjustStockAsync(request, HttpContext.RequestAborted);
+        if (!result.ProductFound)
+            return NotFound();
 
-        int amount;
-        try
+        if (!result.Succeeded)
         {
-            if (product.StockUnit == "Ml" && input.VolumeMl is not > 0)
-            {
-                ModelState.AddModelError(nameof(StockAdjustmentViewModel.VolumeMl), "A valid bottle volume is required for ml products.");
-                return ValidationProblem(ModelState);
-            }
-
-            amount = product.StockUnit == "Ml"
-                ? checked(input.AddedBottleCount * input.VolumeMl!.Value)
-                : input.AddedStockQuantity;
-        }
-        catch (OverflowException exception)
-        {
-            _logger.LogWarning(exception, "Rejected stock adjustment for product {ProductId} because the amount overflowed.", input.Id);
-            ModelState.AddModelError(string.Empty, "The stock adjustment exceeds the supported numeric range.");
-            return ValidationProblem(ModelState);
+            var key = string.IsNullOrEmpty(result.Field)
+                ? nameof(AdminProductEditViewModel.StockAdjustment)
+                : $"{nameof(AdminProductEditViewModel.StockAdjustment)}.{result.Field}";
+            ModelState.AddModelError(key, result.Error!);
+            return await StockValidationViewAsync(input);
         }
 
-        if (amount <= 0)
-        {
-            ModelState.AddModelError(string.Empty, "Stock adjustment quantity must be greater than zero.");
-            return ValidationProblem(ModelState);
-        }
-
-        try
-        {
-            var resultingStock = checked(product.Stockquantity + amount);
-            if (resultingStock > 1000000)
-            {
-                ModelState.AddModelError(string.Empty, "The resulting stock quantity must not exceed 1,000,000.");
-                return ValidationProblem(ModelState);
-            }
-
-            product.Stockquantity = resultingStock;
-        }
-        catch (OverflowException exception)
-        {
-            _logger.LogWarning(exception, "Rejected stock adjustment for product {ProductId} because the resulting stock overflowed.", input.Id);
-            ModelState.AddModelError(string.Empty, "The resulting stock quantity exceeds the supported numeric range.");
-            return ValidationProblem(ModelState);
-        }
-        await _context.SaveChangesAsync();
-        TempData["Message"] = "تمت إضافة المخزون بنجاح.";
+        TempData["Message"] = input.Operation == StockAdjustmentOperation.Subtract
+            ? "تم خصم المخزون بنجاح."
+            : "تمت إضافة المخزون بنجاح.";
         return RedirectToAction(nameof(Edit), new { id = input.Id });
     }
 
@@ -350,6 +334,127 @@ public class ProductsController : Controller
             .ToList()
     };
 
+    private static AdminProductEditViewModel BuildEditViewModel(
+        Product product,
+        ProductVW? submittedProduct = null,
+        StockAdjustmentViewModel? submittedAdjustment = null)
+    {
+        var isMlProduct = string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase);
+        var baseSizeMl = product.VolumeMl.GetValueOrDefault();
+        var sizes = new List<StockAdjustmentSizeViewModel>();
+        if (isMlProduct && baseSizeMl > 0)
+        {
+            sizes.Add(new(
+                StockAdjustmentSizeOptions.Base,
+                baseSizeMl,
+                $"{baseSizeMl} مل — الحجم الأساسي"));
+
+            if (product.IsRetailEnabled)
+            {
+                sizes.AddRange(product.RetailPrices
+                    .Where(price => price.IsActive && price.SizeMl > 0 && price.SizeMl < baseSizeMl)
+                    .OrderBy(price => price.SizeMl)
+                    .Select(price => new StockAdjustmentSizeViewModel(
+                        $"{StockAdjustmentSizeOptions.RetailPrefix}{price.Id}",
+                        price.SizeMl,
+                        $"{price.SizeMl} مل — تجزئة")));
+            }
+        }
+
+        return new AdminProductEditViewModel
+        {
+            Product = submittedProduct ?? ToProductViewModel(product),
+            StockAdjustment = submittedAdjustment ?? new StockAdjustmentViewModel
+            {
+                Id = product.Id,
+                Operation = StockAdjustmentOperation.Add,
+                SizeOption = StockAdjustmentSizeOptions.Base,
+                Quantity = 1
+            },
+            StockSizes = sizes
+        };
+    }
+
+    private async Task PopulateEditOptionsAsync()
+    {
+        ViewBag.Categories = await _productService.GetCategoriesAsync();
+        ViewBag.Brands = await _context.Products
+            .AsNoTracking()
+            .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
+            .Select(product => product.Brand!.Trim())
+            .Distinct()
+            .ToListAsync();
+    }
+
+    private async Task<IActionResult> EditValidationViewAsync(ProductVW submitted, Product product)
+    {
+        ModelState.Remove($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Stockquantity)}");
+        ModelState.Remove($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Existingimage)}");
+        submitted.Stockquantity = product.Stockquantity;
+        submitted.Existingimage = product.Imageurl;
+        await PopulateEditOptionsAsync();
+        return View("Edit", BuildEditViewModel(product, submittedProduct: submitted));
+    }
+
+    private async Task<IActionResult> StockValidationViewAsync(StockAdjustmentViewModel submitted)
+    {
+        var product = await _context.Products
+            .AsNoTracking()
+            .Include(candidate => candidate.RetailPrices)
+            .SingleOrDefaultAsync(candidate => candidate.Id == submitted.Id);
+        if (product == null)
+            return NotFound();
+
+        await PopulateEditOptionsAsync();
+        return View("Edit", BuildEditViewModel(product, submittedAdjustment: submitted));
+    }
+
+    private void ValidateRetailPrices(ProductVW model, Product product)
+    {
+        if (!string.Equals(model.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase) || !model.IsRetailEnabled)
+            return;
+
+        var knownIds = product.RetailPrices.Select(price => price.Id).ToHashSet();
+        var submittedIds = new HashSet<int>();
+        var sizeIndexes = new Dictionary<int, int>();
+        for (var index = 0; index < model.RetailPrices.Count; index++)
+        {
+            var row = model.RetailPrices[index];
+            var prefix = $"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.RetailPrices)}[{index}]";
+
+            if (row.Id.HasValue && !knownIds.Contains(row.Id.Value))
+                ModelState.AddModelError(prefix, "سعر التجزئة المحدد لا ينتمي إلى هذا المنتج.");
+            else if (row.Id.HasValue && !submittedIds.Add(row.Id.Value))
+                ModelState.AddModelError(prefix, "لا يمكن إرسال سعر التجزئة نفسه أكثر من مرة.");
+
+            if (row.SizeMl <= 0)
+                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "حجم التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
+            else if (model.VolumeMl is > 0 && row.SizeMl >= model.VolumeMl.Value)
+                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "يجب أن يكون حجم التجزئة أصغر من حجم العبوة الأساسي.");
+            else if (row.Id.HasValue && product.RetailPrices.Any(price =>
+                         price.Id != row.Id.Value && price.SizeMl == row.SizeMl))
+                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "هذا الحجم موجود مسبقاً لهذا المنتج، حتى لو كان غير نشط.");
+
+            if (row.Price <= 0)
+                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.Price)}", "سعر التجزئة مطلوب ويجب أن يكون أكبر من صفر.");
+
+            if (row.SizeMl <= 0)
+                continue;
+
+            if (sizeIndexes.TryGetValue(row.SizeMl, out var firstIndex))
+            {
+                ModelState.AddModelError($"{prefix}.{nameof(ProductRetailPriceInput.SizeMl)}", "لا يمكن تكرار حجم التجزئة للمنتج نفسه.");
+                ModelState.AddModelError(
+                    $"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.RetailPrices)}[{firstIndex}].{nameof(ProductRetailPriceInput.SizeMl)}",
+                    "لا يمكن تكرار حجم التجزئة للمنتج نفسه.");
+            }
+            else
+            {
+                sizeIndexes[row.SizeMl] = index;
+            }
+        }
+    }
+
     private static void ValidateProductConfiguration(ProductVW model, bool isCreate, Product? existingProduct)
     {
         model.StockUnit = NormalizeStockUnit(model.StockUnit);
@@ -360,7 +465,7 @@ public class ProductsController : Controller
         if (model.StockUnit == "Ml")
         {
             if (model.VolumeMl is not > 0)
-                throw new InvalidOperationException("VolumeMl is required for ml products.");
+                throw new InvalidOperationException("حجم العبوة الأساسي مطلوب للمنتجات التي تُدار بالمل.");
 
             if (!isCreate &&
                 existingProduct != null &&
@@ -415,8 +520,7 @@ public class ProductsController : Controller
 
         return model.RetailPrices
             .Where(price => price.SizeMl > 0 && price.Price > 0)
-            .GroupBy(price => price.SizeMl)
-            .Select(group => group.Last());
+            .ToList();
     }
 
     private static void SyncRetailPrices(Product product, ProductVW model)

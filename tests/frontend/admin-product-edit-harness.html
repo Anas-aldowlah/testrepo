@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../../wwwroot/css/yaqut-theme.css">
+    <link rel="stylesheet" href="../../wwwroot/css/admin/layout.css">
+    <link rel="stylesheet" href="../../wwwroot/css/admin/products.css">
+    <style>
+        html { scrollbar-width: none; }
+        html::-webkit-scrollbar { display: none; }
+        body { margin: 0; padding: 12px; background: #111416; }
+        .yq-product-editor { min-width: 0; }
+    </style>
+    <script>
+        window.adminProductEditHarness = { errors: [] };
+        window.addEventListener('error', (event) => window.adminProductEditHarness.errors.push(String(event.error || event.message)));
+        window.addEventListener('unhandledrejection', (event) => window.adminProductEditHarness.errors.push(String(event.reason)));
+    </script>
+</head>
+<body>
+    <main class="yq-products-create yq-product-editor">
+        <form action="/Admin/Products/Edit" class="yq-product-form">
+            <section class="yq-product-form__section">
+                <div class="yq-product-form__grid">
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="Product_StockUnit">الوحدة</label>
+                        <select id="Product_StockUnit" data-stock-unit class="yaqut-form-input"><option value="Piece">قطعة</option><option value="Ml" selected>مل</option></select>
+                    </div>
+                    <div class="yq-product-field" data-volume-field>
+                        <label class="yaqut-form-label" for="Product_VolumeMl">الحجم</label>
+                        <input id="Product_VolumeMl" value="1000" class="yaqut-form-input">
+                    </div>
+                    <label class="yq-retail-toggle"><input id="Product_IsRetailEnabled" type="checkbox" checked> تفعيل التجزئة</label>
+                </div>
+                <div class="yq-retail-prices" data-retail-prices>
+                    <div class="yq-retail-prices__head">
+                        <div class="yq-retail-prices__intro"><strong>أسعار التجزئة</strong><span>تحقق واجهة</span></div>
+                        <button type="button" class="btn-yaqut-outline yq-retail-add-btn" data-add-retail-price>إضافة سعر تجزئة</button>
+                    </div>
+                    <div class="yq-retail-prices__grid" data-retail-price-list>
+                        <div class="yq-retail-price-row">
+                            <div class="yq-product-field">
+                                <label class="yaqut-form-label" for="Product_RetailPrices_0__SizeMl">الحجم</label>
+                                <input id="Product_RetailPrices_0__SizeMl" name="Product.RetailPrices[0].SizeMl" value="250" class="yaqut-form-input">
+                                <span data-valmsg-for="Product.RetailPrices[0].SizeMl"></span>
+                            </div>
+                            <div class="yq-product-field">
+                                <label class="yaqut-form-label" for="Product_RetailPrices_0__Price">السعر</label>
+                                <input id="Product_RetailPrices_0__Price" name="Product.RetailPrices[0].Price" value="3" class="yaqut-form-input">
+                                <span data-valmsg-for="Product.RetailPrices[0].Price"></span>
+                            </div>
+                            <div class="yq-retail-active-field"><span class="yaqut-form-label">الحالة</span><label class="yq-retail-active"><input type="checkbox" checked> نشط</label></div>
+                            <button type="button" class="yq-retail-remove" data-remove-retail-price>حذف</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </form>
+
+        <form class="yq-product-form yq-stock-adjustment-form" data-stock-adjustment data-current-stock="12500" data-base-size="1000" data-is-ml="true">
+            <section class="yq-product-form__section yq-stock-adjustment-card">
+                <div class="yq-stock-adjustment-grid">
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="StockAdjustment_Operation">العملية</label>
+                        <select id="StockAdjustment_Operation" data-adjustment-operation class="yaqut-form-input"><option value="Add">إضافة</option><option value="Subtract">خصم</option></select>
+                    </div>
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="StockAdjustment_SizeOption">الحجم</label>
+                        <select id="StockAdjustment_SizeOption" data-adjustment-size class="yaqut-form-input">
+                            <option value="Base" data-size-ml="1000" selected>1000 مل — الأساسي</option>
+                            <option value="Retail:11" data-size-ml="250">250 مل — تجزئة</option>
+                            <option value="Custom">مخصص</option>
+                        </select>
+                    </div>
+                    <div class="yq-product-field" data-custom-size-field hidden>
+                        <label class="yaqut-form-label" for="StockAdjustment_CustomSizeMl">المخصص</label>
+                        <input id="StockAdjustment_CustomSizeMl" name="StockAdjustment.CustomSizeMl" data-custom-size class="yaqut-form-input"
+                               data-val="true" data-val-range="يجب أن يكون الحجم المخصص بين 1 و1,000,000 مل.">
+                    </div>
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="StockAdjustment_Quantity">الكمية</label>
+                        <input id="StockAdjustment_Quantity" name="StockAdjustment.Quantity" value="1" data-adjustment-quantity class="yaqut-form-input"
+                               data-val="true" data-val-required="أدخل الكمية." data-val-range="يجب أن تكون الكمية بين 1 و1,000,000.">
+                    </div>
+                </div>
+                <div class="yq-stock-preview" data-stock-preview>
+                    <div><span>الحساب</span><strong data-preview-calculation>—</strong></div>
+                    <div><span>التغيير</span><strong data-preview-change>—</strong></div>
+                    <div><span>الرصيد</span><strong data-preview-balance>—</strong></div>
+                </div>
+                <button type="button" class="btn-yaqut-gold yq-stock-adjustment-submit">تنفيذ</button>
+            </section>
+        </form>
+        <output id="harnessResult"></output>
+    </main>
+
+    <script>
+        window.adminProductEditHarness.state = new URLSearchParams(location.search).get('state') || 'retail';
+        if (window.adminProductEditHarness.state === 'non-retail') {
+            document.querySelector('[data-stock-unit]').value = 'Piece';
+            document.getElementById('Product_IsRetailEnabled').checked = false;
+            const adjustment = document.querySelector('[data-stock-adjustment]');
+            adjustment.dataset.currentStock = '12';
+            adjustment.dataset.baseSize = '1';
+            adjustment.dataset.isMl = 'false';
+            document.querySelector('[data-adjustment-size]').closest('.yq-product-field').remove();
+            document.querySelector('[data-custom-size-field]').remove();
+        }
+    </script>
+    <script src="../../wwwroot/js/admin/products/edit.js"></script>
+    <script>
+        const failures = window.adminProductEditHarness.errors;
+        const isRetailState = window.adminProductEditHarness.state === 'retail';
+        const assert = (condition, message) => { if (!condition) failures.push(message); };
+        const operation = document.querySelector('[data-adjustment-operation]');
+        const size = document.querySelector('[data-adjustment-size]');
+        const quantity = document.querySelector('[data-adjustment-quantity]');
+        const custom = document.querySelector('[data-custom-size]');
+        const customField = document.querySelector('[data-custom-size-field]');
+        const balance = document.querySelector('[data-preview-balance]');
+        const change = document.querySelector('[data-preview-change]');
+
+        assert(!isRetailState || size.value === 'Base', 'Base size was not selected by default.');
+        assert(balance.textContent !== '—' && change.textContent !== '—', 'Base-size preview was not calculated.');
+        const baseBalance = balance.textContent;
+
+        if (isRetailState) {
+            size.value = 'Retail:11';
+            quantity.value = '2';
+            size.dispatchEvent(new Event('change', { bubbles: true }));
+            quantity.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(balance.textContent !== baseBalance, 'Retail-size preview did not update.');
+
+            size.value = 'Custom';
+            size.dispatchEvent(new Event('change', { bubbles: true }));
+            custom.value = '500';
+            custom.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(!customField.hidden && custom.required, 'Custom-size control was not revealed and required.');
+        } else {
+            assert(document.querySelector('[data-retail-prices]').hidden, 'Retail rows remained visible for non-retail state.');
+            assert(document.querySelector('[data-volume-field]').hidden, 'Volume field remained visible for piece stock.');
+            assert(document.querySelector('.yq-retail-toggle').hidden, 'Retail toggle remained visible for piece stock.');
+        }
+
+        operation.value = 'Subtract';
+        operation.dispatchEvent(new Event('change', { bubbles: true }));
+        assert(change.textContent.includes('−'), 'Subtract preview did not show a negative operation.');
+
+        if (isRetailState) {
+            document.querySelector('[data-add-retail-price]').click();
+            assert(document.querySelectorAll('.yq-retail-price-row').length === 2, 'Dynamic retail row was not added.');
+            const invalidSubmit = new Event('submit', { bubbles: true, cancelable: true });
+            document.querySelector('form[action$="/Edit"]').dispatchEvent(invalidSubmit);
+            const visibleValidationMessages = [...document.querySelectorAll('.field-validation-error')]
+                .map((element) => element.textContent.trim())
+                .filter(Boolean);
+            const configuredValidationMessages = [...document.querySelectorAll('[data-val-required], [data-val-range]')]
+                .flatMap((element) => [element.dataset.valRequired, element.dataset.valRange])
+                .filter(Boolean);
+            assert(invalidSubmit.defaultPrevented, 'Invalid retail row did not prevent submission.');
+            assert(visibleValidationMessages.length >= 2, 'Invalid retail row did not show field validation messages.');
+            assert([...visibleValidationMessages, ...configuredValidationMessages].every((message) => !/[A-Za-z]/.test(message)), 'Client-visible validation exposed an English message.');
+            document.querySelector('.yq-retail-price-row [data-remove-retail-price]').click();
+            const remainingSize = document.querySelector('.yq-retail-price-row input[name$=".SizeMl"]');
+            const remainingActive = document.querySelector('.yq-retail-price-row input[type="checkbox"][name$=".IsActive"]');
+            const remainingActiveFallback = document.querySelector('.yq-retail-price-row input[type="hidden"][name$=".IsActive"]');
+            assert(remainingSize?.name === 'Product.RetailPrices[0].SizeMl', 'Retail rows were not reindexed after removal.');
+            assert(remainingActive?.name === 'Product.RetailPrices[0].IsActive', 'Retail active checkbox was not reindexed after removal.');
+            assert(remainingActiveFallback?.name === 'Product.RetailPrices[0].IsActive' && remainingActiveFallback.value === 'false', 'Retail active false fallback was not reindexed with its row.');
+        }
+        assert(!document.querySelector('[name*="NetStock"]'), 'A client-computed net stock field must not be posted.');
+        assert(getComputedStyle(document.documentElement).direction === 'rtl', 'RTL direction was not preserved.');
+
+        const result = document.getElementById('harnessResult');
+        result.dataset.result = failures.length ? 'fail' : 'pass';
+        result.textContent = failures.length ? failures.join(' | ') : `${window.adminProductEditHarness.state} Admin Product Edit interactions passed.`;
+    </script>
+</body>
+</html>

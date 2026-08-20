@@ -40,6 +40,7 @@ builder.Services.AddControllersWithViews()
     .AddMvcOptions(options =>
     {
         options.MaxModelBindingCollectionSize = 1000;
+        ArabicModelBindingMessages.Configure(options.ModelBindingMessageProvider);
     });
 
 builder.Services.AddResponseCompression(options =>
