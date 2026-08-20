@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Remove="tests\catalog\**\*.cs" />
+    <Compile Remove="tests\admin-product-edit\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
