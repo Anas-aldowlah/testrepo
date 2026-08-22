@@ -70,6 +70,7 @@ body {
 
 /* When scrolled — header wrapper sticks to very top */
 .yaqut-header.is-scrolled {
+    position: fixed;
     top: 0;
 }
 
