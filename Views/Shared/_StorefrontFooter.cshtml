@@ -3,7 +3,7 @@
         var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
         var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
         var isAuthenticated = User.Identity?.IsAuthenticated == true;
-        var storeSettings = StoreSettingsService.GetSettings();
+        var storeSettings = await StoreSettingsService.GetFooterSettingsAsync();
         var whatsappNumber = string.Concat((storeSettings.WhatsAppNumber ?? string.Empty).Where(char.IsDigit));
         var instagramLink = storeSettings.InstagramLink;
         var twitterLink = storeSettings.TwitterLink;

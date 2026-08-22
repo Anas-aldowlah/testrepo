@@ -1,9 +1,9 @@
-﻿@model YAGOT_2._0.Models.ContactMessageVM
+@model YAGOT_2._0.Models.ContactMessageVM
 @inject YAGOT_2._0.Services.StoreSettingsService StoreSettingsService
 @{
     ViewData["Title"] = "تواصل معنا | ياقوت";
     var isSuccess = TempData["ContactSuccess"] != null;
-    var storeSettings = StoreSettingsService.GetSettings();
+    var storeSettings = await StoreSettingsService.GetSettingsAsync();
     var whatsappNumber = string.Concat((storeSettings.WhatsAppNumber ?? string.Empty).Where(char.IsDigit));
     var hasContactInfo = !string.IsNullOrWhiteSpace(whatsappNumber)
         || !string.IsNullOrWhiteSpace(storeSettings.ContactEmail)

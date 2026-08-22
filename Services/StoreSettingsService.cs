@@ -3,10 +3,19 @@ using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services
 {
+    public sealed record FooterSettings(
+        string? WhatsAppNumber,
+        string? InstagramLink,
+        string? TwitterLink,
+        string? TikTokLink);
+
     public class StoreSettingsService
     {
         private readonly NeondbContext _context;
         private readonly ILogger<StoreSettingsService> _logger;
+        private StoreSettings? _cachedSettings;
+        private FooterSettings? _cachedFooterSettings;
+
         private static readonly PaymentMethodDefinition[] PaymentMethodDefinitions =
         [
             new("al-amqi", "العمقي", "ExchangeCompany"),
@@ -21,8 +30,54 @@ namespace YAGOT_2._0.Services
             _logger = logger;
         }
 
+        public async Task<FooterSettings> GetFooterSettingsAsync()
+        {
+            if (_cachedFooterSettings != null)
+            {
+                return _cachedFooterSettings;
+            }
+
+            if (_cachedSettings != null)
+            {
+                _cachedFooterSettings = new FooterSettings(
+                    _cachedSettings.WhatsAppNumber,
+                    _cachedSettings.InstagramLink,
+                    _cachedSettings.TwitterLink,
+                    _cachedSettings.TikTokLink);
+                return _cachedFooterSettings;
+            }
+
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var footerData = await strategy.ExecuteAsync(async () =>
+                    await _context.Storesettings
+                        .AsNoTracking()
+                        .OrderBy(s => s.Id)
+                        .Select(s => new FooterSettings(
+                            s.Whatsappnumber,
+                            s.Instagramlink,
+                            s.Twitterlink,
+                            s.Tiktoklink))
+                        .FirstOrDefaultAsync());
+
+                _cachedFooterSettings = footerData ?? new FooterSettings(string.Empty, string.Empty, string.Empty, string.Empty);
+                return _cachedFooterSettings;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading footer settings from database.");
+                return new FooterSettings(string.Empty, string.Empty, string.Empty, string.Empty);
+            }
+        }
+
         public async Task<StoreSettings> GetSettingsAsync()
         {
+            if (_cachedSettings != null)
+            {
+                return _cachedSettings;
+            }
+
             try
             {
                 var settings = await GetExistingSettingsAsync();
@@ -40,6 +95,13 @@ namespace YAGOT_2._0.Services
                     .OrderBy(method => method.Id)
                     .ToListAsync();
                 ApplyPaymentMethods(settings, paymentMethods);
+
+                _cachedSettings = settings;
+                _cachedFooterSettings = new FooterSettings(
+                    settings.WhatsAppNumber,
+                    settings.InstagramLink,
+                    settings.TwitterLink,
+                    settings.TikTokLink);
 
                 return settings;
             }
@@ -59,6 +121,8 @@ namespace YAGOT_2._0.Services
         {
             try
             {
+                _cachedSettings = null;
+                _cachedFooterSettings = null;
                 NormalizeSettings(settings);
 
                 var settingsRows = await _context.Storesettings
