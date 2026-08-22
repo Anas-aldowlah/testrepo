@@ -533,12 +533,14 @@
 
         function openFilters() {
             filters.classList.add('is-open');
+            document.documentElement.setAttribute('data-yq-drawer-open', '');
             // Push fake history entry so Back closes the sidebar first
             window.history.pushState({ yqPanel: true }, '');
         }
 
         function closeFilters(restoreFocus) {
             filters.classList.remove('is-open');
+            document.documentElement.removeAttribute('data-yq-drawer-open');
             if (restoreFocus) toggle.focus();
         }
 

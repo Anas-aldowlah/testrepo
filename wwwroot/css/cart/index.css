@@ -155,6 +155,7 @@
     font-weight: 700;
     color: var(--yq-text);
     display: block;
+    overflow-wrap: anywhere;
     transition: color var(--yq-ease);
 }
 

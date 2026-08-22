@@ -278,6 +278,10 @@
     --bs-gutter-y: 1rem;
 }
 
+.yq-shop-grid .yq-pcard__name {
+    min-height: 2.8em;
+}
+
 .yq-shop-price-range {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -352,6 +356,7 @@
         z-index: 1100;
         border-radius: 0;
         overflow-y: auto;
+        overscroll-behavior: contain;
         transform: translateX(100%);
         opacity: 0;
         visibility: hidden;
@@ -364,6 +369,10 @@
             visibility: visible;
             transition: transform var(--yq-ease), opacity var(--yq-ease), visibility 0s;
         }
+
+    html[data-yq-drawer-open] body {
+        overflow: hidden;
+    }
 
     .yq-shop-filters__close {
         display: inline-flex;

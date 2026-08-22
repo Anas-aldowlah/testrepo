@@ -235,6 +235,11 @@
     font-size: 1.6rem;
     font-weight: 800;
     line-height: 1.2;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .yq-home-carousel__info span {
@@ -428,6 +433,10 @@
     scroll-snap-align: start;
 }
 
+.yq-home-product-rail .yq-pcard__name {
+    min-height: 2.8em;
+}
+
 .yq-home-empty {
     display: grid;
     place-items: center;
@@ -512,6 +521,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
 }
 
 .yq-home-category i { color: var(--yq-gold); }

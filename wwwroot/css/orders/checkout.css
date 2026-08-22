@@ -142,6 +142,11 @@
     gap: 1.25rem;
 }
 
+.yq-checkout-details,
+.yq-checkout-summary {
+    min-width: 0;
+}
+
 /* ── Cards ── */
 .yq-checkout-card {
     padding: clamp(1.25rem, 3vw, 1.75rem);
