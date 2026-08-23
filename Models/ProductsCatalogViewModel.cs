@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace YAGOT_2._0.Models;
 
@@ -9,8 +9,8 @@ public sealed class ProductsCatalogRequest : IValidatableObject
     [StringLength(200)]
     public string? Search { get; set; }
 
-    [StringLength(150)]
-    public string? Brand { get; set; }
+    [MaxLength(20)]
+    public string[] Brand { get; set; } = [];
 
     [Range(typeof(decimal), "0", "99999999.99")]
     public decimal? MinPrice { get; set; }
@@ -44,6 +44,9 @@ public sealed class ProductsCatalogRequest : IValidatableObject
 
         if (RetailSize?.Any(size => size <= 0) == true)
             yield return new ValidationResult("Retail size must be greater than zero.", [nameof(RetailSize)]);
+
+        if (Brand?.Any(b => b != null && b.Length > 150) == true)
+            yield return new ValidationResult("Individual brand name exceeds length limit.", [nameof(Brand)]);
     }
 }
 

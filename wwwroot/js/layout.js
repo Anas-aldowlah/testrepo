@@ -35,10 +35,32 @@
 
         var ticking = false;
 
+        var spacer = null;
+
         function update() {
             var currentY = window.scrollY;
-            // Add is-scrolled class for background/shadow styling
-            header.classList.toggle('is-scrolled', currentY > 24);
+            var shouldBeScrolled = currentY > 24;
+
+            if (shouldBeScrolled !== header.classList.contains('is-scrolled')) {
+                if (shouldBeScrolled) {
+                    header.classList.add('is-scrolled');
+                    if (!spacer) {
+                        spacer = document.createElement('div');
+                        spacer.id = 'yqHeaderSpacer';
+                        header.parentNode.insertBefore(spacer, header);
+                    }
+                    spacer.style.height = header.offsetHeight + 'px';
+                } else {
+                    header.classList.remove('is-scrolled');
+                    if (spacer && spacer.parentNode) {
+                        spacer.parentNode.removeChild(spacer);
+                        spacer = null;
+                    }
+                }
+            } else if (shouldBeScrolled && spacer) {
+                // Keep height updated in case of resize while scrolled
+                spacer.style.height = header.offsetHeight + 'px';
+            }
             ticking = false;
         }
 
@@ -50,6 +72,8 @@
         }
 
         window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        window.addEventListener('orientationchange', onScroll, { passive: true });
         update();
     }
 

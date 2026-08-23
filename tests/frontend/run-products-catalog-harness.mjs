@@ -74,9 +74,9 @@ try {
     client = new DevToolsClient(target.webSocketDebuggerUrl);
     await client.connect();
     await client.send('Runtime.enable');
-    await client.send('Page.enable');
+    await client.send('Page.enable'); await client.send('Runtime.enable'); client.socket.addEventListener('message', e => { const m = JSON.parse(e.data); if (m.method === 'Runtime.consoleAPICalled') { console.log('BROWSER CONSOLE:', m.params.args.map(a => a.value || a.description).join(' ')); } if (m.method === 'Runtime.exceptionThrown') { console.log('BROWSER ERROR:', m.params.exceptionDetails); } }); await client.send('Runtime.enable'); client.socket.addEventListener('message', e => { const m = JSON.parse(e.data); if (m.method === 'Runtime.consoleAPICalled') { console.log('BROWSER CONSOLE:', m.params.args.map(a => a.value || a.description).join(' ')); } if (m.method === 'Runtime.exceptionThrown') { console.log('BROWSER ERROR:', m.params.exceptionDetails); } }); await client.send('Runtime.enable'); client.socket.addEventListener('message', e => { const m = JSON.parse(e.data); if (m.method === 'Runtime.consoleAPICalled') { console.log('BROWSER CONSOLE:', m.params.args.map(a => a.value || a.description).join(' ')); } if (m.method === 'Runtime.exceptionThrown') { console.log('BROWSER ERROR:', m.params.exceptionDetails); } }); await client.send('Runtime.enable'); client.socket.addEventListener('message', e => { const m = JSON.parse(e.data); if (m.method === 'Runtime.consoleAPICalled') { console.log('BROWSER CONSOLE:', m.params.args.map(a => a.value || a.description).join(' ')); } if (m.method === 'Runtime.exceptionThrown') { console.log('BROWSER ERROR:', m.params.exceptionDetails); } });
 
-    for (const width of [320, 390, 768, 1200]) {
+    for (const width of [320, 390, 576, 768, 992, 1200, 1440]) {
         await client.send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
         await client.send('Page.navigate', { url: harnessUrl });
         let result;
@@ -94,7 +94,7 @@ try {
         }
         console.log(`PASS ${width}px: ${result.text}`);
     }
-    console.log('Products catalog browser harness passed at 4 RTL viewport widths.');
+    console.log('Products catalog browser harness passed at 7 RTL viewport widths.');
 } finally {
     if (client) client.close();
     browser.kill();
