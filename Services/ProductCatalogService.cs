@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
@@ -19,11 +19,20 @@ public sealed class ProductCatalogService
         CancellationToken cancellationToken = default)
     {
         request.Search = Normalize(request.Search);
-        request.Brand = Normalize(request.Brand);
-        if (request.Brand == "-")
-            request.Brand = null;
+
+        request.Brand = (request.Brand ?? [])
+            .Where(b => !string.IsNullOrWhiteSpace(b) && b != "-")
+            .Select(b => b.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToArray();
 
         request.RetailSize = (request.RetailSize ?? []).Distinct().OrderBy(size => size).ToArray();
+
+        if (request.Retail == "no" && request.RetailSize.Length > 0)
+        {
+            request.RetailSize = [];
+        }
 
         var query = _context.Products
             .AsNoTracking()
@@ -32,11 +41,12 @@ public sealed class ProductCatalogService
         if (request.CategoryId.HasValue && request.CategoryId != -100)
             query = query.Where(product => product.Categoryid == request.CategoryId);
 
-        if (request.Brand is not null)
+        if (request.Brand.Length > 0)
         {
-            var brandPattern = EscapeLikePattern(request.Brand);
+            var loweredBrands = request.Brand.Select(b => b.ToLower()).ToArray();
             query = query.Where(product =>
-                product.Brand != null && EF.Functions.ILike(product.Brand, brandPattern, "\\"));
+                product.Brand != null &&
+                loweredBrands.Contains(product.Brand.ToLower()));
         }
 
         if (request.Search is not null)
@@ -85,13 +95,14 @@ public sealed class ProductCatalogService
             .ThenBy(category => category.Id)
             .ToListAsync(cancellationToken);
 
-        var brandRows = await _context.Products
+        var brands = await _context.Products
             .AsNoTracking()
             .Where(product => product.Stockquantity > 0 && product.Brand != null && product.Brand != "-")
             .Select(product => product.Brand!.Trim())
             .Distinct()
             .ToListAsync(cancellationToken);
-        var brands = brandRows
+
+        var sortedBrands = brands
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(brand => brand, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -113,7 +124,7 @@ public sealed class ProductCatalogService
             Request = request,
             Products = products,
             Categories = categories,
-            Brands = brands,
+            Brands = sortedBrands,
             RetailSizes = retailSizes,
             TotalCount = totalCount,
             PageSize = PageSize,

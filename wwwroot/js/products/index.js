@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ياقوت — Products / Index page interactions
  * Owns catalog URL/form state and server-page loading only.
  */
@@ -13,6 +13,7 @@
     var isLoading = false;
     var abortController = null;
     var currentRequestId = 0;
+    var suppressNextPopState = false;
 
     /* ── Recent Searches (client-side, storefront-wide within this page) ── */
     (function () {
@@ -70,9 +71,73 @@
         wrapper.hidden = false;
     })();
 
+    var lastCommittedFormData = null;
+    function syncRetailSizeDependency() {
+        if (!filterForm) return;
+        var sizeGroup = document.getElementById('yqRetailSizeGroup');
+        if (!sizeGroup) return;
+        var selectedRetail = filterForm.querySelector('input[name="retail"]:checked');
+        var retailIsUnavailable = selectedRetail && selectedRetail.value === 'no';
+        sizeGroup.style.display = retailIsUnavailable ? 'none' : 'block';
+        if (retailIsUnavailable) {
+            sizeGroup.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+        }
+    }
+    function saveCommittedState() {
+        if (filterForm) {
+            lastCommittedFormData = new FormData(filterForm);
+        }
+    }
+    function restoreCommittedState() {
+        if (!filterForm || !lastCommittedFormData) return;
+        var checkboxes = filterForm.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+        checkboxes.forEach(function(el) { el.checked = false; });
+        var textInputs = filterForm.querySelectorAll('input[type="number"], input[type="text"], select');
+        textInputs.forEach(function(el) { el.value = ''; });
+
+        for (var pair of lastCommittedFormData.entries()) {
+            var el = filterForm.querySelector('[name="' + pair[0] + '"][value="' + pair[1] + '"]');
+            if (el && (el.type === 'checkbox' || el.type === 'radio')) el.checked = true;
+            else {
+                el = filterForm.querySelector('[name="' + pair[0] + '"]');
+                if (el) el.value = pair[1];
+            }
+        }
+        syncRetailSizeDependency();
+    }
+
+    if (filterForm) {
+        saveCommittedState();
+        var filtersPanel = document.getElementById('yaqutFilters');
+        if (filtersPanel) {
+            var observer = new MutationObserver(function(mutations) {
+                var closedFromOpen = mutations.some(function (mutation) {
+                    return mutation.attributeName === 'class'
+                        && (' ' + (mutation.oldValue || '') + ' ').indexOf(' is-open ') !== -1;
+                });
+                if (!closedFromOpen || filtersPanel.classList.contains('is-open')) return;
+                restoreCommittedState();
+                if (window.history.state && window.history.state.yqPanel) {
+                    suppressNextPopState = true;
+                    window.history.back();
+                }
+            });
+            observer.observe(filtersPanel, { attributes: true, attributeOldValue: true, attributeFilter: ['class'] });
+        }
+    }
+
     async function submitFilters(e, isPopState, popUrl) {
         if (e) e.preventDefault();
         if (!filterForm) return;
+
+        var filters = document.getElementById('yaqutFilters');
+        var isMobileDrawerApply = window.innerWidth < 992
+            && !isPopState
+            && !!e
+            && filters
+            && filters.classList.contains('is-open');
 
         if (typeof window.fetch !== 'function' || !window.history.pushState) {
             if (!isPopState) filterForm.submit();
@@ -87,18 +152,12 @@
             var fd = new FormData(filterForm);
             var params = new URLSearchParams();
             fd.forEach(function (val, key) {
-                if (val !== '') params.append(key, val);
+                if (key !== 'mobileCategory' && val !== '') params.append(key, val);
             });
             nextUrl.search = params.toString();
         }
 
         var nextUrlString = nextUrl.toString();
-
-        if (!isPopState) {
-            if (window.location.href !== nextUrlString) {
-                window.history.pushState({ path: nextUrlString }, '', nextUrlString);
-            }
-        }
 
         if (abortController) {
             abortController.abort();
@@ -107,7 +166,15 @@
 
         var requestId = ++currentRequestId;
 
-        if (status) status.textContent = 'جارٍ تحديث المنتجات';
+                if (status) {
+            status.textContent = 'جارٍ تحديث المنتجات...';
+            status.classList.remove('visually-hidden');
+        }
+        if (grid) {
+            grid.setAttribute('aria-busy', 'true');
+            grid.style.opacity = '0.6';
+            grid.style.transition = 'opacity 0.15s ease-in-out';
+        }
         isLoading = true;
 
         try {
@@ -126,6 +193,10 @@
 
             var newShop = parsed.querySelector('.yq-shop');
             var oldShop = document.querySelector('.yq-shop');
+
+            if (!newShop || !oldShop) {
+                throw new Error('Filter response is incomplete.');
+            }
 
             if (newShop && oldShop) {
                 // Regions that are direct children of .yq-shop, in canonical order.
@@ -149,6 +220,11 @@
                         if (oldFilterToggle && newFilterToggle) {
                             // The shared drawer initializer binds this control once.
                             // Preserve the live node when synchronizing its toolbar.
+                            oldFilterToggle.replaceChildren.apply(
+                                oldFilterToggle,
+                                Array.prototype.map.call(newFilterToggle.childNodes, function (node) {
+                                    return document.importNode(node, true);
+                                }));
                             newFilterToggle.parentNode.replaceChild(oldFilterToggle, newFilterToggle);
                         }
                     }
@@ -190,29 +266,52 @@
                     oldMain.parentNode.removeChild(oldMain);
                 }
 
-                if (isPopState) {
-                    var newForm = parsed.getElementById('yqCatalogFilters');
-                    if (newForm && filterForm) {
-                        filterForm.innerHTML = newForm.innerHTML;
-                    }
+                var newForm = parsed.getElementById('yqCatalogFilters');
+                if (newForm && filterForm) {
+                    filterForm.innerHTML = newForm.innerHTML;
+                    syncRetailSizeDependency();
                 }
 
                 grid = document.getElementById('yaqutProductsGrid');
                 status = document.getElementById('yqCatalogStatus');
                 loadMoreBtn = document.getElementById('yqLoadMoreBtn');
 
-                if (status) status.textContent = 'تم تحديث المنتجات';
                 if (parsed.title) document.title = parsed.title;
+            }
+
+            if (!isPopState && window.location.href !== nextUrlString) {
+                if (isMobileDrawerApply && window.history.state && window.history.state.yqPanel) {
+                    window.history.replaceState({ path: nextUrlString }, '', nextUrlString);
+                } else {
+                    window.history.pushState({ path: nextUrlString }, '', nextUrlString);
+                }
+            }
+
+            saveCommittedState();
+
+            if (isMobileDrawerApply && filters) {
+                filters.classList.remove('is-open');
+                document.documentElement.removeAttribute('data-yq-drawer-open');
+                var filterToggle = document.getElementById('yaqutFilterToggle');
+                if (filterToggle) filterToggle.focus();
             }
         } catch (error) {
             if (requestId !== currentRequestId) return;
             if (error.name !== 'AbortError') {
-                if (status) status.textContent = 'تعذر تحديث المنتجات. حاول مرة أخرى.';
-                window.location.href = nextUrlString;
+                if (!window.catalogHarness) {
+                    window.location.assign(nextUrlString);
+                }
             }
         } finally {
             if (requestId === currentRequestId) {
                 isLoading = false;
+                if (status) {
+                    status.classList.add('visually-hidden');
+                }
+                if (grid) {
+                    grid.removeAttribute('aria-busy');
+                    grid.style.opacity = '';
+                }
             }
         }
     }
@@ -237,6 +336,44 @@
             e.preventDefault();
             window.history.pushState({ path: clearBtn.href }, '', clearBtn.href);
             submitFilters(null, true, clearBtn.href);
+        }
+
+        var removeChip = e.target.closest('.yq-chip-remove');
+        if (removeChip && filterForm) {
+            var name = removeChip.getAttribute('data-remove-name');
+            var val = removeChip.getAttribute('data-remove-val');
+
+            if (name === 'price') {
+                var minP = filterForm.querySelector('[name="minPrice"]');
+                var maxP = filterForm.querySelector('[name="maxPrice"]');
+                if (minP) minP.value = '';
+                if (maxP) maxP.value = '';
+            } else if (name === 'retail') {
+                var radio = filterForm.querySelector('input[type="radio"][name="' + name + '"][value="' + val + '"]');
+                if (radio) radio.checked = true;
+            } else if (name === 'retailSize' || name === 'brand') {
+                var cb = filterForm.querySelector('input[type="checkbox"][name="' + name + '"][value="' + val + '"]');
+                if (cb) cb.checked = false;
+            } else if (name === 'categoryId') {
+                var category = filterForm.querySelector('[name="categoryId"]');
+                if (category) category.value = '';
+            }
+            triggerSubmit();
+        }
+
+        var mobileCancel = e.target.closest('#yqMobileCancel');
+        if (mobileCancel) {
+            e.preventDefault();
+            var closeButton = document.getElementById('yqFiltersClose');
+            if (closeButton) {
+                closeButton.click();
+            } else {
+                var filters = document.getElementById('yaqutFilters');
+                if (filters) {
+                    filters.classList.remove('is-open');
+                    document.documentElement.removeAttribute('data-yq-drawer-open');
+                }
+            }
         }
 
         // Load more logic
@@ -311,7 +448,17 @@
     });
 
     document.addEventListener('change', function(e) {
+        if (e.target.matches('[data-yq-mobile-category]')) {
+            categoryInput = document.getElementById('yqCategoryId');
+            if (categoryInput) categoryInput.value = e.target.value;
+        }
+
+        if (e.target.name === 'retail') {
+            syncRetailSizeDependency();
+        }
+
         if (e.target.closest('[data-yq-auto-submit]')) {
+            if (window.innerWidth < 992) return;
             triggerSubmit();
         }
     });
@@ -323,6 +470,12 @@
     }
 
     window.addEventListener('popstate', function (e) {
+        if (suppressNextPopState) {
+            suppressNextPopState = false;
+            return;
+        }
+        var filters = document.getElementById('yaqutFilters');
+        if (filters && filters.classList.contains('is-open')) return;
         submitFilters(null, true, window.location.href);
     });
 

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using YAGOT_2._0.Models;
@@ -94,11 +94,61 @@ var activeBrands = await context.Products.AsNoTracking()
     .ToListAsync();
 foreach (var brand in activeBrands)
 {
-    var result = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = brand });
+    var result = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = [brand] });
     var expectedCount = await context.Products.CountAsync(product =>
         product.Stockquantity > 0 && product.Brand != null && EF.Functions.ILike(product.Brand, brand));
     Assert(result.TotalCount == expectedCount, $"Brand filter count differs for a current brand.");
 }
+
+if (activeBrands.Count >= 3)
+{
+    var a = activeBrands[0];
+    var b = activeBrands[1];
+    var c = activeBrands[2];
+
+    // A + B
+    var resultAB = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = [a, b] });
+    var expectedCountAB = await context.Products.CountAsync(product =>
+        product.Stockquantity > 0 && product.Brand != null &&
+        (EF.Functions.ILike(product.Brand, a) || EF.Functions.ILike(product.Brand, b)));
+    Assert(resultAB.TotalCount == expectedCountAB, "A+B multi-brand OR filter count differs.");
+
+    // A + B + C
+    var resultABC = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = [a, b, c] });
+    var expectedCountABC = await context.Products.CountAsync(product =>
+        product.Stockquantity > 0 && product.Brand != null &&
+        (EF.Functions.ILike(product.Brand, a) || EF.Functions.ILike(product.Brand, b) || EF.Functions.ILike(product.Brand, c)));
+    Assert(resultABC.TotalCount == expectedCountABC, "A+B+C multi-brand OR filter count differs.");
+
+    // duplicate brand input
+    var resultDup = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = [a, a, b] });
+    Assert(resultDup.TotalCount == expectedCountAB, "Duplicate brands are not normalized.");
+
+    // case handling
+    var resultCase = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = [a.ToUpper(), b.ToLower()] });
+    Assert(resultCase.TotalCount == expectedCountAB, "Brand case is not handled case-insensitively.");
+
+    // unknown brand
+    var resultUnknown = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Brand = ["ThisBrandDoesNotExist12345"] });
+    Assert(resultUnknown.TotalCount == 0, "Unknown brand returned results.");
+
+    // brand + category
+    var sampleCategory = activeCategories.First();
+    var resultBrandCat = await catalog.GetCatalogAsync(new ProductsCatalogRequest { CategoryId = sampleCategory.CategoryId, Brand = [a] });
+    var expectedBrandCat = await context.Products.CountAsync(product =>
+        product.Stockquantity > 0 && product.Categoryid == sampleCategory.CategoryId && product.Brand != null && EF.Functions.ILike(product.Brand, a));
+    Assert(resultBrandCat.TotalCount == expectedBrandCat, "Brand + Category filter count differs.");
+}
+
+var invalidBrandLengthReq = new ProductsCatalogRequest { Brand = [new string('x', 151)] };
+var valResults = new List<ValidationResult>();
+Assert(!Validator.TryValidateObject(invalidBrandLengthReq, new ValidationContext(invalidBrandLengthReq), valResults, true), "Overlong brand string was accepted.");
+
+var tooManyBrandsReq = new ProductsCatalogRequest { Brand = Enumerable.Range(1, 25).Select(i => i.ToString()).ToArray() };
+var valResultsMax = new List<ValidationResult>();
+// In this case, either Validation catches it via MaxLength on array, or ProductCatalogService caps it.
+// According to our changes, ProductCatalogService caps it at 20 without validation error, but MaxLength(20) is on the array.
+Assert(!Validator.TryValidateObject(tooManyBrandsReq, new ValidationContext(tooManyBrandsReq), valResultsMax, true), "Too many selected brands were accepted.");
 
 var minimumPrice = await context.Products.Where(product => product.Stockquantity > 0).MinAsync(product => (decimal?)product.Price);
 var maximumPrice = await context.Products.Where(product => product.Stockquantity > 0).MaxAsync(product => (decimal?)product.Price);
@@ -112,6 +162,11 @@ var retailYes = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Retai
 var retailNo = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Retail = "no" });
 Assert(retailYes.TotalCount == await context.Products.CountAsync(p => p.Stockquantity > 0 && p.IsRetailEnabled), "Retail=yes count differs.");
 Assert(retailNo.TotalCount == await context.Products.CountAsync(p => p.Stockquantity > 0 && !p.IsRetailEnabled), "Retail=no count differs.");
+
+var contradictoryRetail = new ProductsCatalogRequest { Retail = "no", RetailSize = [5] };
+var normalizedRetailNo = await catalog.GetCatalogAsync(contradictoryRetail);
+Assert(contradictoryRetail.RetailSize.Length == 0, "Retail=no did not clear the contradictory retail-size request state.");
+Assert(normalizedRetailNo.TotalCount == retailNo.TotalCount, "Retail=no plus retail size changed retail=no catalog semantics.");
 
 var expectedRetailSizes = await context.ProductRetailPrices.AsNoTracking()
     .Where(price =>
@@ -149,7 +204,7 @@ if (sample is not null)
     {
         Search = sample.Name,
         CategoryId = sample.Categoryid,
-        Brand = sample.Brand,
+        Brand = sample.Brand != null ? [sample.Brand] : [],
         MinPrice = sample.Price,
         MaxPrice = sample.Price,
         Sort = "price-asc"
