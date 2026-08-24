@@ -102,7 +102,7 @@ public class OrdersController : Controller
             PendingCount = await query.CountAsync(o => o.Status == "Pending"),
             ActiveCount = await query.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
             DeliveredCount = await query.CountAsync(o => o.Status == "Delivered"),
-            TotalRevenue = await query.SumAsync(o => (decimal?)o.Totalamount) ?? 0m
+            TotalRevenue = await query.WhereRevenueEligible().SumAsync(o => (decimal?)o.Totalamount) ?? 0m
         };
 
         return View(model);
