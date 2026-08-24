@@ -14,19 +14,19 @@ public class ProductService
         _context = context;
     }
 
-    public Task<IEnumerable<Product>> GetAllProductsAsync()
+    public async Task<IEnumerable<Product>> GetAllProductsAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_context.Products.AsEnumerable());
+        return await _context.Products.AsNoTracking().ToListAsync(cancellationToken);
     }
 
-    public Task<Product?> GetProductByIdAsync(int id)
+    public async Task<Product?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_context.Products.FirstOrDefault(p => p.Id == id));
+        return await _context.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
-    public Task<IEnumerable<Category>> GetCategoriesAsync()
+    public async Task<IEnumerable<Category>> GetCategoriesAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_context.Categories.AsEnumerable());
+        return await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(cancellationToken);
     }
 
     //public Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId)
