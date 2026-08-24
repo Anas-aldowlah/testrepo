@@ -65,16 +65,23 @@ public sealed class ProductCatalogService
             query = query.Where(product => product.Price <= request.MaxPrice);
 
         if (request.Retail == "yes")
-            query = query.Where(product => product.IsRetailEnabled);
+            query = query.WhereEffectiveRetailAvailability(available: true);
         else if (request.Retail == "no")
-            query = query.Where(product => !product.IsRetailEnabled);
+            query = query.WhereEffectiveRetailAvailability(available: false);
 
         if (request.RetailSize.Length > 0)
         {
             query = query.Where(product =>
                 product.IsRetailEnabled &&
+                product.StockUnit == "Ml" &&
+                product.VolumeMl.HasValue &&
+                product.VolumeMl.Value > 0 &&
                 product.RetailPrices.Any(price =>
-                    price.IsActive && request.RetailSize.Contains(price.SizeMl)));
+                    price.IsActive &&
+                    price.SizeMl > 0 &&
+                    price.Price > 0 &&
+                    price.SizeMl < product.VolumeMl.Value &&
+                    request.RetailSize.Contains(price.SizeMl)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -85,6 +92,8 @@ public sealed class ProductCatalogService
         var orderedQuery = ApplyOrdering(query, request.Sort);
         var products = await orderedQuery
             .Include(product => product.Category)
+            .Include(product => product.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .Skip((currentPage - 1) * PageSize)
             .Take(PageSize)
             .ToListAsync(cancellationToken);
@@ -112,7 +121,11 @@ public sealed class ProductCatalogService
             .Where(price =>
                 price.IsActive &&
                 price.SizeMl > 0 &&
+                price.Price > 0 &&
                 price.Product.IsRetailEnabled &&
+                price.Product.StockUnit == "Ml" &&
+                price.Product.VolumeMl.HasValue &&
+                price.SizeMl < price.Product.VolumeMl.Value &&
                 price.Product.Stockquantity > 0)
             .Select(price => price.SizeMl)
             .Distinct()

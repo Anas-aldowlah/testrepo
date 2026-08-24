@@ -31,10 +31,13 @@ public class ProductsController : Controller
     {
         // تعرض تفاصيل المنتج محدد
         var product = await _context.Products
+            .AsNoTracking()
             .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price => price.IsActive))
+            .Include(p => p.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .FirstOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
+        product.RetailPrices = ProductRetailAvailability.GetCustomerUsablePrices(product).ToList();
         return View(product);
     }
 

@@ -4,6 +4,13 @@ using Npgsql;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 
+RunRetailAvailabilityChecks();
+if (args.Contains("--retail-availability-only", StringComparer.OrdinalIgnoreCase))
+{
+    Console.WriteLine("RETAIL AVAILABILITY CHECKS PASSED");
+    return;
+}
+
 const string expectedHost = "127.0.0.1";
 const string expectedDatabase = "yagot_performance_main";
 const string expectedUser = "yagot_performance_app";
@@ -160,8 +167,14 @@ if (minimumPrice.HasValue && maximumPrice.HasValue)
 
 var retailYes = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Retail = "yes" });
 var retailNo = await catalog.GetCatalogAsync(new ProductsCatalogRequest { Retail = "no" });
-Assert(retailYes.TotalCount == await context.Products.CountAsync(p => p.Stockquantity > 0 && p.IsRetailEnabled), "Retail=yes count differs.");
-Assert(retailNo.TotalCount == await context.Products.CountAsync(p => p.Stockquantity > 0 && !p.IsRetailEnabled), "Retail=no count differs.");
+Assert(retailYes.TotalCount == await context.Products
+    .Where(p => p.Stockquantity > 0)
+    .WhereEffectiveRetailAvailability(available: true)
+    .CountAsync(), "Retail=yes count differs.");
+Assert(retailNo.TotalCount == await context.Products
+    .Where(p => p.Stockquantity > 0)
+    .WhereEffectiveRetailAvailability(available: false)
+    .CountAsync(), "Retail=no count differs.");
 
 var contradictoryRetail = new ProductsCatalogRequest { Retail = "no", RetailSize = [5] };
 var normalizedRetailNo = await catalog.GetCatalogAsync(contradictoryRetail);
@@ -172,7 +185,11 @@ var expectedRetailSizes = await context.ProductRetailPrices.AsNoTracking()
     .Where(price =>
         price.IsActive &&
         price.SizeMl > 0 &&
+        price.Price > 0 &&
         price.Product.IsRetailEnabled &&
+        price.Product.StockUnit == "Ml" &&
+        price.Product.VolumeMl.HasValue &&
+        price.SizeMl < price.Product.VolumeMl.Value &&
         price.Product.Stockquantity > 0)
     .Select(price => price.SizeMl)
     .Distinct()
@@ -185,8 +202,17 @@ foreach (var size in expectedRetailSizes)
 {
     var result = await catalog.GetCatalogAsync(new ProductsCatalogRequest { RetailSize = [size] });
     var expectedCount = await context.Products.CountAsync(product =>
-        product.Stockquantity > 0 && product.IsRetailEnabled &&
-        product.RetailPrices.Any(price => price.IsActive && price.SizeMl == size));
+        product.Stockquantity > 0 &&
+        product.IsRetailEnabled &&
+        product.StockUnit == "Ml" &&
+        product.VolumeMl.HasValue &&
+        product.VolumeMl.Value > 0 &&
+        product.RetailPrices.Any(price =>
+            price.IsActive &&
+            price.SizeMl > 0 &&
+            price.Price > 0 &&
+            price.SizeMl < product.VolumeMl.Value &&
+            price.SizeMl == size));
     Assert(result.TotalCount == expectedCount, $"Retail size {size} count differs.");
     retailSizeCounts[size] = result.TotalCount;
 }
@@ -231,4 +257,76 @@ Console.WriteLine("RetailSizes=" + string.Join(",", retailSizeCounts.Select(pair
 static void Assert(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException(message);
+}
+
+static void RunRetailAvailabilityChecks()
+{
+    static Product Product(int id, bool enabled, params ProductRetailPrice[] prices)
+    {
+        var product = new Product
+        {
+            Id = id,
+            IsRetailEnabled = enabled,
+            StockUnit = "Ml",
+            VolumeMl = 100,
+            Price = 100,
+            Stockquantity = 500,
+            RetailPrices = prices.ToList()
+        };
+
+        foreach (var price in product.RetailPrices)
+            price.ProductId = id;
+
+        return product;
+    }
+
+    static ProductRetailPrice Price(int id, int sizeMl, decimal price, bool active) => new()
+    {
+        Id = id,
+        SizeMl = sizeMl,
+        Price = price,
+        IsActive = active
+    };
+
+    var a = Product(1, false, Price(1, 10, 20, true));
+    var b = Product(2, true);
+    var c = Product(3, true, Price(3, 10, 20, false));
+    var d = Product(4, true, Price(4, 10, 20, true));
+    var e = Product(5, true, Price(5, 10, 20, false), Price(6, 20, 30, true));
+    var invalidOnly = Product(
+        6,
+        true,
+        Price(7, 0, 20, true),
+        Price(8, 10, 0, true),
+        Price(9, 100, 20, true));
+
+    Assert(!ProductRetailAvailability.IsAvailable(a), "A: retail-disabled product was available.");
+    Assert(!ProductRetailAvailability.IsAvailable(b), "B: product with zero retail prices was available.");
+    Assert(!ProductRetailAvailability.IsAvailable(c), "C: inactive-only product was available.");
+    Assert(ProductRetailAvailability.IsAvailable(d), "D: active valid retail size was unavailable.");
+    Assert(ProductRetailAvailability.IsAvailable(e), "E: mixed active/inactive product was unavailable.");
+    Assert(!ProductRetailAvailability.IsAvailable(invalidOnly), "Invalid-only product was available.");
+
+    Assert(ProductRetailAvailability.GetCustomerUsablePrices(c).Count == 0, "C: inactive size reached customer options.");
+    Assert(ProductRetailAvailability.GetCustomerUsablePrices(d).Select(price => price.Id).SequenceEqual([4]), "D: active size was missing.");
+    Assert(ProductRetailAvailability.GetCustomerUsablePrices(e).Select(price => price.Id).SequenceEqual([6]), "E: inactive size reached mixed customer options.");
+
+    var products = new[] { a, b, c, d, e, invalidOnly }.AsQueryable();
+    Assert(products.WhereEffectiveRetailAvailability(available: true).Select(product => product.Id).SequenceEqual([4, 5]),
+        "F: available filter did not include only D/E.");
+    Assert(products.WhereEffectiveRetailAvailability(available: false).Select(product => product.Id).SequenceEqual([1, 2, 3, 6]),
+        "G: unavailable filter did not include A/B/C and invalid-only.");
+    Assert(products.All(product => product.Price == 100 && product.Stockquantity == 500),
+        "H: retail availability altered full-package price or stock data.");
+
+    var translationOptions = new DbContextOptionsBuilder<NeondbContext>()
+        .UseNpgsql("Host=127.0.0.1;Database=translation_only;Username=translation_only;Password=translation_only")
+        .Options;
+    using var translationContext = new NeondbContext(translationOptions);
+    _ = translationContext.Products.WhereEffectiveRetailAvailability(available: true).ToQueryString();
+    _ = translationContext.Products.WhereEffectiveRetailAvailability(available: false).ToQueryString();
+    _ = translationContext.Products
+        .Include(product => product.RetailPrices.Where(price =>
+            price.IsActive && price.SizeMl > 0 && price.Price > 0))
+        .ToQueryString();
 }

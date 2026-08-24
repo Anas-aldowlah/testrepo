@@ -1,4 +1,5 @@
 @model YAGOT_2._0.Models.Product
+@using YAGOT_2._0.Services
 @{
     ViewData["Title"] = Model?.Name;
     ViewData["Description"] = Model?.Description?.Trim();
@@ -15,7 +16,7 @@
     var mlLabel = (fullAvailableUnits >= 3 && fullAvailableUnits <= 10) ? "عبوات" : "عبوة";
     var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} {mlLabel}" : $"{pieceAvailableUnits:N0} قطعة";
     var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
-    var retailPrices = Model?.RetailPrices?.Where(price => price.IsActive).OrderBy(price => price.SizeMl).ToList() ?? new();
+    var retailPrices = Model is null ? [] : ProductRetailAvailability.GetCustomerUsablePrices(Model);
     var productImageUrl = Url.Content("~/images/placeholder-product.svg");
     if (!string.IsNullOrWhiteSpace(Model?.Imageurl))
     {
@@ -175,7 +176,7 @@
                             <input type="hidden" name="productId" value="@Model.Id" />
                             <input type="hidden" name="retailPriceId" id="yqRetailPriceId" value="" />
 
-                            @if (isMlProduct && Model.IsRetailEnabled && retailPrices.Any())
+                            @if (retailPrices.Count > 0)
                             {
                                 <fieldset class="yq-pdp-retail-options" aria-label="اختيار الحجم">
                                     <legend class="yq-pdp-qty__label">الحجم</legend>

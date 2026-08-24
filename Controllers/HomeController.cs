@@ -28,7 +28,11 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var productsFromDb = await _context.Products.Include(p => p.Category).ToListAsync();
+        var productsFromDb = await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
+            .ToListAsync();
         var categoriesFromDb = await _context.Categories.ToListAsync();
         var model = new ViewModels
         {

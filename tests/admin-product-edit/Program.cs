@@ -10,6 +10,7 @@ using YAGOT_2._0.Services;
 await RazorRenderingChecks.RunFromEnvironmentAsync();
 AssertArabicValidationConfiguration();
 AssertRetailPriceIntegrityValidation();
+await AssertRetailOffActivitySynchronizationAsync();
 
 var product = new Product
 {
@@ -116,6 +117,55 @@ static void AssertRetailPriceIntegrityValidation()
     AssertModelError(rangeInvalidController, "RetailPrices", requiredMessage, "DataAnnotation-invalid row leaves zero valid rows");
 
     Console.WriteLine("PASS: shared Create/Edit retail-price integrity and field/group validation keys.");
+}
+
+static async Task AssertRetailOffActivitySynchronizationAsync()
+{
+    var product = new Product
+    {
+        Id = 7,
+        StockUnit = "Ml",
+        IsRetailEnabled = true,
+        RetailPrices =
+        [
+            new ProductRetailPrice { Id = 100, ProductId = 7, SizeMl = 100, Price = 10, IsActive = true },
+            new ProductRetailPrice { Id = 101, ProductId = 7, SizeMl = 150, Price = 15, IsActive = true }
+        ]
+    };
+    var controller = new ProductsController(null!, null!, null!, null!, null!, null!);
+
+    await InvokeRetailPriceSyncAsync(controller, product, RetailOffInput((100, false), (101, false)));
+    Assert(product.RetailPrices.Count == 2 && product.RetailPrices.All(price => !price.IsActive),
+        "Retail OFF with two inactive rows did not preserve both submitted inactive states.");
+
+    await InvokeRetailPriceSyncAsync(controller, product, RetailOffInput((100, false), (101, true)));
+    Assert(product.RetailPrices.Single(price => price.Id == 100).IsActive == false &&
+           product.RetailPrices.Single(price => price.Id == 101).IsActive,
+        "Retail OFF with mixed activity did not preserve the exact submitted states.");
+    Assert(product.RetailPrices.Count == 2, "Retail OFF added or deleted a persisted retail row.");
+
+    Console.WriteLine("PASS: Retail OFF preserves exact submitted row activity without adding or deleting rows.");
+
+    static ProductVW RetailOffInput(params (int Id, bool IsActive)[] states) => new()
+    {
+        StockUnit = "Ml",
+        IsRetailEnabled = false,
+        RetailPrices = states.Select(state => new ProductRetailPriceInput
+        {
+            Id = state.Id,
+            SizeMl = state.Id == 100 ? 100 : 150,
+            Price = state.Id == 100 ? 10 : 15,
+            IsActive = state.IsActive
+        }).ToList()
+    };
+}
+
+static async Task InvokeRetailPriceSyncAsync(ProductsController controller, Product product, ProductVW model)
+{
+    var method = typeof(ProductsController).GetMethod("SyncRetailPricesAsync", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("SyncRetailPricesAsync was not found.");
+    await ((Task?)method.Invoke(controller, [product, model])
+        ?? throw new InvalidOperationException("SyncRetailPricesAsync did not return a task."));
 }
 
 static ProductsController ValidateRetailPrices(ProductVW model, string? modelPrefix)

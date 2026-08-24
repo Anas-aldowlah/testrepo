@@ -258,20 +258,41 @@ internal static class RazorRenderingChecks
 
         retailProduct = await database.Products.Include(product => product.RetailPrices)
             .SingleAsync(product => product.Id == retailProduct.Id);
-        var disableRetail = ProductInput(retailProduct);
-        disableRetail.IsRetailEnabled = false;
-        var disableRetailController = BuildController(services, database, "Edit");
-        var disableRetailResult = await disableRetailController.Edit(disableRetail);
-        AssertSuccessRedirect(disableRetailController, disableRetailResult, "تم حفظ تعديلات المنتج بنجاح.",
-            "Disable retail Edit", "Edit", retailProduct.Id);
+
+        var allInactive = ProductInput(retailProduct);
+        allInactive.IsRetailEnabled = false;
+        allInactive.RetailPrices.ForEach(price => price.IsActive = false);
+        var allInactiveController = BuildController(services, database, "Edit");
+        var allInactiveResult = await allInactiveController.Edit(allInactive);
+        AssertSuccessRedirect(allInactiveController, allInactiveResult, "تم حفظ تعديلات المنتج بنجاح.",
+            "Retail OFF with two inactive rows", "Edit", retailProduct.Id);
         database.ChangeTracker.Clear();
         retailProduct = await database.Products.Include(product => product.RetailPrices)
             .SingleAsync(product => product.Id == retailProduct.Id);
         Assert(!retailProduct.IsRetailEnabled && retailProduct.RetailPrices.All(price => !price.IsActive),
-            "Disabling retail did not preserve the existing deactivate-row behavior.");
+            "Retail OFF did not preserve two submitted inactive rows after reload.");
+
+        var mixedActivity = ProductInput(retailProduct);
+        mixedActivity.IsRetailEnabled = false;
+        var orderedRows = mixedActivity.RetailPrices.OrderBy(price => price.Id).ToList();
+        Assert(orderedRows.Count >= 2, "Retail OFF mixed-state check requires two persisted rows.");
+        orderedRows[0].IsActive = false;
+        orderedRows[1].IsActive = true;
+        var expectedActivity = orderedRows.ToDictionary(price => price.Id!.Value, price => price.IsActive);
+        var mixedActivityController = BuildController(services, database, "Edit");
+        var mixedActivityResult = await mixedActivityController.Edit(mixedActivity);
+        AssertSuccessRedirect(mixedActivityController, mixedActivityResult, "تم حفظ تعديلات المنتج بنجاح.",
+            "Retail OFF with mixed row activity", "Edit", retailProduct.Id);
+        database.ChangeTracker.Clear();
+        retailProduct = await database.Products.Include(product => product.RetailPrices)
+            .SingleAsync(product => product.Id == retailProduct.Id);
+        Assert(!retailProduct.IsRetailEnabled &&
+               retailProduct.RetailPrices.Count == expectedActivity.Count &&
+               retailProduct.RetailPrices.All(price => expectedActivity[price.Id] == price.IsActive),
+            "Retail OFF did not preserve the exact submitted mixed activity after reload.");
 
         await transaction.RollbackAsync();
-        Console.WriteLine("PASS: disposable local DB ID-authoritative sync, exact reload, unused delete, historical deactivate, PRG feedback, and validation checks (rolled back).");
+        Console.WriteLine("PASS: disposable local DB ID-authoritative sync, Retail OFF exact activity reload, unused delete, historical deactivate, PRG feedback, and validation checks (rolled back).");
     }
 
     private static AdminProductCreateViewModel CreateInput(
