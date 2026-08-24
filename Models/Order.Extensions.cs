@@ -16,7 +16,6 @@ public static class OrderRevenueExtensions
     public static IQueryable<Order> WhereRevenueEligible(this IQueryable<Order> query)
     {
         return query.Where(o =>
-            o.Paymentstatus == "Paid" &&
             (o.Status == "Processed" || o.Status == "Shipped" || o.Status == "Delivered"));
     }
 }
