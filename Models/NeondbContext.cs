@@ -172,6 +172,12 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("orders", t =>
                 t.HasCheckConstraint("ck_orders_totalamount_nonnegative", "totalamount >= 0"));
 
+            entity.HasIndex(e => new { e.Status, e.Orderdate }, "ix_orders_status_orderdate")
+                .IsDescending(false, true);
+
+            entity.HasIndex(e => new { e.Userid, e.Orderdate }, "ix_orders_userid_orderdate")
+                .IsDescending(false, true);
+
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Notes)
                 .HasMaxLength(500)
@@ -623,6 +629,7 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
             entity.HasIndex(e => e.SalesDayId, "ix_sales_sales_day_id");
             entity.HasIndex(e => e.InvoiceNumber, "ix_sales_invoice_number").IsUnique();
+            entity.HasIndex(e => new { e.SalesDayId, e.Status }, "ix_sales_sales_day_status");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.SalesDayId).HasColumnName("sales_day_id");
