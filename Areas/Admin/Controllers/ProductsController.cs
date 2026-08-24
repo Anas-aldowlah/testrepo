@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -202,8 +202,10 @@ public class ProductsController : Controller
             .SingleOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
 
+        var historicallyUsedIds = await GetHistoricallyUsedRetailPriceIdsAsync(id);
+
         await PopulateEditOptionsAsync();
-        return View(BuildEditViewModel(product));
+        return View(BuildEditViewModel(product, historicallyUsedIds: historicallyUsedIds));
     }
 
     [HttpPost]
@@ -252,9 +254,10 @@ public class ProductsController : Controller
                 ? "/images/products/" + fileName
                 : fileName;
 
-            SyncRetailPrices(product, productVW);
+            await SyncRetailPricesAsync(product, productVW);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            TempData["Success"] = "تم حفظ تعديلات المنتج بنجاح.";
+            return RedirectToAction(nameof(Edit), new { id = product.Id });
         }
         catch (OverflowException exception)
         {
@@ -325,7 +328,7 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private static ProductVW ToProductViewModel(Product product) => new()
+    private static ProductVW ToProductViewModel(Product product, List<int>? historicallyUsedIds = null) => new()
     {
         Id = product.Id,
         Name = product.Name,
@@ -345,7 +348,8 @@ public class ProductsController : Controller
                 Id = price.Id,
                 SizeMl = price.SizeMl,
                 Price = price.Price,
-                IsActive = price.IsActive
+                IsActive = price.IsActive,
+                IsHistoricallyUsed = historicallyUsedIds != null && historicallyUsedIds.Contains(price.Id)
             })
             .ToList()
     };
@@ -353,7 +357,8 @@ public class ProductsController : Controller
     private static AdminProductEditViewModel BuildEditViewModel(
         Product product,
         ProductVW? submittedProduct = null,
-        StockAdjustmentViewModel? submittedAdjustment = null)
+        StockAdjustmentViewModel? submittedAdjustment = null,
+        List<int>? historicallyUsedIds = null)
     {
         var isMlProduct = string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase);
         var baseSizeMl = product.VolumeMl.GetValueOrDefault();
@@ -379,7 +384,7 @@ public class ProductsController : Controller
 
         return new AdminProductEditViewModel
         {
-            Product = submittedProduct ?? ToProductViewModel(product),
+            Product = submittedProduct ?? ToProductViewModel(product, historicallyUsedIds),
             StockAdjustment = submittedAdjustment ?? new StockAdjustmentViewModel
             {
                 Id = product.Id,
@@ -470,6 +475,9 @@ public class ProductsController : Controller
         ModelState.Remove($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Existingimage)}");
         submitted.Stockquantity = product.Stockquantity;
         submitted.Existingimage = product.Imageurl;
+        var historicallyUsedIds = await GetHistoricallyUsedRetailPriceIdsAsync(product.Id);
+        foreach (var row in submitted.RetailPrices)
+            row.IsHistoricallyUsed = row.Id.HasValue && historicallyUsedIds.Contains(row.Id.Value);
         await PopulateEditOptionsAsync();
         return View("Edit", BuildEditViewModel(product, submittedProduct: submitted));
     }
@@ -483,12 +491,17 @@ public class ProductsController : Controller
         if (product == null)
             return NotFound();
 
+        var historicallyUsedIds = await GetHistoricallyUsedRetailPriceIdsAsync(product.Id);
         await PopulateEditOptionsAsync();
-        return View("Edit", BuildEditViewModel(product, submittedAdjustment: submitted));
+        return View("Edit", BuildEditViewModel(
+            product,
+            submittedAdjustment: submitted,
+            historicallyUsedIds: historicallyUsedIds));
     }
 
     private void ValidateRetailPrices(ProductVW model, Product? product, string? modelPrefix)
     {
+        model.RetailPrices ??= new List<ProductRetailPriceInput>();
         if (!string.Equals(model.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase) || !model.IsRetailEnabled)
             return;
 
@@ -531,6 +544,24 @@ public class ProductsController : Controller
             {
                 sizeIndexes[row.SizeMl] = index;
             }
+        }
+
+        var hasValidActiveRow = model.RetailPrices.Any(row =>
+            row.IsActive &&
+            row.SizeMl is > 0 and <= 1000000 &&
+            row.Price is >= 0.01m and <= 1000000m &&
+            model.VolumeMl is > 0 &&
+            row.SizeMl < model.VolumeMl.Value &&
+            model.RetailPrices.Count(candidate => candidate.SizeMl == row.SizeMl) == 1 &&
+            (product == null || !row.Id.HasValue || knownIds.Contains(row.Id.Value)) &&
+            (product == null || !row.Id.HasValue || product.RetailPrices.All(price =>
+                price.Id == row.Id.Value || price.SizeMl != row.SizeMl)));
+
+        if (!hasValidActiveRow)
+        {
+            AddModelErrorIfAbsent(
+                $"{fieldPrefix}{nameof(ProductVW.RetailPrices)}",
+                "يجب إضافة سعر تجزئة واحد على الأقل عند تفعيل البيع بالتجزئة.");
         }
     }
 
@@ -602,15 +633,40 @@ public class ProductsController : Controller
             .ToList();
     }
 
-    private static void SyncRetailPrices(Product product, ProductVW model)
+    private async Task SyncRetailPricesAsync(Product product, ProductVW model)
     {
-        var activeInputs = ActiveRetailRows(model).ToList();
-        var seenIds = activeInputs.Where(input => input.Id.HasValue).Select(input => input.Id!.Value).ToHashSet();
+        var isRetailEnabled = product.StockUnit == "Ml" && model.IsRetailEnabled;
+        if (!isRetailEnabled)
+            return;
 
-        foreach (var existing in product.RetailPrices)
-            existing.IsActive = seenIds.Contains(existing.Id) && activeInputs.Any(input => input.Id == existing.Id && input.IsActive);
+        var submittedRows = ActiveRetailRows(model).ToList();
+        var seenIds = submittedRows.Where(input => input.Id.HasValue).Select(input => input.Id!.Value).ToHashSet();
 
-        foreach (var input in activeInputs)
+        var toRemove = product.RetailPrices.Where(p => !seenIds.Contains(p.Id)).ToList();
+
+        if (toRemove.Any())
+        {
+            var removeIds = toRemove.Select(r => r.Id).ToList();
+            var historicallyUsedIds = await _context.ProductRetailPrices
+                .Where(p => removeIds.Contains(p.Id))
+                .Where(p => p.Orderitems.Any() || p.SaleItems.Any())
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            foreach (var r in toRemove)
+            {
+                if (historicallyUsedIds.Contains(r.Id))
+                {
+                    r.IsActive = false;
+                }
+                else
+                {
+                    _context.ProductRetailPrices.Remove(r);
+                }
+            }
+        }
+
+        foreach (var input in submittedRows)
         {
             var existing = input.Id.HasValue
                 ? product.RetailPrices.FirstOrDefault(price => price.Id == input.Id.Value)
@@ -633,6 +689,13 @@ public class ProductsController : Controller
             }
         }
     }
+
+    private Task<List<int>> GetHistoricallyUsedRetailPriceIdsAsync(int productId) =>
+        _context.ProductRetailPrices
+            .Where(price => price.ProductId == productId)
+            .Where(price => price.Orderitems.Any() || price.SaleItems.Any())
+            .Select(price => price.Id)
+            .ToListAsync();
 
     private static string NormalizeStockUnit(string? stockUnit) =>
         string.Equals(stockUnit, "Ml", StringComparison.OrdinalIgnoreCase) ? "Ml" : "Piece";

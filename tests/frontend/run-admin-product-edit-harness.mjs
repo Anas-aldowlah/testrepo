@@ -42,6 +42,8 @@ await runBrowserHarness({
                         const retailRow = retail?.querySelector('.yq-retail-price-row');
                         const retailRect = retail?.getBoundingClientRect();
                         const sectionRect = retail?.parentElement?.getBoundingClientRect();
+                        const activeRect = retailRow?.querySelector('.yq-retail-active-field')?.getBoundingClientRect();
+                        const deleteRect = retailRow?.querySelector('.yq-retail-remove')?.getBoundingClientRect();
                         return {
                             status: output.dataset.result,
                             text: output.textContent,
@@ -54,7 +56,8 @@ await runBrowserHarness({
                                 widthRatio: retailRect.width / sectionRect.width,
                                 columns: getComputedStyle(retailRow).gridTemplateColumns.trim().split(/\\s+/).length,
                                 addButtonInHeader: Boolean(retail.querySelector('.yq-retail-prices__head [data-add-retail-price]')),
-                                activeCell: Boolean(retailRow.querySelector('.yq-retail-active-field'))
+                                activeCell: Boolean(retailRow.querySelector('.yq-retail-active-field')),
+                                activeDeleteAligned: Boolean(activeRect && deleteRect && Math.abs(activeRect.bottom - deleteRect.bottom) <= 1)
                             } : null
                         };
                     })()`,
@@ -65,12 +68,13 @@ await runBrowserHarness({
                 await delay(50);
             }
 
-            const expectedRetailColumns = width >= 992 ? 4 : width >= 768 ? 2 : 1;
+            const expectedRetailColumns = width >= 992 ? 4 : 2;
             const retailLayoutFailed = state === 'retail' && (
                 !result?.retailLayout ||
                 result.retailLayout.columns !== expectedRetailColumns ||
                 !result.retailLayout.addButtonInHeader ||
                 !result.retailLayout.activeCell ||
+                (width < 768 && !result.retailLayout.activeDeleteAligned) ||
                 (width >= 992 && result.retailLayout.widthRatio < 0.9)
             );
             if (!result || result.status !== 'pass' || result.errors.length || result.scrollWidth > result.clientWidth || result.outOfBounds || result.direction !== 'rtl' || retailLayoutFailed) {
