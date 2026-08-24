@@ -555,12 +555,17 @@ public class AccountController : Controller
         var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return NotFound();
 
+        var role = await _db.UserSites
+            .Where(s => s.UserId == user.Id)
+            .Select(f => f.Role)
+            .FirstOrDefaultAsync() ?? "Customer";
+
         var model = new ProfileVM
         {
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
-            Role = _db.UserSites.Where(s => s.UserId == user.Id).Select(f => f.Role).FirstOrDefault() ?? "Customer",
+            Role = role,
             CreatedAt = user.Createdat
         };
         if (model.Role == "Admin")

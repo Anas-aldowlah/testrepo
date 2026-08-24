@@ -1,8 +1,8 @@
-﻿using YAGOT_2._0.Models;
+using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services
 {
-    
     public class CategoryServer
     {
         private readonly NeondbContext _context;
@@ -10,11 +10,11 @@ namespace YAGOT_2._0.Services
         {
             _context = context;
         }
-        public Task<Category?> GetCategoryByID(int id)
+
+        public async Task<Category?> GetCategoryByID(int id, CancellationToken cancellationToken = default)
         {
-           
-            return Task.FromResult(_context.Categories.FirstOrDefault(c => c.Id == id));
+            return await _context.Categories
+                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         }
-        
     }
 }
