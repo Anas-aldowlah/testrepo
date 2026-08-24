@@ -40,6 +40,7 @@ await runBrowserHarness({
                         });
                         const retail = document.querySelector('[data-retail-prices]');
                         const retailRow = retail?.querySelector('.yq-retail-price-row');
+                        const retailControls = retailRow?.querySelector('.yq-retail-controls');
                         const retailRect = retail?.getBoundingClientRect();
                         const sectionRect = retail?.parentElement?.getBoundingClientRect();
                         const activeRect = retailRow?.querySelector('.yq-retail-active-field')?.getBoundingClientRect();
@@ -54,7 +55,7 @@ await runBrowserHarness({
                             direction: getComputedStyle(document.documentElement).direction,
                             retailLayout: retail && !retail.hidden ? {
                                 widthRatio: retailRect.width / sectionRect.width,
-                                columns: getComputedStyle(retailRow).gridTemplateColumns.trim().split(/\\s+/).length,
+                                columns: getComputedStyle(retailControls).gridTemplateColumns.trim().split(/\\s+/).length,
                                 addButtonInHeader: Boolean(retail.querySelector('.yq-retail-prices__head [data-add-retail-price]')),
                                 activeCell: Boolean(retailRow.querySelector('.yq-retail-active-field')),
                                 activeDeleteAligned: Boolean(activeRect && deleteRect && Math.abs(activeRect.bottom - deleteRect.bottom) <= 1)
@@ -68,13 +69,13 @@ await runBrowserHarness({
                 await delay(50);
             }
 
-            const expectedRetailColumns = width >= 992 ? 4 : 2;
+            const expectedRetailColumns = width >= 768 ? 4 : 2;
             const retailLayoutFailed = state === 'retail' && (
                 !result?.retailLayout ||
                 result.retailLayout.columns !== expectedRetailColumns ||
                 !result.retailLayout.addButtonInHeader ||
                 !result.retailLayout.activeCell ||
-                (width < 768 && !result.retailLayout.activeDeleteAligned) ||
+                (width < 576 && !result.retailLayout.activeDeleteAligned) ||
                 (width >= 992 && result.retailLayout.widthRatio < 0.9)
             );
             if (!result || result.status !== 'pass' || result.errors.length || result.scrollWidth > result.clientWidth || result.outOfBounds || result.direction !== 'rtl' || retailLayoutFailed) {

@@ -1,8 +1,10 @@
 @model YAGOT_2._0.Models.Product
+@using YAGOT_2._0.Services
 @{
     var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
     var categoryName = Model.Category?.Name ?? string.Empty;
     var isAvailable = Model.Stockquantity > 0;
+    var isRetailAvailable = ProductRetailAvailability.IsAvailable(Model);
     var isNew = Model.Createdat.HasValue && Model.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
     var statusId = $"yq-ps-{Model.Id}-{Guid.NewGuid():N}";
     var imageUrl = string.IsNullOrWhiteSpace(Model.Imageurl)
@@ -17,7 +19,7 @@
          data-yaqut-product
          data-yq-product-card
          data-yq-availability="@(isAvailable ? "in-stock" : "out-of-stock")"
-         data-retail="@Model.IsRetailEnabled.ToString().ToLowerInvariant()"
+         data-retail="@isRetailAvailable.ToString().ToLowerInvariant()"
          data-product-id="@Model.Id"
          data-product-name="@Model.Name"
          data-name="@Model.Name.ToLowerInvariant()"
@@ -32,7 +34,7 @@
                  data-yaqut-fallback="/images/placeholder-product.svg" />
         </a>
 
-        @if (Model.IsRetailEnabled)
+        @if (isRetailAvailable)
         {
             <span class="yq-pcard__badge yq-pcard__badge--retail">
                 <i class="bi bi-droplet-half" aria-hidden="true"></i> يباع بالتجزئة

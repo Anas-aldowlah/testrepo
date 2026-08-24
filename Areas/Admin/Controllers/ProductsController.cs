@@ -637,7 +637,24 @@ public class ProductsController : Controller
     {
         var isRetailEnabled = product.StockUnit == "Ml" && model.IsRetailEnabled;
         if (!isRetailEnabled)
+        {
+            foreach (var input in model.RetailPrices)
+            {
+                if (!input.Id.HasValue)
+                    continue;
+
+                var inputId = input.Id.Value;
+                var existing = product.RetailPrices.FirstOrDefault(price => price.Id == inputId);
+                if (existing != null)
+                {
+                    existing.SizeMl = input.SizeMl;
+                    existing.Price = input.Price;
+                    existing.IsActive = input.IsActive;
+                }
+            }
+
             return;
+        }
 
         var submittedRows = ActiveRetailRows(model).ToList();
         var seenIds = submittedRows.Where(input => input.Id.HasValue).Select(input => input.Id!.Value).ToHashSet();

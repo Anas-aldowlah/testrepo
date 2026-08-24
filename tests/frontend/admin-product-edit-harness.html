@@ -20,7 +20,7 @@
 </head>
 <body>
     <main class="yq-products-create yq-product-editor">
-        <form action="/Admin/Products/Edit" class="yq-product-form">
+        <form action="/Admin/Products/Edit" class="yq-product-form" data-product-edit-form>
             <section class="yq-product-form__section">
                 <div class="yq-product-form__grid">
                     <div class="yq-product-field">
@@ -41,18 +41,20 @@
                     <span class="yq-product-validation field-validation-valid" data-retail-group-validation tabindex="-1"></span>
                     <div class="yq-retail-prices__grid" data-retail-price-list>
                         <div class="yq-retail-price-row">
-                            <div class="yq-product-field">
-                                <label class="yaqut-form-label" for="Product_RetailPrices_0__SizeMl">الحجم</label>
-                                <input id="Product_RetailPrices_0__SizeMl" name="Product.RetailPrices[0].SizeMl" value="250" class="yaqut-form-input">
-                                <span data-valmsg-for="Product.RetailPrices[0].SizeMl"></span>
+                            <div class="yq-retail-controls">
+                                <div class="yq-product-field">
+                                    <label class="yaqut-form-label" for="Product_RetailPrices_0__SizeMl">الحجم</label>
+                                    <input id="Product_RetailPrices_0__SizeMl" name="Product.RetailPrices[0].SizeMl" value="250" class="yaqut-form-input">
+                                    <span data-valmsg-for="Product.RetailPrices[0].SizeMl"></span>
+                                </div>
+                                <div class="yq-product-field">
+                                    <label class="yaqut-form-label" for="Product_RetailPrices_0__Price">السعر</label>
+                                    <input id="Product_RetailPrices_0__Price" name="Product.RetailPrices[0].Price" value="3" class="yaqut-form-input">
+                                    <span data-valmsg-for="Product.RetailPrices[0].Price"></span>
+                                </div>
+                                <div class="yq-retail-active-field"><span class="yaqut-form-label">الحالة</span><label class="yq-retail-active"><input type="checkbox" name="Product.RetailPrices[0].IsActive" value="true" checked> <span data-retail-active-label>نشط</span></label><input type="hidden" name="Product.RetailPrices[0].IsActive" value="false"></div>
+                                <div class="yq-retail-action-field"><span class="yaqut-form-label">الإجراء</span><button type="button" class="yq-retail-remove" data-remove-retail-price>حذف</button></div>
                             </div>
-                            <div class="yq-product-field">
-                                <label class="yaqut-form-label" for="Product_RetailPrices_0__Price">السعر</label>
-                                <input id="Product_RetailPrices_0__Price" name="Product.RetailPrices[0].Price" value="3" class="yaqut-form-input">
-                                <span data-valmsg-for="Product.RetailPrices[0].Price"></span>
-                            </div>
-                            <div class="yq-retail-active-field"><span class="yaqut-form-label">الحالة</span><label class="yq-retail-active"><input type="checkbox" name="Product.RetailPrices[0].IsActive" value="true" checked> <span data-retail-active-label>نشط</span></label><input type="hidden" name="Product.RetailPrices[0].IsActive" value="false"></div>
-                            <button type="button" class="yq-retail-remove" data-remove-retail-price>حذف</button>
                         </div>
                     </div>
                 </div>
@@ -189,10 +191,30 @@
             assert(remainingSize?.name === 'Product.RetailPrices[0].SizeMl', 'Retail rows were not reindexed after removal.');
             assert(remainingActive?.name === 'Product.RetailPrices[0].IsActive', 'Retail active checkbox was not reindexed after removal.');
             assert(remainingActiveFallback?.name === 'Product.RetailPrices[0].IsActive' && remainingActiveFallback.value === 'false', 'Retail active false fallback was not reindexed with its row.');
+            const remainingRow = remainingActive.closest('.yq-retail-price-row');
+            const activeRect = remainingRow.getBoundingClientRect();
+            const activeStyle = getComputedStyle(remainingRow);
+            const activePresentation = {
+                background: activeStyle.backgroundColor,
+                border: activeStyle.border,
+                opacity: activeStyle.opacity,
+                padding: activeStyle.padding,
+                gap: activeStyle.gap
+            };
             remainingActive.checked = false;
             remainingActive.dispatchEvent(new Event('change', { bubbles: true }));
-            assert(remainingActive.closest('.yq-retail-price-row').classList.contains('is-inactive'), 'Inactive retail row did not receive visible muted state.');
-            assert(remainingActive.closest('.yq-retail-price-row').querySelector('[data-retail-active-label]')?.textContent === 'غير نشط', 'Inactive retail row label was not updated.');
+            const inactiveRect = remainingRow.getBoundingClientRect();
+            const inactiveStyle = getComputedStyle(remainingRow);
+            assert(remainingRow.classList.contains('is-inactive'), 'Inactive retail row did not receive its state hook.');
+            assert(remainingRow.querySelector('[data-retail-active-label]')?.textContent === 'غير نشط', 'Inactive retail row label was not updated.');
+            assert(activeRect.width === inactiveRect.width && activeRect.height === inactiveRect.height,
+                'Inactive retail row changed card dimensions.');
+            assert(activePresentation.background === inactiveStyle.backgroundColor &&
+                   activePresentation.border === inactiveStyle.border &&
+                   activePresentation.opacity === inactiveStyle.opacity &&
+                   activePresentation.padding === inactiveStyle.padding &&
+                   activePresentation.gap === inactiveStyle.gap,
+                'Inactive retail row changed card presentation or spacing.');
             remainingActive.checked = true;
             remainingActive.dispatchEvent(new Event('change', { bubbles: true }));
 

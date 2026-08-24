@@ -61,7 +61,10 @@ public class InventoryService : IInventoryService
             .SingleOrDefaultAsync(
                 price => price.Id == retailPriceId.Value &&
                          price.ProductId == product.Id &&
-                         price.IsActive,
+                         price.IsActive &&
+                         price.SizeMl > 0 &&
+                         price.Price > 0 &&
+                         price.SizeMl < product.VolumeMl.Value,
                 cancellationToken)
             ?? throw new InvalidOperationException("The selected retail size is not available.");
 
