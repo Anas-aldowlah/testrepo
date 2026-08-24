@@ -579,11 +579,11 @@ html[data-theme="dark"] .form-select,
                 <div class="border-top border-secondary pt-3 mb-4">
                     <h6 class="fw-bold text-warning mb-2"><i class="bi bi-person-lines-fill me-1"></i> بيانات العميل (اختياري)</h6>
                     <div class="mb-2">
-                        <input type="text" id="custName" list="posCustomerNames" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="اسم العميل (اختياري)" value="@sale.CustomerName" />
+                        <input type="text" id="custName" list="posCustomerNames" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="اسم العميل (اختياري)" value="@sale.CustomerName" autocomplete="off" />
                         <datalist id="posCustomerNames">
                             @foreach (var customer in Model.Customers)
                             {
-                                <option value="@customer.Name">@customer.Phone</option>
+                                <option value="@customer.Name" data-phone="@customer.Phone">@customer.Phone</option>
                             }
                         </datalist>
                     </div>
@@ -782,7 +782,66 @@ html[data-theme="dark"] .form-select,
             document.getElementById('btnAddRowFooterBtn').addEventListener('click', function() { addRow(); });
             document.getElementById('btnAddPaymentRow').addEventListener('click', function() { addPaymentRow(); });
             document.getElementById('posOverallDiscount').addEventListener('input', function() { calculateTotals(); scheduleAutoSave(); });
-            document.getElementById('custName')?.addEventListener('input', scheduleAutoSave);
+            var custNameInput = document.getElementById('custName');
+            var custPhoneInput = document.getElementById('custPhone');
+            var custDatalist = document.getElementById('posCustomerNames');
+            var custSearchTimeout = null;
+            var custSearchController = null;
+
+            function searchCustomers(query) {
+                if (!query || query.trim().length < 1) return;
+                var trimmed = query.trim();
+
+                clearTimeout(custSearchTimeout);
+                custSearchTimeout = setTimeout(function() {
+                    if (typeof window.AbortController === 'function') {
+                        if (custSearchController) custSearchController.abort();
+                        custSearchController = new window.AbortController();
+                    }
+                    var options = {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    };
+                    if (custSearchController) options.signal = custSearchController.signal;
+
+                    fetch('/Admin/QuickSales/SearchCustomers?q=' + encodeURIComponent(trimmed), options)
+                        .then(readPosJson)
+                        .then(function(data) {
+                            if (!custDatalist || !Array.isArray(data)) return;
+                            custDatalist.replaceChildren();
+                            data.forEach(function(c) {
+                                var opt = document.createElement('option');
+                                opt.value = c.name;
+                                if (c.phone) {
+                                    opt.textContent = c.phone;
+                                    opt.setAttribute('data-phone', c.phone);
+                                }
+                                custDatalist.appendChild(opt);
+                            });
+                        })
+                        .catch(function() {});
+                }, 250);
+            }
+
+            custNameInput?.addEventListener('input', function() {
+                searchCustomers(custNameInput.value);
+                scheduleAutoSave();
+            });
+
+            custNameInput?.addEventListener('change', function() {
+                var val = custNameInput.value.trim();
+                if (!val || !custPhoneInput) return;
+                var options = custDatalist ? custDatalist.querySelectorAll('option') : [];
+                for (var i = 0; i < options.length; i++) {
+                    if (options[i].value === val && options[i].getAttribute('data-phone')) {
+                        if (!custPhoneInput.value.trim()) {
+                            custPhoneInput.value = options[i].getAttribute('data-phone');
+                            scheduleAutoSave();
+                        }
+                        break;
+                    }
+                }
+            });
+
             document.getElementById('custPhone')?.addEventListener('input', scheduleAutoSave);
             document.getElementById('saleNotes')?.addEventListener('input', scheduleAutoSave);
             document.getElementById('btnSaveDraft').addEventListener('click', saveDraftSale);

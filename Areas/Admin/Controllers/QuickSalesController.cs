@@ -283,27 +283,24 @@ public class QuickSalesController : Controller
             })
             .ToListAsync();
 
-        var customerHistory = await _context.Sales
+        var customers = await _context.Sales
             .AsNoTracking()
             .Where(s => s.CustomerName != null && s.CustomerName != "")
-            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
-            .Select(s => new { s.CustomerName, s.CustomerPhone })
-            .Take(200)
+            .GroupBy(s => new { s.CustomerName, s.CustomerPhone })
+            .Select(g => new
+            {
+                Name = g.Key.CustomerName!,
+                Phone = g.Key.CustomerPhone,
+                LastActivity = g.Max(s => s.UpdatedAt ?? s.CreatedAt)
+            })
+            .OrderByDescending(c => c.LastActivity)
+            .Take(20)
+            .Select(c => new QuickSaleCustomerDto
+            {
+                Name = c.Name.Trim(),
+                Phone = c.Phone == null ? null : c.Phone.Trim()
+            })
             .ToListAsync();
-
-        var customers = customerHistory
-            .GroupBy(customer => new
-            {
-                Name = customer.CustomerName!.Trim(),
-                Phone = customer.CustomerPhone == null ? null : customer.CustomerPhone.Trim()
-            })
-            .Select(group => new QuickSaleCustomerDto
-            {
-                Name = group.Key.Name,
-                Phone = group.Key.Phone
-            })
-            .Take(100)
-            .ToList();
 
         return new NewSaleViewModel
         {
@@ -357,6 +354,40 @@ public class QuickSalesController : Controller
             .ToListAsync();
 
         return Json(products);
+    }
+
+    // 4.1 SERVER-SIDE AUTOCOMPLETE CUSTOMER SEARCH API
+    [HttpGet]
+    public async Task<IActionResult> SearchCustomers(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 1)
+        {
+            return Json(new List<QuickSaleCustomerDto>());
+        }
+
+        var query = q.Trim().ToLower();
+
+        var customers = await _context.Sales
+            .AsNoTracking()
+            .Where(s => s.CustomerName != null && s.CustomerName != "" &&
+                (s.CustomerName.ToLower().Contains(query) || (s.CustomerPhone != null && s.CustomerPhone.Contains(query))))
+            .GroupBy(s => new { s.CustomerName, s.CustomerPhone })
+            .Select(g => new
+            {
+                Name = g.Key.CustomerName!,
+                Phone = g.Key.CustomerPhone,
+                LastActivity = g.Max(s => s.UpdatedAt ?? s.CreatedAt)
+            })
+            .OrderByDescending(c => c.LastActivity)
+            .Take(20)
+            .Select(c => new QuickSaleCustomerDto
+            {
+                Name = c.Name.Trim(),
+                Phone = c.Phone == null ? null : c.Phone.Trim()
+            })
+            .ToListAsync();
+
+        return Json(customers);
     }
 
     // 5. SAVE OR UPDATE DRAFT SALE (ATOMIC TRANSACTION)

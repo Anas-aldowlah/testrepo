@@ -69,15 +69,20 @@ public class OrdersController : Controller
             query = query.Where(o => selectedStatus.Contains(o.Status));
         }
 
-        if (searchUserIds.Count > 0)
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(o => searchUserIds.Contains(o.Userid));
-        }
-        else if (!string.IsNullOrWhiteSpace(search))
-        {
-            query = query.Where(o =>
-                !string.IsNullOrWhiteSpace(o.Trackingnumber) &&
-                o.Trackingnumber.Contains(search));
+            if (searchUserIds.Count > 0)
+            {
+                query = query.Where(o =>
+                    searchUserIds.Contains(o.Userid) ||
+                    (!string.IsNullOrWhiteSpace(o.Trackingnumber) && o.Trackingnumber.Contains(search)));
+            }
+            else
+            {
+                query = query.Where(o =>
+                    !string.IsNullOrWhiteSpace(o.Trackingnumber) &&
+                    o.Trackingnumber.Contains(search));
+            }
         }
 
         var pageQuery = query
