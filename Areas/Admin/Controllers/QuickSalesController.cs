@@ -1395,12 +1395,19 @@ public class QuickSalesController : Controller
 
     // 13. SALES DAY HISTORY (HISTORICAL LEDGERS LIST)
     [HttpGet]
-    public async Task<IActionResult> History()
+    public async Task<IActionResult> History(int page = 1, int pageSize = 20)
     {
+        pageSize = Math.Clamp(pageSize, 5, 50);
+        var totalDays = await _context.SalesDays.CountAsync();
+        var totalPages = totalDays == 0 ? 1 : (int)Math.Ceiling(totalDays / (double)pageSize);
+        var currentPage = Math.Clamp(page < 1 ? 1 : page, 1, totalPages);
+
         var days = await _context.SalesDays
             .AsNoTracking()
             .OrderByDescending(sd => sd.Date)
             .ThenByDescending(sd => sd.CreatedAt)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         var dayIds = days.Select(d => d.Id).ToList();
@@ -1432,6 +1439,16 @@ public class QuickSalesController : Controller
             ClosedAt = d.ClosedAt,
             ClosedBy = d.ClosedBy
         }).ToList();
+
+        var pagedResult = new PagedResult<SalesDayHistoryItemDto>
+        {
+            Items = historyItems,
+            CurrentPage = currentPage,
+            PageSize = pageSize,
+            TotalItems = totalDays
+        };
+
+        ViewBag.Pager = pagedResult;
 
         return View(historyItems);
     }

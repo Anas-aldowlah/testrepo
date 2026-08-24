@@ -57,8 +57,10 @@ public class OrdersController : Controller
             search = search.Trim();
 
             var matchedUserIds = await _dbUser.Users
+                .AsNoTracking()
                 .Where(u => u.Name.Contains(search))
                 .Select(u => u.Id)
+                .Take(200)
                 .ToListAsync();
 
             searchUserIds = new HashSet<int>(matchedUserIds);

@@ -1,6 +1,13 @@
 @model List<YAGOT_2._0.Models.Admin.SalesDayHistoryItemDto>
+@using YAGOT_2._0.Models.Admin
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "سجل دفاتر اليوم السابقة";
+
+    var pagerViewData = new ViewDataDictionary(ViewData)
+    {
+        ["Action"] = "History"
+    };
 }
 
 @section Breadcrumb {
@@ -115,6 +122,12 @@
                     </tbody>
                 </table>
             </div>
+            @if (ViewBag.Pager != null)
+            {
+                <div class="p-3 border-top bg-light">
+                    @await Html.PartialAsync("_AdminPager", (object)ViewBag.Pager, pagerViewData)
+                </div>
+            }
         </div>
     }
 </div>
