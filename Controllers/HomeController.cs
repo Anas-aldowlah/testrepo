@@ -28,12 +28,28 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var productsFromDb = await _context.Products
+        var newArrivals = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Stockquantity > 0)
             .Include(p => p.Category)
             .Include(p => p.RetailPrices.Where(price =>
                 price.IsActive && price.SizeMl > 0 && price.Price > 0))
+            .OrderByDescending(p => p.Createdat)
+            .Take(8)
             .ToListAsync();
-        var categoriesFromDb = await _context.Categories.ToListAsync();
+
+        var premiumSelection = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Stockquantity > 0)
+            .Include(p => p.Category)
+            .Include(p => p.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
+            .OrderByDescending(p => p.Price)
+            .Take(8)
+            .ToListAsync();
+
+        var productsFromDb = newArrivals.UnionBy(premiumSelection, p => p.Id).ToList();
+        var categoriesFromDb = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
         var model = new ViewModels
         {
             Products = productsFromDb,
@@ -46,10 +62,6 @@ public class HomeController : Controller
         {
             var selectedCategory = model.Categories.FirstOrDefault(c => c.Id == categoryId.Value);
             ViewBag.SelectedCategoryName = selectedCategory?.Name;
-        }
-        else
-        {
-            var allProducts = model.Products;
         }
 
         return View(model);
