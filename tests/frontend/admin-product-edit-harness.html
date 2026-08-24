@@ -38,6 +38,7 @@
                         <div class="yq-retail-prices__intro"><strong>أسعار التجزئة</strong><span>تحقق واجهة</span></div>
                         <button type="button" class="btn-yaqut-outline yq-retail-add-btn" data-add-retail-price>إضافة سعر تجزئة</button>
                     </div>
+                    <span class="yq-product-validation field-validation-valid" data-retail-group-validation tabindex="-1"></span>
                     <div class="yq-retail-prices__grid" data-retail-price-list>
                         <div class="yq-retail-price-row">
                             <div class="yq-product-field">
@@ -50,12 +51,13 @@
                                 <input id="Product_RetailPrices_0__Price" name="Product.RetailPrices[0].Price" value="3" class="yaqut-form-input">
                                 <span data-valmsg-for="Product.RetailPrices[0].Price"></span>
                             </div>
-                            <div class="yq-retail-active-field"><span class="yaqut-form-label">الحالة</span><label class="yq-retail-active"><input type="checkbox" checked> نشط</label></div>
+                            <div class="yq-retail-active-field"><span class="yaqut-form-label">الحالة</span><label class="yq-retail-active"><input type="checkbox" name="Product.RetailPrices[0].IsActive" value="true" checked> <span data-retail-active-label>نشط</span></label><input type="hidden" name="Product.RetailPrices[0].IsActive" value="false"></div>
                             <button type="button" class="yq-retail-remove" data-remove-retail-price>حذف</button>
                         </div>
                     </div>
                 </div>
             </section>
+            <button type="submit" class="btn-yaqut-gold" data-edit-save>حفظ التعديلات</button>
         </form>
 
         <form class="yq-product-form yq-stock-adjustment-form" data-stock-adjustment data-current-stock="12500" data-base-size="1000" data-is-ml="true">
@@ -120,6 +122,7 @@
         const customField = document.querySelector('[data-custom-size-field]');
         const balance = document.querySelector('[data-preview-balance]');
         const change = document.querySelector('[data-preview-change]');
+        const saveButton = document.querySelector('[data-edit-save]');
 
         assert(!isRetailState || size.value === 'Base', 'Base size was not selected by default.');
         assert(balance.textContent !== '—' && change.textContent !== '—', 'Base-size preview was not calculated.');
@@ -148,8 +151,10 @@
         assert(change.textContent.includes('−'), 'Subtract preview did not show a negative operation.');
 
         if (isRetailState) {
+            assert(!saveButton.disabled, 'Save was disabled despite an initial valid retail row.');
             document.querySelector('[data-add-retail-price]').click();
             assert(document.querySelectorAll('.yq-retail-price-row').length === 2, 'Dynamic retail row was not added.');
+            assert(!saveButton.disabled, 'A blank extra row disabled save while another valid row remained.');
             const invalidSubmit = new Event('submit', { bubbles: true, cancelable: true });
             document.querySelector('form[action$="/Edit"]').dispatchEvent(invalidSubmit);
             const visibleValidationMessages = [...document.querySelectorAll('.field-validation-error')]
@@ -161,13 +166,46 @@
             assert(invalidSubmit.defaultPrevented, 'Invalid retail row did not prevent submission.');
             assert(visibleValidationMessages.length >= 2, 'Invalid retail row did not show field validation messages.');
             assert([...visibleValidationMessages, ...configuredValidationMessages].every((message) => !/[A-Za-z]/.test(message)), 'Client-visible validation exposed an English message.');
+
+            const retailRows = [...document.querySelectorAll('.yq-retail-price-row')];
+            retailRows[1].querySelector('input[name$=".SizeMl"]').value = '250';
+            retailRows[1].querySelector('input[name$=".Price"]').value = '4';
+            retailRows[1].querySelector('input[name$=".Price"]').dispatchEvent(new Event('input', { bubbles: true }));
+            const duplicateSubmit = new Event('submit', { bubbles: true, cancelable: true });
+            document.querySelector('form[action$="/Edit"]').dispatchEvent(duplicateSubmit);
+            const duplicateSizeErrors = retailRows.filter((row) =>
+                row.querySelector('[data-valmsg-for$=".SizeMl"]')?.classList.contains('field-validation-error'));
+            const groupError = document.querySelector('[data-retail-group-validation]');
+            assert(duplicateSubmit.defaultPrevented, 'Duplicate retail sizes did not prevent submission.');
+            assert(duplicateSizeErrors.length === 2, 'Duplicate retail sizes did not mark both affected Size fields.');
+            assert(groupError?.textContent.trim(), 'Duplicate-only rows did not show the zero-valid-row group error.');
+            assert(saveButton.disabled, 'Save was not disabled when retail was ON with zero valid rows.');
+
             document.querySelector('.yq-retail-price-row [data-remove-retail-price]').click();
+            assert(!saveButton.disabled, 'Save was not re-enabled after one valid retail row remained.');
             const remainingSize = document.querySelector('.yq-retail-price-row input[name$=".SizeMl"]');
             const remainingActive = document.querySelector('.yq-retail-price-row input[type="checkbox"][name$=".IsActive"]');
             const remainingActiveFallback = document.querySelector('.yq-retail-price-row input[type="hidden"][name$=".IsActive"]');
             assert(remainingSize?.name === 'Product.RetailPrices[0].SizeMl', 'Retail rows were not reindexed after removal.');
             assert(remainingActive?.name === 'Product.RetailPrices[0].IsActive', 'Retail active checkbox was not reindexed after removal.');
             assert(remainingActiveFallback?.name === 'Product.RetailPrices[0].IsActive' && remainingActiveFallback.value === 'false', 'Retail active false fallback was not reindexed with its row.');
+            remainingActive.checked = false;
+            remainingActive.dispatchEvent(new Event('change', { bubbles: true }));
+            assert(remainingActive.closest('.yq-retail-price-row').classList.contains('is-inactive'), 'Inactive retail row did not receive visible muted state.');
+            assert(remainingActive.closest('.yq-retail-price-row').querySelector('[data-retail-active-label]')?.textContent === 'غير نشط', 'Inactive retail row label was not updated.');
+            remainingActive.checked = true;
+            remainingActive.dispatchEvent(new Event('change', { bubbles: true }));
+
+            remainingActive.closest('.yq-retail-price-row').querySelector('[data-remove-retail-price]').click();
+            assert(saveButton.disabled, 'Deleting the last valid retail row did not disable save immediately.');
+            assert(groupError?.textContent.trim(), 'Deleting the last valid retail row did not expose the group error.');
+
+            document.querySelector('[data-add-retail-price]').click();
+            const replacementRow = document.querySelector('.yq-retail-price-row');
+            replacementRow.querySelector('input[name$=".SizeMl"]').value = '125';
+            replacementRow.querySelector('input[name$=".Price"]').value = '5';
+            replacementRow.querySelector('input[name$=".Price"]').dispatchEvent(new Event('input', { bubbles: true }));
+            assert(!saveButton.disabled, 'Entering a valid retail row did not re-enable save.');
         }
         assert(!document.querySelector('[name*="NetStock"]'), 'A client-computed net stock field must not be posted.');
         assert(getComputedStyle(document.documentElement).direction === 'rtl', 'RTL direction was not preserved.');

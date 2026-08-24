@@ -43,6 +43,11 @@
         </div>
     </header>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--success" role="status">@TempData["Success"]</div>
+    }
+
     @if (TempData["Error"] != null)
     {
         <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>

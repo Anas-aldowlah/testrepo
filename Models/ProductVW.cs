@@ -77,4 +77,5 @@ public class ProductRetailPriceInput
     [Display(Name = "نشط")]
     [Required(ErrorMessage = "حالة سعر التجزئة مطلوبة.")]
     public bool IsActive { get; set; } = true;
+    public bool IsHistoricallyUsed { get; set; }
 }

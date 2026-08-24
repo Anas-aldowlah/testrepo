@@ -1,4 +1,4 @@
-@using YAGOT_2._0.Models.Admin
+﻿@using YAGOT_2._0.Models.Admin
 @model AdminProductEditViewModel
 @{
     ViewData["Title"] = "تعديل المنتج";
@@ -32,8 +32,24 @@
         </div>
     </header>
 
-    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-product-form">
-        <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
+    <div class="yq-product-feedback-region" aria-live="polite">
+    @if (TempData["Success"] is string successMessage)
+    {
+        <div class="yaqut-alert yq-product-feedback yq-product-feedback--success" role="status">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span>@successMessage</span>
+        </div>
+    }
+    @if (ViewData.ModelState.TryGetValue(string.Empty, out var pageErrors) && pageErrors.Errors.Count > 0)
+    {
+        <div class="yaqut-alert yq-product-feedback yq-product-feedback--danger" role="alert">
+            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <div asp-validation-summary="ModelOnly" class="yq-product-feedback__message"></div>
+        </div>
+    }
+    </div>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-product-form" novalidate data-product-edit-form>
         <input type="hidden" asp-for="Product.Id" />
         <input type="hidden" asp-for="Product.Existingimage" />
         <input type="hidden" asp-for="Product.Stockquantity" />
@@ -139,37 +155,61 @@
                     {
                         var activeInputId = $"Product_RetailPrices_{i}__IsActive";
                         var activeInputName = $"Product.RetailPrices[{i}].IsActive";
-                        <div class="yq-retail-price-row">
+                        <div class="yq-retail-price-row @(!rows[i].IsActive ? "is-inactive" : null) @(rows[i].IsHistoricallyUsed ? "is-historical" : null)">
                             <input type="hidden" asp-for="Product.RetailPrices[i].Id" />
-                            <div class="yaqut-form-group yq-product-field">
-                                <label asp-for="Product.RetailPrices[i].SizeMl" class="yaqut-form-label">الحجم ml</label>
-                                <input asp-for="Product.RetailPrices[i].SizeMl" type="number" min="1" required class="yaqut-form-input" />
-                                <span asp-validation-for="Product.RetailPrices[i].SizeMl" class="yq-product-validation"></span>
+                            <div class="yq-retail-controls">
+                                <div class="yaqut-form-group yq-product-field">
+                                    <label asp-for="Product.RetailPrices[i].SizeMl" class="yaqut-form-label">الحجم ml</label>
+                                    <input asp-for="Product.RetailPrices[i].SizeMl" type="number" min="1" required class="yaqut-form-input" />
+                                    <span asp-validation-for="Product.RetailPrices[i].SizeMl" class="yq-product-validation"></span>
+                                </div>
+                                <div class="yaqut-form-group yq-product-field">
+                                    <label asp-for="Product.RetailPrices[i].Price" class="yaqut-form-label">السعر</label>
+                                    <input asp-for="Product.RetailPrices[i].Price" type="number" step="0.01" min="0.01" required class="yaqut-form-input" />
+                                    <span asp-validation-for="Product.RetailPrices[i].Price" class="yq-product-validation"></span>
+                                </div>
+                                <div class="yq-retail-active-field">
+                                    <span class="yaqut-form-label">الحالة</span>
+                                    <label class="yq-retail-active" for="@activeInputId">
+                                        <input id="@activeInputId" name="@activeInputName" type="checkbox" value="true" checked="@rows[i].IsActive" />
+                                        <span data-retail-active-label>@(rows[i].IsActive ? "نشط" : "غير نشط")</span>
+                                    </label>
+                                    <input type="hidden" name="@activeInputName" value="false" />
+                                    @if (rows[i].IsHistoricallyUsed)
+                                    {
+                                        <span class="yq-historical-status">مرتبط بمبيعات</span>
+                                    }
+                                </div>
+                                @if (!rows[i].IsHistoricallyUsed)
+                                {
+                                    <div class="yq-retail-action-field">
+                                        <span class="yaqut-form-label">الإجراء</span>
+                                        <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
                             </div>
-                            <div class="yaqut-form-group yq-product-field">
-                                <label asp-for="Product.RetailPrices[i].Price" class="yaqut-form-label">السعر</label>
-                                <input asp-for="Product.RetailPrices[i].Price" type="number" step="0.01" min="0.01" required class="yaqut-form-input" />
-                                <span asp-validation-for="Product.RetailPrices[i].Price" class="yq-product-validation"></span>
-                            </div>
-                            <div class="yq-retail-active-field">
-                                <span class="yaqut-form-label">الحالة</span>
-                                <label class="yq-retail-active" for="@activeInputId">
-                                    <input id="@activeInputId" name="@activeInputName" type="checkbox" value="true" checked="@rows[i].IsActive" /> نشط
-                                </label>
-                                <input type="hidden" name="@activeInputName" value="false" />
-                            </div>
-                            <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            @if (rows[i].IsHistoricallyUsed)
+                            {
+                                <div class="yq-historical-warning">
+                                    لا يمكن حذف هذا السعر لارتباطه بعمليات بيع سابقة.
+                                </div>
+                            }
+                            <span asp-validation-for="Product.RetailPrices[i]"
+                                  class="yq-product-validation yq-retail-row-validation"></span>
                         </div>
                     }
                 </div>
+                <span asp-validation-for="Product.RetailPrices"
+                      class="yq-product-validation yq-retail-group-validation"
+                      data-retail-group-validation></span>
             </div>
         </section>
 
         <div class="yq-product-form__actions">
             <a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-lg"></i><span>إلغاء</span></a>
-            <button type="submit" class="btn-yaqut-gold"><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
+            <button type="submit" class="btn-yaqut-gold" data-edit-save><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
         </div>
     </form>
 
@@ -185,7 +225,7 @@
                     <p>عملية مستقلة عن حفظ بيانات المنتج. يحتسب الخادم قيمة التسوية ويتحقق من الرصيد.</p>
                 </div>
             </div>
-            <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
+            <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
 
             @if (!hasValidBaseSize)
             {

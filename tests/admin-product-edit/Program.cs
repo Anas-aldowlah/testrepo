@@ -1,12 +1,15 @@
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+using Yagot.Areas.Admin.Controllers;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
 
 await RazorRenderingChecks.RunFromEnvironmentAsync();
 AssertArabicValidationConfiguration();
+AssertRetailPriceIntegrityValidation();
 
 var product = new Product
 {
@@ -65,6 +68,86 @@ Assert(product.Stockquantity - 12500 == 0, "Exact subtraction must allow zero st
 Assert(product.Stockquantity - 12501 < 0, "Greater-than-stock subtraction must be identified for atomic rejection.");
 
 Console.WriteLine("PASS: focused Admin Product Edit stock rule checks.");
+
+static void AssertRetailPriceIntegrityValidation()
+{
+    const string requiredMessage = "يجب إضافة سعر تجزئة واحد على الأقل عند تفعيل البيع بالتجزئة.";
+
+    var retailOffController = ValidateRetailPrices(RetailProduct(enabled: false), modelPrefix: null);
+    Assert(retailOffController.ModelState.IsValid, "Retail OFF must allow zero retail-price rows.");
+
+    var emptyCreateController = ValidateRetailPrices(RetailProduct(enabled: true), modelPrefix: null);
+    AssertModelError(emptyCreateController, "RetailPrices", requiredMessage, "Create retail ON with zero rows");
+
+    var emptyEditController = ValidateRetailPrices(
+        RetailProduct(enabled: true),
+        nameof(AdminProductEditViewModel.Product));
+    AssertModelError(emptyEditController, "Product.RetailPrices", requiredMessage, "Edit retail ON with zero rows");
+
+    var invalidRowsController = ValidateRetailPrices(
+        RetailProduct(
+            enabled: true,
+            new ProductRetailPriceInput { SizeMl = 0, Price = 5 },
+            new ProductRetailPriceInput { SizeMl = 100, Price = 0 }),
+        modelPrefix: null);
+    AssertModelError(invalidRowsController, "RetailPrices[0].SizeMl", null, "Missing retail size");
+    AssertModelError(invalidRowsController, "RetailPrices[1].Price", null, "Missing retail price");
+    AssertModelError(invalidRowsController, "RetailPrices", requiredMessage, "Retail ON with zero valid rows");
+
+    var duplicateController = ValidateRetailPrices(
+        RetailProduct(
+            enabled: true,
+            new ProductRetailPriceInput { SizeMl = 100, Price = 5 },
+            new ProductRetailPriceInput { SizeMl = 100, Price = 6 }),
+        modelPrefix: null);
+    AssertModelError(duplicateController, "RetailPrices[0].SizeMl", null, "First duplicate retail size");
+    AssertModelError(duplicateController, "RetailPrices[1].SizeMl", null, "Second duplicate retail size");
+    AssertModelError(duplicateController, "RetailPrices", requiredMessage, "Duplicate rows leave zero valid retail rows");
+
+    var validController = ValidateRetailPrices(
+        RetailProduct(enabled: true, new ProductRetailPriceInput { SizeMl = 100, Price = 5 }),
+        modelPrefix: null);
+    Assert(validController.ModelState.IsValid, "Retail ON with one valid row must pass retail-price validation.");
+
+    var rangeInvalidModel = RetailProduct(enabled: true, new ProductRetailPriceInput { SizeMl = 100, Price = 1000001 });
+    var rangeInvalidController = new ProductsController(null!, null!, null!, null!, null!, null!);
+    rangeInvalidController.ModelState.AddModelError("RetailPrices[0].Price", "يجب ألا يتجاوز السعر الحد الأعلى.");
+    InvokeRetailPriceValidation(rangeInvalidController, rangeInvalidModel, modelPrefix: null);
+    AssertModelError(rangeInvalidController, "RetailPrices", requiredMessage, "DataAnnotation-invalid row leaves zero valid rows");
+
+    Console.WriteLine("PASS: shared Create/Edit retail-price integrity and field/group validation keys.");
+}
+
+static ProductsController ValidateRetailPrices(ProductVW model, string? modelPrefix)
+{
+    var controller = new ProductsController(null!, null!, null!, null!, null!, null!);
+    InvokeRetailPriceValidation(controller, model, modelPrefix);
+    return controller;
+}
+
+static void InvokeRetailPriceValidation(ProductsController controller, ProductVW model, string? modelPrefix)
+{
+    var method = typeof(ProductsController).GetMethod("ValidateRetailPrices", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("ValidateRetailPrices was not found.");
+    method.Invoke(controller, [model, null, modelPrefix]);
+}
+
+static ProductVW RetailProduct(bool enabled, params ProductRetailPriceInput[] rows) => new()
+{
+    StockUnit = "Ml",
+    VolumeMl = 1000,
+    IsRetailEnabled = enabled,
+    RetailPrices = rows.ToList()
+};
+
+static void AssertModelError(ProductsController controller, string key, string? expectedMessage, string scenario)
+{
+    Assert(controller.ModelState.TryGetValue(key, out var entry) && entry.Errors.Count > 0,
+        $"{scenario}: expected a ModelState error at {key}.");
+    if (expectedMessage != null)
+        Assert(entry!.Errors.Any(error => error.ErrorMessage == expectedMessage),
+            $"{scenario}: expected the required Arabic group message.");
+}
 
 static StockAdjustmentRequest Request(StockAdjustmentOperation operation, string sizeOption, int quantity, int? customSizeMl = null) =>
     new(7, operation, sizeOption, customSizeMl, quantity);
