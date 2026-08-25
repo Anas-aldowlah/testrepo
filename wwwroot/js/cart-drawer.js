@@ -188,22 +188,6 @@
         }, autoHideDuration);
     }
 
-    function updateToastTotal(totalText) {
-        if (!toastEl) return;
-        var totalSpan = toastEl.querySelector('.yq-cart-toast__total');
-        if (totalSpan) {
-            totalSpan.textContent = 'الإجمالي: ' + totalText;
-        } else {
-            var meta = toastEl.querySelector('.yq-cart-toast__meta');
-            if (meta) {
-                var span = document.createElement('span');
-                span.className = 'yq-cart-toast__total';
-                span.textContent = 'الإجمالي: ' + totalText;
-                meta.appendChild(span);
-            }
-        }
-    }
-
     function clearPeekAutoCloseTimer() {
         if (peekAutoCloseTimer) {
             window.clearTimeout(peekAutoCloseTimer);
@@ -288,12 +272,6 @@
         requestFrame(function () {
             badge.classList.add('is-updated');
         });
-    }
-
-    function getBadgeCount() {
-        if (!badge || badge.hidden) return 0;
-        var count = parseInt(normalizeDigits(badge.textContent), 10);
-        return Number.isFinite(count) ? count : 0;
     }
 
     function parseCartDoc(html) {
@@ -567,20 +545,13 @@
         }
 
         announce(options && options.announcement ? options.announcement : message);
-        return { items: items, totalQuantity: totalQuantity, message: message, hasError: hasError };
-    }
-
-    function setDrawerLoading(allowCheckout) {
-        setPeekTitle('سلة التسوق', 'جارٍ تحديث السلة');
-        body.innerHTML = [
-            '<div class="yq-cart-drawer__loading" role="status">',
-            '<span class="yq-cart-drawer__spinner" aria-hidden="true"></span>',
-            '<span>جارٍ تحديث السلة...</span>',
-            '</div>'
-        ].join('');
-        if (footer) footer.hidden = false;
-        setCheckoutAvailable(Boolean(allowCheckout));
-        showNotice('', false);
+        return {
+            items: items,
+            totalQuantity: totalQuantity,
+            totalText: summary.totalText,
+            message: message,
+            hasError: hasError
+        };
     }
 
     function renderRefreshError() {
@@ -607,7 +578,7 @@
         if (shipping) shipping.hidden = true;
     }
 
-    function openDrawer(trigger, shouldLoad) {
+    function openDrawer(trigger) {
         var transitionVersion = ++drawerTransitionVersion;
         restoreFocusEl = trigger || document.activeElement;
         drawer.hidden = false;
@@ -624,10 +595,10 @@
             }
         });
 
-        if (shouldLoad) {
-            setDrawerLoading(false);
-            refreshCart({ silent: false });
-        }
+    }
+
+    function isDrawerOpen() {
+        return drawer.getAttribute('aria-hidden') === 'false';
     }
 
     function closeDrawer() {
@@ -699,9 +670,9 @@
         return fetchCartPage()
             .then(function (doc) {
                 if (refreshVersion !== cartRefreshVersion) return null;
-                return renderCart(doc, options || {});
+                return reconcileCart(doc, options || {});
             })
-            .catch(function () {
+            .catch(function (error) {
                 if (refreshVersion !== cartRefreshVersion) return;
                 if (!(options && options.silent)) {
                     if (cachedCartDoc) renderCart(cachedCartDoc, {});
@@ -709,6 +680,8 @@
                     showNotice('تعذّر تحديث السلة الآن. حاول مرة أخرى.', true);
                     announce('تعذّر تحديث السلة الآن. حاول مرة أخرى.');
                 }
+                if (options && options.throwOnError) throw error;
+                return null;
             });
     }
 
@@ -757,25 +730,28 @@
 
     function handleAdd(form) {
         if (form.dataset.yqBusy === 'true') return;
-        var productName = form.getAttribute('data-product-name') || (form.closest('[data-product-name]') ? form.closest('[data-product-name]').getAttribute('data-product-name') : 'المنتج');
         var snapshot = getProductSnapshot(form);
-        var previousBadgeCount = getBadgeCount();
 
         form.dataset.yqBusy = 'true';
         setAddButtonState(form, 'loading');
-        animateProductFlight(snapshot);
-        setBadge(previousBadgeCount + snapshot.quantity);
-        animateBadgeNudge();
-        announce('تمت إضافة ' + productName + ' إلى السلة');
-
-        // Show compact toast without total — real total comes from server
-        showCartToast(snapshot, '');
 
         submitForm(form, true)
             .then(function (state) {
-                cachedCartDoc = null;
-                setBadge(Number(state.totalQuantity) || 0);
+                return refreshCart({
+                    silent: false,
+                    throwOnError: true,
+                    highlightProductId: snapshot.productId,
+                    notice: state.message,
+                    announcement: state.message
+                }).then(function (result) {
+                    return { state: state, result: result };
+                });
+            })
+            .then(function (payload) {
+                if (!payload || !payload.result) throw new Error('cart-reconciliation-failed');
 
+                var state = payload.state;
+                var result = payload.result;
                 if (isErrorMessage(state.message)) {
                     setAddButtonState(form, 'error', state.message);
                     hideCartToast();
@@ -783,12 +759,18 @@
                     return;
                 }
 
+                var authoritativeItem = result.items.find(function (item) {
+                    return String(item.productId) === String(snapshot.productId);
+                });
+                if (!authoritativeItem) throw new Error('cart-added-item-missing');
+
+                animateProductFlight(snapshot);
                 animateBadgeNudge();
                 setAddButtonState(form, 'success', state.message ? 'تم تحديث السلة' : 'تمت الإضافة');
-                if (state.subtotalText) updateToastTotal(state.subtotalText);
+                showCartToast(authoritativeItem, result.totalText);
+                openDrawer(form.querySelector('[data-yq-add-button], button[type="submit"]'));
             })
             .catch(function (error) {
-                setBadge(previousBadgeCount);
                 setAddButtonState(form, 'error', (error.state && (error.state.message || error.state.detail)) || 'تعذّرت الإضافة. حاول مرة أخرى.');
                 hideCartToast();
                 announce('تعذّرت الإضافة. حاول مرة أخرى.');
@@ -806,7 +788,7 @@
 
         submitForm(form, false)
             .then(function (doc) {
-                var result = renderCart(doc, {
+                var result = reconcileCart(doc, {
                     notice: getCartMessage(doc) || noticeText || 'تم تحديث السلة',
                     announcement: getCartMessage(doc) || noticeText || 'تم تحديث السلة'
                 });
@@ -858,6 +840,35 @@
         return savedQuantity;
     }
 
+    function findDrawerQuantityForm(state) {
+        if (!state || !state.item) return null;
+        return toArray(drawer.querySelectorAll('[data-yq-drawer-qty-form]')).find(function (form) {
+            var cartItemId = form.querySelector('input[name="cartItemId"]');
+            var productId = form.querySelector('input[name="productId"]');
+            var retailPriceId = form.querySelector('input[name="retailPriceId"]');
+            return (state.item.cartItemId && cartItemId && String(cartItemId.value) === String(state.item.cartItemId)) ||
+                (productId && String(productId.value) === String(state.item.productId) &&
+                    String(retailPriceId ? retailPriceId.value : '') === String(state.item.retailPriceId || ''));
+        }) || null;
+    }
+
+    function reconcileCart(authoritativeState, options) {
+        options = options || {};
+        if (authoritativeState && authoritativeState.nodeType === 9) {
+            return renderCart(authoritativeState, options);
+        }
+
+        if (authoritativeState && typeof authoritativeState === 'object') {
+            var form = options.form || findDrawerQuantityForm(authoritativeState);
+            if (form) {
+                return applyDrawerQuantityState(form, authoritativeState, options.noticeText || authoritativeState.message);
+            }
+            return refreshCart({ silent: false });
+        }
+
+        throw new Error('cart-state-invalid');
+    }
+
     function handleDrawerQuantity(form, noticeText) {
         var input = form ? form.querySelector('input[name="quantity"]') : null;
         if (!form || !input) return;
@@ -885,7 +896,7 @@
 
         submitForm(form, true)
             .then(function (state) {
-                var savedQuantity = applyDrawerQuantityState(form, state, noticeText);
+                var savedQuantity = reconcileCart(state, { form: form, noticeText: noticeText });
                 var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
                 if (Number.isFinite(pendingQuantity) && pendingQuantity !== savedQuantity) {
                     input.value = String(pendingQuantity);
@@ -898,7 +909,7 @@
                 if (state && state.conflict && state.item) {
                     var retryQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
                     if (!Number.isFinite(retryQuantity)) retryQuantity = requestedQuantity;
-                    applyDrawerQuantityState(form, state, noticeText);
+                    reconcileCart(state, { form: form, noticeText: noticeText });
                     form.setAttribute('data-yq-pending-qty', String(retryQuantity));
                     input.value = String(retryQuantity);
                     return;
@@ -979,7 +990,8 @@
         var opener = event.target.closest('[data-yq-cart-open]');
         if (opener && typeof window.fetch === 'function' && !event.metaKey && !event.ctrlKey && !event.shiftKey && event.button !== 1) {
             event.preventDefault();
-            openDrawer(opener, true);
+            if (isDrawerOpen()) closeDrawer();
+            else openDrawer(opener);
             return;
         }
 
@@ -1054,6 +1066,12 @@
         document.addEventListener('click', onDocumentClick);
         document.addEventListener('change', onDocumentChange);
         document.addEventListener('keydown', onKeydown);
+        window.addEventListener('yq:cart-reconcile', function (event) {
+            if (event.detail && event.detail.authoritativeState) {
+                reconcileCart(event.detail.authoritativeState, event.detail.options || {});
+            }
+        });
+        refreshCart({ silent: false });
     }
 
     if (document.readyState === 'loading') {

@@ -25,17 +25,17 @@
                     <input id="yqCategoryId" name="categoryId" value="" />
                     <input id="minPrice" name="minPrice" value="" />
                     <input id="maxPrice" name="maxPrice" value="" />
-                    <input type="radio" name="retail" value="all" data-yq-auto-submit checked>
-                    <input type="radio" name="retail" value="yes" data-yq-auto-submit>
-                    <input type="radio" name="retail" value="no" data-yq-auto-submit>
+                    <input type="radio" name="retail" value="all" checked>
+                    <input type="radio" name="retail" value="yes">
+                    <input type="radio" name="retail" value="no">
                     <div id="yqRetailSizeGroup" style="display:none">
-                        <input type="checkbox" name="retailSize" value="5" data-yq-auto-submit>
+                        <input type="checkbox" name="retailSize" value="5">
                     </div>
-                    <input type="checkbox" name="brand" value="A" data-yq-auto-submit>
-                    <input type="checkbox" name="brand" value="B" data-yq-auto-submit>
-                    <input type="checkbox" name="brand" value="C" data-yq-auto-submit>
+                    <input type="checkbox" name="brand" value="A">
+                    <input type="checkbox" name="brand" value="B">
+                    <input type="checkbox" name="brand" value="C">
                     <button type="submit" id="yqApply">Apply</button>
-                    <button type="button" id="yqMobileCancel">Cancel</button>
+                    <button type="button" id="yqFiltersCancel">Cancel</button>
                 </form>
                 <button type="button" id="yqFiltersClose">Close</button>
             </aside>
@@ -82,17 +82,17 @@
                 '<input id="yqCategoryId" name="categoryId" value="' + categoryId + '" />',
                 '<input id="minPrice" name="minPrice" value="' + (minP||"") + '" />',
                 '<input id="maxPrice" name="maxPrice" value="' + (maxP||"") + '" />',
-                '<input type="radio" name="retail" value="all" data-yq-auto-submit' + checked(retail, 'all') + '>',
-                '<input type="radio" name="retail" value="yes" data-yq-auto-submit' + checked(retail, 'yes') + '>',
-                '<input type="radio" name="retail" value="no" data-yq-auto-submit' + checked(retail, 'no') + '>',
+                '<input type="radio" name="retail" value="all"' + checked(retail, 'all') + '>',
+                '<input type="radio" name="retail" value="yes"' + checked(retail, 'yes') + '>',
+                '<input type="radio" name="retail" value="no"' + checked(retail, 'no') + '>',
                 '<div id="yqRetailSizeGroup" style="display:' + (retail === 'no' ? 'none' : 'block') + '">',
-                '<input type="checkbox" name="retailSize" value="5" data-yq-auto-submit' + (sizes.includes('5') ? ' checked' : '') + '>',
+                '<input type="checkbox" name="retailSize" value="5"' + (sizes.includes('5') ? ' checked' : '') + '>',
                 '</div>',
-                '<input type="checkbox" name="brand" value="A" data-yq-auto-submit' + (brands.includes('A')?' checked':'') + '>',
-                '<input type="checkbox" name="brand" value="B" data-yq-auto-submit' + (brands.includes('B')?' checked':'') + '>',
-                '<input type="checkbox" name="brand" value="C" data-yq-auto-submit' + (brands.includes('C')?' checked':'') + '>',
+                '<input type="checkbox" name="brand" value="A"' + (brands.includes('A')?' checked':'') + '>',
+                '<input type="checkbox" name="brand" value="B"' + (brands.includes('B')?' checked':'') + '>',
+                '<input type="checkbox" name="brand" value="C"' + (brands.includes('C')?' checked':'') + '>',
                 '<button type="submit" id="yqApply">Apply</button>',
-                '<button type="button" id="yqMobileCancel">Cancel</button>',
+                '<button type="button" id="yqFiltersCancel">Cancel</button>',
                 '</form>',
                 '<button type="button" id="yqFiltersClose">Close</button>'
             ].join('');
@@ -182,6 +182,14 @@
                 await wait();
                 assert(requestCount() === before + 1, label + ': expected exactly one request.');
             }
+            async function applyDraft(action, label) {
+                var before = requestCount();
+                action();
+                assert(requestCount() === before, label + ': draft change sent a request before Apply.');
+                select('#yqApply').click();
+                await wait();
+                assert(requestCount() === before + 1, label + ': Apply did not send exactly one request.');
+            }
 
             try {
                 await wait();
@@ -190,26 +198,16 @@
 
                 // STEP 5A: Retail=no -> all x 3 reveal regression and toggle preservation
                 for (var i = 0; i < 3; i++) {
-                    await expectOneRequest(function () {
-                        if (mobile) {
-                            select('#yaqutFilterToggle').click();
-                            select('input[name="retail"][value="no"]').click();
-                            select('#yqApply').click();
-                        } else {
-                            select('input[name="retail"][value="no"]').click();
-                        }
+                    if (mobile) select('#yaqutFilterToggle').click();
+                    await applyDraft(function () {
+                        select('input[name="retail"][value="no"]').click();
                     }, 'Retail=no');
                     assertVisible('Retail=no cycle ' + i);
                     assert(select('#yaqutFilterToggle') === liveToggle, 'Toggle node not preserved (Retail no).');
 
-                    await expectOneRequest(function () {
-                        if (mobile) {
-                            select('#yaqutFilterToggle').click();
-                            select('input[name="retail"][value="all"]').click();
-                            select('#yqApply').click();
-                        } else {
-                            select('input[name="retail"][value="all"]').click();
-                        }
+                    if (mobile) select('#yaqutFilterToggle').click();
+                    await applyDraft(function () {
+                        select('input[name="retail"][value="all"]').click();
                     }, 'Retail=all');
                     assertVisible('Retail=all cycle ' + i);
                     assert(select('#yaqutFilterToggle') === liveToggle, 'Toggle node not preserved (Retail all).');
@@ -231,7 +229,7 @@
                     select('input[name="brand"][value="A"]').click(); // uncheck
                     select('input[name="brand"][value="B"]').click(); // uncheck
                     var beforeCancel = requestCount();
-                    select('#yqMobileCancel').click();
+                    select('#yqFiltersCancel').click();
                     await wait();
                     assert(requestCount() === beforeCancel, 'Mobile cancel triggered request.');
                     select('#yaqutFilterToggle').click();
@@ -258,34 +256,34 @@
                     await wait();
                     select('#yaqutFilterToggle').click();
                     assert(select('input[name="brand"][value="A"]').checked, 'A not restored on Backdrop click.');
-                    select('#yqMobileCancel').click(); // close it properly
+                    select('#yqFiltersCancel').click(); // close it properly
                 } else {
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop A');
+                    await applyDraft(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop A');
 
                     await expectOneRequest(function() { select('.yq-shop-clear-link').click(); }, 'Clear All');
 
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop A');
+                    await applyDraft(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop A');
                     assert(getLastUrl().searchParams.getAll('brand').join(',') === 'A', 'Desktop A failed');
-                    await expectOneRequest(function() { select('input[name="brand"][value="B"]').click(); }, 'Desktop B');
+                    await applyDraft(function() { select('input[name="brand"][value="B"]').click(); }, 'Desktop B');
                     assert(getLastUrl().searchParams.getAll('brand').join(',') === 'A,B', 'Desktop B failed');
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop uncheck A');
+                    await applyDraft(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop uncheck A');
                     assert(getLastUrl().searchParams.getAll('brand').join(',') === 'B', 'Desktop uncheck A failed');
                 }
 
                 // CHIPS PARTIAL REMOVAL
                 if (!mobile) {
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop add A');
+                    await applyDraft(function() { select('input[name="brand"][value="A"]').click(); }, 'Desktop add A');
                     await expectOneRequest(function() { select('[data-remove-name="brand"][data-remove-val="A"]').click(); }, 'Chip remove A');
                     assert(getLastUrl().searchParams.getAll('brand').join(',') === 'B', 'Chip removal A failed');
                 }
 
                 // CHIPS RETAIL & SIZE & PRICE & CATEGORY
                 if (!mobile) {
-                    await expectOneRequest(function() { select('input[name="retail"][value="yes"]').click(); }, 'Retail yes');
+                    await applyDraft(function() { select('input[name="retail"][value="yes"]').click(); }, 'Retail yes');
                     await expectOneRequest(function() { select('[data-remove-name="retail"]').click(); }, 'Chip remove retail');
                     assert(getLastUrl().searchParams.get('retail') !== 'yes', 'Retail chip remove failed');
 
-                    await expectOneRequest(function() { select('input[name="retailSize"][value="5"]').click(); }, 'Retail size 5');
+                    await applyDraft(function() { select('input[name="retailSize"][value="5"]').click(); }, 'Retail size 5');
                     await expectOneRequest(function() { select('[data-remove-name="retailSize"]').click(); }, 'Chip remove retail size');
                     assert(!getLastUrl().searchParams.has('retailSize'), 'Retail size chip remove failed');
 
@@ -293,21 +291,21 @@
                     select('input[name="minPrice"]').value = '10';
                     select('input[name="maxPrice"]').value = '100';
                     // trigger submit
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'Price submit');
+                    await applyDraft(function() {}, 'Price submit');
                     await expectOneRequest(function() { select('[data-remove-name="price"]').click(); }, 'Chip remove price');
                     assert(!getLastUrl().searchParams.has('minPrice'), 'Price chip remove failed');
                 }
 
                 // RETAIL DEPENDENCY
                 if (!mobile) {
-                    await expectOneRequest(function() { select('input[name="retail"][value="yes"]').click(); }, 'Retail yes');
-                    await expectOneRequest(function() { select('input[name="retailSize"][value="5"]').click(); }, 'Retail size 5');
+                    await applyDraft(function() { select('input[name="retail"][value="yes"]').click(); }, 'Retail yes');
+                    await applyDraft(function() { select('input[name="retailSize"][value="5"]').click(); }, 'Retail size 5');
                     assert(select('input[name="retailSize"][value="5"]').checked, 'Size 5 not checked');
                     assert(select('#yqRetailSizeGroup').style.display !== 'none', 'Retail size group hidden');
-                    await expectOneRequest(function() { select('input[name="retail"][value="no"]').click(); }, 'Retail no');
+                    await applyDraft(function() { select('input[name="retail"][value="no"]').click(); }, 'Retail no');
                     assert(!select('input[name="retailSize"][value="5"]').checked, 'Size 5 not unchecked when retail=no');
                     assert(select('#yqRetailSizeGroup').style.display === 'none', 'Retail size group not hidden');
-                    await expectOneRequest(function() { select('input[name="retail"][value="all"]').click(); }, 'Retail all');
+                    await applyDraft(function() { select('input[name="retail"][value="all"]').click(); }, 'Retail all');
                     assert(!select('input[name="retailSize"][value="5"]').checked, 'Size 5 checked when retail=all');
                     assert(select('#yqRetailSizeGroup').style.display !== 'none', 'Retail size group hidden when retail=all');
                 }
@@ -316,9 +314,9 @@
                 if (!mobile) {
                     await expectOneRequest(function() { select('.yq-shop-clear-link').click(); }, 'Clear All State');
                     var stateClear = location.href;
-                    await expectOneRequest(function() { select('input[name="brand"][value="A"]').click(); }, 'State A');
+                    await applyDraft(function() { select('input[name="brand"][value="A"]').click(); }, 'State A');
                     var stateA = location.href;
-                    await expectOneRequest(function() { select('input[name="brand"][value="B"]').click(); }, 'State A+B');
+                    await applyDraft(function() { select('input[name="brand"][value="B"]').click(); }, 'State A+B');
 
                     await expectOneRequest(function() { history.back(); }, 'Back to A');
                     assert(location.href === stateA && select('input[name="brand"][value="A"]').checked && !select('input[name="brand"][value="B"]').checked, 'Back to A failed');
@@ -367,6 +365,7 @@
                     select('#yqApply').click();
                 } else {
                     select('input[name="brand"][value="B"]').click();
+                    select('#yqApply').click();
                 }
                 assert(document.querySelector('#yaqutProductsGrid').getAttribute('aria-busy') === 'true', 'Busy not set during success request');
                 await wait(); await wait(); await wait();
@@ -380,6 +379,7 @@
                     select('#yqApply').click();
                 } else {
                     select('input[name="brand"][value="C"]').click();
+                    select('#yqApply').click();
                 }
                 assert(document.querySelector('#yaqutProductsGrid').getAttribute('aria-busy') === 'true', 'Busy not set during failure request');
                 await wait(); await wait(); await wait();
@@ -393,6 +393,7 @@
                     select('#yqApply').click();
                 } else {
                     select('input[name="brand"][value="B"]').click();
+                    select('#yqApply').click();
                 }
                 assert(document.querySelector('#yaqutProductsGrid').getAttribute('aria-busy') === 'true', 'Busy not set during abort request');
                 await wait(); await wait(); await wait();
@@ -402,20 +403,20 @@
                 window.catalogHarness.delayNext = 300;
                 if (mobile) select('#yaqutFilterToggle').click();
                 select('input[name="brand"][value="A"]').click();
-                if (mobile) select('#yqApply').click();
+                select('#yqApply').click();
                 assert(document.querySelector('#yaqutProductsGrid').getAttribute('aria-busy') === 'true', 'Busy not set on A');
 
                 await wait();
                 window.catalogHarness.delayNext = 300;
                 if (mobile) select('#yaqutFilterToggle').click();
                 select('input[name="brand"][value="B"]').click();
-                if (mobile) select('#yqApply').click();
+                select('#yqApply').click();
 
                 await wait();
                 window.catalogHarness.delayNext = 50;
                 if (mobile) select('#yaqutFilterToggle').click();
                 select('input[name="brand"][value="C"]').click();
-                if (mobile) select('#yqApply').click();
+                select('#yqApply').click();
 
                 assert(document.querySelector('#yaqutProductsGrid').getAttribute('aria-busy') === 'true', 'Busy not true during C');
                 await wait(); await wait(); await wait();

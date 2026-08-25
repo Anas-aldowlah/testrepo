@@ -36,6 +36,15 @@
         }, 20);
     }
 
+    function notifyCartReconciliation(authoritativeState, options) {
+        window.dispatchEvent(new window.CustomEvent('yq:cart-reconcile', {
+            detail: {
+                authoritativeState: authoritativeState,
+                options: options || {}
+            }
+        }));
+    }
+
     function setHeaderBadge(total) {
         var badge = document.querySelector('[data-yq-cart-count]');
         if (!badge) return;
@@ -72,27 +81,24 @@
                 event.preventDefault();
                 item.classList.add('is-removing');
                 
-                // Optimistically remove from UI
-                item.style.display = 'none';
-                calculateAndUpdateTotals();
-
-                // Send request in background
                 var payload = new window.FormData(form);
                 window.fetch(form.action, {
                     method: 'POST',
                     body: payload,
+                    credentials: 'same-origin',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                }).then(function(res) {
-                    if(!res.ok) throw new Error();
-                    item.remove();
-                    // If cart is empty now, we might want to reload to show empty state
-                    if (document.querySelectorAll('[data-yq-cart-item]:not(.is-removing)').length === 0) {
-                        window.location.reload();
-                    }
-                }).catch(function() {
-                    item.style.display = '';
+                }).then(function (response) {
+                    if (!response.ok) throw new Error('cart remove failed');
+                    return response.text();
+                }).then(function (html) {
+                    var doc = new window.DOMParser().parseFromString(html, 'text/html');
+                    var nextRoot = doc.querySelector('[data-yq-cart-page]');
+                    if (!nextRoot) throw new Error('cart response invalid');
+                    notifyCartReconciliation(doc);
+                    root.replaceWith(nextRoot);
+                    initCartPage();
+                }).catch(function () {
                     item.classList.remove('is-removing');
-                    calculateAndUpdateTotals();
                     announce('تعذّر الحذف الآن.');
                 });
             });
@@ -193,6 +199,8 @@
         if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
             lineTotalEl.innerHTML = Number(state.item.lineTotal).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
         }
+
+        notifyCartReconciliation(state);
     }
 
     function submitQuantity(form, message) {

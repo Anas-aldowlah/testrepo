@@ -1027,6 +1027,16 @@
         color: #151719;
         transform: translateY(-1px);
     }
+
+    .yq-role-btn-submit:disabled,
+    .yq-role-btn-submit:disabled:hover {
+        border-color: var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+        background: var(--yq-admin-surface-soft, #1b1f22);
+        color: var(--yq-admin-muted, #b6b1a6);
+        cursor: not-allowed;
+        opacity: 0.62;
+        transform: none;
+    }
 .yq-role-notice {
     display: flex;
     align-items: center;

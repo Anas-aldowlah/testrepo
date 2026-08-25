@@ -74,6 +74,7 @@ public class CategoriesController : Controller
 
         await _context.Categories.AddAsync(model);
         await _context.SaveChangesAsync();
+        TempData["Success"] = "تمت إضافة التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
     }
     
@@ -123,6 +124,7 @@ public class CategoriesController : Controller
 
         _context.Update(category);
         await _context.SaveChangesAsync();
+        TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
 
     }
@@ -166,6 +168,7 @@ public class CategoriesController : Controller
             }
             _context.Categories.Remove(category);
             _context.SaveChanges();
+            TempData["Success"] = "تم حذف التصنيف بنجاح.";
 
         }
         return RedirectToAction(nameof(Index));

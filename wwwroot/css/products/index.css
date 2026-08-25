@@ -321,10 +321,24 @@
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
 }
 
-.yq-shop-apply {
+.yq-shop-filters__footer {
+    display: grid;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--yq-border-sub);
+}
+
+.yq-shop-filters__footer .btn-yaqut-gold,
+.yq-shop-filters__footer .btn-yaqut-outline {
     width: 100%;
+    min-height: 52px;
     justify-content: center;
-    margin-top: 0.75rem;
+}
+
+.yq-shop-filters__footer .btn-yaqut-outline {
+    border-color: var(--yq-border);
+    color: var(--yq-text-soft) !important;
+    font-weight: 600;
 }
 
 /* ── Load More ── */

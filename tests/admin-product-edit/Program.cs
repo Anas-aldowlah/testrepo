@@ -10,6 +10,7 @@ using YAGOT_2._0.Services;
 await RazorRenderingChecks.RunFromEnvironmentAsync();
 AssertArabicValidationConfiguration();
 AssertRetailPriceIntegrityValidation();
+AssertVolumeChangeConfiguration();
 await AssertRetailOffActivitySynchronizationAsync();
 
 var product = new Product
@@ -117,6 +118,41 @@ static void AssertRetailPriceIntegrityValidation()
     AssertModelError(rangeInvalidController, "RetailPrices", requiredMessage, "DataAnnotation-invalid row leaves zero valid rows");
 
     Console.WriteLine("PASS: shared Create/Edit retail-price integrity and field/group validation keys.");
+}
+
+static void AssertVolumeChangeConfiguration()
+{
+    var persistedProduct = new Product
+    {
+        StockUnit = "Ml",
+        VolumeMl = 1000,
+        Stockquantity = 18400
+    };
+    var submittedProduct = new ProductVW
+    {
+        StockUnit = "Ml",
+        VolumeMl = 100,
+        Stockquantity = persistedProduct.Stockquantity
+    };
+
+    var method = typeof(ProductsController).GetMethod(
+        "ValidateProductConfiguration",
+        BindingFlags.Static | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("ValidateProductConfiguration was not found.");
+    method.Invoke(null, [submittedProduct, false, persistedProduct]);
+
+    Assert(persistedProduct.Stockquantity == 18400,
+        "Changing the base package definition must not mutate physical inventory.");
+    persistedProduct.VolumeMl = submittedProduct.VolumeMl;
+    AssertAmount(
+        persistedProduct,
+        Request(StockAdjustmentOperation.Add, StockAdjustmentSizeOptions.Base, 1),
+        100,
+        "Inventory adjustment uses the current saved base size");
+    Assert(persistedProduct.Stockquantity == 18400,
+        "Preview calculation must not mutate physical inventory.");
+
+    Console.WriteLine("PASS: base VolumeMl changes are allowed and inventory calculations use the current value without mutating stock.");
 }
 
 static async Task AssertRetailOffActivitySynchronizationAsync()

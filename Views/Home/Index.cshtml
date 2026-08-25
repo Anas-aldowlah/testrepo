@@ -47,10 +47,6 @@
 
 <div class="yq-home-page" data-yq-auth-clear="@(TempData["Success"] != null ? "true" : "false")">
     <section class="yq-home-hero yq-home-hero--cinematic" aria-label="الرئيسية">
-        <div class="yq-home-hero__top-bar">
-            <span class="yq-home-kicker"><i class="bi bi-stars" aria-hidden="true"></i> مختارات ياقوت</span>
-        </div>
-
         @if (heroProducts.Any())
         {
             <div class="yq-home-hero__carousel-bg yq-home-carousel"

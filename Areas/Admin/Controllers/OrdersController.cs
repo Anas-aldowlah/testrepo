@@ -203,9 +203,14 @@ public class OrdersController : Controller
             }
 
             if (isAjax)
-                return Json(new { success = true, message = $"تم تحديث حالة الطلب #{id} بنجاح." });
+                return Json(new
+                {
+                    success = true,
+                    status = normalizedStatus,
+                    message = "تم تحديث حالة الطلب بنجاح."
+                });
 
-            TempData["Success"] = "Order status updated successfully.";
+            TempData["Success"] = "تم تحديث حالة الطلب بنجاح.";
         }
         catch (InvalidOperationException ex)
         {

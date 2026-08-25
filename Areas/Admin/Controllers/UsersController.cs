@@ -140,6 +140,11 @@ public class UsersController : Controller
             return RedirectToAction(nameof(Details), new { id = userId });
         }
 
+        if (string.Equals(userSite?.Role, newRole, StringComparison.Ordinal))
+        {
+            return RedirectToAction(nameof(Details), new { id = userId });
+        }
+
         // إتمام التعديل
         if (userSite != null)
         {

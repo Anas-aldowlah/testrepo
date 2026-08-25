@@ -212,15 +212,14 @@ public class CartController : Controller
                 item.Productid == productId &&
                 item.RetailPriceId == retailPriceId);
         decimal subtotal = 0m;
-        int totalQuantity = 0;
         checked
         {
             foreach (var item in items)
             {
                 subtotal += item.Quantity * (item.RetailPrice?.Price ?? item.Product.Price);
-                totalQuantity += item.Quantity;
             }
         }
+        var totalQuantity = CartQuantity.Total(items);
 
         if (subtotal > 1000000.00m)
             throw new OverflowException("Cart subtotal exceeds the allowed currency limit.");

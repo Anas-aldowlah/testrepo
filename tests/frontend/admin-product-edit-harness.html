@@ -20,18 +20,35 @@
 </head>
 <body>
     <main class="yq-products-create yq-product-editor">
-        <form action="/Admin/Products/Edit" class="yq-product-form" data-product-edit-form>
+        <form action="/Admin/Products/Edit" class="yq-product-form" data-product-edit-form
+              data-product-retail-form data-retail-prefix="Product.">
             <section class="yq-product-form__section">
                 <div class="yq-product-form__grid">
                     <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="Product_Name">الاسم</label>
+                        <input id="Product_Name" name="Product.Name" value="عطر ياقوت" required class="yaqut-form-input">
+                    </div>
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="Product_Categoryid">التصنيف</label>
+                        <select id="Product_Categoryid" name="Product.Categoryid" required class="yaqut-form-input"><option value="1" selected>عطور</option></select>
+                    </div>
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="Product_Price">السعر</label>
+                        <input id="Product_Price" name="Product.Price" type="number" min="0" max="1000000" value="100" required class="yaqut-form-input">
+                    </div>
+                    <div class="yq-product-field">
+                        <label class="yaqut-form-label" for="Product_Stockquantity">الكمية</label>
+                        <input id="Product_Stockquantity" name="Product.Stockquantity" type="number" min="0" max="1000000" value="10" required class="yaqut-form-input">
+                    </div>
+                    <div class="yq-product-field">
                         <label class="yaqut-form-label" for="Product_StockUnit">الوحدة</label>
-                        <select id="Product_StockUnit" data-stock-unit class="yaqut-form-input"><option value="Piece">قطعة</option><option value="Ml" selected>مل</option></select>
+                        <select id="Product_StockUnit" name="Product.StockUnit" required data-stock-unit class="yaqut-form-input"><option value="Piece">قطعة</option><option value="Ml" selected>مل</option></select>
                     </div>
                     <div class="yq-product-field" data-volume-field>
                         <label class="yaqut-form-label" for="Product_VolumeMl">الحجم</label>
-                        <input id="Product_VolumeMl" value="1000" class="yaqut-form-input">
+                        <input id="Product_VolumeMl" name="Product.VolumeMl" type="number" min="1" max="1000000" value="1000" class="yaqut-form-input" data-base-volume>
                     </div>
-                    <label class="yq-retail-toggle"><input id="Product_IsRetailEnabled" type="checkbox" checked> تفعيل التجزئة</label>
+                    <label class="yq-retail-toggle"><input id="Product_IsRetailEnabled" name="Product.IsRetailEnabled" type="checkbox" checked data-retail-toggle> تفعيل التجزئة</label>
                 </div>
                 <div class="yq-retail-prices" data-retail-prices>
                     <div class="yq-retail-prices__head">
@@ -59,7 +76,7 @@
                     </div>
                 </div>
             </section>
-            <button type="submit" class="btn-yaqut-gold" data-edit-save>حفظ التعديلات</button>
+            <button type="submit" class="btn-yaqut-gold" data-edit-save data-retail-save disabled>حفظ التعديلات</button>
         </form>
 
         <form class="yq-product-form yq-stock-adjustment-form" data-stock-adjustment data-current-stock="12500" data-base-size="1000" data-is-ml="true">
@@ -100,8 +117,8 @@
     </main>
 
     <script>
-        window.adminProductEditHarness.state = new URLSearchParams(location.search).get('state') || 'retail';
-        if (window.adminProductEditHarness.state === 'non-retail') {
+        window.adminProductEditHarness.state = new URLSearchParams(location.search).get('state') || 'edit-retail';
+        if (window.adminProductEditHarness.state.endsWith('non-retail')) {
             document.querySelector('[data-stock-unit]').value = 'Piece';
             document.getElementById('Product_IsRetailEnabled').checked = false;
             const adjustment = document.querySelector('[data-stock-adjustment]');
@@ -111,11 +128,29 @@
             document.querySelector('[data-adjustment-size]').closest('.yq-product-field').remove();
             document.querySelector('[data-custom-size-field]').remove();
         }
+        if (window.adminProductEditHarness.state.startsWith('create-')) {
+            const productForm = document.querySelector('[data-product-retail-form]');
+            productForm.action = '/Admin/Products/Create';
+            productForm.removeAttribute('data-product-edit-form');
+            productForm.dataset.retailPrefix = '';
+            productForm.querySelectorAll('[name]').forEach((input) => {
+                input.name = input.name.replace(/^Product\./, '');
+            });
+            productForm.querySelectorAll('[id]').forEach((input) => {
+                const oldId = input.id;
+                input.id = input.id.replace(/^Product_/, '');
+                productForm.querySelector(`label[for="${CSS.escape(oldId)}"]`)?.setAttribute('for', input.id);
+            });
+            productForm.querySelectorAll('[data-valmsg-for]').forEach((message) => {
+                message.dataset.valmsgFor = message.dataset.valmsgFor.replace(/^Product\./, '');
+            });
+        }
     </script>
     <script src="../../wwwroot/js/admin/products/edit.js"></script>
     <script>
         const failures = window.adminProductEditHarness.errors;
-        const isRetailState = window.adminProductEditHarness.state === 'retail';
+        const isRetailState = window.adminProductEditHarness.state.endsWith('retail') && !window.adminProductEditHarness.state.endsWith('non-retail');
+        const retailPrefix = window.adminProductEditHarness.state.startsWith('create-') ? '' : 'Product.';
         const assert = (condition, message) => { if (!condition) failures.push(message); };
         const operation = document.querySelector('[data-adjustment-operation]');
         const size = document.querySelector('[data-adjustment-size]');
@@ -125,6 +160,27 @@
         const balance = document.querySelector('[data-preview-balance]');
         const change = document.querySelector('[data-preview-change]');
         const saveButton = document.querySelector('[data-edit-save]');
+        const productPrice = document.querySelector('input[name$=".Price"]:not([name*="RetailPrices"])')
+            || document.querySelector('input[name="Price"]');
+
+        if (window.adminProductEditHarness.state.startsWith('create-')) {
+            assert(!saveButton.disabled, 'Complete valid Product Create did not enable save.');
+            const productName = document.querySelector('input[name="Name"]');
+            productName.value = '';
+            productName.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(saveButton.disabled, 'Incomplete Product Create did not disable save.');
+            productName.value = 'عطر ياقوت';
+            productName.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(!saveButton.disabled, 'Restoring valid Product Create fields did not enable save.');
+        } else {
+            assert(saveButton.disabled, 'Untouched Product Edit did not start disabled.');
+            productPrice.value = '101';
+            productPrice.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(!saveButton.disabled, 'A valid Product Edit change did not enable save.');
+            productPrice.value = '100';
+            productPrice.dispatchEvent(new Event('input', { bubbles: true }));
+            assert(saveButton.disabled, 'Reverting Product Edit did not disable save again.');
+        }
 
         assert(!isRetailState || size.value === 'Base', 'Base size was not selected by default.');
         assert(balance.textContent !== '—' && change.textContent !== '—', 'Base-size preview was not calculated.');
@@ -153,12 +209,11 @@
         assert(change.textContent.includes('−'), 'Subtract preview did not show a negative operation.');
 
         if (isRetailState) {
-            assert(!saveButton.disabled, 'Save was disabled despite an initial valid retail row.');
             document.querySelector('[data-add-retail-price]').click();
             assert(document.querySelectorAll('.yq-retail-price-row').length === 2, 'Dynamic retail row was not added.');
-            assert(!saveButton.disabled, 'A blank extra row disabled save while another valid row remained.');
+            assert(saveButton.disabled, 'A blank invalid retail row did not disable save.');
             const invalidSubmit = new Event('submit', { bubbles: true, cancelable: true });
-            document.querySelector('form[action$="/Edit"]').dispatchEvent(invalidSubmit);
+            document.querySelector('[data-product-retail-form]').dispatchEvent(invalidSubmit);
             const visibleValidationMessages = [...document.querySelectorAll('.field-validation-error')]
                 .map((element) => element.textContent.trim())
                 .filter(Boolean);
@@ -174,7 +229,7 @@
             retailRows[1].querySelector('input[name$=".Price"]').value = '4';
             retailRows[1].querySelector('input[name$=".Price"]').dispatchEvent(new Event('input', { bubbles: true }));
             const duplicateSubmit = new Event('submit', { bubbles: true, cancelable: true });
-            document.querySelector('form[action$="/Edit"]').dispatchEvent(duplicateSubmit);
+            document.querySelector('[data-product-retail-form]').dispatchEvent(duplicateSubmit);
             const duplicateSizeErrors = retailRows.filter((row) =>
                 row.querySelector('[data-valmsg-for$=".SizeMl"]')?.classList.contains('field-validation-error'));
             const groupError = document.querySelector('[data-retail-group-validation]');
@@ -188,9 +243,9 @@
             const remainingSize = document.querySelector('.yq-retail-price-row input[name$=".SizeMl"]');
             const remainingActive = document.querySelector('.yq-retail-price-row input[type="checkbox"][name$=".IsActive"]');
             const remainingActiveFallback = document.querySelector('.yq-retail-price-row input[type="hidden"][name$=".IsActive"]');
-            assert(remainingSize?.name === 'Product.RetailPrices[0].SizeMl', 'Retail rows were not reindexed after removal.');
-            assert(remainingActive?.name === 'Product.RetailPrices[0].IsActive', 'Retail active checkbox was not reindexed after removal.');
-            assert(remainingActiveFallback?.name === 'Product.RetailPrices[0].IsActive' && remainingActiveFallback.value === 'false', 'Retail active false fallback was not reindexed with its row.');
+            assert(remainingSize?.name === `${retailPrefix}RetailPrices[0].SizeMl`, 'Retail rows were not reindexed after removal.');
+            assert(remainingActive?.name === `${retailPrefix}RetailPrices[0].IsActive`, 'Retail active checkbox was not reindexed after removal.');
+            assert(remainingActiveFallback?.name === `${retailPrefix}RetailPrices[0].IsActive` && remainingActiveFallback.value === 'false', 'Retail active false fallback was not reindexed with its row.');
             const remainingRow = remainingActive.closest('.yq-retail-price-row');
             const activeRect = remainingRow.getBoundingClientRect();
             const activeStyle = getComputedStyle(remainingRow);
@@ -206,7 +261,7 @@
             const inactiveRect = remainingRow.getBoundingClientRect();
             const inactiveStyle = getComputedStyle(remainingRow);
             assert(remainingRow.classList.contains('is-inactive'), 'Inactive retail row did not receive its state hook.');
-            assert(remainingRow.querySelector('[data-retail-active-label]')?.textContent === 'غير نشط', 'Inactive retail row label was not updated.');
+            assert(remainingRow.querySelector('[data-retail-active-label]')?.textContent === 'نشط', 'Inactive retail row label changed away from the fixed status label.');
             assert(activeRect.width === inactiveRect.width && activeRect.height === inactiveRect.height,
                 'Inactive retail row changed card dimensions.');
             assert(activePresentation.background === inactiveStyle.backgroundColor &&
