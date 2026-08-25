@@ -426,6 +426,13 @@
     </form>
 </div>
 
+@if (ViewData["CheckoutDraftJson"] != null)
+{
+    <script id="yq-server-checkout-draft" type="application/json">
+        @Html.Raw(ViewData["CheckoutDraftJson"])
+    </script>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>

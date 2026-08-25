@@ -139,3 +139,13 @@ public sealed class CheckoutCartItemSnapshot
     [Range(0, 1000000.00, ErrorMessage = "Unit price must be between 0 and 1,000,000.00.")]
     public decimal UnitPrice { get; set; }
 }
+
+public class CheckoutDraftState
+{
+    public string? DraftId { get; set; }
+    public string? Governorate { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public string? Street { get; set; }
+    public string? DeliveryNotes { get; set; }
+}

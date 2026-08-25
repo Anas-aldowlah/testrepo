@@ -282,7 +282,7 @@
     let recoveryPending = false;
     let saveTimer = 0;
     const draft = draftStorage.read(userId);
-    let draftId = draft ? draft.draftId : (userId ? draftStorage.createDraftId() : null);
+    let draftId = draft ? draft.draftId : draftStorage.createDraftId();
 
     function syncDraftIdInput() {
         if (draftIdInput) draftIdInput.value = draftId || '';
@@ -299,7 +299,7 @@
     }
 
     function saveFormData() {
-        if (recoveryPending || !userId) return;
+        if (recoveryPending) return;
         if (!hasDeliveryValues()) {
             draftStorage.clear();
             return;
@@ -342,7 +342,7 @@
 
     function startFresh() {
         draftStorage.clear();
-        draftId = userId ? draftStorage.createDraftId() : null;
+        draftId = draftStorage.createDraftId();
         syncDraftIdInput();
         hideRecovery();
     }
