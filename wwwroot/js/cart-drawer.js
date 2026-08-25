@@ -165,9 +165,11 @@
             '  </div>',
             '</div>',
             '<button type="button" class="yq-cart-toast__close" aria-label="إغلاق"><i class="bi bi-x" aria-hidden="true"></i></button>',
-            '<span class="yq-cart-toast__progress" style="transition-duration: ' + autoHideDuration + 'ms"></span>'
+            '<span class="yq-cart-toast__progress"></span>'
         ].join('');
         bindImageFallbacks(el);
+        var progressEl = el.querySelector('.yq-cart-toast__progress');
+        if (progressEl) progressEl.style.transitionDuration = autoHideDuration + 'ms';
 
         // close button
         var closeBtn = el.querySelector('.yq-cart-toast__close');

@@ -144,7 +144,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                             <div class="card h-100 border-0 shadow-sm rounded-3 bg-light p-3 position-relative">
                                 <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-                                    <div class="overflow-hidden" style="min-width: 0;">
+                                    <div class="overflow-hidden yq-min-w-0">
                                         <span class="fw-bold text-dark d-block text-truncate mb-1" title="@pm.PaymentMethodName">
                                             <i class="bi bi-wallet2 text-warning me-1"></i>@pm.PaymentMethodName
                                         </span>
@@ -173,16 +173,16 @@
             </h5>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 w-100" style="table-layout: auto;">
+            <table class="table table-hover align-middle mb-0 w-100 yq-table-auto">
                 <thead class="bg-light">
                     <tr>
-                        <th style="width: 18%;">رقم الفاتورة</th>
-                        <th style="width: 15%;">وقت الاعتماد</th>
-                        <th style="width: 14%;">العميل</th>
-                        <th style="width: 25%;">وسيلة الدفع</th>
-                        <th style="width: 10%;">خصم الفاتورة</th>
-                        <th style="width: 10%;">المبلغ الإجمالي</th>
-                        <th style="width: 8%;" class="text-end">التفاصيل</th>
+                        <th class="yq-th-w18">رقم الفاتورة</th>
+                        <th class="yq-th-w15">وقت الاعتماد</th>
+                        <th class="yq-th-w14">العميل</th>
+                        <th class="yq-th-w25">وسيلة الدفع</th>
+                        <th class="yq-th-w10">خصم الفاتورة</th>
+                        <th class="yq-th-w10">المبلغ الإجمالي</th>
+                        <th class="yq-th-w8 text-end">التفاصيل</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -232,7 +232,7 @@
                                     <strong class="fs-6 fw-bold">@sale.FinalAmount.ToString("N2") ر.س</strong>
                                 </td>
                                 <td class="text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-3 text-nowrap" onclick="viewSaleDetails(@sale.Id)">
+                                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-3 text-nowrap yq-btn-view-sale" data-sale-id="@sale.Id">
                                         <i class="bi bi-eye me-1"></i> التفاصيل
                                     </button>
                                 </td>
@@ -249,7 +249,7 @@
 <div class="modal fade" id="saleDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header bg-dark text-white p-4" style="background: linear-gradient(135deg, #111622 0%, #1e293b 100%) !important;">
+            <div class="modal-header bg-dark text-white p-4 yq-bg-gradient">
                 <h5 class="modal-title fw-bold text-white mb-0" id="detailsModalTitle">تفاصيل عملية البيع</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -322,7 +322,12 @@
 }
 
 @section Scripts {
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
+    document.querySelectorAll('.yq-btn-view-sale').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            viewSaleDetails(this.getAttribute('data-sale-id'));
+        });
+    });
         function ledgerAjaxHeaders(includeBody) {
             var headers = {
                 'Accept': 'application/json',
@@ -389,7 +394,7 @@
                                 <td class="text-center">${item.quantity}</td>
                                 <td class="text-end">${item.unitPrice.toFixed(2)} ر.س</td>
                                 <td class="text-end">${item.discount > 0 ? item.discount.toFixed(2) + ' ر.س' : '-'}</td>
-                                <td class="text-end"><strong class="text-dark">${item.total.toFixed(2)} ر.س</strong></td>
+                                <td class="text-end text-dark"><strong >${item.total.toFixed(2)} ر.س</strong></td>
                             </tr>
                         `;
                     });

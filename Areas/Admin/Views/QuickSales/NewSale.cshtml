@@ -15,7 +15,7 @@
 }
 
 @section Styles {
-    <style>
+    <style nonce="@Context.Items["csp-nonce"]">
         .pos-grid-table th {
             background-color: #0f172a;
             color: #ffffff;
@@ -501,14 +501,14 @@ html[data-theme="dark"] .form-select,
                     <table class="table align-middle mb-0 pos-grid-table" id="posItemsTable">
                         <thead>
                             <tr>
-                                <th style="width: 50px;" class="text-center">#</th>
-                                <th style="min-width: 250px;">البحث عن المنتج (تلقائي داخل الخلية)</th>
-                                <th style="width: 70px;" class="text-center">الصورة</th>
-                                <th style="width: 140px;" class="text-center">الكمية</th>
-                                <th style="width: 120px;" class="text-end">سعر الوحدة</th>
-                                <th style="width: 110px;" class="text-end">الخصم</th>
-                                <th style="width: 130px;" class="text-end">الإجمالي</th>
-                                <th style="width: 60px;" class="text-center">إزالة</th>
+                                <th class="yq-th-w50px text-center">#</th>
+                                <th class="yq-th-min250px">البحث عن المنتج (تلقائي داخل الخلية)</th>
+                                <th class="yq-th-w70px text-center">الصورة</th>
+                                <th class="yq-th-w140px text-center">الكمية</th>
+                                <th class="yq-th-w120px text-end">سعر الوحدة</th>
+                                <th class="yq-th-w110px text-end">الخصم</th>
+                                <th class="yq-th-w130px text-end">الإجمالي</th>
+                                <th class="yq-th-w60px text-center">إزالة</th>
                             </tr>
                         </thead>
                         <tbody id="posTableBody">
@@ -624,7 +624,7 @@ html[data-theme="dark"] .form-select,
 <!-- SALE COMPLETION SUCCESS MODAL -->
 <div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #111622; color: #ffffff;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden yq-dark-modal">
             <div class="modal-body text-center p-3 p-sm-4">
                 <div class="rounded-circle bg-success bg-opacity-25 text-success p-3 d-inline-flex mb-3 border border-success border-opacity-50">
                     <i class="bi bi-check-lg display-4"></i>
@@ -703,7 +703,7 @@ html[data-theme="dark"] .form-select,
     var initialModelPaymentsBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(initialModelPaymentsJson));
     }
 
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         function parseBase64Json(encoded) {
             var binary = window.atob(encoded);
             var bytes = Uint8Array.from(binary, function(character) { return character.charCodeAt(0); });
@@ -1131,7 +1131,7 @@ html[data-theme="dark"] .form-select,
                 </td>
                 <td class="text-center pos-cell-image">
                     <span class="pos-mobile-label">الصورة</span>
-                    <img class="pos-product-thumb rounded-2 border" style="width: 40px; height: 40px; object-fit: cover;" alt="منتج" />
+                    <img class="pos-product-thumb rounded-2 border yq-pos-thumb-img" alt="منتج" />
                 </td>
                 <td class="text-center pos-cell-quantity">
                     <span class="pos-mobile-label">الكمية</span>

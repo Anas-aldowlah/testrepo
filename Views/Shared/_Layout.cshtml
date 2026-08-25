@@ -16,7 +16,7 @@
     <link rel="apple-touch-icon" href="~/images/yaqut-logo.png" asp-append-version="true" />
     <link rel="manifest" href="~/site.webmanifest" asp-append-version="true" />
     <meta name="theme-color" content="#d4af37" />
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         (function () {
             var theme;
             try { theme = window.localStorage.getItem('yaqut-theme'); } catch (error) { }

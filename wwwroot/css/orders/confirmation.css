@@ -498,3 +498,15 @@
         text-align: end;
     }
 }
+
+/* WA Modal */
+.yq-wa-modal { display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity 0.3s ease; }
+.yq-wa-modal.is-open { opacity:1; pointer-events:auto; }
+.yq-wa-modal-content { background:var(--yq-bg, #111); border:1px solid rgba(201,162,75,0.3); border-radius:24px; padding:2rem; width:90%; max-width:400px; text-align:center; transform:translateY(20px); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.yq-wa-modal.is-open .yq-wa-modal-content { transform:translateY(0); }
+.yq-wa-icon-wrapper { width:70px; height:70px; background:rgba(37,211,102,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.2rem; color:#25D366; font-size:2rem; }
+.yq-wa-title { font-family:var(--yq-font-display); font-size:1.4rem; font-weight:700; margin-bottom:0.75rem; color:var(--yq-gold); }
+.yq-wa-text { font-size:0.9rem; color:var(--yq-text-muted, #aaa); line-height:1.6; margin-bottom:1.5rem; }
+.yq-wa-actions { display:flex; flex-direction:column; gap:0.75rem; }
+.yq-wa-btn-main { display:flex; align-items:center; justify-content:center; gap:0.5rem; background:#25D366; color:#fff; text-decoration:none; padding:0.85rem; border-radius:12px; font-weight:700; font-size:0.95rem; }
+.yq-wa-btn-secondary { background:transparent; border:1px solid rgba(255,255,255,0.1); color:var(--yq-text, #fff); padding:0.85rem; border-radius:12px; font-weight:600; font-size:0.9rem; cursor:pointer; }

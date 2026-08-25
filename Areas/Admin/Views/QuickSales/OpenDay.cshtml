@@ -21,7 +21,7 @@
         }
 
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-            <div class="card-header bg-dark text-white p-4" style="background: linear-gradient(135deg, #111622 0%, #1e293b 100%) !important;">
+            <div class="card-header bg-dark text-white p-4 yq-bg-gradient">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-circle p-2 bg-warning bg-opacity-25 text-warning">
                         <i class="bi bi-calendar-plus-fill fs-3"></i>
@@ -73,7 +73,7 @@
 </div>
 
 @section Scripts {
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         document.addEventListener('DOMContentLoaded', function() {
             var dateInput = document.getElementById('openDayDateInput');
             if (dateInput) {

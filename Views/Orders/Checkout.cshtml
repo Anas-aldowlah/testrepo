@@ -124,7 +124,7 @@
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@UnitPrice(items[snapshotIndex])" />
         }
 
-        <style>
+        <style nonce="@Context.Items["csp-nonce"]">
             .yq-readonly {
                 background-color: var(--yq-bg-input);
                 opacity: 0.7;
@@ -196,7 +196,7 @@
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
                         <span>المحافظة</span>
-                        <input asp-for="Governorate" id="govInput" form="yqCheckoutForm" type="text" autocomplete="address-level1" list="yemen-govs" oninput="this.value = this.value.replace(/[0-9]/g, ''); updateCities();" title="الرجاء إدخال أحرف فقط" />
+                        <input asp-for="Governorate" id="govInput" form="yqCheckoutForm" type="text" autocomplete="address-level1" list="yemen-govs"  title="الرجاء إدخال أحرف فقط" />
                         <span asp-validation-for="Governorate" class="yq-checkout-field__error"></span>
                         <datalist id="yemen-govs">
                             <option value="حضرموت"></option>
@@ -224,13 +224,13 @@
                     </label>
                     <label class="yq-checkout-field">
                         <span>المدينة</span>
-                        <input asp-for="City" id="cityInput" form="yqCheckoutForm" type="text" autocomplete="address-level2" list="yemen-cities" oninput="this.value = this.value.replace(/[0-9]/g, '')" title="الرجاء إدخال أحرف فقط" />
+                        <input asp-for="City" id="cityInput" form="yqCheckoutForm" type="text" autocomplete="address-level2" list="yemen-cities"  title="الرجاء إدخال أحرف فقط" />
                         <span asp-validation-for="City" class="yq-checkout-field__error"></span>
                         <datalist id="yemen-cities"></datalist>
                     </label>
                     <label class="yq-checkout-field">
                         <span>اسم المستلم</span>
-                        <input asp-for="District" form="yqCheckoutForm" type="text" oninput="this.value = this.value.replace(/[0-9]/g, '')" title="الرجاء إدخال أحرف فقط"  />
+                        <input asp-for="District" form="yqCheckoutForm" type="text"  title="الرجاء إدخال أحرف فقط"  />
                         <span asp-validation-for="District" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field">
@@ -239,7 +239,7 @@
                                inputmode="numeric" autocomplete="tel"
                                required
                                pattern="7[01378][0-9]{7}"
-                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+
                                title="أدخل 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78" />
                         <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
@@ -315,12 +315,12 @@
                 </div>
                 <span asp-validation-for="PaymentMethod" class="yq-checkout-field__error yq-checkout-field__error--payment"></span>
 
-                <div id="receiptUploadSection" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--yq-border);">
+                <div id="receiptUploadSection" class="yq-receipt-upload-section">
                     <label class="yq-checkout-field">
                         <span>صورة إيصال الدفع (اختياري)</span>
-                        <input asp-for="ReceiptImage" form="yqCheckoutForm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="form-control" style="background-color: var(--yq-bg-input); color: var(--yq-text-main); border: 1px solid var(--yq-border); padding: 0.5rem; border-radius: var(--yq-radius-sm);" />
+                        <input asp-for="ReceiptImage" form="yqCheckoutForm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="form-control yq-receipt-upload-input" />
                             <span asp-validation-for="ReceiptImage" class="yq-checkout-field__error"></span>
-                        <small style="color: var(--yq-text-soft);">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
+                        <small class="yq-receipt-upload-note">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
                     </label>
                 </div>
 
@@ -435,7 +435,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         const yemenData = {
             "حضرموت": ["الشحر", "المكلا", "سيئون", "تريم", "غيل باوزير", "الديس الشرقية", "القطن", "دوعن", "الشعب", "حريضة"],
             "عدن": ["كريتر", "المعلا", "التواهي", "الشيخ عثمان", "المنصورة", "خور مكسر", "دار سعد", "البريقة"],

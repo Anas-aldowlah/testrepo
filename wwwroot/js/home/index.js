@@ -38,6 +38,14 @@
 
         if (slides.length === 0) return;
 
+        slides.forEach(function(slide) {
+            var bgElement = slide.querySelector('.yq-home-hero__blurred-bg');
+            if (bgElement) {
+                var url = bgElement.getAttribute('data-bg-url');
+                if (url) bgElement.style.backgroundImage = 'url("' + url.replace(/"/g, '&quot;') + '")';
+            }
+        });
+
         function showSlide(nextIndex) {
             var normalizedIndex = (nextIndex + slides.length) % slides.length;
 

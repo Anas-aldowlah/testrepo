@@ -141,9 +141,9 @@
                         <div class="yq-profile-stat-icon">
                             <i class="bi bi-envelope"></i>
                         </div>
-                        <div style="min-width:0">
+                        <div class="yq-min-w-0">
                             <div class="yq-profile-stat-label">البريد الإلكتروني</div>
-                            <div class="yq-profile-stat-value" style="font-size:0.8rem; overflow-wrap:anywhere;">@Model.Email</div>
+                            <div class="yq-profile-stat-value yq-profile-email-text">@Model.Email</div>
                         </div>
                     </div>
                 }
@@ -153,18 +153,18 @@
                 <a asp-controller="Orders" asp-action="Index" class="yq-profile-nav-link">
                     <i class="bi bi-receipt"></i>
                     <span>طلباتي</span>
-                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                    <i class="bi bi-chevron-left yq-profile-chevron"></i>
                 </a>
                 <a asp-controller="Cart" asp-action="Index" class="yq-profile-nav-link">
                     <i class="bi bi-bag"></i>
                     <span>سلتي</span>
-                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                    <i class="bi bi-chevron-left yq-profile-chevron"></i>
                 </a>
                 <div class="yq-profile-nav-divider"></div>
                 <a asp-controller="Account" asp-action="RecoveryAccount" class="yq-profile-nav-link">
                     <i class="bi bi-shield-lock"></i>
                     <span>تغيير كلمة المرور</span>
-                    <i class="bi bi-chevron-left" style="margin-right:auto; font-size:0.7rem; opacity:0.4;"></i>
+                    <i class="bi bi-chevron-left yq-profile-chevron"></i>
                 </a>
                 <div class="yq-profile-nav-divider"></div>
                 <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true">

@@ -388,3 +388,7 @@ button.yq-profile-nav-link {
         justify-content: center;
     }
 }
+
+.yq-min-w-0 { min-width: 0; }
+.yq-profile-email-text { font-size: 0.8rem; overflow-wrap: anywhere; }
+.yq-profile-chevron { margin-right: auto; font-size: 0.7rem; opacity: 0.4; }

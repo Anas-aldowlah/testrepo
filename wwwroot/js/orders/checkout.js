@@ -250,7 +250,40 @@
         }
     }
 
+    function initInputFilters() {
+        var form = document.getElementById('yqCheckoutForm');
+        if (!form) return;
+
+        var govInput = form.querySelector('[name="Governorate"]');
+        var cityInput = form.querySelector('[name="City"]');
+        var distInput = form.querySelector('[name="District"]');
+        var streetInput = form.querySelector('[name="Street"]');
+
+        if (govInput) {
+            govInput.addEventListener('input', function () {
+                this.value = this.value.replace(/[0-9]/g, '');
+                if (typeof window.updateCities === 'function') window.updateCities();
+            });
+        }
+        if (cityInput) {
+            cityInput.addEventListener('input', function () {
+                this.value = this.value.replace(/[0-9]/g, '');
+            });
+        }
+        if (distInput) {
+            distInput.addEventListener('input', function () {
+                this.value = this.value.replace(/[0-9]/g, '');
+            });
+        }
+        if (streetInput) {
+            streetInput.addEventListener('input', function () {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
+    }
+
     function init() {
+        initInputFilters();
         initPaymentSelection();
         initPaymentPagination();
         initPlaceOrderGuard();

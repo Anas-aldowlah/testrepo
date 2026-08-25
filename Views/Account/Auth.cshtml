@@ -37,7 +37,7 @@
             </div>
 
             <header class="yaqut-auth-heading">
-                <span class="yq-login-kicker">حساب العملاء في LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" style="width:1rem" /></span>
+                <span class="yq-login-kicker">حساب العملاء في LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" class="yq-login-kicker-icon" /></span>
                 <h1 id="authPageTitle" class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
                 <p class="yaqut-auth-subtitle">سجّل الدخول بحسابك أو أنشئ حساباً جديداً بخطوات بسيطة وآمنة.</p>
             </header>
@@ -184,7 +184,7 @@
                 <!-- STEP PROGRESS BAR -->
                 <div class="yq-stepper-container" aria-label="خطوات التسجيل">
                     <div class="yq-stepper-progress">
-                        <div class="yq-stepper-progress-bar" id="stepperProgressBar" style="width: @(initialStep == 1 ? "0%" : initialStep == 2 ? "50%" : "100%")"></div>
+                        <div class="yq-stepper-progress-bar yq-step-@(initialStep)" id="stepperProgressBar"></div>
                     </div>
                     <div class="yq-stepper-steps">
                         <div class="yq-step-item @(initialStep >= 1 ? "is-active" : "") @(initialStep > 1 || regState.IsGoogleVerified ? "is-completed" : "")" data-step="1">
@@ -283,7 +283,7 @@
                         </div>
                     </div>
 
-                    <form id="formStep2" novalidate onsubmit="return false;">
+                    <form id="formStep2" novalidate>
                         @Html.AntiForgeryToken()
 
                         <div class="yaqut-form-group">
@@ -344,7 +344,7 @@
                         </div>
                     </div>
 
-                    <form id="formStep3" novalidate onsubmit="return false;">
+                    <form id="formStep3" novalidate>
                         @Html.AntiForgeryToken()
 
                         <div class="yaqut-form-group">
@@ -404,7 +404,7 @@
 
             </div>
 
-            <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 1rem;">
+            <div class="yq-auth-links-container">
                 <a href="@returnUrl" class="yq-guest-link">
                     المتابعة كزائر (بدون تسجيل) <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </a>
@@ -419,7 +419,9 @@
 </div>
 
 <!-- CLIENT JAVASCRIPT FOR WIZARD -->
-<script>
+<script nonce="@Context.Items["csp-nonce"]">
+    document.getElementById('formStep2')?.addEventListener('submit', function(e) { e.preventDefault(); });
+    document.getElementById('formStep3')?.addEventListener('submit', function(e) { e.preventDefault(); });
 document.addEventListener('DOMContentLoaded', function () {
     var currentStep = @initialStep;
 
@@ -466,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update Stepper progress bar width & badges
         var bar = document.getElementById('stepperProgressBar');
         if (bar) {
-            bar.style.width = step === 1 ? '0%' : step === 2 ? '50%' : '100%';
+            bar.className = 'yq-stepper-progress-bar yq-step-' + step;
         }
 
         document.querySelectorAll('.yq-step-item').forEach(function(item) {

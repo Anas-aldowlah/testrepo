@@ -64,7 +64,7 @@
                         <article class="yq-home-carousel__slide @(index == 0 ? "is-active" : "")"
                                  data-yq-hero-slide
                                  aria-hidden="@(index == 0 ? "false" : "true")">
-                            <div class="yq-home-hero__blurred-bg" style="background-image: url('@imageUrl');"></div>
+                            <div class="yq-home-hero__blurred-bg yq-hero-bg-@index" data-bg-url="@imageUrl"></div>
                             <div class="yq-home-carousel__product">
                                 <a asp-controller="Products" asp-action="Details" asp-route-id="@product.Id" class="yq-home-carousel__product-link" aria-label="عرض @product.Name">
                                     <img src="@imageUrl"

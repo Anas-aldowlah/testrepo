@@ -125,6 +125,7 @@
                     else
                     {
                         <div class="d-flex flex-column gap-3">
+                            @{ int pmIndex = 0; }
                             @foreach (var pm in Model.PaymentTotals)
                             {
                                 var pct = Model.NetSales > 0 ? (pm.TotalAmount / Model.NetSales) * 100m : 0m;
@@ -133,10 +134,12 @@
                                         <span class="fw-bold text-dark">@pm.PaymentMethodName </span>
                                         <strong class="text-warning">@pm.TotalAmount.ToString("N2") ر.س (@pct.ToString("N1")%)</strong>
                                     </div>
-                                    <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: @pct.ToString("0.0")%" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="progress yq-progress-sm">
+                                        <style nonce="@Context.Items["csp-nonce"]">.yq-report-progress-@(pmIndex) { width: @pct.ToString("0.0")%; }</style>
+                                        <div class="progress-bar bg-warning yq-report-progress-@(pmIndex)" role="progressbar" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </div>
+                                pmIndex++;
                             }
                         </div>
                     }
@@ -173,7 +176,7 @@
                                     <tr>
                                         <td><strong class="fw-bold">@prod.ProductName</strong></td>
                                         <td class="text-center"><span class="badge bg-secondary px-3 py-1 fw-bold">@prod.TotalQuantitySold قطعة</span></td>
-                                        <td class="text-end"><strong class="text-warning">@prod.TotalRevenue.ToString("N2") ر.س</strong></td>
+                                        <td class="text-end text-warning"><strong >@prod.TotalRevenue.ToString("N2") ر.س</strong></td>
                                     </tr>
                                 }
                             }
