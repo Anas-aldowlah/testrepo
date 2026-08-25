@@ -239,7 +239,6 @@ public class ProductsController : Controller
             if (productVW.Imagefile != null && productVW.Imagefile.Length > 0)
             {
                 fileName = await _imageService.UpdateImage(productVW.Imagefile, "products", fileName ?? string.Empty);
-                product.Imageurl = fileName != null ? "/images/products/" + fileName : DeletedProductImagePath;
             }
 
             var stockUnit = NormalizeStockUnit(productVW.StockUnit);
@@ -251,9 +250,19 @@ public class ProductsController : Controller
             product.StockUnit = stockUnit;
             product.VolumeMl = stockUnit == "Ml" ? productVW.VolumeMl : null;
             product.IsRetailEnabled = stockUnit == "Ml" && productVW.IsRetailEnabled;
-            product.Imageurl = fileName != null && !fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
-                ? "/images/products/" + fileName
-                : fileName;
+
+            if (fileName == null)
+            {
+                product.Imageurl = DeletedProductImagePath;
+            }
+            else if (fileName.StartsWith("/images/", StringComparison.OrdinalIgnoreCase) || fileName.StartsWith("images/", StringComparison.OrdinalIgnoreCase))
+            {
+                product.Imageurl = fileName;
+            }
+            else
+            {
+                product.Imageurl = "/images/products/" + fileName;
+            }
 
             await SyncRetailPricesAsync(product, productVW);
             await _context.SaveChangesAsync();
