@@ -77,27 +77,7 @@ public class HomeController : Controller
         return View();
     }
 
-    [HttpGet]
-    public IActionResult Contact()
-    {
-        return View(new ContactMessageVM());
-    }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Contact(ContactMessageVM model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        ModelState.AddModelError(
-            string.Empty,
-            "خدمة استقبال الرسائل غير متاحة مؤقتاً. يرجى استخدام إحدى قنوات التواصل المباشرة والمحاولة لاحقاً.");
-        Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        return View(model);
-    }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
