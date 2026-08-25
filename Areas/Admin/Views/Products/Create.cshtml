@@ -21,7 +21,8 @@
         </div>
     </header>
 
-    <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-product-form">
+    <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-product-form"
+          data-product-retail-form data-retail-prefix="">
         <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger yq-product-form__summary" role="alert"></div>
 
         <section class="yq-product-form__section">
@@ -94,7 +95,7 @@
                 </div>
                 <div class="yaqut-form-group yq-product-field" data-volume-field>
                     <label asp-for="VolumeMl" class="yaqut-form-label">الحجم</label>
-                    <input asp-for="VolumeMl" type="number" min="1" class="yaqut-form-input" placeholder="مثال: 200" />
+                    <input asp-for="VolumeMl" type="number" min="1" class="yaqut-form-input" placeholder="مثال: 200" data-base-volume />
                     <span asp-validation-for="VolumeMl" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
@@ -104,161 +105,68 @@
                     <span class="yq-product-help">قطعة = عدد القطع. مل = عدد العبوات.</span>
                 </div>
                 <label class="yaqut-form-group yq-product-field yq-product-field--wide yq-retail-toggle">
-                    <input asp-for="IsRetailEnabled" type="checkbox" />
+                    <input asp-for="IsRetailEnabled" type="checkbox" data-retail-toggle />
                     <span>تفعيل أسعار التجزئة</span>
                 </label>
-                <span asp-validation-for="IsRetailEnabled" class="yq-product-validation yq-product-field--wide"></span>
+                <span asp-validation-for="IsRetailEnabled" class="yq-product-validation yq-product-field--wide" data-retail-toggle-validation></span>
             </div>
 
             <div class="yq-retail-prices" data-retail-prices hidden>
                 <div class="yq-retail-prices__head">
-                    <strong>أسعار التجزئة</strong>
-                    <span>اكتب الحجم بالمل وسعر البيع لهذا الحجم.</span>
+                    <div class="yq-retail-prices__intro">
+                        <strong>أسعار التجزئة</strong>
+                        <span>يجب أن يكون كل حجم موجباً وأصغر من حجم العبوة الأساسي، وسعره أكبر من صفر.</span>
+                    </div>
+                    <button type="button" class="btn-yaqut-outline yq-retail-add-btn" data-add-retail-price>
+                        <i class="bi bi-plus-lg"></i>
+                        <span>إضافة سعر تجزئة</span>
+                    </button>
                 </div>
-                <span asp-validation-for="RetailPrices" class="yq-product-validation yq-retail-group-validation" data-retail-group-validation tabindex="-1"></span>
                 <div class="yq-product-form__grid yq-retail-prices__grid" data-retail-price-list>
                     @for (var i = 0; i < rows.Count; i++)
                     {
                         <div class="yq-retail-price-row">
                             <input type="hidden" asp-for="RetailPrices[i].Id" />
-                            <div class="yaqut-form-group yq-product-field">
-                                <label asp-for="RetailPrices[i].SizeMl" class="yaqut-form-label">الحجم ml</label>
-                                <input asp-for="RetailPrices[i].SizeMl" type="number" min="0" class="yaqut-form-input" />
-                                <span asp-validation-for="RetailPrices[i].SizeMl" class="yq-product-validation"></span>
+                            <div class="yq-retail-controls">
+                                <div class="yaqut-form-group yq-product-field">
+                                    <label asp-for="RetailPrices[i].SizeMl" class="yaqut-form-label">الحجم ml</label>
+                                    <input asp-for="RetailPrices[i].SizeMl" type="number" min="1" required class="yaqut-form-input" />
+                                    <span asp-validation-for="RetailPrices[i].SizeMl" class="yq-product-validation"></span>
+                                </div>
+                                <div class="yaqut-form-group yq-product-field">
+                                    <label asp-for="RetailPrices[i].Price" class="yaqut-form-label">السعر</label>
+                                    <input asp-for="RetailPrices[i].Price" type="number" step="0.01" min="0.01" required class="yaqut-form-input" />
+                                    <span asp-validation-for="RetailPrices[i].Price" class="yq-product-validation"></span>
+                                </div>
+                                <div class="yq-retail-active-field">
+                                    <span class="yaqut-form-label">الحالة</span>
+                                    <label class="yq-retail-active" for="RetailPrices_@(i)__IsActive">
+                                        <input id="RetailPrices_@(i)__IsActive" name="RetailPrices[@i].IsActive" type="checkbox" value="true" checked="@rows[i].IsActive" />
+                                        <span data-retail-active-label>نشط</span>
+                                    </label>
+                                    <input type="hidden" name="RetailPrices[@i].IsActive" value="false" />
+                                </div>
+                                <div class="yq-retail-action-field">
+                                    <span class="yaqut-form-label">الإجراء</span>
+                                    <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة"><i class="bi bi-trash"></i></button>
+                                </div>
                             </div>
-                            <div class="yaqut-form-group yq-product-field">
-                                <label asp-for="RetailPrices[i].Price" class="yaqut-form-label">السعر</label>
-                                <input asp-for="RetailPrices[i].Price" type="number" step="0.01" min="0" class="yaqut-form-input" />
-                                <span asp-validation-for="RetailPrices[i].Price" class="yq-product-validation"></span>
-                            </div>
-                            <div class="yq-retail-active-field">
-                                <span class="yaqut-form-label">الحالة</span>
-                                <label class="yq-retail-active" for="RetailPrices_@(i)__IsActive">
-                                    <input id="RetailPrices_@(i)__IsActive" name="RetailPrices[@i].IsActive" type="checkbox" value="true" checked="@rows[i].IsActive" /> نشط
-                                </label>
-                                <input type="hidden" name="RetailPrices[@i].IsActive" value="false" />
-                            </div>
-                            <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة"><i class="bi bi-trash"></i></button>
                             <span asp-validation-for="RetailPrices[i]" class="yq-product-validation yq-retail-row-validation"></span>
                         </div>
                     }
                 </div>
-                <button type="button" class="btn-yaqut-outline yq-retail-add-btn" data-add-retail-price>
-                    <i class="bi bi-plus-lg"></i>
-                    <span>إضافة سعر تجزئة</span>
-                </button>
+                <span asp-validation-for="RetailPrices" class="yq-product-validation yq-retail-group-validation" data-retail-group-validation tabindex="-1"></span>
             </div>
         </section>
 
         <div class="yq-product-form__actions">
             <a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-lg"></i><span>إلغاء</span></a>
-            <button type="submit" class="btn-yaqut-gold"><i class="bi bi-check2-circle"></i><span>حفظ المنتج</span></button>
+            <button type="submit" class="btn-yaqut-gold" data-retail-save disabled><i class="bi bi-check2-circle"></i><span>حفظ المنتج</span></button>
         </div>
     </form>
 </section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const stockUnit = document.querySelector('[data-stock-unit]');
-            const retailToggle = document.getElementById('IsRetailEnabled');
-            const retailPrices = document.querySelector('[data-retail-prices]');
-            const retailList = document.querySelector('[data-retail-price-list]');
-            const addRetailButton = document.querySelector('[data-add-retail-price]');
-            const volumeField = document.querySelector('[data-volume-field]');
-            const volumeInput = document.getElementById('VolumeMl');
-            const retailGroupValidation = document.querySelector('[data-retail-group-validation]');
-            let retailIndex = @rows.Count;
-
-            function showRetailGroupError(message) {
-                if (!retailGroupValidation) return;
-                retailGroupValidation.textContent = message;
-                retailGroupValidation.classList.toggle('field-validation-error', Boolean(message));
-                retailGroupValidation.classList.toggle('field-validation-valid', !message);
-            }
-
-            function addRetailRow() {
-                if (!retailList) return;
-                const row = document.createElement('div');
-                row.className = 'yq-retail-price-row';
-                row.innerHTML = `
-                    <div class="yaqut-form-group yq-product-field">
-                        <label class="yaqut-form-label" for="RetailPrices_${retailIndex}__SizeMl">الحجم ml</label>
-                        <input id="RetailPrices_${retailIndex}__SizeMl" name="RetailPrices[${retailIndex}].SizeMl" type="number" min="0" class="yaqut-form-input" />
-                    </div>
-                    <div class="yaqut-form-group yq-product-field">
-                        <label class="yaqut-form-label" for="RetailPrices_${retailIndex}__Price">السعر</label>
-                        <input id="RetailPrices_${retailIndex}__Price" name="RetailPrices[${retailIndex}].Price" type="number" step="0.01" min="0" class="yaqut-form-input" />
-                    </div>
-                    <div class="yq-retail-active-field">
-                        <span class="yaqut-form-label">الحالة</span>
-                        <label class="yq-retail-active" for="RetailPrices_${retailIndex}__IsActive">
-                            <input id="RetailPrices_${retailIndex}__IsActive" name="RetailPrices[${retailIndex}].IsActive" type="checkbox" value="true" checked /> نشط
-                        </label>
-                        <input type="hidden" name="RetailPrices[${retailIndex}].IsActive" value="false" />
-                    </div>
-                    <button type="button" class="yq-retail-remove" data-remove-retail-price aria-label="حذف سعر التجزئة"><i class="bi bi-trash"></i></button>`;
-                retailList.appendChild(row);
-                retailIndex++;
-                showRetailGroupError('');
-            }
-
-            function reindexRetailRows() {
-                if (!retailList) return;
-                const currentRows = retailList.querySelectorAll('.yq-retail-price-row');
-                currentRows.forEach((row, index) => {
-                    row.querySelectorAll('[name]').forEach((input) => {
-                        input.name = input.name.replace(/RetailPrices\[\d+\]/, `RetailPrices[${index}]`);
-                        if (!input.id) return;
-                        const fieldName = input.name.slice(input.name.lastIndexOf('.') + 1);
-                        const oldId = input.id;
-                        input.id = `RetailPrices_${index}__${fieldName}`;
-                        row.querySelector(`label[for="${CSS.escape(oldId)}"]`)?.setAttribute('for', input.id);
-                    });
-                    row.querySelectorAll('[data-valmsg-for]').forEach((message) => {
-                        message.dataset.valmsgFor = message.dataset.valmsgFor.replace(
-                            /RetailPrices\[\d+\]/,
-                            `RetailPrices[${index}]`
-                        );
-                    });
-                });
-                retailIndex = currentRows.length;
-            }
-
-            function syncForm() {
-                const isMl = stockUnit?.value === 'Ml';
-                if (volumeField) volumeField.hidden = !isMl;
-                if (!isMl && volumeInput) volumeInput.value = '';
-                if (retailToggle) {
-                    retailToggle.closest('.yq-retail-toggle').hidden = !isMl;
-                    if (!isMl) retailToggle.checked = false;
-                }
-                if (retailPrices) retailPrices.hidden = !(isMl && retailToggle?.checked);
-            }
-
-            stockUnit?.addEventListener('change', syncForm);
-            retailToggle?.addEventListener('change', syncForm);
-            addRetailButton?.addEventListener('click', addRetailRow);
-            retailList?.addEventListener('click', function (event) {
-                const removeButton = event.target.closest('[data-remove-retail-price]');
-                if (removeButton) {
-                    removeButton.closest('.yq-retail-price-row')?.remove();
-                    reindexRetailRows();
-                    if (retailToggle?.checked && !retailList.querySelector('.yq-retail-price-row')) {
-                        showRetailGroupError('يجب إضافة سعر تجزئة واحد على الأقل عند تفعيل البيع بالتجزئة.');
-                    }
-                }
-            });
-            syncForm();
-
-            const firstServerError = document.querySelector('.field-validation-error');
-            if (firstServerError) {
-                const owningField = firstServerError.closest('.yq-product-field');
-                const target = owningField?.querySelector('input, select, textarea') ?? firstServerError;
-                target.focus({ preventScroll: true });
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        });
-    </script>
+    <script src="~/js/admin/products/edit.js" asp-append-version="true"></script>
 }

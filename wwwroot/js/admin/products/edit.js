@@ -1,18 +1,93 @@
 (function () {
     'use strict';
 
-    const editForm = document.querySelector('[data-product-edit-form]');
+    const editForm = document.querySelector('[data-product-retail-form], [data-product-edit-form]');
     const stockUnit = document.querySelector('[data-stock-unit]');
-    const retailToggle = document.getElementById('Product_IsRetailEnabled');
+    const retailToggle = document.querySelector('[data-retail-toggle]')
+        ?? document.getElementById('Product_IsRetailEnabled');
     const retailPrices = document.querySelector('[data-retail-prices]');
     const retailList = document.querySelector('[data-retail-price-list]');
     const addRetailButton = document.querySelector('[data-add-retail-price]');
     const volumeField = document.querySelector('[data-volume-field]');
-    const volumeInput = document.getElementById('Product_VolumeMl');
+    const volumeInput = document.querySelector('[data-base-volume]')
+        ?? document.getElementById('Product_VolumeMl');
     const retailGroupValidation = document.querySelector('[data-retail-group-validation]');
-    const editSaveButton = editForm?.querySelector('[data-edit-save]');
+    const editSaveButton = editForm?.querySelector('[data-retail-save], [data-edit-save]');
     const retailPriceRequiredMessage = 'يجب إضافة سعر تجزئة واحد على الأقل عند تفعيل البيع بالتجزئة.';
+    const retailPrefix = editForm?.dataset.retailPrefix
+        ?? (editForm?.hasAttribute('data-product-edit-form') ? 'Product.' : '');
+    const retailIdPrefix = retailPrefix.replace(/\./g, '_');
+    const isEditMode = editForm?.hasAttribute('data-product-edit-form') === true;
     let retailIndex = retailList?.querySelectorAll('.yq-retail-price-row').length ?? 0;
+    let initialProductState = '';
+
+    function normalizedValue(input) {
+        if (!input) return '';
+        if (input.type === 'checkbox') return input.checked;
+        if (input.type === 'file') {
+            return [...input.files].map((file) => [file.name, file.size, file.type, file.lastModified]);
+        }
+
+        const value = input.value.trim();
+        if (input.type === 'number' && value !== '') {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : value;
+        }
+        return value;
+    }
+
+    function productState() {
+        if (!editForm) return '';
+
+        const prefix = retailPrefix;
+        const names = [
+            `${prefix}Name`,
+            `${prefix}Brand`,
+            `${prefix}Categoryid`,
+            `${prefix}Description`,
+            `${prefix}Price`,
+            `${prefix}Imagefile`,
+            `${prefix}StockUnit`,
+            `${prefix}IsRetailEnabled`
+        ];
+        const state = {};
+        names.forEach((name) => {
+            const input = editForm.querySelector(`[name="${CSS.escape(name)}"]:not([type="hidden"])`)
+                ?? editForm.elements.namedItem(name);
+            if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement || input instanceof HTMLTextAreaElement) {
+                state[name] = normalizedValue(input);
+            }
+        });
+
+        const isMl = stockUnit?.value === 'Ml';
+        state[`${prefix}VolumeMl`] = isMl ? normalizedValue(volumeInput) : null;
+        state.RetailPrices = isMl
+            ? [...(retailList?.querySelectorAll('.yq-retail-price-row') ?? [])].map((row) => ({
+                id: row.querySelector('input[name$=".Id"]')?.value || '',
+                size: normalizedValue(row.querySelector('input[name$=".SizeMl"]')),
+                price: normalizedValue(row.querySelector('input[name$=".Price"]')),
+                active: row.querySelector('input[name$=".IsActive"][type="checkbox"]')?.checked !== false
+            }))
+            : [];
+        return JSON.stringify(state);
+    }
+
+    function isBaseFormValid() {
+        if (!editForm) return false;
+
+        const retailIsRelevant = stockUnit?.value === 'Ml' && retailToggle?.checked;
+        const nativeValid = [...editForm.elements].every((input) => {
+            if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement || input instanceof HTMLTextAreaElement)) return true;
+            if (!retailIsRelevant && input.closest('.yq-retail-price-row')) return true;
+            return typeof input.checkValidity !== 'function' || input.checkValidity();
+        });
+        const validator = window.jQuery?.(editForm).data('validator');
+        const unobtrusiveValid = !validator || typeof validator.checkForm !== 'function' || validator.checkForm();
+        const isMl = stockUnit?.value === 'Ml';
+        const baseSize = Number(volumeInput?.value);
+        const productConfigurationValid = !isMl || (Number.isInteger(baseSize) && baseSize >= 1 && baseSize <= 1000000);
+        return nativeValid && unobtrusiveValid && productConfigurationValid;
+    }
 
     function syncProductFields() {
         const isMl = stockUnit?.value === 'Ml';
@@ -37,7 +112,7 @@
     function addRetailRow() {
         if (!retailList) return;
 
-        const prefix = `Product.RetailPrices[${retailIndex}]`;
+        const prefix = `${retailPrefix}RetailPrices[${retailIndex}]`;
         const sizeName = `${prefix}.SizeMl`;
         const priceName = `${prefix}.Price`;
         const row = document.createElement('div');
@@ -45,15 +120,15 @@
         row.innerHTML = `
             <div class="yq-retail-controls">
                 <div class="yaqut-form-group yq-product-field">
-                    <label class="yaqut-form-label" for="Product_RetailPrices_${retailIndex}__SizeMl">الحجم ml</label>
-                    <input id="Product_RetailPrices_${retailIndex}__SizeMl" name="${sizeName}" type="number" min="1" required
+                    <label class="yaqut-form-label" for="${retailIdPrefix}RetailPrices_${retailIndex}__SizeMl">الحجم ml</label>
+                    <input id="${retailIdPrefix}RetailPrices_${retailIndex}__SizeMl" name="${sizeName}" type="number" min="1" required
                            class="yaqut-form-input" data-val="true" data-val-required="حجم التجزئة مطلوب."
                            data-val-range="يجب أن يكون حجم التجزئة أكبر من صفر." data-val-range-min="1" data-val-range-max="1000000">
                     <span class="yq-product-validation field-validation-valid" data-valmsg-for="${sizeName}" data-valmsg-replace="true"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
-                    <label class="yaqut-form-label" for="Product_RetailPrices_${retailIndex}__Price">السعر</label>
-                    <input id="Product_RetailPrices_${retailIndex}__Price" name="${priceName}" type="number" step="0.01" min="0.01" required
+                    <label class="yaqut-form-label" for="${retailIdPrefix}RetailPrices_${retailIndex}__Price">السعر</label>
+                    <input id="${retailIdPrefix}RetailPrices_${retailIndex}__Price" name="${priceName}" type="number" step="0.01" min="0.01" required
                            class="yaqut-form-input" data-val="true" data-val-required="سعر التجزئة مطلوب."
                            data-val-range="يجب أن يكون سعر التجزئة أكبر من صفر." data-val-range-min="0.01" data-val-range-max="1000000">
                     <span class="yq-product-validation field-validation-valid" data-valmsg-for="${priceName}" data-valmsg-replace="true"></span>
@@ -83,17 +158,17 @@
         const rows = retailList.querySelectorAll('.yq-retail-price-row');
         rows.forEach((row, index) => {
             row.querySelectorAll('[name]').forEach((input) => {
-                input.name = input.name.replace(/Product\.RetailPrices\[\d+\]/, `Product.RetailPrices[${index}]`);
+                input.name = input.name.replace(/(?:Product\.)?RetailPrices\[\d+\]/, `${retailPrefix}RetailPrices[${index}]`);
                 if (!input.id) return;
                 const fieldName = input.name.slice(input.name.lastIndexOf('.') + 1);
                 const oldId = input.id;
-                input.id = `Product_RetailPrices_${index}__${fieldName}`;
+                input.id = `${retailIdPrefix}RetailPrices_${index}__${fieldName}`;
                 row.querySelector(`label[for="${CSS.escape(oldId)}"]`)?.setAttribute('for', input.id);
             });
             row.querySelectorAll('[data-valmsg-for]').forEach((message) => {
                 message.dataset.valmsgFor = message.dataset.valmsgFor.replace(
-                    /Product\.RetailPrices\[\d+\]/,
-                    `Product.RetailPrices[${index}]`
+                    /(?:Product\.)?RetailPrices\[\d+\]/,
+                    `${retailPrefix}RetailPrices[${index}]`
                 );
             });
         });
@@ -182,7 +257,9 @@
         if (!editSaveButton) return;
         const retailNeedsRow = stockUnit?.value === 'Ml' && retailToggle?.checked;
         const result = evaluateRetailRows(false);
-        editSaveButton.disabled = Boolean(retailNeedsRow && result.validRows === 0);
+        const retailValid = !retailNeedsRow || result.allRowsValid;
+        const hasChanges = !isEditMode || productState() !== initialProductState;
+        editSaveButton.disabled = !(hasChanges && isBaseFormValid() && retailValid);
         showRetailGroupError(retailNeedsRow && result.validRows === 0 ? retailPriceRequiredMessage : '');
     }
 
@@ -196,7 +273,7 @@
         const row = input.closest('.yq-retail-price-row');
         row?.classList.toggle('is-inactive', !input.checked);
         const label = row?.querySelector('[data-retail-active-label]');
-        if (label) label.textContent = input.checked ? 'نشط' : 'غير نشط';
+        if (label) label.textContent = 'نشط';
     }
 
     stockUnit?.addEventListener('change', function () {
@@ -226,9 +303,12 @@
         reindexRetailRows();
         if (!validateRetailRows()) event.preventDefault();
     });
+    editForm?.addEventListener('input', syncRetailSaveState);
+    editForm?.addEventListener('change', syncRetailSaveState);
     syncProductFields();
     refreshUnobtrusiveValidation();
     retailList?.querySelectorAll('input[name$=".IsActive"]').forEach(syncActiveRowState);
+    initialProductState = productState();
     syncRetailSaveState();
 
     const firstServerError = editForm?.querySelector('.field-validation-error');

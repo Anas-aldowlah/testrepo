@@ -5,7 +5,7 @@ import { runBrowserHarness } from './browser-harness-runtime.mjs';
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const harnessUrl = pathToFileURL(resolve(currentDirectory, 'admin-product-edit-harness.html')).href;
 const widths = [320, 390, 576, 768, 992, 1200, 1440];
-const states = ['retail', 'non-retail'];
+const states = ['edit-retail', 'edit-non-retail', 'create-retail', 'create-non-retail'];
 
 function delay(milliseconds) {
     return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -70,7 +70,7 @@ await runBrowserHarness({
             }
 
             const expectedRetailColumns = width >= 768 ? 4 : 2;
-            const retailLayoutFailed = state === 'retail' && (
+            const retailLayoutFailed = !state.endsWith('non-retail') && (
                 !result?.retailLayout ||
                 result.retailLayout.columns !== expectedRetailColumns ||
                 !result.retailLayout.addButtonInHeader ||
@@ -87,4 +87,4 @@ await runBrowserHarness({
     }
 });
 
-console.log('Admin Product Edit browser harness passed for retail and non-retail states at 7 RTL viewport widths.');
+console.log('Admin Product Create/Edit browser harness passed for retail and non-retail states at 7 RTL viewport widths.');

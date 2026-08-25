@@ -38,7 +38,17 @@
 
     @if (TempData["Error"] != null)
     {
-        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--danger" role="alert">
+            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <span>@TempData["Error"]</span>
+        </div>
+    }
+    else if (TempData["Success"] != null)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--success" role="status">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span>@TempData["Success"]</span>
+        </div>
     }
 
     <section class="yq-categories-summary" aria-label="ملخص التصنيفات">

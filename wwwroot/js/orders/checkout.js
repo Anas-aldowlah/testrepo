@@ -92,11 +92,18 @@
         function setSubmitting(submitting) {
             isSubmitting = submitting;
             buttons.forEach(function (button) {
-                button.disabled = submitting;
                 button.classList.toggle('is-submitting', submitting);
                 button.innerHTML = submitting
                     ? '<i class="bi bi-arrow-repeat yq-spin" aria-hidden="true"></i> جارٍ تأكيد الطلب...'
                     : button.dataset.yqOriginalHtml;
+            });
+            syncButtonState();
+        }
+
+        function syncButtonState() {
+            var canSubmit = !isSubmitting && validateForm(form, false);
+            buttons.forEach(function (button) {
+                button.disabled = !canSubmit;
             });
         }
 
@@ -107,7 +114,7 @@
         });
 
         form.addEventListener('invalid', function () {
-            setSubmitting(false);
+            isSubmitting = false;
         }, true);
 
         form.addEventListener('submit', function (event) {
@@ -117,7 +124,7 @@
                 return;
             }
 
-            if (!validateForm(form)) {
+            if (!validateForm(form, true)) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 setSubmitting(false);
@@ -145,6 +152,9 @@
             setSubmitting(false);
         });
 
+        form.addEventListener('input', syncButtonState);
+        form.addEventListener('change', syncButtonState);
+
         // Reset state if a jQuery-based AJAX submitter is introduced or enabled.
         if (window.jQuery) {
             window.jQuery(document).on('ajaxError.yqCheckout', function (_event, _xhr, settings) {
@@ -156,9 +166,10 @@
                 }
             });
         }
+        syncButtonState();
     }
 
-    function validateForm(form) {
+    function validateForm(form, showFeedback) {
         var phonesValid = true;
         form.querySelectorAll('input[type="tel"]').forEach(function (input) {
             if (!validatePhoneField(input)) phonesValid = false;
@@ -167,11 +178,14 @@
         var nativeValid = typeof form.checkValidity !== 'function' || form.checkValidity();
         var jqueryValid = true;
         if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.valid === 'function') {
-            jqueryValid = window.jQuery(form).valid();
+            var validator = window.jQuery(form).data('validator');
+            jqueryValid = showFeedback
+                ? window.jQuery(form).valid()
+                : !validator || typeof validator.checkForm !== 'function' || validator.checkForm();
         }
 
         var isValid = phonesValid && nativeValid && jqueryValid;
-        if (!isValid) {
+        if (!isValid && showFeedback) {
             if (!nativeValid && typeof form.reportValidity === 'function') {
                 form.reportValidity();
             }

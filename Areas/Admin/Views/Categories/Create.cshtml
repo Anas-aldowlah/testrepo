@@ -23,15 +23,10 @@
             <p>أنشئ مجموعة واضحة للمنتجات مع اسم دقيق، وصف يساعد فريق الإدارة، وصورة مناسبة لعرض التصنيف داخل الكتالوج.</p>
         </div>
 
-        <div class="yq-categories-hero__actions">
-            <a asp-action="Index" class="btn-yaqut-outline">
-                <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                <span>العودة للتصنيفات</span>
-            </a>
-        </div>
     </header>
 
-    <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-category-form">
+    <form asp-action="Create" method="post" enctype="multipart/form-data" class="yq-category-form"
+          data-category-action-state="create">
         @if (hasValidationErrors)
         {
             <div asp-validation-summary="All" class="yaqut-alert yaqut-alert--danger yq-category-form__summary" role="alert"></div>
@@ -104,10 +99,14 @@
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
                 <span>إلغاء</span>
             </a>
-            <button type="submit" class="btn-yaqut-gold">
+            <button type="submit" class="btn-yaqut-gold" data-category-action-submit disabled>
                 <i class="bi bi-check2-circle" aria-hidden="true"></i>
                 <span>حفظ التصنيف</span>
             </button>
         </div>
     </form>
 </section>
+
+@section Scripts {
+    <script src="~/js/admin/categories/form-action-state.js" asp-append-version="true"></script>
+}

@@ -780,6 +780,10 @@
     align-items: start;
 }
 
+.yq-stock-adjustment-grid.is-piece-unit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .yq-stock-preview {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -878,6 +882,10 @@
 @media (min-width: 992px) {
     .yq-product-form__grid.yq-product-quantity-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .yq-product-form__grid.yq-product-quantity-grid:has([data-volume-field][hidden]) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .yq-retail-prices {
@@ -999,6 +1007,10 @@
     grid-column: 1 / -1;
 }
 
+.yq-product-form__grid:has([data-volume-field][hidden]) [data-retail-toggle-validation] {
+    display: none;
+}
+
 .yq-product-field .yaqut-form-label,
 .yq-product-upload__label {
     margin-bottom: 0.5rem;
@@ -1015,6 +1027,16 @@
     background: var(--yq-admin-surface-soft, #1b1f22);
     color: var(--yq-admin-text, #f8f5ee);
     font-size: 0.95rem;
+}
+
+.yq-product-field select.yaqut-form-input:is([data-stock-unit], [data-adjustment-operation]) {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-inline-start: 2.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23b6b1a6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 1rem center;
+    background-size: 12px 8px;
 }
 
 .yq-product-field textarea.yaqut-form-input {
@@ -1189,6 +1211,7 @@
     }
 
     .yq-stock-adjustment-grid,
+    .yq-stock-adjustment-grid.is-piece-unit,
     .yq-stock-preview {
         grid-template-columns: 1fr;
     }

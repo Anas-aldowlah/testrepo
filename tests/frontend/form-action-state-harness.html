@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="theme-light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Form action state harness</title>
+    <link rel="stylesheet" href="../../wwwroot/css/yaqut-theme.css" />
+    <link rel="stylesheet" href="../../wwwroot/css/admin/layout.css" />
+    <link rel="stylesheet" href="../../wwwroot/css/admin/categories.css" />
+    <link rel="stylesheet" href="../../wwwroot/css/admin/settings.css" />
+    <link rel="stylesheet" href="../../wwwroot/css/admin/users.css" />
+    <link rel="stylesheet" href="../../wwwroot/css/orders/checkout.css" />
+    <style>
+        body { margin: 0; }
+        .yq-admin-shell { display: block; padding: 1rem; }
+        .harness-grid { display: grid; gap: 1rem; }
+        .harness-card { min-width: 0; padding: 1rem; border: 1px solid #ddd; }
+        form { display: grid; min-width: 0; gap: 0.6rem; }
+        input, select, button { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <main class="yq-admin-shell">
+        <div class="harness-grid">
+            <section class="harness-card">
+                <form data-category-action-state="create" data-test-category-create>
+                    <input name="Name" required value="" />
+                    <div class="yq-category-form__actions">
+                        <button type="submit" class="btn-yaqut-gold" data-category-action-submit disabled>إنشاء تصنيف</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="harness-card">
+                <form data-category-action-state="edit" data-test-category-edit>
+                    <input name="Name" required value="عطور" />
+                    <textarea name="Description">وصف</textarea>
+                    <input name="ImageFile" type="file" />
+                    <div class="yq-category-form__actions">
+                        <button type="submit" class="btn-yaqut-gold" data-category-action-submit disabled>حفظ التصنيف</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="harness-card">
+                <form data-yq-settings-form data-test-settings>
+                    <input name="ContactEmail" type="email" value="info@example.com" />
+                    <input name="HeroMarketingText" value="عنوان" />
+                    <div data-yq-payment-methods>
+                        <section data-yq-payment-method-row>
+                            <input type="hidden" name="AdditionalPaymentMethods[0].Id" value="7" />
+                            <input type="hidden" name="AdditionalPaymentMethods[0].Delete" value="false" data-yq-payment-delete />
+                            <input name="AdditionalPaymentMethods[0].Name" value="تحويل" />
+                            <input name="AdditionalPaymentMethods[0].AccountHolderName" value="ياقوت" />
+                            <input name="AdditionalPaymentMethods[0].AccountNumber" value="123" />
+                        </section>
+                    </div>
+                    <div class="yq-settings-actions">
+                        <button type="reset">إلغاء</button>
+                        <button type="submit" class="btn-yaqut-gold" data-yq-settings-submit disabled>حفظ الإعدادات</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="harness-card">
+                <form data-role-change-form data-current-role="Customer" data-test-role>
+                    <select name="newRole" data-role-select>
+                        <option value="Customer" selected>زبون</option>
+                        <option value="Admin">مدير</option>
+                    </select>
+                    <button type="submit" class="yq-role-btn-submit" data-role-submit disabled>تحديث الدور</button>
+                </form>
+            </section>
+
+            <section class="harness-card yq-checkout">
+                <form id="yqCheckoutForm" data-yq-auth-required="false" data-test-checkout novalidate>
+                    <input name="CustomerName" required minlength="2" value="عميل" readonly />
+                    <input name="CustomerPhone" required value="777777777" readonly />
+                    <input name="CustomerEmail" type="email" value="customer@example.com" readonly />
+                    <input name="Governorate" required minlength="2" value="" />
+                    <input name="City" required minlength="2" value="" />
+                    <input name="District" required minlength="2" value="" />
+                    <input name="Street" type="tel" required minlength="9" maxlength="9" pattern="7[01378][0-9]{7}" value="" />
+                    <input name="PaymentMethod" type="radio" value="cash" checked />
+                    <div class="yq-checkout-confirm-bottom">
+                        <button type="submit" class="btn-yaqut-gold yq-checkout-submit-btn" id="confirmOrderBottom" disabled>تأكيد الطلب</button>
+                    </div>
+                    <button type="submit" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn" disabled>تأكيد الطلب</button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script src="../../wwwroot/js/admin/categories/form-action-state.js"></script>
+    <script src="../../wwwroot/js/admin/settings/form-action-state.js"></script>
+    <script src="../../wwwroot/js/admin/users/details.js"></script>
+    <script src="../../wwwroot/js/orders/checkout.js"></script>
+</body>
+</html>

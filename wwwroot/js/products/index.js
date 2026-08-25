@@ -361,18 +361,14 @@
             triggerSubmit();
         }
 
-        var mobileCancel = e.target.closest('#yqMobileCancel');
-        if (mobileCancel) {
+        var filtersCancel = e.target.closest('#yqFiltersCancel');
+        if (filtersCancel) {
             e.preventDefault();
-            var closeButton = document.getElementById('yqFiltersClose');
-            if (closeButton) {
-                closeButton.click();
-            } else {
-                var filters = document.getElementById('yaqutFilters');
-                if (filters) {
-                    filters.classList.remove('is-open');
-                    document.documentElement.removeAttribute('data-yq-drawer-open');
-                }
+            restoreCommittedState();
+            var filters = document.getElementById('yaqutFilters');
+            if (filters && filters.classList.contains('is-open')) {
+                var closeButton = document.getElementById('yqFiltersClose');
+                if (closeButton) closeButton.click();
             }
         }
 
@@ -458,7 +454,6 @@
         }
 
         if (e.target.closest('[data-yq-auto-submit]')) {
-            if (window.innerWidth < 992) return;
             triggerSubmit();
         }
     });

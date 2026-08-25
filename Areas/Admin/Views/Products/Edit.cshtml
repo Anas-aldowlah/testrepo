@@ -49,7 +49,8 @@
     }
     </div>
 
-    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-product-form" novalidate data-product-edit-form>
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="yq-product-form" novalidate
+          data-product-edit-form data-product-retail-form data-retail-prefix="Product.">
         <input type="hidden" asp-for="Product.Id" />
         <input type="hidden" asp-for="Product.Existingimage" />
         <input type="hidden" asp-for="Product.Stockquantity" />
@@ -110,7 +111,7 @@
                 <span class="yq-product-form__section-icon"><i class="bi bi-boxes"></i></span>
                 <div>
                     <h3>تفاصيل الكمية والتعبئة</h3>
-                    <p>حدد وحدة المنتج وحجم العبوة. عند وجود رصيد، يمنع النظام تغيير ما قد يغيّر معنى المخزون.</p>
+                    <p>حدد وحدة المنتج وحجم العبوة. تغيير حجم العبوة يحدّث تمثيل الرصيد بالعبوات دون تغيير الكمية الفعلية.</p>
                 </div>
             </div>
             <div class="yq-product-form__grid yq-product-quantity-grid">
@@ -124,7 +125,7 @@
                 </div>
                 <div class="yaqut-form-group yq-product-field" data-volume-field>
                     <label asp-for="Product.VolumeMl" class="yaqut-form-label">حجم العبوة الأساسي</label>
-                    <input asp-for="Product.VolumeMl" type="number" min="1" class="yaqut-form-input" />
+                    <input asp-for="Product.VolumeMl" type="number" min="1" class="yaqut-form-input" data-base-volume />
                     <span asp-validation-for="Product.VolumeMl" class="yq-product-validation"></span>
                 </div>
                 <div class="yaqut-form-group yq-product-field">
@@ -134,7 +135,7 @@
                     </div>
                 </div>
                 <label class="yaqut-form-group yq-product-field yq-product-field--wide yq-retail-toggle">
-                    <input asp-for="Product.IsRetailEnabled" type="checkbox" />
+                    <input asp-for="Product.IsRetailEnabled" type="checkbox" data-retail-toggle />
                     <span>تفعيل أسعار التجزئة</span>
                 </label>
             </div>
@@ -172,7 +173,7 @@
                                     <span class="yaqut-form-label">الحالة</span>
                                     <label class="yq-retail-active" for="@activeInputId">
                                         <input id="@activeInputId" name="@activeInputName" type="checkbox" value="true" checked="@rows[i].IsActive" />
-                                        <span data-retail-active-label>@(rows[i].IsActive ? "نشط" : "غير نشط")</span>
+                                        <span data-retail-active-label>نشط</span>
                                     </label>
                                     <input type="hidden" name="@activeInputName" value="false" />
                                     @if (rows[i].IsHistoricallyUsed)
@@ -209,7 +210,7 @@
 
         <div class="yq-product-form__actions">
             <a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-lg"></i><span>إلغاء</span></a>
-            <button type="submit" class="btn-yaqut-gold" data-edit-save><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
+            <button type="submit" class="btn-yaqut-gold" data-edit-save data-retail-save disabled><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
         </div>
     </form>
 
@@ -233,7 +234,7 @@
             }
             else
             {
-                <div class="yq-stock-adjustment-grid">
+                <div class="yq-stock-adjustment-grid @(!isMlStock ? "is-piece-unit" : null)">
                     <div class="yaqut-form-group yq-product-field">
                         <label asp-for="StockAdjustment.Operation" class="yaqut-form-label">العملية</label>
                         <select asp-for="StockAdjustment.Operation" class="yaqut-form-input" data-adjustment-operation>

@@ -1,0 +1,7 @@
+@model int
+@{
+    var hasItems = Model > 0;
+    var displayQuantity = Model > 99 ? "99+" : Model.ToString();
+    var ariaLabel = hasItems ? $"{Model} في السلة" : "السلة فارغة";
+}
+<span class="yaqut-cart-link__count" data-yq-cart-count hidden="@(!hasItems)" aria-label="@ariaLabel">@displayQuantity</span>

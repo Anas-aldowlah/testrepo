@@ -185,6 +185,7 @@ public class ProductsController : Controller
 
             _context.Products.Add(newProduct);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "تمت إضافة المنتج بنجاح.";
             return RedirectToAction(nameof(Index));
         }
         catch (OverflowException exception)
@@ -300,9 +301,9 @@ public class ProductsController : Controller
             return await StockValidationViewAsync(input);
         }
 
-        TempData["Message"] = input.Operation == StockAdjustmentOperation.Subtract
-            ? "تم خصم المخزون بنجاح."
-            : "تمت إضافة المخزون بنجاح.";
+        TempData["Success"] = input.Operation == StockAdjustmentOperation.Subtract
+            ? "تم خصم الكمية من المخزون بنجاح."
+            : "تمت إضافة الكمية إلى المخزون بنجاح.";
         return RedirectToAction(nameof(Edit), new { id = input.Id });
     }
 
@@ -325,6 +326,7 @@ public class ProductsController : Controller
         product.Imageurl = DeletedProductImagePath;
         product.Stockquantity = 0;
         await _context.SaveChangesAsync();
+        TempData["Success"] = "تم حذف المنتج بنجاح.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -585,13 +587,6 @@ public class ProductsController : Controller
                 throw new InvalidOperationException("لا يمكن تغيير وحدة المخزون لمنتج لديه رصيد قائم. أنشئ منتجاً جديداً أو استخدم تسوية مخزون واضحة.");
             }
 
-            if (!isCreate &&
-                existingProduct?.StockUnit == "Ml" &&
-                existingProduct.Stockquantity > 0 &&
-                existingProduct.VolumeMl != model.VolumeMl)
-            {
-                throw new InvalidOperationException("لا يمكن تغيير حجم العبوة لمنتج لديه مخزون قائم. أنشئ منتجاً جديداً أو استخدم تسوية مخزون واضحة.");
-            }
         }
         else
         {

@@ -57,6 +57,21 @@
         </div>
     </header>
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--danger" role="alert">
+            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    else if (TempData["SuccessMessage"] != null)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--success" role="status">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
     <section class="yq-user-details-summary" aria-label="ملخص الحساب">
         <article class="yq-user-detail-stat">
             <span class="yq-user-detail-stat__icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
@@ -208,13 +223,14 @@
                     }
                     else
                     {
-                        <form asp-action="ChangeRole" method="post" class="yq-role-change-form">
+                        <form asp-action="ChangeRole" method="post" class="yq-role-change-form"
+                              data-role-change-form data-current-role="@Model.Role">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="userId" value="@Model.Id" />
 
                             <div class="yq-role-select-group">
                                 <label for="newRoleSelect">اختر الدور الجديد:</label>
-                                <select id="newRoleSelect" name="newRole" class="yq-role-select">
+                                <select id="newRoleSelect" name="newRole" class="yq-role-select" data-role-select>
                                     <option value="Customer" selected="@(Model.Role == "Customer")">زبون (Customer)</option>
                                     <option value="Admin" selected="@(Model.Role == "Admin")">مدير (Admin)</option>
 
@@ -226,7 +242,7 @@
                                 </select>
                             </div>
 
-                            <button type="submit" class="yq-role-btn-submit">
+                            <button type="submit" class="yq-role-btn-submit" data-role-submit disabled>
                                 <i class="bi bi-shield-lock-fill"></i>
                                 <span>تحديث الدور</span>
                             </button>
@@ -261,3 +277,7 @@
         </aside>
     </div>
 </section>
+
+@section Scripts {
+    <script src="~/js/admin/users/details.js" asp-append-version="true"></script>
+}

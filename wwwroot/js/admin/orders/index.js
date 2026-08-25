@@ -195,13 +195,16 @@
                 });
                 const data = await window.YaqutAdminAjax.readJson(response);
                 if (data.success) {
+                    const persistedStatus = data.status;
+                    if (!persistedStatus) throw new Error('Missing persisted order status.');
                     const badge = root.querySelector(`[data-order-badge="${orderId}"]`);
                     if (badge) {
-                        badge.className = 'yq-orders-badge ' + (statusClasses[newStatus] || 'yq-orders-badge--neutral');
-                        badge.textContent = statusLabels[newStatus] || newStatus;
+                        badge.className = 'yq-orders-badge ' + (statusClasses[persistedStatus] || 'yq-orders-badge--neutral');
+                        badge.textContent = statusLabels[persistedStatus] || persistedStatus;
                     }
-                    this.dataset.originalStatus = newStatus;
-                    showOrderAlert('success', data.message || 'تم تحديث الحالة بنجاح');
+                    this.value = persistedStatus;
+                    this.dataset.originalStatus = persistedStatus;
+                    showOrderAlert('success', data.message || 'تم تحديث حالة الطلب بنجاح.');
                 } else {
                     this.value = this.dataset.originalStatus;
                     showOrderAlert('danger', data.message || 'حدث خطأ أثناء تحديث الحالة');
@@ -222,16 +225,15 @@
         if (!area) return;
 
         const alert = document.createElement('div');
-        alert.className = `yaqut-alert ${type === 'success' ? 'yaqut-alert--success' : 'yaqut-alert--danger'}`;
-        alert.setAttribute('role', 'alert');
-        alert.textContent = message;
-        alert.style.animation = 'fadeIn 0.3s ease';
+        alert.className = `yaqut-alert yq-admin-operation-feedback ${type === 'success' ? 'yaqut-alert--success' : 'yaqut-alert--danger'}`;
+        alert.setAttribute('role', type === 'success' ? 'status' : 'alert');
+        const icon = document.createElement('i');
+        icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-octagon-fill';
+        icon.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        text.textContent = message;
+        alert.append(icon, text);
         area.replaceChildren(alert);
-        setTimeout(function () {
-            alert.style.opacity = '0';
-            alert.style.transition = 'opacity 0.4s ease';
-            setTimeout(function () { alert.remove(); }, 400);
-        }, 4000);
     }
 
     function openReceiptModal(imageSrc, orderId) {

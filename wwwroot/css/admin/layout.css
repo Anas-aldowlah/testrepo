@@ -43,6 +43,51 @@
     font-family: var(--yq-font-body, 'Tajawal', sans-serif);
 }
 
+.yq-admin-shell .yq-admin-operation-feedback {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 1rem 1.1rem;
+    border: 1px solid;
+    border-radius: 8px;
+    font-weight: 900;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.yq-admin-shell .yq-admin-operation-feedback > i {
+    flex: 0 0 auto;
+    margin-top: 0.2rem;
+    font-size: 1.15rem;
+}
+
+.yq-admin-shell .yq-admin-operation-feedback.yaqut-alert--success {
+    border-color: #75b798;
+    background: #123b2a;
+    color: #b7f7cd;
+}
+
+.yq-admin-shell .yq-admin-operation-feedback.yaqut-alert--danger {
+    border-color: #ea868f;
+    background: #4b171c;
+    color: #ffd7da;
+}
+
+.theme-light .yq-admin-shell .yq-admin-operation-feedback.yaqut-alert--success {
+    border-color: #75b798;
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.theme-light .yq-admin-shell .yq-admin-operation-feedback.yaqut-alert--danger {
+    border-color: #ea868f;
+    background: #f8d7da;
+    color: #842029;
+}
+
 .theme-dark .yq-admin-shell,
 .dark-mode .yq-admin-shell {
     --yq-admin-bg: #0a0908;
