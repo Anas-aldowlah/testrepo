@@ -62,7 +62,7 @@
 
                     <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
                         <a asp-action="Index" class="btn btn-outline-secondary px-4 py-2 fw-bold">إلغاء</a>
-                        <button type="submit" class="btn btn-yaqut-gold px-5 py-2 fw-bold shadow-sm">
+                        <button type="submit" id="openDaySubmitBtn" class="btn btn-yaqut-gold px-5 py-2 fw-bold shadow-sm" disabled>
                             <i class="bi bi-check-circle-fill me-1"></i> تأكيد وفتح اليوم
                         </button>
                     </div>
@@ -76,11 +76,24 @@
     <script nonce="@Context.Items["csp-nonce"]">
         document.addEventListener('DOMContentLoaded', function() {
             var dateInput = document.getElementById('openDayDateInput');
+            var submitBtn = document.getElementById('openDaySubmitBtn');
+            var form = dateInput ? dateInput.closest('form') : null;
+
             if (dateInput) {
-                var tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                var maxStr = tomorrow.toISOString().split('T')[0];
-                dateInput.setAttribute('max', maxStr);
+                if (submitBtn && form) {
+                    var syncState = function () {
+                        var hasDate = dateInput.value.trim().length > 0;
+                        var validator = window.jQuery?.(form).data('validator');
+                        var unobtrusiveValid = !validator || typeof validator.checkForm !== 'function' || validator.checkForm();
+
+                        submitBtn.disabled = !(hasDate && form.checkValidity() && unobtrusiveValid);
+                    };
+
+                    form.addEventListener('input', syncState);
+                    form.addEventListener('change', syncState);
+                    form.addEventListener('reset', () => window.setTimeout(syncState, 0));
+                    syncState();
+                }
             }
         });
     </script>
