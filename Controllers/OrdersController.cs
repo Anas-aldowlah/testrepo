@@ -68,6 +68,12 @@ public class OrdersController : Controller
             return RedirectToAction("Index", "Cart");
         }
 
+        var draftJson = HttpContext.Session.GetString(GetDraftSessionKey());
+        if (!string.IsNullOrEmpty(draftJson))
+        {
+            ViewData["CheckoutDraftJson"] = draftJson;
+        }
+
         return View(await BuildCheckoutViewModelAsync(cart));
     }
 
@@ -150,7 +156,24 @@ public class OrdersController : Controller
             if (Guid.TryParseExact(model.CheckoutDraftId, "D", out var checkoutDraftId))
             {
                 TempData[CheckoutSuccessMarkerKey(order.Id)] = $"{order.Id}:{checkoutDraftId:D}";
+
+                var currentDraftJson = HttpContext.Session.GetString(GetDraftSessionKey());
+                if (!string.IsNullOrEmpty(currentDraftJson))
+                {
+                    var currentDraft = System.Text.Json.JsonSerializer.Deserialize<CheckoutDraftState>(currentDraftJson);
+                    if (currentDraft?.DraftId == model.CheckoutDraftId)
+                    {
+                        HttpContext.Session.Remove(GetDraftSessionKey());
+                    }
+                }
+
+                HttpContext.Session.SetString("ClearedDraft_" + model.CheckoutDraftId, "true");
             }
+            else
+            {
+                HttpContext.Session.Remove(GetDraftSessionKey());
+            }
+
             return RedirectToAction(nameof(Confirmation), new { id = order.Id });
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -224,6 +247,39 @@ public class OrdersController : Controller
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
         return View(order);
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SaveCheckoutDraft([FromBody] CheckoutDraftState draft)
+    {
+        if (draft == null) return BadRequest();
+        if (!string.IsNullOrEmpty(draft.DraftId) && HttpContext.Session.GetString("ClearedDraft_" + draft.DraftId) == "true")
+        {
+            return Ok();
+        }
+
+        var key = GetDraftSessionKey();
+        var json = System.Text.Json.JsonSerializer.Serialize(draft);
+        HttpContext.Session.SetString(key, json);
+        return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ClearCheckoutDraft()
+    {
+        var key = GetDraftSessionKey();
+        HttpContext.Session.Remove(key);
+        return Ok();
+    }
+
+    private string GetDraftSessionKey()
+    {
+        var id = TryResolveUserId(out var userId) ? userId.ToString() : "Guest";
+        return $"CheckoutDraft_{id}";
     }
 
     private async Task<Cart> GetCurrentCartAsync()

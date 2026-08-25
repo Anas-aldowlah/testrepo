@@ -6,21 +6,42 @@
     'use strict';
 
     var STORAGE_KEY = 'yq-checkout-draft';
-    var SCHEMA_VERSION = 2;
-    var TTL_MS = 2 * 60 * 60 * 1000;
     var ALLOWED_FIELDS = ['Governorate', 'City', 'District', 'Street', 'DeliveryNotes'];
-    var DRAFT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    function clear() {
-        try {
-            window.localStorage.removeItem(STORAGE_KEY);
-        } catch (error) {
-            // Storage availability must never block navigation or checkout.
+    // Purge legacy PII from localStorage unconditionally
+    try {
+        window.localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {}
+
+    var serverDraft = null;
+
+    function getServerDraft() {
+        if (serverDraft !== null) return serverDraft;
+        var el = document.getElementById('yq-server-checkout-draft');
+        if (el && el.textContent) {
+            try {
+                serverDraft = JSON.parse(el.textContent);
+            } catch (e) {
+                serverDraft = {};
+            }
         }
+        return serverDraft;
     }
 
-    function isDraftId(value) {
-        return typeof value === 'string' && DRAFT_ID_PATTERN.test(value);
+    function getEndpointUrl(actionName) {
+        var form = document.getElementById('yqCheckoutForm');
+        var action = form ? form.getAttribute('action') : '/Orders/Checkout';
+        return action.replace(/\/Checkout\/?$/i, '/' + actionName);
+    }
+
+    function clear() {
+        serverDraft = {};
+        if (window.fetch) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var headers = {};
+            if (token) headers['RequestVerificationToken'] = token.value;
+            window.fetch(getEndpointUrl('ClearCheckoutDraft'), { method: 'POST', headers: headers }).catch(function(){});
+        }
     }
 
     function createDraftId() {
@@ -39,93 +60,49 @@
             hex.slice(16, 20) + '-' + hex.slice(20);
     }
 
+    function read(userId) {
+        var draft = getServerDraft();
+        if (!draft || Object.keys(draft).length === 0) return null;
+        return {
+            draftId: draft.DraftId,
+            userId: String(userId),
+            fields: draft
+        };
+    }
+
     function normalizeFields(value) {
         if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-
         var fields = {};
-        for (var index = 0; index < ALLOWED_FIELDS.length; index += 1) {
-            var name = ALLOWED_FIELDS[index];
-            if (typeof value[name] !== 'string') return null;
-            fields[name] = value[name];
+        for (var i = 0; i < ALLOWED_FIELDS.length; i++) {
+            var name = ALLOWED_FIELDS[i];
+            if (typeof value[name] === 'string') fields[name] = value[name];
         }
-
-        if (Object.keys(value).some(function (name) { return ALLOWED_FIELDS.indexOf(name) === -1; })) {
-            return null;
-        }
-
         return fields;
     }
 
-    function readRecord(now) {
-        try {
-            var raw = window.localStorage.getItem(STORAGE_KEY);
-            if (!raw) return null;
-
-            var record = JSON.parse(raw);
-            var fields = record && normalizeFields(record.fields);
-            var valid = record &&
-                record.version === SCHEMA_VERSION &&
-                typeof record.userId === 'string' &&
-                record.userId.length > 0 &&
-                isDraftId(record.draftId) &&
-                Number.isFinite(record.savedAt) &&
-                Number.isFinite(record.expiresAt) &&
-                record.expiresAt === record.savedAt + TTL_MS &&
-                record.savedAt <= now &&
-                record.expiresAt > now &&
-                fields;
-
-            if (!valid) {
-                clear();
-                return null;
-            }
-
-            record.fields = fields;
-            return record;
-        } catch (error) {
-            clear();
-            return null;
-        }
-    }
-
-    function read(userId) {
-        var record = readRecord(Date.now());
-        if (!record) return null;
-
-        if (!userId || record.userId !== String(userId)) {
-            clear();
-            return null;
-        }
-
-        return record;
-    }
-
     function write(userId, draftId, fields) {
-        var normalizedFields = normalizeFields(fields);
-        if (!userId || !isDraftId(draftId) || !normalizedFields) return false;
+        var normalized = normalizeFields(fields);
+        if (!normalized) return false;
 
-        var savedAt = Date.now();
-        var record = {
-            version: SCHEMA_VERSION,
-            userId: String(userId),
-            draftId: draftId,
-            savedAt: savedAt,
-            expiresAt: savedAt + TTL_MS,
-            fields: normalizedFields
-        };
+        normalized.DraftId = draftId;
+        serverDraft = normalized;
 
-        try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
-            return true;
-        } catch (error) {
-            return false;
+        if (window.fetch) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var headers = { 'Content-Type': 'application/json' };
+            if (token) headers['RequestVerificationToken'] = token.value;
+            window.fetch(getEndpointUrl('SaveCheckoutDraft'), {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(normalized)
+            }).catch(function(){});
         }
+        return true;
     }
 
     function remove(draftId) {
-        if (!isDraftId(draftId)) return false;
-        var record = readRecord(Date.now());
-        if (!record || record.draftId !== draftId) return false;
+        var record = read();
+        if (record && record.draftId !== draftId) return false;
         clear();
         return true;
     }
@@ -139,9 +116,6 @@
             return false;
         }
     }
-
-    // Purge malformed, legacy, or expired records as soon as the shared owner loads.
-    readRecord(Date.now());
 
     document.addEventListener('submit', function (event) {
         if (isLogoutForm(event.target)) clear();
