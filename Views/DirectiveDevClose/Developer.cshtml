@@ -10,7 +10,8 @@
     <title>المنصة الإلكترونية | قيد التطوير</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/fonts/font-delivery.css" asp-append-version="true" />
-    <style>
+    <style nonce="@Context.Items["csp-nonce"]">
+        .yq-dev-submit-btn { border: 3px Gold solid; background: transparent; width: 100%; cursor: pointer; }
         /* ===== RESET & BASE ===== */
         * {
             margin: 0;
@@ -365,7 +366,7 @@
             </div>
             <hr />
             <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true">
-                <button type="submit" class="title-small" style="border:3px Gold solid; background:transparent; width:100%; cursor:pointer;">
+                <button type="submit" class="title-small yq-dev-submit-btn">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     الرجوع إلى القائمة السابقة
                 </button>

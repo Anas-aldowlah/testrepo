@@ -156,7 +156,7 @@
 
                 @if (Model.RetailSizes.Count > 0)
                 {
-                    <div class="yq-shop-filter-group" id="yqRetailSizeGroup" style="display: @(request.Retail == "no" ? "none" : "block")">
+                    <div class="yq-shop-filter-group @(request.Retail == "no" ? "d-none" : "")" id="yqRetailSizeGroup">
                         <span class="yq-shop-filter-group__label" id="yqRetailSizeGroupLabel">حجم التجزئة</span>
                         <div class="yq-shop-filter-options" role="group" aria-labelledby="yqRetailSizeGroupLabel">
                             @foreach (var size in Model.RetailSizes)

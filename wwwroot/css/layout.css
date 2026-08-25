@@ -1789,3 +1789,13 @@ body {
     }
   
 }
+
+
+
+
+
+.yq-receipt-upload-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--yq-border); }
+.yq-receipt-upload-input { background-color: var(--yq-bg-input); color: var(--yq-text-main); border: 1px solid var(--yq-border); padding: 0.5rem; border-radius: var(--yq-radius-sm); }
+.yq-receipt-upload-note { color: var(--yq-text-soft); }
+
+.yq-brand-link { color: inherit; text-decoration: underline dotted; }

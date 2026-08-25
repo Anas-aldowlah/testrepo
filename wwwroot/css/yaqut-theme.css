@@ -1194,7 +1194,7 @@ a {
     box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
 }
 
-.yaqut-auth-submit {
+.yaqut-auth-submit { text-decoration: none;
     width: 100%;
     margin-top: 0.65rem;
     padding: 1rem;
@@ -1543,7 +1543,7 @@ a {
     box-shadow: 0 0 0 4px rgba(31, 143, 77, 0.14);
 }
 
-.yq-login-view .yaqut-auth-submit {
+.yq-login-view .yaqut-auth-submit { text-decoration: none;
     min-height: 54px;
     margin-top: 0.4rem;
     font-size: 1rem;
@@ -1740,7 +1740,7 @@ a {
     margin-top: 0.2rem;
 }
 
-.yq-register-actions .yaqut-auth-submit {
+.yq-register-actions .yaqut-auth-submit { text-decoration: none;
     margin-top: 0;
 }
 
@@ -1886,7 +1886,7 @@ a {
         line-height: 1.45;
     }
 
-    .yq-register-actions .yaqut-auth-submit {
+    .yq-register-actions .yaqut-auth-submit { text-decoration: none;
         min-height: 52px;
     }
 }
@@ -2904,4 +2904,16 @@ html[data-theme="dark"] .yq-google-unlinked-alert {
 
 
 
+
+
+.yaqut-auth-card--single { grid-template-columns: 1fr; max-width: 550px; margin: 0 auto; }
+
+
+.yq-login-kicker-icon { width: 1rem; }
+.yq-auth-links-container { text-align: center; margin-top: 1.5rem; margin-bottom: 1rem; }
+
+
+.yq-stepper-progress-bar.yq-step-1 { width: 0%; }
+.yq-stepper-progress-bar.yq-step-2 { width: 50%; }
+.yq-stepper-progress-bar.yq-step-3 { width: 100%; }
 

@@ -78,7 +78,7 @@
         if (!sizeGroup) return;
         var selectedRetail = filterForm.querySelector('input[name="retail"]:checked');
         var retailIsUnavailable = selectedRetail && selectedRetail.value === 'no';
-        sizeGroup.style.display = retailIsUnavailable ? 'none' : 'block';
+        sizeGroup.classList.toggle('d-none', retailIsUnavailable);
         if (retailIsUnavailable) {
             sizeGroup.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
                 checkbox.checked = false;

@@ -71,7 +71,7 @@
             <i class="bi bi-exclamation-triangle yaqut-empty__icon"></i>
             <h2 class="yq-orders-empty__title">تعذّر تحميل طلباتك</h2>
             <p class="yaqut-empty__text">حدث خطأ أثناء جلب بيانات طلباتك. حاول تحديث الصفحة، أو تواصل معنا إن استمرت المشكلة.</p>
-            <button type="button" class="btn-yaqut-gold mt-3" onclick="window.location.reload()">
+            <button type="button" class="btn-yaqut-gold mt-3" id="yq-btn-reload">
                 <i class="bi bi-arrow-clockwise"></i> إعادة المحاولة
             </button>
         </div>
@@ -184,7 +184,8 @@
                     @if (!isCancelled)
                     {
                         <div class="yq-order-card__progress" aria-hidden="true">
-                            <div class="yq-order-card__progress-bar" style="width:@(StatusProgress(order.Status))%"></div>
+                            <style nonce="@Context.Items["csp-nonce"]">.yq-progress-@order.Id { width: @(StatusProgress(order.Status))%; }</style>
+                            <div class="yq-order-card__progress-bar yq-progress-@order.Id"></div>
                         </div>
                     }
 
@@ -216,3 +217,9 @@
 @section Scripts {
     <script src="~/js/orders/index.js" asp-append-version="true"></script>
 }
+
+<script nonce="@Context.Items["csp-nonce"]">
+    document.getElementById('yq-btn-reload')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>

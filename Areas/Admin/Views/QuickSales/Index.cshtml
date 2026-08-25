@@ -32,11 +32,11 @@
     }
 
     <!-- HEADER STATUS BAR -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #111622 0%, #1e293b 100%); border: 1px solid rgba(212, 175, 55, 0.2) !important;">
+    <div class="yq-qs-hero-card card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
         <div class="card-body p-4 text-white">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle p-3 d-flex align-items-center justify-content-center" style="background: rgba(212, 175, 55, 0.15); width: 60px; height: 60px; border: 1px solid rgba(212, 175, 55, 0.3);">
+                    <div class="yq-qs-hero-icon rounded-circle p-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-lightning-charge-fill text-warning fs-2"></i>
                     </div>
                     <div>
@@ -74,7 +74,7 @@
         <div class="row g-4 mb-4">
             <!-- NEW SALE ACTION CARD -->
             <div class="col-md-6 col-xl-3">
-                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.25) !important;">
+                <div class="yq-qs-action-gold card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-warning bg-opacity-10 p-3 mb-3 text-warning">
                         <i class="bi bi-cart-plus-fill fs-2"></i>
                     </div>
@@ -88,7 +88,7 @@
 
             <!-- TODAY'S LEDGER CARD -->
             <div class="col-md-6 col-xl-3">
-                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25) !important;">
+                <div class="yq-qs-action-green card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-success bg-opacity-10 p-3 mb-3 text-success">
                         <i class="bi bi-journal-check fs-2"></i>
                     </div>
@@ -105,7 +105,7 @@
 
             <!-- DRAFTS ACTION CARD -->
             <div class="col-md-6 col-xl-3">
-                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(30, 41, 59, 0.03); border: 1px solid rgba(148, 163, 184, 0.2) !important;">
+                <div class="yq-qs-action-gray card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-secondary bg-opacity-10 p-3 mb-3 text-primary">
                         <i class="bi bi-journal-bookmark-fill fs-2"></i>
                     </div>
@@ -124,7 +124,7 @@
 
             <!-- HISTORY CARD -->
             <div class="col-md-6 col-xl-3">
-                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center" style="background: rgba(59, 130, 246, 0.03); border: 1px solid rgba(59, 130, 246, 0.2) !important;">
+                <div class="yq-qs-action-blue card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-info bg-opacity-10 p-3 mb-3 text-info">
                         <i class="bi bi-clock-history fs-2"></i>
                     </div>
@@ -151,12 +151,12 @@
                     <table class="table table-hover align-middle mb-0 w-100">
                         <thead class="bg-light">
                             <tr>
-                                <th style="width: 20%;">رقم الفاتورة</th>
-                                <th style="width: 20%;">اسم العميل</th>
-                                <th style="width: 15%;">عدد العناصر</th>
-                                <th style="width: 20%;">المبلغ الإجمالي</th>
-                                <th style="width: 15%;">آخر تحديث</th>
-                                <th style="width: 10%;">الإجراءات</th>
+                                <th class="yq-th-w20">رقم الفاتورة</th>
+                                <th class="yq-th-w20">اسم العميل</th>
+                                <th class="yq-th-w15">عدد العناصر</th>
+                                <th class="yq-th-w20">المبلغ الإجمالي</th>
+                                <th class="yq-th-w15">آخر تحديث</th>
+                                <th class="yq-th-w10">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -166,7 +166,7 @@
                                     <td><strong class="text-warning text-nowrap">@draft.InvoiceNumber</strong></td>
                                     <td class="pos-text-main fw-bold">@(string.IsNullOrWhiteSpace(draft.CustomerName) ? "عميل عادي" : draft.CustomerName)</td>
                                     <td><span class="badge bg-info text-dark px-2 py-1 fw-bold text-nowrap">@draft.SaleItems.Count عنصر</span></td>
-                                    <td class="text-nowrap"><strong class="pos-text-main fw-bold">@draft.FinalAmount.ToString("N2") ر.س</strong></td>
+                                    <td class="text-nowrap pos-text-main fw-bold"><strong >@draft.FinalAmount.ToString("N2") ر.س</strong></td>
                                     <td class="pos-text-muted small text-nowrap">@((draft.UpdatedAt ?? draft.CreatedAt).ToString("yyyy/MM/dd HH:mm"))</td>
                                     <td class="text-nowrap">
                                         <a asp-action="NewSale" asp-route-draftId="@draft.Id" class="btn btn-sm btn-yaqut-gold fw-bold me-1">
@@ -184,12 +184,12 @@
     else
     {
         <!-- NO OPEN DAY PROMPT -->
-        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="background: rgba(239, 68, 68, 0.03); border: 1px dashed rgba(239, 68, 68, 0.3) !important;">
+        <div class="yq-qs-warning-box card border-0 shadow-sm rounded-4 p-5 text-center my-4">
             <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-4 d-inline-flex mb-3">
                 <i class="bi bi-calendar-x-fill display-4"></i>
             </div>
             <h3 class="h4 fw-bold mb-2">لا يوجد يوم بيع مفتوح حالياً</h3>
-            <p class="text-muted mb-4" style="max-width: 500px; margin: 0 auto;">
+            <p class="yq-qs-warning-text text-muted mb-4">
                 بدء عمليات البيع المباشرة والمسودات يتطلب فتح يوم بيع جديد أولاً لتنظيم عمليات السجل اليومي.
             </p>
             <div class="d-flex justify-content-center gap-2">

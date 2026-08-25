@@ -302,21 +302,24 @@ app.UseResponseCompression();
 
 app.Use(async (context, next) =>
 {
-    context.Response.OnStarting(() =>
-    {
-        var headers = context.Response.Headers;
-        headers["X-Content-Type-Options"] = "nosniff";
-        headers["X-Frame-Options"] = "DENY";
-        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
-        headers["Content-Security-Policy"] =
-            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
-            "form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-            "img-src 'self' data: blob: https:; connect-src 'self'; upgrade-insecure-requests";
-        return Task.CompletedTask;
-    });
+        var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        context.Items["csp-nonce"] = nonce;
+
+        context.Response.OnStarting(() =>
+        {
+            var headers = context.Response.Headers;
+            headers["X-Content-Type-Options"] = "nosniff";
+            headers["X-Frame-Options"] = "DENY";
+            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+            headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+            headers["Content-Security-Policy"] =
+                $"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
+                $"form-action 'self'; script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; " +
+                $"style-src 'self' 'nonce-{nonce}' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                $"font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                $"img-src 'self' data: blob: https:; connect-src 'self'; upgrade-insecure-requests";
+            return Task.CompletedTask;
+        });
 
     await next();
 });
