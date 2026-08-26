@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YAGOT_2._0.Models;
@@ -11,9 +12,11 @@ using YAGOT_2._0.Models;
 namespace YAGOT_2._0.Migrations
 {
     [DbContext(typeof(NeondbContext))]
-    partial class NeondbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826083642_DH03InventoryConflictWorkflow")]
+    partial class DH03InventoryConflictWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

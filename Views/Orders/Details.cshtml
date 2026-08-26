@@ -5,8 +5,11 @@
 @{
     ViewData["Title"] = $"تفاصيل الطلب {Model.Trackingnumber} | ياقوت";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
-    const decimal freeShippingThreshold = 500;
-    var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
+    var fulfilledValue = Model.Finalfulfilledamount ?? Model.Totalamount;
+    var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(fulfilledValue);
+    var isConflictAwaitingDecision = Model.Paymentstatus == "Paid" &&
+        Model.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
+    var canContinueConflict = items.Sum(item => Math.Max(0, item.Quantity - (item.UnavailableQuantity ?? 0))) > 0;
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
@@ -50,6 +53,36 @@
 }
 
 <div class="yq-order-details">
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
+    }
+    else if (TempData["Success"] != null)
+    {
+        <div class="yaqut-alert yaqut-alert--success" role="status">@TempData["Success"]</div>
+    }
+
+    @if (isConflictAwaitingDecision)
+    {
+        <section class="yq-od-card yq-glass" aria-labelledby="inventoryDecisionTitle">
+            <h2 id="inventoryDecisionTitle" class="yq-od-card__title"><i class="bi bi-exclamation-triangle"></i> يلزم اتخاذ قرار بشأن المخزون</h2>
+            <p>تم التحقق من الدفع، لكن بعض الكميات غير متوفرة. اختر إلغاء الطلب بالكامل أو متابعة الكميات المتاحة فقط.</p>
+            <div class="yq-od-summary__actions">
+                <form asp-action="CancelInventoryConflict" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn-yaqut-outline yq-od-summary__btn">إلغاء الطلب بالكامل</button>
+                </form>
+                @if (canContinueConflict)
+                {
+                    <form asp-action="ContinueInventoryConflict" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn-yaqut-gold yq-od-summary__btn">متابعة الطلب بدون المنتجات غير المتوفرة</button>
+                    </form>
+                }
+            </div>
+        </section>
+    }
 
     <!-- BREADCRUMB -->
     <nav class="yq-od-breadcrumb yq-reveal" aria-label="مسار التصفح">
@@ -149,8 +182,8 @@
                 <div class="yq-od-payment">
                     <span class="yq-od-payment__icon"><i class="bi bi-cash-coin"></i></span>
                     <div>
-                        <strong>الدفع عند الاستلام</strong>
-                        <p>يتم تحصيل المبلغ نقداً عند استلام الطلب</p>
+                        <strong>@(!string.IsNullOrWhiteSpace(Model.Paymentmethod) ? Model.Paymentmethod : "طريقة دفع غير محددة")</strong>
+                        <p>@(Model.Paymentstatus == "Paid" ? "تم توثيق تحقق المسؤول من الدفع." : "الدفع بانتظار مراجعة المسؤول.")</p>
                     </div>
                 </div>
             </section>
@@ -173,6 +206,14 @@
                                     @item.Product?.Name
                                 </a>
                                 <span class="yq-od-product__meta">الكمية: @item.Quantity × @item.Unitprice.ToString("N0") ر.س</span>
+                                @if (item.UnavailableQuantity.HasValue)
+                                {
+                                    <span class="yq-od-product__meta">المتاح: @Math.Max(0, item.Quantity - item.UnavailableQuantity.Value) — غير المتوفر: @item.UnavailableQuantity</span>
+                                }
+                                @if (item.FulfilledQuantity.HasValue)
+                                {
+                                    <span class="yq-od-product__meta">الكمية المنفذة: @item.FulfilledQuantity</span>
+                                }
                             </div>
                             <span class="yq-od-product__total">@lineTotal.ToString("N0") ر.س</span>
                         </div>
@@ -204,9 +245,23 @@
             <div class="yq-od-summary__divider"></div>
 
             <div class="yq-od-summary__row yq-od-summary__row--total">
-                <span>الإجمالي</span>
+                <span>المبلغ الأصلي المدفوع</span>
                 <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
             </div>
+            @if (Model.Finalfulfilledamount.HasValue)
+            {
+                <div class="yq-od-summary__row">
+                    <span>قيمة الطلب المنفذ</span>
+                    <span>@Model.Finalfulfilledamount.Value.ToString("N0") <small>ر.س</small></span>
+                </div>
+            }
+            @if (Model.Refundrequiredamount.HasValue && Model.Refundrequiredamount.Value > 0)
+            {
+                <div class="yq-od-summary__row">
+                    <span>الاسترداد المطلوب</span>
+                    <span>@Model.Refundrequiredamount.Value.ToString("N0") <small>ر.س</small></span>
+                </div>
+            }
 
             <div class="yq-od-summary__actions">
                 <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-outline yq-od-summary__btn">

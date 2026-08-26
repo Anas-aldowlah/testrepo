@@ -29,6 +29,18 @@ public partial class Order
 
     public string? Receipturl { get; set; }
 
+    public DateTime? Paymentverifiedat { get; set; }
+
+    public int? Paymentverifiedbyuserid { get; set; }
+
+    public string? Workflowstate { get; set; }
+
+    public decimal? Refundrequiredamount { get; set; }
+
+    public string? Refundreason { get; set; }
+
+    public decimal? Finalfulfilledamount { get; set; }
+
     public virtual Deliveryorder? Deliveryorder { get; set; }
 
     public virtual Orderdetail? Orderdetail { get; set; }

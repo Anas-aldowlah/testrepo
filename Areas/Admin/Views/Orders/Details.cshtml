@@ -58,6 +58,25 @@
         _ => "yq-orders-badge--neutral"
     };
     var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var isConflictAwaitingDecision = Model.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
+    var canVerifyPayment = Model.Status == "Pending" &&
+        !Model.Stockdeducted &&
+        !Model.Paymentverifiedat.HasValue &&
+        string.IsNullOrWhiteSpace(Model.Workflowstate) &&
+        Model.Paymentstatus is "Unpaid" or "Pending";
+    var paymentStatusLabel = Model.Paymentstatus switch
+    {
+        "Paid" => "تم التحقق من الدفع",
+        "Pending" => "بانتظار مراجعة الدفع",
+        "Refunded" => "تم تسجيل الاسترداد",
+        _ => "غير مدفوع"
+    };
+    var refundReasonLabel = Model.Refundreason switch
+    {
+        OrderWorkflowStates.PartialUnavailableRefund => "كميات غير متوفرة بعد إعادة فحص المخزون",
+        OrderWorkflowStates.FullCancellationRefund => "إلغاء كامل بسبب تعارض المخزون",
+        _ => null
+    };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
     var isCancelled = Model.Status is "Cancelled" or "Refunded";
     if (currentStepIndex < 0)
@@ -116,6 +135,14 @@
         <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--success" role="status">
             <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
             <span>@TempData["Success"]</span>
+        </div>
+    }
+
+    @if (isConflictAwaitingDecision)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span>تم التحقق من الدفع، لكن يوجد تعارض في المخزون. لم يُخصم المخزون والطلب بانتظار قرار العميل.</span>
         </div>
     }
 
@@ -203,7 +230,10 @@
                                 <tr>
                                     <th scope="col">المنتج</th>
                                     <th scope="col">سعر الوحدة</th>
-                                    <th scope="col">الكمية</th>
+                                    <th scope="col">المطلوب</th>
+                                    <th scope="col">المتاح عند الفحص</th>
+                                    <th scope="col">غير المتوفر</th>
+                                    <th scope="col">المنفذ</th>
                                     <th scope="col">الإجمالي</th>
                                 </tr>
                             </thead>
@@ -211,6 +241,8 @@
                                 @foreach (var item in items)
                                 {
                                     var lineTotal = item.Quantity * item.Unitprice;
+                                    var unavailable = item.UnavailableQuantity ?? 0;
+                                    var availableAtCheck = Math.Max(0, item.Quantity - unavailable);
                                     <tr>
                                         <td data-label="المنتج">
                                             <div class="yq-order-product">
@@ -231,7 +263,10 @@
                                             </div>
                                         </td>
                                         <td data-label="سعر الوحدة">@item.Unitprice.ToString("N0") ر.س</td>
-                                        <td data-label="الكمية">@item.Quantity</td>
+                                        <td data-label="المطلوب">@item.Quantity</td>
+                                        <td data-label="المتاح عند الفحص">@(item.UnavailableQuantity.HasValue ? availableAtCheck.ToString() : "-")</td>
+                                        <td data-label="غير المتوفر">@(item.UnavailableQuantity?.ToString() ?? "-")</td>
+                                        <td data-label="المنفذ">@(item.FulfilledQuantity?.ToString() ?? "-")</td>
                                         <td data-label="الإجمالي"><strong>@lineTotal.ToString("N0") ر.س</strong></td>
                                     </tr>
                                 }
@@ -298,6 +333,36 @@
                         <span>حفظ الحالة</span>
                     </button>
                 </form>
+
+                <hr />
+                <dl class="yq-order-info-list">
+                    <div>
+                        <dt>حالة التحقق من الدفع</dt>
+                        <dd>@paymentStatusLabel</dd>
+                    </div>
+                    @if (Model.Paymentverifiedat.HasValue)
+                    {
+                        <div>
+                            <dt>وقت التحقق</dt>
+                            <dd>@Model.Paymentverifiedat.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                        </div>
+                        <div>
+                            <dt>معرّف المسؤول المتحقق</dt>
+                            <dd>@Model.Paymentverifiedbyuserid</dd>
+                        </div>
+                    }
+                </dl>
+                @if (canVerifyPayment)
+                {
+                    <form asp-action="VerifyPayment" method="post" class="yq-order-status-form">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <p>هذا الإجراء هو إقرار المسؤول بمراجعة دليل الدفع المتاح، بما في ذلك الدليل الخارجي اليدوي عند عدم وجود إيصال مخزن.</p>
+                        <button type="submit" class="btn-yaqut-gold">
+                            <i class="bi bi-shield-check" aria-hidden="true"></i>
+                            <span>تحقق من الدفع</span>
+                        </button>
+                    </form>
+                }
             </section>
 
             <section class="yq-order-detail-card" aria-labelledby="customerInfoTitle">
@@ -398,9 +463,24 @@
                         </div>
                     }
                     <div class="yq-order-totals__total">
-                        <dt>إجمالي الطلب</dt>
+                        <dt>المبلغ الأصلي المدفوع</dt>
                         <dd>@Model.Totalamount.ToString("N0") ر.س</dd>
                     </div>
+                    <div>
+                        <dt>قيمة الطلب المنفذ</dt>
+                        <dd>@(Model.Finalfulfilledamount.HasValue ? $"{Model.Finalfulfilledamount.Value:N0} ر.س" : "لم تتحدد بعد")</dd>
+                    </div>
+                    <div>
+                        <dt>الاسترداد المطلوب</dt>
+                        <dd>@(Model.Refundrequiredamount.HasValue ? $"{Model.Refundrequiredamount.Value:N0} ر.س" : "لم يتحدد قبل قرار العميل")</dd>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(refundReasonLabel))
+                    {
+                        <div>
+                            <dt>سبب الاسترداد</dt>
+                            <dd>@refundReasonLabel</dd>
+                        </div>
+                    }
                 </dl>
             </section>
         </aside>

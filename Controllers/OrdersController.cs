@@ -249,6 +249,54 @@ public class OrdersController : Controller
         return View(order);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelInventoryConflict(int id)
+    {
+        var userId = await ResolveUserIdAsync();
+        try
+        {
+            if (!await _orderService.CancelInventoryConflictAsync(id, userId, HttpContext.RequestAborted))
+                return NotFound();
+
+            TempData["Success"] = "تم إلغاء الطلب بالكامل وتسجيل مبلغ الاسترداد المطلوب.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["Error"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ContinueInventoryConflict(int id)
+    {
+        var userId = await ResolveUserIdAsync();
+        try
+        {
+            var outcome = await _orderService.ContinueInventoryConflictAsync(id, userId, HttpContext.RequestAborted);
+            switch (outcome)
+            {
+                case ContinueInventoryConflictOutcome.NotFound:
+                    return NotFound();
+                case ContinueInventoryConflictOutcome.CancellationRequired:
+                    TempData["Error"] = "أصبحت جميع المنتجات غير متوفرة. يرجى إلغاء الطلب بالكامل.";
+                    break;
+                default:
+                    TempData["Success"] = "تمت متابعة الطلب بالكميات المتوفرة وتسجيل مبلغ الاسترداد المطلوب.";
+                    break;
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["Error"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]

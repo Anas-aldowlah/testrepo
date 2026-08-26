@@ -170,7 +170,14 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.HasKey(e => e.Id).HasName("orders_pkey");
 
             entity.ToTable("orders", t =>
-                t.HasCheckConstraint("ck_orders_totalamount_nonnegative", "totalamount >= 0"));
+            {
+                t.HasCheckConstraint("ck_orders_totalamount_nonnegative", "totalamount >= 0");
+                t.HasCheckConstraint("ck_orders_refundrequiredamount_range", "refundrequiredamount IS NULL OR (refundrequiredamount >= 0 AND refundrequiredamount <= totalamount)");
+                t.HasCheckConstraint("ck_orders_finalfulfilledamount_range", "finalfulfilledamount IS NULL OR (finalfulfilledamount >= 0 AND finalfulfilledamount <= totalamount)");
+                t.HasCheckConstraint("ck_orders_financial_resolution_balance", "finalfulfilledamount IS NULL OR refundrequiredamount IS NULL OR finalfulfilledamount + refundrequiredamount = totalamount");
+                t.HasCheckConstraint("ck_orders_payment_verification_pair", "(paymentverifiedat IS NULL) = (paymentverifiedbyuserid IS NULL)");
+                t.HasCheckConstraint("ck_orders_workflowstate", "workflowstate IS NULL OR workflowstate IN ('ConflictAwaitingDecision', 'ConflictResolvedContinue', 'ConflictResolvedCancel')");
+            });
 
             entity.HasIndex(e => new { e.Status, e.Orderdate }, "ix_orders_status_orderdate")
                 .IsDescending(false, true);
@@ -193,7 +200,23 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasMaxLength(50)
                 .HasDefaultValueSql("'Unpaid'::character varying")
                 .HasColumnName("paymentstatus");
+            entity.Property(e => e.Paymentverifiedat)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("paymentverifiedat");
+            entity.Property(e => e.Paymentverifiedbyuserid).HasColumnName("paymentverifiedbyuserid");
             entity.Property(e => e.Receipturl).HasColumnName("receipturl");
+            entity.Property(e => e.Workflowstate)
+                .HasMaxLength(50)
+                .HasColumnName("workflowstate");
+            entity.Property(e => e.Refundrequiredamount)
+                .HasPrecision(10, 2)
+                .HasColumnName("refundrequiredamount");
+            entity.Property(e => e.Refundreason)
+                .HasMaxLength(100)
+                .HasColumnName("refundreason");
+            entity.Property(e => e.Finalfulfilledamount)
+                .HasPrecision(10, 2)
+                .HasColumnName("finalfulfilledamount");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -278,6 +301,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             {
                 t.HasCheckConstraint("ck_orderitems_quantity_positive", "quantity > 0");
                 t.HasCheckConstraint("ck_orderitems_unitprice_nonnegative", "unitprice >= 0");
+                t.HasCheckConstraint("ck_orderitems_fulfilled_quantity_range", "fulfilled_quantity IS NULL OR (fulfilled_quantity >= 0 AND fulfilled_quantity <= quantity)");
+                t.HasCheckConstraint("ck_orderitems_unavailable_quantity_range", "unavailable_quantity IS NULL OR (unavailable_quantity >= 0 AND unavailable_quantity <= quantity)");
             });
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
@@ -286,6 +311,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.RetailPriceId).HasColumnName("retail_price_id");
             entity.Property(e => e.RetailSizeMl).HasColumnName("retail_size_ml");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.FulfilledQuantity).HasColumnName("fulfilled_quantity");
+            entity.Property(e => e.UnavailableQuantity).HasColumnName("unavailable_quantity");
             entity.Property(e => e.Unitprice)
                 .HasPrecision(10, 2)
                 .HasColumnName("unitprice");

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
@@ -104,7 +105,8 @@ public class OrdersController : Controller
             PendingCount = await query.CountAsync(o => o.Status == "Pending"),
             ActiveCount = await query.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
             DeliveredCount = await query.CountAsync(o => o.Status == "Delivered"),
-            TotalRevenue = await query.WhereRevenueEligible().SumAsync(o => (decimal?)o.Totalamount) ?? 0m
+            TotalRevenue = await query.WhereRevenueEligible()
+                .SumAsync(o => (decimal?)(o.Finalfulfilledamount ?? o.Totalamount)) ?? 0m
         };
 
         return View(model);
@@ -250,53 +252,32 @@ public class OrdersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdatePaymentStatus(int id, string paymentStatus, bool returnToDetails = false)
+    public async Task<IActionResult> VerifyPayment(int id)
     {
-        var allowed = new[] { "Unpaid", "Pending", "Paid", "Refunded" };
-        if (!allowed.Contains(paymentStatus))
-        {
-            TempData["Error"] = "حالة الدفع غير صالحة.";
-            return returnToDetails 
-                ? RedirectToAction(nameof(Details), new { id })
-                : RedirectToAction(nameof(Index));
-        }
+        var adminIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(adminIdValue, out var adminId) || adminId <= 0)
+            return Forbid();
 
         try
         {
-            // Paid and Refunded both pass through the same Serializable transaction,
-            // product row locks, and Stockdeducted checks as order status updates.
-            if (!await _orderService.UpdatePaymentStatusAsync(id, paymentStatus))
+            if (!await _orderService.VerifyPaymentAsync(id, adminId, HttpContext.RequestAborted))
                 return NotFound();
 
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                return Json(new
-                {
-                    success = true,
-                    message = $"تم تحديث حالة الدفع للطلب #{id} بنجاح.",
-                    status = paymentStatus
-                });
-            }
-
-            TempData["Success"] = paymentStatus == "Refunded"
-                ? $"تم استرداد الطلب #{id} وإعادة مخزونه بنجاح."
-                : $"تم تحديث حالة الدفع للطلب #{id} بنجاح.";
+            TempData["Success"] = "تم توثيق تحقق المسؤول من الدفع وتحديث الطلب وفق حالة المخزون.";
         }
         catch (InvalidOperationException ex)
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = ex.Message });
             TempData["Error"] = ex.Message;
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء تحديث حالة الدفع." });
-            TempData["Error"] = "An unexpected error occurred while updating payment status.";
+            TempData["Error"] = "حدث خطأ غير متوقع أثناء التحقق من الدفع.";
         }
 
-        return returnToDetails 
-            ? RedirectToAction(nameof(Details), new { id })
-            : RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

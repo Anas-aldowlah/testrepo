@@ -19,6 +19,10 @@ public partial class Orderitem
 
     public decimal Unitprice { get; set; }
 
+    public int? FulfilledQuantity { get; set; }
+
+    public int? UnavailableQuantity { get; set; }
+
     public virtual Order Order { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
