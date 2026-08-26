@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Data;
@@ -130,40 +130,67 @@ public class UsersController : Controller
             return RedirectToAction(nameof(Details), new { id = userId });
         }
 
-        var userSite = await _context.UserSites
-            .FirstOrDefaultAsync(us => us.UserId == userId);
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            _context.ChangeTracker.Clear();
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-        // 2. حظر المدير من تعديل دور شخص هو بالأساس Developer
-        if (!isCurrentUserDeveloper && userSite != null && userSite.Role == "Developer")
-        {
-            TempData["ErrorMessage"] = "عذراً، لا يمكنك تعديل صلاحيات حسابات المطورين.";
-            return RedirectToAction(nameof(Details), new { id = userId });
-        }
+            var userSite = await _context.UserSites
+                .FirstOrDefaultAsync(us => us.UserId == userId);
 
-        if (string.Equals(userSite?.Role, newRole, StringComparison.Ordinal))
-        {
-            return RedirectToAction(nameof(Details), new { id = userId });
-        }
-
-        // إتمام التعديل
-        if (userSite != null)
-        {
-            userSite.Role = newRole;
-            _context.UserSites.Update(userSite);
-        }
-        else
-        {
-            var newUserSite = new YAGOT_2._0.Models.UserSite
+            // 2. حظر المدير من تعديل دور شخص هو بالأساس Developer
+            if (!isCurrentUserDeveloper && userSite != null && userSite.Role == "Developer")
             {
-                UserId = userId,
-                Role = newRole
-            };
-            await _context.UserSites.AddAsync(newUserSite);
-        }
+                TempData["ErrorMessage"] = "عذراً، لا يمكنك تعديل صلاحيات حسابات المطورين.";
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
 
-        await _context.SaveChangesAsync();
-        TempData["SuccessMessage"] = "تم تحديث دور المستخدم بنجاح.";
+            if (string.Equals(userSite?.Role, newRole, StringComparison.Ordinal))
+            {
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
 
-        return RedirectToAction(nameof(Details), new { id = userId });
+            // 3. منع فقدان آخر حساب بصلاحيات عليا (SM-17 & BM-17)
+            if (userSite != null && (userSite.Role == "Developer" || userSite.Role == "Admin"))
+            {
+                var devCount = await _context.UserSites.CountAsync(us => us.Role == "Developer");
+                var adminCount = await _context.UserSites.CountAsync(us => us.Role == "Admin");
+
+                if (userSite.Role == "Developer" && devCount <= 1)
+                {
+                    TempData["ErrorMessage"] = "لا يمكن تجريد المطور الوحيد في النظام من صلاحياته.";
+                    return RedirectToAction(nameof(Details), new { id = userId });
+                }
+
+                if (userSite.Role == "Admin" && devCount == 0 && adminCount <= 1)
+                {
+                    TempData["ErrorMessage"] = "لا يمكن تجريد المدير الوحيد في النظام من صلاحياته في غياب أي مطور.";
+                    return RedirectToAction(nameof(Details), new { id = userId });
+                }
+            }
+
+            // إتمام التعديل
+            if (userSite != null)
+            {
+                userSite.Role = newRole;
+                _context.UserSites.Update(userSite);
+            }
+            else
+            {
+                var newUserSite = new YAGOT_2._0.Models.UserSite
+                {
+                    UserId = userId,
+                    Role = newRole
+                };
+                await _context.UserSites.AddAsync(newUserSite);
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["SuccessMessage"] = "تم تحديث دور المستخدم بنجاح.";
+            return RedirectToAction(nameof(Details), new { id = userId });
+        });
     }
 }
