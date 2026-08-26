@@ -436,6 +436,7 @@ public class AccountController : Controller
         }
 
         var createdUserId = user.Id;
+        bool userSiteCreated = false;
 
         try
         {
@@ -446,6 +447,7 @@ public class AccountController : Controller
             };
             _db.UserSites.Add(userSite);
             await _db.SaveChangesAsync();
+            userSiteCreated = true;
 
             await SignInUserAsync(user, createdUserId);
             try
@@ -461,13 +463,28 @@ public class AccountController : Controller
         {
             _logger.LogError(ex, "Registration completed partially: User {UserId} was created in UsersDbContext, but secondary initialization failed. Executing compensating deletion.", createdUserId);
 
+            bool userSiteKept = false;
             try
             {
-                var userSiteToDelete = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == createdUserId);
-                if (userSiteToDelete != null)
+                if (userSiteCreated)
                 {
-                    _db.UserSites.Remove(userSiteToDelete);
-                    await _db.SaveChangesAsync();
+                    int deletedRows = await _db.UserSites
+                        .Where(s => s.UserId == createdUserId && s.Role == "Customer")
+                        .ExecuteDeleteAsync();
+
+                    if (deletedRows == 0)
+                    {
+                        userSiteKept = true;
+                        _logger.LogWarning("UserSite for user {UserId} was modified concurrently. Skipping compensating deletion.", createdUserId);
+                    }
+                }
+                else
+                {
+                    bool exists = await _db.UserSites.AnyAsync(s => s.UserId == createdUserId);
+                    if (exists)
+                    {
+                        userSiteKept = true;
+                    }
                 }
             }
             catch (Exception siteRollbackEx)
@@ -475,19 +492,22 @@ public class AccountController : Controller
                 _logger.LogWarning(siteRollbackEx, "Could not remove UserSite for user {UserId} during compensating rollback.", createdUserId);
             }
 
-            try
+            if (!userSiteKept)
             {
-                var userToDelete = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == createdUserId);
-                if (userToDelete != null)
+                try
                 {
-                    _dbUser.Users.Remove(userToDelete);
-                    await _dbUser.SaveChangesAsync();
-                    _logger.LogInformation("Compensating deletion succeeded for user {UserId}.", createdUserId);
+                    var userToDelete = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == createdUserId);
+                    if (userToDelete != null)
+                    {
+                        _dbUser.Users.Remove(userToDelete);
+                        await _dbUser.SaveChangesAsync();
+                        _logger.LogInformation("Compensating deletion succeeded for user {UserId}.", createdUserId);
+                    }
                 }
-            }
-            catch (Exception rollbackEx)
-            {
-                _logger.LogCritical(rollbackEx, "CRITICAL: Compensating deletion failed for user {UserId} in UsersDbContext.", createdUserId);
+                catch (Exception rollbackEx)
+                {
+                    _logger.LogCritical(rollbackEx, "CRITICAL: Compensating deletion failed for user {UserId} in UsersDbContext.", createdUserId);
+                }
             }
 
             return Json(new { success = false, message = "تعذر إكمال عملية التسجيل حالياً. يرجى المحاولة مرة أخرى." });
