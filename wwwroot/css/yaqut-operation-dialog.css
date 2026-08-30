@@ -45,9 +45,9 @@
 }
 
 .yq-operation-dialog__button--primary {
-    border-color: var(--yq-gold, #b8942e);
+    border-color: var(--yq-btn-gold);
     color: #17130a;
-    background: var(--yq-gold, #d4af37);
+    background: var(--yq-btn-gold);
 }
 
 .yq-operation-dialog__button--primary:hover { color: var(--yq-gold-dark, #96751f); }

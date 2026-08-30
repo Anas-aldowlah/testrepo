@@ -441,7 +441,7 @@
     padding: 1.15rem;
     margin-bottom: 0.9rem;
     border-radius: 999px;
-    background: var(--yq-gold-grad);
+    background: var(--yq-btn-gold-grad);
     color: #111;
     border: none;
     box-shadow: 0 8px 24px color-mix(in srgb, var(--yq-gold) 40%, transparent);
