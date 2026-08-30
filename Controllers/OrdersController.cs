@@ -49,11 +49,16 @@ public class OrdersController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string status = "all", string? search = null, int page = 1)
     {
         var userId = await ResolveUserIdAsync();
-        var orders = await _orderService.GetUserOrdersAsync(userId, HttpContext.RequestAborted);
-        return View(orders);
+        var model = await _orderService.GetUserOrdersPageAsync(
+            userId,
+            status,
+            search,
+            page,
+            HttpContext.RequestAborted);
+        return View(model);
     }
 
     [AllowAnonymous]
@@ -93,7 +98,13 @@ public class OrdersController : Controller
         model.Cart = cart;
 
         if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        {
+            if (IsAjaxRequest())
+                return ValidationProblem(ModelState);
+
+            await PopulateCheckoutPaymentMethodsAsync(model);
+            return View("Checkout", model);
+        }
 
         if (!TryResolveUserId(out var userId))
         {
@@ -122,7 +133,6 @@ public class OrdersController : Controller
                 }
                 catch (Exception exception)
                 {
-                    // Receipt storage is optional; WhatsApp remains the fallback.
                     _logger.LogWarning(exception, "Optional receipt storage failed for user {UserId}; checkout will continue.", userId);
                     receiptUrl = null;
                 }
@@ -133,25 +143,6 @@ public class OrdersController : Controller
                 model,
                 receiptUrl,
                 HttpContext.RequestAborted);
-
-            try
-            {
-                var whatsappNumber = NormalizeWhatsAppNumber((await _settingsService.GetSettingsAsync()).WhatsAppNumber);
-                if (!string.IsNullOrWhiteSpace(whatsappNumber))
-                {
-                    var request = HttpContext.Request;
-                    var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
-                    var ordernNumber = $"{order.Trackingnumber}";
-                    var textMessage = Uri.EscapeDataString($"مرحباً، أود تأكيد طلبي.\nرقم الطلب: {order.Id}\nرقم التتبع: {ordernNumber}\nتم رفع سند الدفع: {(string.IsNullOrEmpty(receiptUrl) ? "لا" : "نعم")}");
-                    TempData["WhatsAppUrl"] = $"https://wa.me/{whatsappNumber}?text={textMessage}";
-                }
-            }
-            catch (Exception exception)
-            {
-                // An already committed order must never be reported as failed because
-                // the optional WhatsApp handoff could not be prepared.
-                _logger.LogWarning(exception, "WhatsApp handoff preparation failed for order {OrderId}.", order.Id);
-            }
 
             if (Guid.TryParseExact(model.CheckoutDraftId, "D", out var checkoutDraftId))
             {
@@ -208,7 +199,16 @@ public class OrdersController : Controller
         }
         catch (Exception exception) when (exception is DbUpdateException or NpgsqlException or TimeoutException)
         {
-            _logger.LogError(exception, "Database failure during checkout for user {UserId}.", userId);
+            var correlationId = Guid.NewGuid().ToString("N");
+            var postgresException = FindException<PostgresException>(exception);
+            _logger.LogError(
+                "Checkout provider failure {CorrelationId}: ExceptionType={ExceptionType}; SqlState={SqlState}; Constraint={Constraint}; Table={Table}; Column={Column}",
+                correlationId,
+                exception.GetType().FullName,
+                postgresException?.SqlState,
+                postgresException?.ConstraintName,
+                postgresException?.TableName,
+                postgresException?.ColumnName);
             return await HandleCheckoutFailureAsync(
                 model,
                 StatusCodes.Status503ServiceUnavailable,
@@ -236,6 +236,11 @@ public class OrdersController : Controller
         var userId = await ResolveUserIdAsync();
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
+        await PopulatePaymentMethodPresentationsAsync(order);
+        var footerSettings = await _settingsService.GetFooterSettingsAsync();
+        ViewData["CustomerOrderWhatsAppUrl"] = OrderWhatsAppLinkBuilder.BuildCustomerOrderNotification(
+            order,
+            footerSettings.WhatsAppNumber);
         ViewData["CheckoutDraftIdToClear"] = ConsumeCheckoutSuccessMarker(id);
         return View(order);
     }
@@ -246,55 +251,142 @@ public class OrdersController : Controller
         var userId = await ResolveUserIdAsync();
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
+        await PopulatePaymentMethodPresentationsAsync(order);
+        var inventoryConflict = OrderService.BuildCustomerInventoryConflict(order);
+        ViewData["InventoryConflict"] = inventoryConflict;
+        if (inventoryConflict != null)
+        {
+            var footerSettings = await _settingsService.GetFooterSettingsAsync();
+            ViewData["CustomerOrderWhatsAppUrl"] = OrderWhatsAppLinkBuilder.BuildCustomerConflictUpdateNotification(
+                order,
+                footerSettings.WhatsAppNumber);
+        }
         return View(order);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelInventoryConflict(int id)
+    public async Task<IActionResult> ResolveInventoryConflict(ResolveInventoryConflictRequest input)
     {
         var userId = await ResolveUserIdAsync();
-        try
-        {
-            if (!await _orderService.CancelInventoryConflictAsync(id, userId, HttpContext.RequestAborted))
-                return NotFound();
+        var isAjax = IsAjaxRequest();
 
-            TempData["Success"] = "تم إلغاء الطلب بالكامل وتسجيل مبلغ الاسترداد المطلوب.";
-        }
-        catch (InvalidOperationException exception)
+        if (input.CancelEntireOrder)
         {
-            TempData["Error"] = exception.Message;
-        }
-
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ContinueInventoryConflict(int id)
-    {
-        var userId = await ResolveUserIdAsync();
-        try
-        {
-            var outcome = await _orderService.ContinueInventoryConflictAsync(id, userId, HttpContext.RequestAborted);
-            switch (outcome)
+            var keysToRemove = ModelState.Keys.Where(k => k.StartsWith(nameof(input.Decisions))).ToList();
+            foreach (var key in keysToRemove)
             {
-                case ContinueInventoryConflictOutcome.NotFound:
-                    return NotFound();
-                case ContinueInventoryConflictOutcome.CancellationRequired:
-                    TempData["Error"] = "أصبحت جميع المنتجات غير متوفرة. يرجى إلغاء الطلب بالكامل.";
-                    break;
-                default:
-                    TempData["Success"] = "تمت متابعة الطلب بالكميات المتوفرة وتسجيل مبلغ الاسترداد المطلوب.";
-                    break;
+                ModelState.Remove(key);
             }
         }
-        catch (InvalidOperationException exception)
+
+        if (!ModelState.IsValid)
         {
-            TempData["Error"] = exception.Message;
+            const string invalidMessage = "يرجى مراجعة اختياراتك.";
+            return isAjax
+                ? BadRequest(new { success = false, message = invalidMessage })
+                : RedirectToAction(nameof(Details), new { id = input.Id });
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        try
+        {
+            var outcome = await _orderService.ResolveInventoryConflictAsync(
+                input.Id,
+                userId,
+                input.CancelEntireOrder,
+                input.Decisions,
+                HttpContext.RequestAborted);
+
+            if (outcome == CustomerInventoryConflictOutcome.NotFound)
+                return NotFound();
+
+            if (outcome == CustomerInventoryConflictOutcome.Conflict)
+            {
+                const string changedMessage = "تغيّرت الكمية المتوفرة. راجع الخيارات الجديدة وحاول مرة أخرى.";
+                return isAjax
+                    ? Conflict(new { success = false, message = changedMessage, reload = true })
+                    : RedirectToAction(nameof(Details), new { id = input.Id });
+            }
+
+            var presentation = BuildConflictResolutionPresentation(outcome, input.Decisions ?? []);
+            var redirectUrl = outcome == CustomerInventoryConflictOutcome.Cancelled
+                ? Url.Action(nameof(Index))
+                : Url.Action(nameof(Details), new { id = input.Id });
+
+            if (isAjax)
+                return Json(new
+                {
+                    success = true,
+                    resultKey = presentation.Key,
+                    title = presentation.Title,
+                    message = presentation.Message,
+                    redirectUrl
+                });
+
+            TempData["Success"] = presentation.Message;
+            return Redirect(redirectUrl ?? Url.Action(nameof(Index))!);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Inventory conflict resolution was rejected for order {OrderId} and owner {UserId}.",
+                input.Id,
+                userId);
+            const string message = "تعذر حفظ القرار. يرجى مراجعة الطلب والمحاولة مرة أخرى.";
+            if (isAjax)
+                return Conflict(new { success = false, message });
+
+            TempData["Error"] = message;
+            return RedirectToAction(nameof(Details), new { id = input.Id });
+        }
+    }
+
+    private static (string Key, string Title, string Message) BuildConflictResolutionPresentation(
+        CustomerInventoryConflictOutcome outcome,
+        IReadOnlyCollection<InventoryConflictLineDecisionInput> decisions)
+    {
+        if (outcome == CustomerInventoryConflictOutcome.Cancelled)
+        {
+            return (
+                "Cancelled",
+                "تم إلغاء طلبك بنجاح",
+                "أُلغي الطلب ولن تتم متابعة تجهيزه.");
+        }
+
+        var removedCount = decisions.Count(decision =>
+            string.Equals(decision.Decision, InventoryConflictDecisions.Remove, StringComparison.Ordinal));
+        var continuedCount = decisions.Count(decision =>
+            string.Equals(decision.Decision, InventoryConflictDecisions.Continue, StringComparison.Ordinal));
+
+        if (removedCount > 0 && continuedCount > 0)
+        {
+            return (
+                "Mixed",
+                "تم تحديث طلبك",
+                "تم حفظ الكميات الجديدة وحذف المنتجات غير المتوفرة، وسيتم مراجعة الطلب من الإدارة.");
+        }
+
+        if (removedCount > 1)
+        {
+            return (
+                "RemovedMultiple",
+                "تم تحديث طلبك",
+                "تم حذف المنتجات غير المتوفرة من الطلب وسيتم مراجعة الطلب من الإدارة.");
+        }
+
+        if (removedCount == 1)
+        {
+            return (
+                "Removed",
+                "تم تحديث طلبك",
+                "تم حذف المنتج غير المتوفر من الطلب وسيتم مراجعة الطلب من الإدارة.");
+        }
+
+        return (
+            "Continued",
+            "تم تحديث طلبك",
+            "تم حفظ الكمية الجديدة وسيتم مراجعة الطلب من الإدارة.");
     }
 
     [AllowAnonymous]
@@ -430,8 +522,25 @@ public class OrdersController : Controller
     private static string CheckoutSuccessMarkerKey(int orderId) =>
         $"{CheckoutSuccessMarkerTempDataPrefix}:{orderId}";
 
-    private static string NormalizeWhatsAppNumber(string? value)
+    private async Task PopulatePaymentMethodPresentationsAsync(Order order)
     {
-        return string.Concat((value ?? string.Empty).Where(char.IsDigit));
+        ViewData["PaymentMethodPresentations"] = await _settingsService.GetPaymentMethodPresentationsAsync(
+            [order.Paymentmethod],
+            HttpContext.RequestAborted);
     }
+
+    private static TException? FindException<TException>(Exception exception)
+        where TException : Exception
+    {
+        for (var current = exception; current != null; current = current.InnerException!)
+        {
+            if (current is TException match)
+                return match;
+            if (current.InnerException == null)
+                break;
+        }
+
+        return null;
+    }
+
 }

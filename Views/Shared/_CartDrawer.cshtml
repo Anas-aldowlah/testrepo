@@ -51,6 +51,10 @@
                 </div>
             </div>
 
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>الشحن</span>
+                @await Html.PartialAsync("_FreeShipping")
+            </div>
             <div class="yq-cart-drawer__total">
                 <span>الإجمالي</span>
                 <strong data-yq-cart-drawer-total>0 ر.س</strong>

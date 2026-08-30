@@ -4,19 +4,18 @@
     ViewData["IsHomePage"] = true;
 
     var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
-    var inStockProducts = Model.Products?
-        .Where(product => product.Stockquantity > 0)
-        .ToList() ?? new List<YAGOT_2._0.Models.Product>();
+    var products = Model.Products?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
 
-    var newArrivals = inStockProducts
+    var newArrivals = products
         .OrderByDescending(product => product.Createdat ?? DateTime.MinValue)
         .Take(8)
         .ToList();
-    var premiumSelection = inStockProducts
+    var premiumSelection = products
         .OrderByDescending(product => product.Price)
         .Take(8)
         .ToList();
     var heroProducts = newArrivals
+        .Where(product => product.Stockquantity > 0)
         .Where(product => !string.IsNullOrWhiteSpace(product.Imageurl))
         .Take(5)
         .ToList();
@@ -32,7 +31,7 @@
         ? categories.FirstOrDefault(category => category.Id == storeSettings.FeaturedCategoryId.Value)
         : null;
     var featuredCategory = configuredFeaturedCategory ?? categories.FirstOrDefault();
-    var brandNames = inStockProducts
+    var brandNames = products
         .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
         .Select(product => product.Brand!.Trim())
         .Where(brand => brand != "-")

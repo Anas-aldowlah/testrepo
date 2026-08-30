@@ -1,90 +1,99 @@
-﻿(function () {
+(function (window, document) {
     'use strict';
 
-    function init() {
-        var root = document.querySelector('[data-yq-orders-root]');
-        if (!root) return;
+    var root = document.querySelector('[data-yq-orders-root]');
+    if (!root) return;
 
-        var filterButtons = Array.prototype.slice.call(root.querySelectorAll('[data-yq-order-filter]'));
-        var searchInput = document.getElementById('yqOrdersSearchInput');
-        var grid = document.getElementById('yqOrdersGrid');
-        var noResults = document.getElementById('yqOrdersNoResults');
-        var resetBtn = document.getElementById('yqOrdersResetBtn');
-        var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('[data-yq-order-card]')) : [];
+    var abortController = null;
+    var latestRequestId = 0;
 
-        var activeStatus = 'all';
-
-        function applyFilters() {
-            var query = (searchInput && searchInput.value.trim().toLowerCase()) || '';
-            var visibleCount = 0;
-
-            cards.forEach(function (card) {
-                var matchesStatus = activeStatus === 'all' || card.getAttribute('data-status') === activeStatus;
-                var matchesSearch = !query || (card.getAttribute('data-search') || '').indexOf(query) !== -1;
-                var isVisible = matchesStatus && matchesSearch;
-
-                card.hidden = !isVisible;
-                if (isVisible) visibleCount++;
-            });
-
-            if (noResults) {
-                noResults.hidden = visibleCount !== 0;
-            }
-        }
-
-        filterButtons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                filterButtons.forEach(function (b) {
-                    b.classList.remove('is-active');
-                    b.setAttribute('aria-selected', 'false');
-                });
-                btn.classList.add('is-active');
-                btn.setAttribute('aria-selected', 'true');
-                activeStatus = btn.getAttribute('data-yq-order-filter');
-                applyFilters();
-            });
-        });
-
-        if (searchInput) {
-            var debounceTimer;
-            searchInput.addEventListener('input', function () {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(applyFilters, 150);
-            });
-        }
-
-        if (resetBtn) {
-            resetBtn.addEventListener('click', function () {
-                activeStatus = 'all';
-                if (searchInput) searchInput.value = '';
-                filterButtons.forEach(function (b) {
-                    var isAll = b.getAttribute('data-yq-order-filter') === 'all';
-                    b.classList.toggle('is-active', isAll);
-                    b.setAttribute('aria-selected', isAll ? 'true' : 'false');
-                });
-                applyFilters();
-            });
-        }
-
-        // Thumbnail loading state: fade in once loaded, keep fallback behavior intact
-        var thumbImages = root.querySelectorAll('.yq-order-card__thumb img');
-        thumbImages.forEach(function (img) {
+    function hydrateThumbnails() {
+        root.querySelectorAll('.yq-order-card__thumb img').forEach(function (img) {
             if (img.complete && img.naturalWidth > 0) {
                 img.classList.add('is-loaded');
                 return;
             }
-            img.addEventListener('load', function () {
-                img.classList.add('is-loaded');
-            });
+            if (img.complete && img.naturalWidth === 0) {
+                var initialFallback = img.getAttribute('data-yaqut-fallback');
+                if (initialFallback && img.getAttribute('src') !== initialFallback) img.setAttribute('src', initialFallback);
+            }
+            img.addEventListener('load', function () { img.classList.add('is-loaded'); }, { once: true });
             img.addEventListener('error', function () {
-                img.classList.add('is-loaded');
-            });
+                var fallback = img.getAttribute('data-yaqut-fallback');
+                if (fallback && img.getAttribute('src') !== fallback) img.setAttribute('src', fallback);
+                else img.classList.add('is-loaded');
+            }, { once: true });
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+    async function loadOrders(url, historyMode) {
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+        var requestId = ++latestRequestId;
+        root.setAttribute('aria-busy', 'true');
+
+        try {
+            var response = await window.fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: abortController.signal
+            });
+            if (!response.ok) throw new Error('Orders request failed.');
+
+            var html = await response.text();
+            if (requestId !== latestRequestId) return;
+            var parsed = new window.DOMParser().parseFromString(html, 'text/html');
+            var nextRoot = parsed.querySelector('[data-yq-orders-root]');
+            if (!nextRoot) throw new Error('Orders response is incomplete.');
+            nextRoot.querySelectorAll('.yq-reveal').forEach(function (element) {
+                element.classList.add('is-visible');
+            });
+
+            root.replaceChildren.apply(root, Array.prototype.map.call(nextRoot.childNodes, function (node) {
+                return document.importNode(node, true);
+            }));
+            root.dataset.yqOrdersUrl = nextRoot.dataset.yqOrdersUrl || root.dataset.yqOrdersUrl;
+            if (parsed.title) document.title = parsed.title;
+            if (historyMode === 'push') window.history.pushState({ yqOrders: true }, '', url);
+            else if (historyMode === 'replace') window.history.replaceState({ yqOrders: true }, '', url);
+            hydrateThumbnails();
+        } catch (error) {
+            if (error.name !== 'AbortError' && requestId === latestRequestId) {
+                window.location.assign(url);
+            }
+        } finally {
+            if (requestId === latestRequestId) root.removeAttribute('aria-busy');
+        }
     }
-})();
+
+    function searchUrl(form) {
+        var url = new URL(form.action || root.dataset.yqOrdersUrl || window.location.href, window.location.origin);
+        var data = new FormData(form);
+        data.forEach(function (value, key) {
+            if (value) url.searchParams.set(key, value);
+            else url.searchParams.delete(key);
+        });
+        url.searchParams.set('page', '1');
+        return url.toString();
+    }
+
+    root.addEventListener('click', function (event) {
+        var link = event.target.closest('[data-yq-order-filter], [data-yq-orders-pager] a[href], [data-yq-orders-reset]');
+        if (!link || !root.contains(link)) return;
+        event.preventDefault();
+        if (link.getAttribute('aria-disabled') === 'true') return;
+        loadOrders(link.href, 'push');
+    });
+
+    root.addEventListener('submit', function (event) {
+        var form = event.target.closest('[data-yq-orders-search]');
+        if (!form) return;
+        event.preventDefault();
+        loadOrders(searchUrl(form), 'push');
+    });
+
+    window.addEventListener('popstate', function () {
+        loadOrders(window.location.href, null);
+    });
+
+    hydrateThumbnails();
+})(window, document);

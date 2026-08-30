@@ -105,18 +105,58 @@
         });
     }
 
-    function clampQuantity(input) {
+    function normalizeQuantity(input) {
         if (!input) return 1;
         var min = parseInt(input.getAttribute('min') || '1', 10);
-        var max = parseInt(input.getAttribute('max') || '', 10);
         var value = parseInt(normalizeDigits(input.value), 10);
 
         if (!Number.isFinite(min) || min < 1) min = 1;
         if (!Number.isFinite(value) || value < min) value = min;
-        if (Number.isFinite(max) && max >= min && value > max) value = max;
 
         input.value = String(value);
         return value;
+    }
+
+    function stockMessage(maximum) {
+        return 'الكمية المطلوبة غير متوفرة، المتوفر حاليًا ' + maximum + ' فقط.';
+    }
+
+    function showStockFeedback(form, maximum, message) {
+        var feedback = form.querySelector('[data-yq-cart-stock-feedback]');
+        if (!feedback) return;
+        feedback.textContent = message || stockMessage(maximum);
+        feedback.hidden = false;
+    }
+
+    function clearStockFeedback(form) {
+        var feedback = form.querySelector('[data-yq-cart-stock-feedback]');
+        if (!feedback) return;
+        feedback.textContent = '';
+        feedback.hidden = true;
+    }
+
+    function setAvailabilityLimit(form, maximum) {
+        if (!Number.isFinite(maximum) || maximum < 0) return;
+        form.setAttribute('data-yq-cart-max-units', String(maximum));
+        var presetLimit = Math.min(maximum, 10);
+        form.setAttribute('data-yq-cart-preset-limit', String(presetLimit));
+        var customInput = form.querySelector('[data-yq-cart-qty-custom]');
+        var select = form.querySelector('[data-yq-cart-qty-select]');
+        if (customInput) customInput.setAttribute('max', String(maximum));
+        if (!select) return;
+        select.replaceChildren();
+        for (var quantity = 1; quantity <= presetLimit; quantity++) {
+            var option = document.createElement('option');
+            option.value = String(quantity);
+            option.textContent = String(quantity);
+            select.appendChild(option);
+        }
+        if (maximum > 10) {
+            var customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = 'أكثر من 10 (10+)';
+            select.appendChild(customOption);
+        }
     }
 
     function setQuantityValue(form, quantity) {
@@ -128,9 +168,10 @@
         var select = form.querySelector('[data-yq-cart-qty-select]');
         var customInput = form.querySelector('[data-yq-cart-qty-custom]');
         if (!select || !customInput) return;
+        var presetLimit = parseInt(form.getAttribute('data-yq-cart-preset-limit') || '10', 10);
 
         setQuantityValue(form, quantity);
-        if (quantity <= 5) {
+        if (quantity <= presetLimit) {
             select.value = String(quantity);
             select.classList.remove('d-none');
             customInput.classList.add('d-none');
@@ -198,6 +239,14 @@
         var lineTotalEl = item ? item.querySelector('.yq-cart-item__line-total') : null;
         if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
             lineTotalEl.innerHTML = Number(state.item.lineTotal).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+        }
+
+        if (state.warningCode === 'InsufficientStock' && Number.isFinite(Number(state.availableQuantity))) {
+            var availableQuantity = Number(state.availableQuantity);
+            setAvailabilityLimit(form, availableQuantity);
+            showStockFeedback(form, availableQuantity, state.message);
+        } else {
+            clearStockFeedback(form);
         }
 
         notifyCartReconciliation(state);
@@ -281,6 +330,18 @@
                 return;
             }
 
+            if (state && state.warningCode === 'InsufficientStock' && Number.isFinite(serverQuantity) && serverQuantity > 0) {
+                form.removeAttribute('data-yq-pending-qty');
+                form.setAttribute('data-yq-last-qty', String(serverQuantity));
+                var stockExpectedInput = form.querySelector('[data-yq-cart-qty-expected]');
+                if (stockExpectedInput) stockExpectedInput.value = String(serverQuantity);
+                applyCartState(state, form);
+                syncQuantitySelector(form, serverQuantity);
+                calculateAndUpdateTotals();
+                announce(state.message);
+                return;
+            }
+
             form.removeAttribute('data-yq-pending-qty');
             syncQuantitySelector(form, previousValue);
             calculateAndUpdateTotals();
@@ -314,6 +375,7 @@
 
             var initialQuantity = parseInt(valueInput.value, 10) || 1;
             form.setAttribute('data-yq-last-qty', String(initialQuantity));
+            setAvailabilityLimit(form, parseInt(form.getAttribute('data-yq-cart-max-units') || '', 10));
             syncQuantitySelector(form, initialQuantity);
 
             form.addEventListener('submit', function (event) {
@@ -324,7 +386,7 @@
             select.addEventListener('change', function () {
                 if (select.value === 'custom') {
                     var current = parseInt(valueInput.value, 10) || 1;
-                    customInput.value = String(Math.max(6, current));
+                    customInput.value = String(Math.max(11, current));
                     select.classList.add('d-none');
                     customInput.classList.remove('d-none');
                     customInput.focus();
@@ -332,12 +394,23 @@
                     return;
                 }
 
+                clearStockFeedback(form);
                 setQuantityValue(form, parseInt(select.value, 10) || 1);
                 submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
             });
 
             customInput.addEventListener('blur', function () {
-                var quantity = clampQuantity(customInput);
+                var quantity = normalizeQuantity(customInput);
+                var maximum = parseInt(form.getAttribute('data-yq-cart-max-units') || customInput.getAttribute('max') || '', 10);
+                if (Number.isFinite(maximum) && quantity > maximum) {
+                    var persistedQuantity = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
+                    showStockFeedback(form, maximum);
+                    announce(stockMessage(maximum));
+                    syncQuantitySelector(form, persistedQuantity);
+                    calculateAndUpdateTotals();
+                    return;
+                }
+                clearStockFeedback(form);
                 setQuantityValue(form, quantity);
                 submitQuantity(form, 'تم تحديث الكمية تلقائياً.');
             });

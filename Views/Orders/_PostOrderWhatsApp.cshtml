@@ -1,0 +1,55 @@
+@model string
+@{
+    var showArrivalPopup = !string.IsNullOrWhiteSpace(ViewData["CheckoutDraftIdToClear"] as string);
+}
+
+<section class="yq-confirm-whatsapp" aria-labelledby="yqConfirmWhatsAppTitle">
+    <span class="yq-confirm-whatsapp__icon" aria-hidden="true">
+        <i class="bi bi-check-lg"></i>
+    </span>
+    <div class="yq-confirm-whatsapp__content">
+        <h1 id="yqConfirmWhatsAppTitle">تم استلام طلبك بنجاح</h1>
+        <p>طلبك الآن بانتظار مراجعة الإدارة.</p>
+    </div>
+    <div class="yq-confirm-whatsapp__actions">
+        @if (!string.IsNullOrWhiteSpace(Model))
+        {
+        <a href="@Model"
+           class="yq-confirm-whatsapp__action yq-paired-action yq-paired-action--whatsapp"
+           target="_blank"
+           rel="noopener noreferrer">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>
+            <span>إشعار الإدارة عبر واتساب</span>
+        </a>
+        }
+        <a asp-controller="Orders" asp-action="Index" class="yq-confirm-whatsapp__continue yq-paired-action yq-paired-action--secondary">
+            <i class="bi bi-receipt" aria-hidden="true"></i>
+            <span>عرض طلباتي</span>
+        </a>
+    </div>
+</section>
+
+@if (showArrivalPopup)
+{
+    <dialog class="yq-confirm-arrival" data-yq-confirm-arrival aria-labelledby="yqConfirmArrivalTitle" aria-describedby="yqConfirmArrivalMessage">
+        <div class="yq-confirm-arrival__panel" dir="rtl">
+            <button type="button" class="yq-confirm-arrival__close" data-yq-confirm-arrival-close aria-label="إغلاق">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            <span class="yq-confirm-arrival__icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+            <h2 id="yqConfirmArrivalTitle">تم استلام طلبك بنجاح</h2>
+            <p id="yqConfirmArrivalMessage">طلبك الآن بانتظار مراجعة الإدارة.</p>
+            <div class="yq-confirm-arrival__actions">
+                @if (!string.IsNullOrWhiteSpace(Model))
+                {
+                    <a href="@Model" class="yq-confirm-arrival__action yq-confirm-arrival__action--whatsapp yq-paired-action yq-paired-action--whatsapp" target="_blank" rel="noopener noreferrer">
+                        <i class="bi bi-whatsapp" aria-hidden="true"></i><span>إشعار الإدارة عبر واتساب</span>
+                    </a>
+                }
+                <a asp-controller="Orders" asp-action="Index" class="yq-confirm-arrival__action yq-confirm-arrival__action--secondary yq-paired-action yq-paired-action--secondary">
+                    <i class="bi bi-receipt" aria-hidden="true"></i><span>عرض طلباتي</span>
+                </a>
+            </div>
+        </div>
+    </dialog>
+}

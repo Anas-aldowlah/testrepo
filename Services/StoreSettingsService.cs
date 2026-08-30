@@ -9,6 +9,23 @@ namespace YAGOT_2._0.Services
         string? TwitterLink,
         string? TikTokLink);
 
+    public sealed record PaymentMethodPresentation(
+        string StoredType,
+        string Name,
+        string AccountHolderName,
+        string AccountNumber,
+        string? Instructions,
+        bool IsConfigured)
+    {
+        public string Description => !string.IsNullOrWhiteSpace(Instructions)
+            ? Instructions
+            : !string.IsNullOrWhiteSpace(AccountHolderName) || !string.IsNullOrWhiteSpace(AccountNumber)
+                ? "استخدم بيانات التحويل الموضحة مع الطلب."
+                : IsConfigured
+                    ? "طريقة الدفع المسجلة لهذا الطلب."
+                    : "تفاصيل هذه الطريقة غير متاحة حالياً.";
+    }
+
     public class StoreSettingsService
     {
         private readonly NeondbContext _context;
@@ -269,6 +286,60 @@ namespace YAGOT_2._0.Services
             }
 
             return orderedMethods;
+        }
+
+        public async Task<IReadOnlyDictionary<string, PaymentMethodPresentation>> GetPaymentMethodPresentationsAsync(
+            IEnumerable<string?> storedTypes,
+            CancellationToken cancellationToken = default)
+        {
+            var types = storedTypes
+                .Where(type => !string.IsNullOrWhiteSpace(type))
+                .Select(type => type!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var result = new Dictionary<string, PaymentMethodPresentation>(StringComparer.OrdinalIgnoreCase);
+            if (types.Length == 0)
+                return result;
+
+            var configuredMethods = await _context.Paymentmethods
+                .AsNoTracking()
+                .OrderBy(method => method.Storesettingsid)
+                .ThenBy(method => method.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var storedType in types)
+            {
+                var method = configuredMethods.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Type, storedType, StringComparison.OrdinalIgnoreCase));
+                var definition = PaymentMethodDefinitions.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Code, storedType, StringComparison.OrdinalIgnoreCase));
+                if (method == null && definition != null)
+                {
+                    method = FindPaymentMethod(
+                        configuredMethods,
+                        definition.Code,
+                        definition.Name,
+                        definition.LegacyType);
+                }
+
+                result[storedType] = method == null
+                    ? new PaymentMethodPresentation(
+                        storedType,
+                        "طريقة دفع مسجلة سابقاً",
+                        string.Empty,
+                        string.Empty,
+                        null,
+                        false)
+                    : new PaymentMethodPresentation(
+                        storedType,
+                        string.IsNullOrWhiteSpace(method.Name) ? "طريقة دفع مسجلة" : method.Name.Trim(),
+                        method.Accountholdername?.Trim() ?? string.Empty,
+                        method.Accountnumber?.Trim() ?? string.Empty,
+                        string.IsNullOrWhiteSpace(method.Instructions) ? null : method.Instructions.Trim(),
+                        true);
+            }
+
+            return result;
         }
 
         private static StoreSettings ToModel(Storesetting entity)

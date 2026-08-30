@@ -6,17 +6,34 @@
     ViewData["Title"] = $"تفاصيل الطلب {Model.Trackingnumber} | ياقوت";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
     var fulfilledValue = Model.Finalfulfilledamount ?? Model.Totalamount;
-    var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(fulfilledValue);
-    var isConflictAwaitingDecision = Model.Paymentstatus == "Paid" &&
-        Model.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
-    var canContinueConflict = items.Sum(item => Math.Max(0, item.Quantity - (item.UnavailableQuantity ?? 0))) > 0;
+    var isConflictAwaitingDecision = Model.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
+    var conflictHasPaymentReview = Model.Paymentreviewedat.HasValue && Model.Paymentreviewedbyuserid.HasValue;
+    var inventoryConflict = ViewData["InventoryConflict"] as CustomerInventoryConflictViewModel;
+    var paymentPresentations = ViewData["PaymentMethodPresentations"] as IReadOnlyDictionary<string, PaymentMethodPresentation>;
+    var paymentPresentation = !string.IsNullOrWhiteSpace(Model.Paymentmethod) &&
+        paymentPresentations?.TryGetValue(Model.Paymentmethod, out var configuredPayment) == true
+            ? configuredPayment
+            : new PaymentMethodPresentation(
+                Model.Paymentmethod ?? string.Empty,
+                string.IsNullOrWhiteSpace(Model.Paymentmethod) ? "طريقة دفع غير محددة" : "طريقة دفع مسجلة سابقاً",
+                string.Empty,
+                string.Empty,
+                null,
+                false);
+    var paymentStateDescription = isConflictAwaitingDecision
+        ? conflictHasPaymentReview
+            ? "مراجعة الدفع معلّقة بانتظار قرارك بشأن الكميات."
+            : "المتجر يراجع الدفع الآن."
+        : Model.Paymentstatus == "Paid"
+            ? "تم التحقق من الدفع."
+            : "الدفع بانتظار مراجعة المتجر.";
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
    
 
-    var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var statusSteps = new[] { "Pending", "Paid", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
     var isCancelled = Model.Status is "Cancelled" or "Refunded";
     if (currentStepIndex < 0) currentStepIndex = 0;
@@ -24,6 +41,7 @@
     var stepLabels = new Dictionary<string, string>
     {
         ["Pending"] = "تم استلام الطلب",
+        ["Paid"] = "تم الدفع",
         ["Processed"] = "قيد التحضير",
         ["Shipped"] = "تم الشحن",
         ["Delivered"] = "تم التوصيل"
@@ -32,7 +50,8 @@
     string stateAr = Model.Status switch
     {
         "Pending" => "قيد الانتظار",
-        "Processed" => "تم الدفع",
+        "Paid" => "تم الدفع",
+        "Processed" => "قيد التحضير",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
         "Refunded" => "مرتجع",
@@ -41,6 +60,7 @@
     var badgeClass = Model.Status.ToLower() switch
     {
         "pending" => "yaqut-badge--pending",
+        "paid" => "yaqut-badge--processed",
         "processed" => "yaqut-badge--processed",
         "shipped" => "yaqut-badge--shipped",
         "delivered" => "yaqut-badge--delivered",
@@ -54,34 +74,11 @@
 
 <div class="yq-order-details">
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
-    }
-    else if (TempData["Success"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--success" role="status">@TempData["Success"]</div>
-    }
-
     @if (isConflictAwaitingDecision)
     {
-        <section class="yq-od-card yq-glass" aria-labelledby="inventoryDecisionTitle">
-            <h2 id="inventoryDecisionTitle" class="yq-od-card__title"><i class="bi bi-exclamation-triangle"></i> يلزم اتخاذ قرار بشأن المخزون</h2>
-            <p>تم التحقق من الدفع، لكن بعض الكميات غير متوفرة. اختر إلغاء الطلب بالكامل أو متابعة الكميات المتاحة فقط.</p>
-            <div class="yq-od-summary__actions">
-                <form asp-action="CancelInventoryConflict" method="post">
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <button type="submit" class="btn-yaqut-outline yq-od-summary__btn">إلغاء الطلب بالكامل</button>
-                </form>
-                @if (canContinueConflict)
-                {
-                    <form asp-action="ContinueInventoryConflict" method="post">
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn-yaqut-gold yq-od-summary__btn">متابعة الطلب بدون المنتجات غير المتوفرة</button>
-                    </form>
-                }
-            </div>
-        </section>
+        ViewData["OrderId"] = Model.Id;
+        ViewData["ConflictHasPaymentReview"] = conflictHasPaymentReview;
+        @await Html.PartialAsync("_CustomerInventoryConflict", inventoryConflict)
     }
 
     <!-- BREADCRUMB -->
@@ -177,16 +174,10 @@
             </section>
 
             <!-- PAYMENT -->
-            <section class="yq-od-card yq-glass">
-                <h2 class="yq-od-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
-                <div class="yq-od-payment">
-                    <span class="yq-od-payment__icon"><i class="bi bi-cash-coin"></i></span>
-                    <div>
-                        <strong>@(!string.IsNullOrWhiteSpace(Model.Paymentmethod) ? Model.Paymentmethod : "طريقة دفع غير محددة")</strong>
-                        <p>@(Model.Paymentstatus == "Paid" ? "تم توثيق تحقق المسؤول من الدفع." : "الدفع بانتظار مراجعة المسؤول.")</p>
-                    </div>
-                </div>
-            </section>
+            @await Html.PartialAsync("_PaymentMethodCard", new PaymentMethodCardViewModel(
+                paymentPresentation,
+                paymentStateDescription,
+                Model.Paymentstatus == "Paid" ? "verified" : isConflictAwaitingDecision ? "review" : "pending"))
 
             <!-- PRODUCTS -->
             <section class="yq-od-card yq-glass">
@@ -232,14 +223,7 @@
             </div>
             <div class="yq-od-summary__row">
                 <span>الشحن</span>
-                @if (qualifiesForFreeShipping)
-                {
-                    <span class="yq-od-summary__free">مجاني</span>
-                }
-                else
-                {
-                    <span class="yq-od-summary__tbd">يُحدد عند التوصيل</span>
-                }
+                @await Html.PartialAsync("_FreeShipping")
             </div>
 
             <div class="yq-od-summary__divider"></div>
@@ -255,13 +239,6 @@
                     <span>@Model.Finalfulfilledamount.Value.ToString("N0") <small>ر.س</small></span>
                 </div>
             }
-            @if (Model.Refundrequiredamount.HasValue && Model.Refundrequiredamount.Value > 0)
-            {
-                <div class="yq-od-summary__row">
-                    <span>الاسترداد المطلوب</span>
-                    <span>@Model.Refundrequiredamount.Value.ToString("N0") <small>ر.س</small></span>
-                </div>
-            }
 
             <div class="yq-od-summary__actions">
                 <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-outline yq-od-summary__btn">
@@ -275,6 +252,9 @@
     </div>
 </div>
 
+@await Html.PartialAsync("_YaqutOperationDialog")
+
 @section Scripts {
     <script src="~/js/orders/details.js" asp-append-version="true"></script>
+    <script src="~/js/orders/conflict-resolution.js" asp-append-version="true"></script>
 }

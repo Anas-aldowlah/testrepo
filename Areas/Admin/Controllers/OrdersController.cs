@@ -17,28 +17,23 @@ public class OrdersController : Controller
     private readonly UsersDbContext _dbUser;
     private readonly OrderService _orderService;
     private readonly ReceiptStorageService _receiptStorage;
+    private readonly StoreSettingsService _settingsService;
 
     private static readonly HashSet<string> AllowedStatuses =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Pending",
-            "Processed",
-            "Shipped",
-            "Delivered",
-            "Cancelled",
-            "Refunded"
-        };
+        new(OrderStatusPolicy.DisplayStatuses, StringComparer.OrdinalIgnoreCase);
 
     public OrdersController(
         NeondbContext context,
         UsersDbContext dbUser,
         OrderService orderService,
-        ReceiptStorageService receiptStorage)
+        ReceiptStorageService receiptStorage,
+        StoreSettingsService settingsService)
     {
         _context = context;
         _dbUser = dbUser;
         _orderService = orderService;
         _receiptStorage = receiptStorage;
+        _settingsService = settingsService;
     }
 
     public async Task<IActionResult> Index(string[]? status, string? search, int page = 1, int pageSize = 10)
@@ -96,17 +91,33 @@ public class OrdersController : Controller
 
         var pagedOrders = await PagedResult<Order>.CreateAsync(pageQuery, page, pageSize);
         await PopulateUserDisplayDataAsync(pagedOrders.Items);
+        ViewData["PaymentMethodPresentations"] = await _settingsService.GetPaymentMethodPresentationsAsync(
+            pagedOrders.Items.Select(order => order.Paymentmethod),
+            HttpContext.RequestAborted);
+
+        var summary = await query
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Pending = group.Count(order => order.Status == OrderStatuses.Pending),
+                Active = group.Count(order => order.Status == OrderStatuses.Paid || order.Status == OrderStatuses.Processed || order.Status == OrderStatuses.Shipped),
+                Delivered = group.Count(order => order.Status == OrderStatuses.Delivered),
+                Revenue = group
+                    .Where(order => order.Stockdeducted &&
+                        (order.Status == OrderStatuses.Paid || order.Status == OrderStatuses.Processed || order.Status == OrderStatuses.Shipped || order.Status == OrderStatuses.Delivered))
+                    .Sum(order => (decimal?)(order.Finalfulfilledamount ?? order.Totalamount)) ?? 0m
+            })
+            .SingleOrDefaultAsync();
 
         var model = new AdminOrdersIndexViewModel
         {
             Orders = pagedOrders,
             SelectedStatus = selectedStatus,
             Search = search ?? string.Empty,
-            PendingCount = await query.CountAsync(o => o.Status == "Pending"),
-            ActiveCount = await query.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
-            DeliveredCount = await query.CountAsync(o => o.Status == "Delivered"),
-            TotalRevenue = await query.WhereRevenueEligible()
-                .SumAsync(o => (decimal?)(o.Finalfulfilledamount ?? o.Totalamount)) ?? 0m
+            PendingCount = summary?.Pending ?? 0,
+            ActiveCount = summary?.Active ?? 0,
+            DeliveredCount = summary?.Delivered ?? 0,
+            TotalRevenue = summary?.Revenue ?? 0m
         };
 
         return View(model);
@@ -125,6 +136,9 @@ public class OrdersController : Controller
             return NotFound();
 
         await PopulateUserDisplayDataAsync(new[] { order });
+        ViewData["PaymentMethodPresentations"] = await _settingsService.GetPaymentMethodPresentationsAsync(
+            [order.Paymentmethod],
+            HttpContext.RequestAborted);
         return View(order);
     }
 
@@ -209,10 +223,18 @@ public class OrdersController : Controller
                 {
                     success = true,
                     status = normalizedStatus,
-                    message = "تم تحديث حالة الطلب بنجاح."
+                    allowedTargets = OrderStatusPolicy.GetAllowedTargets(normalizedStatus),
+                    whatsAppUrl = normalizedStatus == OrderStatuses.Delivered
+                        ? await BuildWhatsAppUrlAsync(id)
+                        : null,
+                    message = normalizedStatus == OrderStatuses.Cancelled
+                        ? "أُلغي الطلب بنجاح، ولن تتم متابعته أو تجهيزه."
+                        : "تم تحديث حالة الطلب بنجاح."
                 });
 
-            TempData["Success"] = "تم تحديث حالة الطلب بنجاح.";
+            TempData["Success"] = normalizedStatus == OrderStatuses.Cancelled
+                ? "أُلغي الطلب بنجاح، ولن تتم متابعته أو تجهيزه."
+                : "تم تحديث حالة الطلب بنجاح.";
         }
         catch (InvalidOperationException ex)
         {
@@ -254,19 +276,35 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> VerifyPayment(int id)
     {
+        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         var adminIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(adminIdValue, out var adminId) || adminId <= 0)
             return Forbid();
 
         try
         {
-            if (!await _orderService.VerifyPaymentAsync(id, adminId, HttpContext.RequestAborted))
+            var outcome = await _orderService.VerifyPaymentAsync(id, adminId, HttpContext.RequestAborted);
+            if (outcome == PaymentVerificationOutcome.NotFound)
                 return NotFound();
 
-            TempData["Success"] = "تم توثيق تحقق المسؤول من الدفع وتحديث الطلب وفق حالة المخزون.";
+            var message = outcome == PaymentVerificationOutcome.Paid
+                ? "تم تأكيد الدفع، ويمكنك الآن متابعة تجهيز الطلب وإشعار العميل."
+                : "الطلب بانتظار قرار العميل بشأن الكمية المتوفرة. لا يلزم التحقق من الدفع مرة أخرى.";
+            if (isAjax)
+                return Json(new
+                {
+                    success = true,
+                    outcome = outcome.ToString(),
+                    message,
+                    whatsAppUrl = await BuildWhatsAppUrlAsync(id)
+                });
+
+            TempData["Success"] = message;
         }
         catch (InvalidOperationException ex)
         {
+            if (isAjax)
+                return Conflict(new { success = false, message = ex.Message });
             TempData["Error"] = ex.Message;
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -275,9 +313,23 @@ public class OrdersController : Controller
         }
         catch
         {
+            if (isAjax)
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "تعذر التحقق من الدفع." });
             TempData["Error"] = "حدث خطأ غير متوقع أثناء التحقق من الدفع.";
         }
 
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    private async Task<string?> BuildWhatsAppUrlAsync(int orderId)
+    {
+        var order = await _context.Orders
+            .AsNoTracking()
+            .Include(item => item.Orderitems)
+                .ThenInclude(item => item.Product)
+            .Include(item => item.Deliveryorder)
+            .SingleOrDefaultAsync(item => item.Id == orderId, HttpContext.RequestAborted);
+        return order == null ? null : OrderWhatsAppLinkBuilder.Build(order, null);
+    }
+
 }

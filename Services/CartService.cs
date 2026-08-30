@@ -13,6 +13,8 @@ public class CartService
     private readonly IInventoryService _inventoryService;
 
     public string? MESSAGE = null;
+    public string? WARNING_CODE = null;
+    public int? AVAILABLE_QUANTITY = null;
 
     public CartService(
         NeondbContext context,
@@ -55,6 +57,8 @@ public class CartService
         await ExecuteInCartTransactionAsync(userId, "add item", async () =>
         {
             MESSAGE = null;
+            WARNING_CODE = null;
+            AVAILABLE_QUANTITY = null;
             await _cartLock.AcquireAsync(userId);
 
             var cart = await GetOrCreateCartAsync(userId);
@@ -62,6 +66,8 @@ public class CartService
             if (product == null || product.Stockquantity <= 0)
             {
                 MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                WARNING_CODE = "InsufficientStock";
+                AVAILABLE_QUANTITY = 0;
                 return;
             }
 
@@ -70,6 +76,8 @@ public class CartService
             if (maxUnits <= 0)
             {
                 MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                WARNING_CODE = "InsufficientStock";
+                AVAILABLE_QUANTITY = 0;
                 return;
             }
 
@@ -85,7 +93,11 @@ public class CartService
                 var requestedQuantity = checked(existingItem.Quantity + quantityToAdd);
                 existingItem.Quantity = Math.Min(requestedQuantity, maxUnits);
                 if (requestedQuantity > maxUnits)
-                    MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+                {
+                    MESSAGE = $"المتوفر حاليًا {(maxUnits == 1 ? "قطعة واحدة" : maxUnits == 2 ? "قطعتان" : maxUnits + " قطع")} فقط.";
+                    WARNING_CODE = "InsufficientStock";
+                    AVAILABLE_QUANTITY = maxUnits;
+                }
 
                 await _context.SaveChangesAsync();
                 return;
@@ -93,7 +105,11 @@ public class CartService
 
             var quantityToSave = Math.Min(quantityToAdd, maxUnits);
             if (quantityToAdd > maxUnits)
-                MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+            {
+                MESSAGE = $"المتوفر حاليًا {(maxUnits == 1 ? "قطعة واحدة" : maxUnits == 2 ? "قطعتان" : maxUnits + " قطع")} فقط.";
+                WARNING_CODE = "InsufficientStock";
+                AVAILABLE_QUANTITY = maxUnits;
+            }
 
             _context.Cartitems.Add(new Cartitem
             {
@@ -115,6 +131,8 @@ public class CartService
         await ExecuteInCartTransactionAsync(userId, "update quantity", async () =>
         {
             MESSAGE = null;
+            WARNING_CODE = null;
+            AVAILABLE_QUANTITY = null;
             await _cartLock.AcquireAsync(userId);
 
             var item = await _context.Cartitems
@@ -147,14 +165,21 @@ public class CartService
                 _context.Cartitems.Remove(item);
                 await _context.SaveChangesAsync();
                 MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                WARNING_CODE = "InsufficientStock";
+                AVAILABLE_QUANTITY = 0;
                 return;
             }
 
             var maxUnits = _inventoryService.GetAvailableSaleUnits(product, item.RetailPrice?.SizeMl);
-            item.Quantity = Math.Min(quantity, maxUnits);
             if (quantity > maxUnits)
-                MESSAGE = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+            {
+                MESSAGE = $"الكمية المطلوبة غير متوفرة، المتوفر حاليًا {maxUnits} فقط.";
+                WARNING_CODE = "InsufficientStock";
+                AVAILABLE_QUANTITY = maxUnits;
+                return;
+            }
 
+            item.Quantity = quantity;
             await _context.SaveChangesAsync();
         });
     }

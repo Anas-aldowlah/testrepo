@@ -7,13 +7,29 @@
 
     var filterForm = document.getElementById('yqCatalogFilters');
     var categoryInput = document.getElementById('yqCategoryId');
-    var loadMoreBtn = document.getElementById('yqLoadMoreBtn');
     var grid = document.getElementById('yaqutProductsGrid');
     var status = document.getElementById('yqCatalogStatus');
     var isLoading = false;
     var abortController = null;
     var currentRequestId = 0;
     var suppressNextPopState = false;
+
+    function bindImageFallbacks(scope) {
+        (scope || document).querySelectorAll('[data-yaqut-fallback]').forEach(function (img) {
+            if (img.dataset.yqFallbackBound) return;
+            img.dataset.yqFallbackBound = 'true';
+            img.addEventListener('error', function () {
+                var fallback = img.getAttribute('data-yaqut-fallback');
+                if (fallback && img.getAttribute('src') !== fallback) img.setAttribute('src', fallback);
+            });
+            if (img.complete && img.naturalWidth === 0) {
+                var fallback = img.getAttribute('data-yaqut-fallback');
+                if (fallback && img.getAttribute('src') !== fallback) img.setAttribute('src', fallback);
+            }
+        });
+    }
+
+    bindImageFallbacks(document);
 
     /* ── Recent Searches (client-side, storefront-wide within this page) ── */
     (function () {
@@ -274,9 +290,9 @@
 
                 grid = document.getElementById('yaqutProductsGrid');
                 status = document.getElementById('yqCatalogStatus');
-                loadMoreBtn = document.getElementById('yqLoadMoreBtn');
 
                 if (parsed.title) document.title = parsed.title;
+                bindImageFallbacks(oldShop);
             }
 
             if (!isPopState && window.location.href !== nextUrlString) {
@@ -348,7 +364,7 @@
                 var maxP = filterForm.querySelector('[name="maxPrice"]');
                 if (minP) minP.value = '';
                 if (maxP) maxP.value = '';
-            } else if (name === 'retail') {
+            } else if (name === 'retail' || name === 'availability') {
                 var radio = filterForm.querySelector('input[type="radio"][name="' + name + '"][value="' + val + '"]');
                 if (radio) radio.checked = true;
             } else if (name === 'retailSize' || name === 'brand') {
@@ -372,74 +388,12 @@
             }
         }
 
-        // Load more logic
-        if (e.target.closest('#yqLoadMoreBtn')) {
-            var btn = document.getElementById('yqLoadMoreBtn');
-            if (!btn || isLoading || !grid) return;
-            isLoading = true;
-            btn.disabled = true;
-            if (status) status.textContent = 'جارٍ تحميل المزيد من المنتجات';
-
-            if (abortController) {
-                abortController.abort();
-            }
-            abortController = new AbortController();
-
-            var requestId = ++currentRequestId;
-
-            (async function() {
-                try {
-                    var currentPage = parseInt(btn.getAttribute('data-current-page'), 10) || 1;
-                    var nextUrl = new URL(window.location.href);
-                    nextUrl.searchParams.set('page', String(currentPage + 1));
-                    var response = await window.fetch(nextUrl.toString(), {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        signal: abortController.signal
-                    });
-                    if (!response.ok) throw new Error('Catalog page request failed.');
-
-                    var html = await response.text();
-
-                    if (requestId !== currentRequestId) return;
-
-                    var parsed = new window.DOMParser().parseFromString(html, 'text/html');
-                    var nextGrid = parsed.getElementById('yaqutProductsGrid');
-                    if (!nextGrid) throw new Error('Catalog page response is incomplete.');
-
-                    var existingIds = new Set(Array.prototype.map.call(
-                        grid.querySelectorAll('[data-product-id]'),
-                        function (item) { return item.getAttribute('data-product-id'); }
-                    ));
-                    Array.prototype.forEach.call(nextGrid.children, function (item) {
-                        var productId = item.getAttribute('data-product-id');
-                        if (productId && !existingIds.has(productId)) {
-                            existingIds.add(productId);
-                            grid.appendChild(document.importNode(item, true));
-                        }
-                    });
-
-                    var nextButton = parsed.getElementById('yqLoadMoreBtn');
-                    btn.setAttribute('data-current-page', String(currentPage + 1));
-                    if (!nextButton || nextButton.hidden) {
-                        btn.hidden = true;
-                    } else {
-                        var remaining = nextButton.querySelector('[data-yq-remaining]');
-                        var currentRemaining = btn.querySelector('[data-yq-remaining]');
-                        if (remaining && currentRemaining) currentRemaining.textContent = remaining.textContent;
-                    }
-                    if (status) status.textContent = 'تم تحميل المزيد من المنتجات';
-                } catch (error) {
-                    if (requestId !== currentRequestId) return;
-                    if (error.name !== 'AbortError') {
-                        if (status) status.textContent = 'تعذر تحميل المزيد من المنتجات. حاول مرة أخرى.';
-                    }
-                } finally {
-                    if (requestId === currentRequestId) {
-                        isLoading = false;
-                        btn.disabled = false;
-                    }
-                }
-            })();
+        var pageLink = e.target.closest('[data-yq-catalog-pager] a[href]');
+        if (pageLink) {
+            e.preventDefault();
+            if (pageLink.getAttribute('aria-disabled') === 'true' || isLoading) return;
+            window.history.pushState({ path: pageLink.href }, '', pageLink.href);
+            submitFilters(null, true, pageLink.href);
         }
     });
 

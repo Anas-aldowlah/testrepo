@@ -22,6 +22,8 @@ public class GuestCartService
     private List<GuestCartItem>? _currentItems;
 
     public string? Message { get; private set; }
+    public string? WarningCode { get; private set; }
+    public int? AvailableQuantity { get; private set; }
 
     public GuestCartService(
         IHttpContextAccessor httpContextAccessor,
@@ -92,12 +94,16 @@ public class GuestCartService
     public async Task AddToCartAsync(int productId, int quantity, int? retailPriceId = null)
     {
         Message = null;
+        WarningCode = null;
+        AvailableQuantity = null;
         quantity = Math.Max(1, quantity);
 
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
         if (product == null || product.Stockquantity <= 0)
         {
             Message = "هذا المنتج غير متوفر حالياً.";
+            WarningCode = "InsufficientStock";
+            AvailableQuantity = 0;
             return;
         }
 
@@ -106,6 +112,8 @@ public class GuestCartService
         if (maxUnits <= 0)
         {
             Message = "هذا المنتج غير متوفر حالياً.";
+            WarningCode = "InsufficientStock";
+            AvailableQuantity = 0;
             return;
         }
 
@@ -117,7 +125,9 @@ public class GuestCartService
 
         if (requestedQuantity > maxUnits)
         {
-            Message = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+            Message = $"المتوفر حاليًا {(maxUnits == 1 ? "قطعة واحدة" : maxUnits == 2 ? "قطعتان" : maxUnits + " قطع")} فقط.";
+            WarningCode = "InsufficientStock";
+            AvailableQuantity = maxUnits;
             requestedQuantity = maxUnits;
         }
 
@@ -141,6 +151,8 @@ public class GuestCartService
     public async Task UpdateQuantityAsync(int productId, int quantity, int? retailPriceId = null)
     {
         Message = null;
+        WarningCode = null;
+        AvailableQuantity = null;
         var items = ReadItems();
         var existingItem = items.FirstOrDefault(i =>
             i.ProductId == productId &&
@@ -165,15 +177,22 @@ public class GuestCartService
             items.Remove(existingItem);
             WriteItems(items);
             Message = "هذا المنتج غير متوفر حالياً.";
+            WarningCode = "InsufficientStock";
+            AvailableQuantity = 0;
             return;
         }
 
         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, retailPriceId);
         var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
-        existingItem.Quantity = Math.Min(quantity, maxUnits);
         if (quantity > maxUnits)
-            Message = $"الكمية المتبقية من {product.Name}: {maxUnits}.";
+        {
+            Message = $"الكمية المطلوبة غير متوفرة، المتوفر حاليًا {maxUnits} فقط.";
+            WarningCode = "InsufficientStock";
+            AvailableQuantity = maxUnits;
+            return;
+        }
 
+        existingItem.Quantity = quantity;
         WriteItems(items);
     }
 

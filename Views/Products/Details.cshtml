@@ -16,6 +16,9 @@
     var mlLabel = (fullAvailableUnits >= 3 && fullAvailableUnits <= 10) ? "عبوات" : "عبوة";
     var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} {mlLabel}" : $"{pieceAvailableUnits:N0} قطعة";
     var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
+    var lowStockMessage = !isMlProduct && fullAvailableUnits == 1
+        ? "المتوفر حاليًا قطعة واحدة فقط"
+        : $"المتوفر حاليًا {availableStockText} فقط";
     var retailPrices = Model is null ? [] : ProductRetailAvailability.GetCustomerUsablePrices(Model);
     var productImageUrl = Url.Content("~/images/placeholder-product.svg");
     if (!string.IsNullOrWhiteSpace(Model?.Imageurl))
@@ -142,13 +145,6 @@
                             <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in">
                                 <i class="bi bi-check-circle-fill"></i> متوفر في المخزون
                             </span>
-                            @if (lowStock)
-                            {
-                                <span class="yq-pdp-stock__note">
-                                    <i class="bi bi-exclamation-triangle-fill"></i>
-                                    الكمية المتبقية: <strong><span class="yq-available-stock-text">@availableStockText</span> فقط</strong>
-                                </span>
-                            }
                         }
                         else
                         {
@@ -202,6 +198,15 @@
                             }
 
                             <div class="yq-pdp-qty">
+                                @if (lowStock)
+                                {
+                                    <p class="yq-pdp-qty__availability"
+                                       data-yq-low-stock-message
+                                       data-yq-unit-kind="@(isMlProduct ? "unit" : "piece")">
+                                        <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                                        <span>@lowStockMessage</span>
+                                    </p>
+                                }
                                 <span class="yq-pdp-qty__label">الكمية</span>
                                 <div class="yq-pdp-qty__stepper">
                                     <button type="button" class="yq-pdp-qty__btn" data-yq-qty-decrease aria-label="تقليل الكمية">
@@ -209,6 +214,7 @@
                                     </button>
                                     <input type="number" name="quantity" id="yqQtyInput" value="1"
                                            min="1" max="@Math.Max(1, fullAvailableUnits)"
+                                           data-yq-unit-kind="@(isMlProduct ? "unit" : "piece")"
                                            class="yq-pdp-qty__input" aria-label="الكمية المطلوبة" />
                                     <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية">
                                         <i class="bi bi-plus"></i>
@@ -224,9 +230,9 @@
                     }
                     else
                     {
-                        <button type="button" class="btn-yaqut-outline yq-pdp-add-btn" disabled>
-                            <i class="bi bi-bell"></i> غير متوفر حالياً
-                        </button>
+                        <p class="yq-pdp-stock-state" role="status">
+                            <i class="bi bi-x-circle" aria-hidden="true"></i> نفد من المخزون
+                        </p>
                     }
 
                     <!-- TRUST STRIP: Only Authenticity -->
@@ -364,6 +370,8 @@ else
         <a asp-action="Index" class="btn-yaqut-gold mt-3">العودة للمنتجات</a>
     </div>
 }
+
+@await Html.PartialAsync("_YaqutOperationDialog")
 
 @section Scripts {
     <script src="~/js/products/details.js" asp-append-version="true"></script>

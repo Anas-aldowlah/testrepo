@@ -4,11 +4,19 @@ using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
 
-public enum ContinueInventoryConflictOutcome
+public enum PaymentVerificationOutcome
 {
     NotFound,
-    Continued,
-    CancellationRequired
+    Paid,
+    Conflict
+}
+
+public enum CustomerInventoryConflictOutcome
+{
+    NotFound,
+    Cancelled,
+    Paid,
+    Conflict
 }
 
 public class OrderService
@@ -17,12 +25,6 @@ public class OrderService
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<OrderService> _logger;
-
-    private static readonly HashSet<string> FulfillingStatuses =
-        new(StringComparer.OrdinalIgnoreCase) { "Processed", "Shipped", "Delivered" };
-
-    private static readonly HashSet<string> ReleasingStatuses =
-        new(StringComparer.OrdinalIgnoreCase) { "Pending", "Cancelled", "Refunded" };
 
     public OrderService(
         NeondbContext context,
@@ -229,32 +231,45 @@ public class OrderService
             throw new InvalidOperationException(staleCartMessage);
     }
 
-    public static string? NormalizeStatus(string? status)
-    {
-        if (string.IsNullOrWhiteSpace(status))
-            return null;
-
-        return status.Trim().ToLowerInvariant() switch
-        {
-            "pending" or "قيد الانتظار" => "Pending",
-            "processed" or "processing" or "قيد المعالجة" or "تم الدفع" or "جاري التجهيز" => "Processed",
-            "shipped" or "تم الشحن" => "Shipped",
-            "delivered" or "completed" or "تم التوصيل" or "مكتمل" => "Delivered",
-            "cancelled" or "canceled" or "ملغي" => "Cancelled",
-            "refunded" or "مرتجع" or "مسترجع" => "Refunded",
-            _ => null
-        };
-    }
+    public static string? NormalizeStatus(string? status) => OrderStatusPolicy.Normalize(status);
 
     public async Task<bool> UpdateStatusAsync(int orderId, string requestedStatus)
     {
         var status = NormalizeStatus(requestedStatus)
             ?? throw new ArgumentException("Invalid order status.", nameof(requestedStatus));
 
-        return await UpdateOrderStateAsync(orderId, _ => status, status);
+        return await ExecuteLockedOrderTransitionAsync(
+            orderId,
+            $"status-{status}",
+            async order =>
+            {
+                if (!OrderStatusPolicy.CanTransition(order.Status, status))
+                    throw new InvalidOperationException("انتقال حالة الطلب غير مسموح.");
+
+                if (string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                if (status == OrderStatuses.Cancelled)
+                {
+                    var workflowState = order.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision
+                        ? OrderWorkflowStates.ConflictResolvedCancel
+                        : null;
+                    await CancelLockedOrderAsync(order, workflowState, CancellationToken.None);
+                    return true;
+                }
+
+                if (!order.Stockdeducted)
+                    throw new InvalidOperationException("حالة الطلب غير متسقة: لا يمكن تقدم طلب لم يُخصم مخزونه.");
+
+                order.Status = status;
+                order.TimeState = DateTime.UtcNow;
+                return true;
+            },
+            CancellationToken.None,
+            includeOrderItems: status == OrderStatuses.Cancelled);
     }
 
-    public Task<bool> VerifyPaymentAsync(
+    public async Task<PaymentVerificationOutcome> VerifyPaymentAsync(
         int orderId,
         int verifyingAdminUserId,
         CancellationToken cancellationToken = default)
@@ -262,30 +277,48 @@ public class OrderService
         if (verifyingAdminUserId <= 0)
             throw new ArgumentOutOfRangeException(nameof(verifyingAdminUserId));
 
-        return ExecuteLockedOrderTransitionAsync(
+        var outcome = PaymentVerificationOutcome.Paid;
+        var found = await ExecuteLockedOrderTransitionAsync(
             orderId,
             "verify-payment",
             async order =>
             {
+                var isLegacyConflictAwaitingReview =
+                    string.Equals(order.Workflowstate, OrderWorkflowStates.ConflictAwaitingDecision, StringComparison.Ordinal) &&
+                    !order.Paymentreviewedat.HasValue &&
+                    !order.Paymentreviewedbyuserid.HasValue;
                 if (!string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
                     order.Stockdeducted ||
                     order.Paymentverifiedat.HasValue ||
                     order.Paymentverifiedbyuserid.HasValue ||
-                    !string.IsNullOrWhiteSpace(order.Workflowstate) ||
+                    (!isLegacyConflictAwaitingReview &&
+                        (order.Paymentreviewedat.HasValue ||
+                         order.Paymentreviewedbyuserid.HasValue ||
+                         !string.IsNullOrWhiteSpace(order.Workflowstate))) ||
                     order.Paymentstatus is not ("Unpaid" or "Pending"))
                 {
                     throw new InvalidOperationException("لا يمكن التحقق من دفع الطلب في حالته الحالية.");
+                }
+
+                var reviewedAt = DateTime.UtcNow;
+                if (isLegacyConflictAwaitingReview)
+                {
+                    order.Paymentreviewedat = reviewedAt;
+                    order.Paymentreviewedbyuserid = verifyingAdminUserId;
+                    order.Paymentverifiedat = null;
+                    order.Paymentverifiedbyuserid = null;
+                    order.Finalfulfilledamount = null;
+                    order.TimeState = reviewedAt;
+                    outcome = PaymentVerificationOutcome.Conflict;
+                    return true;
                 }
 
                 var orderItems = await LoadOrderItemsAsync(order.Id, cancellationToken);
                 var products = await LockProductsAsync(orderItems, cancellationToken);
                 var allocation = BuildAllocation(orderItems, products);
                 var hasConflict = allocation.Any(line => line.UnavailableQuantity > 0);
-
-                order.Paymentstatus = "Paid";
-                order.Paymentverifiedat = DateTime.Now;
-                order.Paymentverifiedbyuserid = verifyingAdminUserId;
-                order.TimeState = DateTime.Now;
+                order.Paymentreviewedat = reviewedAt;
+                order.Paymentreviewedbyuserid = verifyingAdminUserId;
 
                 if (hasConflict)
                 {
@@ -298,8 +331,11 @@ public class OrderService
 
                     order.Workflowstate = OrderWorkflowStates.ConflictAwaitingDecision;
                     order.Finalfulfilledamount = null;
-                    order.Refundrequiredamount = null;
-                    order.Refundreason = null;
+                    order.Paymentstatus = order.Receipturl == null ? "Unpaid" : "Pending";
+                    order.Paymentverifiedat = null;
+                    order.Paymentverifiedbyuserid = null;
+                    order.TimeState = DateTime.UtcNow;
+                    outcome = PaymentVerificationOutcome.Conflict;
                     return true;
                 }
 
@@ -310,77 +346,169 @@ public class OrderService
                     item.UnavailableQuantity = 0;
                 }
 
-                order.Status = "Processed";
+                order.Status = OrderStatuses.Paid;
                 order.Stockdeducted = true;
                 order.Finalfulfilledamount = order.Totalamount;
-                order.Refundrequiredamount = 0m;
-                order.Refundreason = null;
+                order.Paymentstatus = "Paid";
+                order.Paymentverifiedat = reviewedAt;
+                order.Paymentverifiedbyuserid = verifyingAdminUserId;
+                order.Workflowstate = null;
+                order.TimeState = DateTime.UtcNow;
                 return true;
             },
             cancellationToken);
+
+        return found ? outcome : PaymentVerificationOutcome.NotFound;
     }
 
-    public Task<bool> CancelInventoryConflictAsync(
-        int orderId,
-        int customerUserId,
-        CancellationToken cancellationToken = default)
+    public static CustomerInventoryConflictViewModel? BuildCustomerInventoryConflict(Order order)
     {
-        return ExecuteLockedOrderTransitionAsync(
-            orderId,
-            "cancel-inventory-conflict",
-            order =>
+        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.Ordinal) ||
+            !string.Equals(order.Workflowstate, OrderWorkflowStates.ConflictAwaitingDecision, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var orderedItems = order.Orderitems.OrderBy(item => item.Id).ToArray();
+        var conflictedItems = orderedItems
+            .Where(item => (item.UnavailableQuantity ?? 0) > 0)
+            .ToArray();
+        if (conflictedItems.Length == 0)
+            return null;
+
+        var conflictedIds = conflictedItems.Select(item => item.Id).ToHashSet();
+        var fixedAcceptedQuantity = orderedItems
+            .Where(item => !conflictedIds.Contains(item.Id))
+            .Sum(item => item.Quantity);
+        var availableByItem = conflictedItems.ToDictionary(
+            item => item.Id,
+            item => Math.Clamp(
+                item.Quantity - (item.UnavailableQuantity ?? item.Quantity),
+                0,
+                item.Quantity));
+
+        return new CustomerInventoryConflictViewModel
+        {
+            OrderId = order.Id,
+            Products = orderedItems.Select(item => new CustomerInventoryConflictProductViewModel
             {
-                if (order.Userid != customerUserId)
-                    return Task.FromResult(false);
-
-                ValidateAwaitingCustomerDecision(order);
-                foreach (var item in order.Orderitems)
-                    item.FulfilledQuantity = 0;
-
-                order.Status = "Cancelled";
-                order.Workflowstate = OrderWorkflowStates.ConflictResolvedCancel;
-                order.Finalfulfilledamount = 0m;
-                order.Refundrequiredamount = order.Totalamount;
-                order.Refundreason = OrderWorkflowStates.FullCancellationRefund;
-                order.TimeState = DateTime.Now;
-                return Task.FromResult(true);
-            },
-            cancellationToken,
-            includeOrderItems: true);
+                OrderitemId = item.Id,
+                ProductName = item.Product?.Name ?? "المنتج",
+                RequestedQuantity = item.Quantity,
+                AvailableQuantity = availableByItem.TryGetValue(item.Id, out var available)
+                    ? available
+                    : item.Quantity,
+                IsConflict = conflictedIds.Contains(item.Id)
+            }).ToArray(),
+            Lines = conflictedItems.Select(item => new CustomerInventoryConflictLineViewModel
+            {
+                OrderitemId = item.Id,
+                ProductName = item.Product?.Name ?? "المنتج",
+                RequestedQuantity = item.Quantity,
+                AvailableQuantity = availableByItem[item.Id],
+                CanRemove = fixedAcceptedQuantity + availableByItem
+                    .Where(pair => pair.Key != item.Id)
+                    .Sum(pair => pair.Value) > 0
+            }).ToArray()
+        };
     }
 
-    public async Task<ContinueInventoryConflictOutcome> ContinueInventoryConflictAsync(
+    public async Task<CustomerInventoryConflictOutcome> ResolveInventoryConflictAsync(
         int orderId,
-        int customerUserId,
+        int ownerUserId,
+        bool cancelEntireOrder,
+        IReadOnlyList<InventoryConflictLineDecisionInput> decisions,
         CancellationToken cancellationToken = default)
     {
-        var outcome = ContinueInventoryConflictOutcome.Continued;
+        if (ownerUserId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(ownerUserId));
+
+        var outcome = CustomerInventoryConflictOutcome.Paid;
         var found = await ExecuteLockedOrderTransitionAsync(
             orderId,
-            "continue-inventory-conflict",
+            "resolve-inventory-conflict",
             async order =>
             {
-                outcome = ContinueInventoryConflictOutcome.Continued;
-                if (order.Userid != customerUserId)
+                if (order.Userid != ownerUserId)
                     return false;
 
                 ValidateAwaitingCustomerDecision(order);
+                if (cancelEntireOrder)
+                {
+                    await CancelLockedOrderAsync(
+                        order,
+                        OrderWorkflowStates.ConflictResolvedCancel,
+                        cancellationToken);
+                    outcome = CustomerInventoryConflictOutcome.Cancelled;
+                    return true;
+                }
+
                 var orderItems = order.Orderitems.OrderBy(item => item.Id).ToList();
                 if (orderItems.Count == 0)
                     throw new InvalidOperationException("لا يمكن تنفيذ طلب لا يحتوي على منتجات.");
 
+                if (!order.Paymentreviewedat.HasValue || !order.Paymentreviewedbyuserid.HasValue)
+                    throw new InvalidOperationException("تعذر إكمال الطلب الآن. يرجى التواصل مع المتجر.");
+
+                var affectedItems = orderItems
+                    .Where(item => (item.UnavailableQuantity ?? 0) > 0)
+                    .ToDictionary(item => item.Id);
+                if (affectedItems.Count == 0)
+                    throw new InvalidOperationException("لم يعد الطلب بحاجة إلى مراجعة.");
+
+                decisions ??= [];
+                var decisionGroups = decisions.GroupBy(decision => decision.OrderitemId).ToArray();
+                if (decisionGroups.Length != affectedItems.Count ||
+                    decisionGroups.Any(group => group.Count() != 1 || !affectedItems.ContainsKey(group.Key)))
+                {
+                    throw new InvalidOperationException("يرجى اختيار قرار لكل منتج متأثر.");
+                }
+
+                var acceptedQuantities = orderItems.ToDictionary(item => item.Id, item => item.Quantity);
+                foreach (var group in decisionGroups)
+                {
+                    var decision = group.Single();
+                    var item = affectedItems[group.Key];
+                    var availableQuantity = Math.Clamp(
+                        item.Quantity - (item.UnavailableQuantity ?? item.Quantity),
+                        0,
+                        item.Quantity);
+
+                    if (string.Equals(decision.Decision, InventoryConflictDecisions.Remove, StringComparison.Ordinal))
+                    {
+                        acceptedQuantities[item.Id] = 0;
+                    }
+                    else if (string.Equals(decision.Decision, InventoryConflictDecisions.Continue, StringComparison.Ordinal) &&
+                             availableQuantity > 0)
+                    {
+                        acceptedQuantities[item.Id] = availableQuantity;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("أحد الخيارات لم يعد متاحاً. يرجى مراجعة الطلب.");
+                    }
+                }
+
+                if (acceptedQuantities.Values.All(quantity => quantity == 0))
+                    throw new InvalidOperationException("اختر إلغاء الطلب إذا لم ترغب في أي منتج.");
+
                 var products = await LockProductsAsync(orderItems, cancellationToken);
-                var allocation = BuildAllocation(orderItems, products);
-                if (allocation.All(line => line.FulfillableQuantity == 0))
+                var allocation = BuildAllocation(orderItems, products, acceptedQuantities);
+                if (allocation.Any(line => line.FulfillableQuantity != line.RequestedQuantity))
                 {
                     foreach (var item in orderItems)
                     {
                         var result = allocation.Single(line => line.OrderitemId == item.Id);
                         item.FulfilledQuantity = null;
-                        item.UnavailableQuantity = result.UnavailableQuantity;
+                        item.UnavailableQuantity = item.Quantity - result.FulfillableQuantity;
                     }
 
-                    outcome = ContinueInventoryConflictOutcome.CancellationRequired;
+                    order.Paymentstatus = order.Receipturl == null ? "Unpaid" : "Pending";
+                    order.Paymentverifiedat = null;
+                    order.Paymentverifiedbyuserid = null;
+                    order.Finalfulfilledamount = null;
+                    order.TimeState = DateTime.UtcNow;
+                    outcome = CustomerInventoryConflictOutcome.Conflict;
                     return true;
                 }
 
@@ -389,126 +517,49 @@ public class OrderService
                 {
                     var result = allocation.Single(line => line.OrderitemId == item.Id);
                     item.FulfilledQuantity = result.FulfillableQuantity;
-                    item.UnavailableQuantity = result.UnavailableQuantity;
+                    item.UnavailableQuantity = item.Quantity - result.FulfillableQuantity;
                 }
 
-                order.Status = "Processed";
+                order.Status = OrderStatuses.Paid;
                 order.Stockdeducted = true;
                 order.Workflowstate = OrderWorkflowStates.ConflictResolvedContinue;
-                order.Refundrequiredamount = OrderInventoryAllocator.CalculateRefund(allocation);
-                order.Refundreason = order.Refundrequiredamount > 0m
-                    ? OrderWorkflowStates.PartialUnavailableRefund
-                    : null;
                 order.Finalfulfilledamount = OrderInventoryAllocator.CalculateFulfilledValue(allocation);
-                order.TimeState = DateTime.Now;
+                order.Paymentstatus = "Paid";
+                order.Paymentverifiedat = DateTime.UtcNow;
+                order.Paymentverifiedbyuserid = order.Paymentreviewedbyuserid;
+                order.TimeState = DateTime.UtcNow;
                 return true;
             },
             cancellationToken,
             includeOrderItems: true);
 
-        return found ? outcome : ContinueInventoryConflictOutcome.NotFound;
+        return found ? outcome : CustomerInventoryConflictOutcome.NotFound;
     }
 
-    private async Task<bool> UpdateOrderStateAsync(
-        int orderId,
-        Func<Order, string> resolveStatus,
-        string operationName)
+    private async Task CancelLockedOrderAsync(
+        Order order,
+        string? workflowState = null,
+        CancellationToken cancellationToken = default)
     {
-
-        var strategy = _context.Database.CreateExecutionStrategy();
-        try
+        if (order.Stockdeducted)
         {
-            return await strategy.ExecuteAsync(async () =>
-            {
-                _context.ChangeTracker.Clear();
-                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-                try
-                {
-                    var order = await _context.Orders
-                        .FromSqlInterpolated($"SELECT * FROM orders WHERE id = {orderId} FOR UPDATE")
-                        .SingleOrDefaultAsync();
-
-                    if (order == null)
-                    {
-                        await transaction.CommitAsync();
-                        return false;
-                    }
-
-                    var status = resolveStatus(order);
-                    if (string.Equals(order.Workflowstate, OrderWorkflowStates.ConflictAwaitingDecision, StringComparison.Ordinal))
-                        throw new InvalidOperationException("الطلب بانتظار قرار العميل بشأن تعارض المخزون.");
-                    if (!string.IsNullOrWhiteSpace(order.Workflowstate) && ReleasingStatuses.Contains(status))
-                        throw new InvalidOperationException("لا يمكن تجاوز مسار تعارض المخزون بإجراء إداري عام.");
-                    if (FulfillingStatuses.Contains(status) &&
-                        !FulfillingStatuses.Contains(order.Status) &&
-                        (!string.Equals(order.Paymentstatus, "Paid", StringComparison.Ordinal) ||
-                         !order.Paymentverifiedat.HasValue ||
-                         !order.Paymentverifiedbyuserid.HasValue))
-                    {
-                        throw new InvalidOperationException("يجب التحقق من الدفع أولاً عبر الإجراء المخصص.");
-                    }
-                    var statusChanged = !string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase);
-                    var shouldDeductStock = statusChanged &&
-                                            FulfillingStatuses.Contains(status) &&
-                                            !order.Stockdeducted;
-                    var shouldRestoreStock = statusChanged &&
-                                             ReleasingStatuses.Contains(status) &&
-                                             order.Stockdeducted;
-
-                    if (!statusChanged && FulfillingStatuses.Contains(status) && !order.Stockdeducted)
-                    {
-                        throw new InvalidOperationException("حالة الطلب غير متسقة: الطلب منفذ دون خصم المخزون.");
-                    }
-
-                    if (shouldDeductStock || shouldRestoreStock)
-                    {
-                        var orderItems = await _context.Orderitems
-                            .Where(item => item.Orderid == orderId)
-                            .ToListAsync();
-                        if (orderItems.Count == 0)
-                            throw new InvalidOperationException("لا يمكن تحديث المخزون لأن الطلب لا يحتوي على منتجات.");
-
-                        var products = await LockProductsAsync(orderItems, CancellationToken.None);
-                        var requiredAmounts = BuildOrderDeductions(orderItems, products);
-
-                        foreach (var amount in requiredAmounts)
-                        {
-                            if (shouldDeductStock)
-                                await _inventoryService.DeductStockAsync(amount.Key, amount.Value);
-                            else
-                                await _inventoryService.RestoreStockAsync(amount.Key, amount.Value);
-                        }
-
-                        order.Stockdeducted = shouldDeductStock;
-                    }
-
-                    order.Status = status;
-                    order.TimeState = DateTime.Now;
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return true;
-                }
-                catch
-                {
-                    try
-                    {
-                        await transaction.RollbackAsync(CancellationToken.None);
-                    }
-                    catch (Exception rollbackException)
-                    {
-                        _logger.LogWarning(rollbackException, "Rollback failed while updating order {OrderId}.", orderId);
-                    }
-
-                    _context.ChangeTracker.Clear();
-                    throw;
-                }
-            });
+            var orderItems = order.Orderitems.Count > 0
+                ? order.Orderitems.OrderBy(item => item.Id).ToList()
+                : await LoadOrderItemsAsync(order.Id, cancellationToken);
+            var products = await LockProductsAsync(orderItems, cancellationToken);
+            foreach (var amount in BuildOrderDeductions(orderItems, products).OrderBy(pair => pair.Key))
+                await _inventoryService.RestoreStockAsync(amount.Key, amount.Value, cancellationToken);
+            order.Stockdeducted = false;
         }
-        catch (Exception exception)
-        {
-            _logger.LogError(exception, "Updating order {OrderId} with operation {Operation} failed.", orderId, operationName);
-            throw;
-        }
+
+        foreach (var item in order.Orderitems)
+            item.FulfilledQuantity ??= 0;
+
+        order.Status = OrderStatuses.Cancelled;
+        order.Workflowstate = workflowState ?? order.Workflowstate;
+        order.Finalfulfilledamount ??= 0m;
+        order.CancelledAt = DateTime.UtcNow;
+        order.TimeState = DateTime.UtcNow;
     }
 
     private async Task<Dictionary<int, Product>> LockProductsAsync(
@@ -567,12 +618,13 @@ public class OrderService
 
     private IReadOnlyList<OrderAllocationResult> BuildAllocation(
         IEnumerable<Orderitem> orderItems,
-        IReadOnlyDictionary<int, Product> products)
+        IReadOnlyDictionary<int, Product> products,
+        IReadOnlyDictionary<int, int>? requestedQuantities = null)
     {
         var lines = orderItems.Select(item => new OrderAllocationLine(
             item.Id,
             item.Productid,
-            item.Quantity,
+            requestedQuantities?.GetValueOrDefault(item.Id) ?? item.Quantity,
             _inventoryService.CalculateDeductionAmount(products[item.Productid], 1, item.RetailSizeMl),
             item.Unitprice));
         var stock = products.ToDictionary(pair => pair.Key, pair => pair.Value.Stockquantity);
@@ -597,9 +649,6 @@ public class OrderService
     private static void ValidateAwaitingCustomerDecision(Order order)
     {
         if (!string.Equals(order.Status, "Pending", StringComparison.Ordinal) ||
-            !string.Equals(order.Paymentstatus, "Paid", StringComparison.Ordinal) ||
-            !order.Paymentverifiedat.HasValue ||
-            !order.Paymentverifiedbyuserid.HasValue ||
             order.Stockdeducted ||
             !string.Equals(order.Workflowstate, OrderWorkflowStates.ConflictAwaitingDecision, StringComparison.Ordinal))
         {
@@ -677,7 +726,7 @@ public class OrderService
         if (total > 1000000.00m)
             throw new OverflowException("Order total exceeds the allowed currency limit.");
 
-        return total;
+        return total + ShippingPolicy.CalculateCharge(total);
     }
 
     private static int CheckedQuantitySum(IEnumerable<int> quantities)
@@ -742,6 +791,79 @@ public class OrderService
                 .ThenInclude(item => item.RetailPrice)
             .OrderByDescending(order => order.Orderdate)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CustomerOrdersIndexViewModel> GetUserOrdersPageAsync(
+        int userId,
+        string? status,
+        string? search,
+        int page,
+        CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 10;
+        var allowedStatuses = new HashSet<string>(StringComparer.Ordinal)
+        {
+            OrderStatuses.Pending,
+            OrderStatuses.Paid,
+            OrderStatuses.Processed,
+            OrderStatuses.Shipped,
+            OrderStatuses.Delivered,
+            OrderStatuses.Cancelled
+        };
+        var normalizedStatus = allowedStatuses.Contains(status ?? string.Empty) ? status! : "all";
+        var normalizedSearch = (search ?? string.Empty).Trim();
+        if (normalizedSearch.Length > 100)
+            normalizedSearch = normalizedSearch[..100];
+
+        var customerOrders = _context.Orders
+            .AsNoTracking()
+            .Where(order => order.Userid == userId);
+
+        var groupedCounts = await customerOrders
+            .GroupBy(order => order.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+        var statusCounts = groupedCounts.ToDictionary(
+            item => item.Status,
+            item => item.Count,
+            StringComparer.Ordinal);
+
+        var filtered = customerOrders;
+        if (normalizedStatus != "all")
+            filtered = filtered.Where(order => order.Status == normalizedStatus);
+
+        if (normalizedSearch.Length > 0)
+        {
+            filtered = filtered.Where(order =>
+                (order.Trackingnumber != null && order.Trackingnumber.Contains(normalizedSearch)) ||
+                order.Orderitems.Any(item => item.Product != null && item.Product.Name.Contains(normalizedSearch)));
+        }
+
+        var totalCount = await filtered.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        var currentPage = Math.Clamp(page, 1, totalPages);
+        var orders = await filtered
+            .OrderByDescending(order => order.Orderdate)
+            .ThenByDescending(order => order.Id)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .Include(order => order.Orderitems)
+                .ThenInclude(item => item.Product)
+            .Include(order => order.Orderitems)
+                .ThenInclude(item => item.RetailPrice)
+            .ToListAsync(cancellationToken);
+
+        return new CustomerOrdersIndexViewModel
+        {
+            Orders = orders,
+            StatusCounts = statusCounts,
+            Status = normalizedStatus,
+            Search = normalizedSearch,
+            CurrentPage = currentPage,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
     }
 
     public Task<Order?> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken = default) =>

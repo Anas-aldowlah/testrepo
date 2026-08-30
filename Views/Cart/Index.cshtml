@@ -15,8 +15,6 @@
         ? $"{item.RetailPrice.SizeMl} مل"
         : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} مل" : "للقطعة");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
-    var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
-    var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
@@ -121,7 +119,7 @@
                             </div>
 
                             <div class="yq-cart-item__footer">
-                                <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block" data-yq-cart-qty-form>
+                                <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block" data-yq-cart-qty-form data-yq-cart-max-units="@maxUnits" data-yq-cart-preset-limit="@Math.Min(maxUnits, 10)">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
                                     <input type="hidden" name="productId" value="@item.Productid" />
@@ -133,24 +131,23 @@
                                         <select class="yq-cart-item__qty-select"
                                                 data-yq-cart-qty-select
                                                 aria-label="كمية @item.Product?.Name">
-                                            @for (var quantityOption = 1; quantityOption <= 5; quantityOption++)
+                                            @for (var quantityOption = 1; quantityOption <= Math.Min(maxUnits, 10); quantityOption++)
                                             {
                                                 <option value="@quantityOption"
-                                                        selected="@(item.Quantity == quantityOption)"
-                                                        disabled="@(quantityOption > maxUnits)">
+                                                        selected="@(item.Quantity == quantityOption)">
                                                     @quantityOption
                                                 </option>
                                             }
-                                            <option value="custom" selected="@(item.Quantity > 5)"
-                                                    disabled="@(maxUnits <= 5)">
-                                                أكثر من 5 (5+)
-                                            </option>
+                                            @if (maxUnits > 10)
+                                            {
+                                                <option value="custom" selected="@(item.Quantity > 10)">أكثر من 10 (10+)</option>
+                                            }
                                         </select>
                                         <input type="number"
                                                value="@item.Quantity"
                                                min="1"
                                                max="@maxUnits"
-                                               class="yq-cart-item__qty-input @(item.Quantity <= 5 ? "d-none" : null)"
+                                               class="yq-cart-item__qty-input @(item.Quantity <= 10 ? "d-none" : null)"
                                                data-yq-cart-qty-custom
                                                inputmode="numeric"
                                                aria-label="كمية @item.Product?.Name" />
@@ -159,6 +156,11 @@
                                               role="status"
                                               aria-label="جاري تحديث الكمية"></span>
                                     </div>
+                                    <p class="yq-cart-item__qty-feedback"
+                                       data-yq-cart-stock-feedback
+                                       role="status"
+                                       aria-live="polite"
+                                       hidden></p>
                                 </form>
 
                                 <div class="yq-cart-item__pricing">
@@ -182,6 +184,8 @@
                     <h2 class="yq-cart-summary__title">
                         <i class="bi bi-receipt"></i> الفاتورة الإجمالية
                     </h2>
+
+                    @await Html.PartialAsync("_FreeShipping")
 
                     <div class="yq-cart-summary__total-box">
                         <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>

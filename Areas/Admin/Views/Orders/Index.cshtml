@@ -10,6 +10,7 @@
     var selectedStatus = Model.SelectedStatus;
     var search = Model.Search;
     var hasActiveFilters = Model.HasActiveFilters;
+    var paymentPresentations = ViewData["PaymentMethodPresentations"] as IReadOnlyDictionary<string, PaymentMethodPresentation>;
     var pagerRouteValues = new Dictionary<string, object?>
     {
         ["search"] = search,
@@ -34,6 +35,7 @@
 <section class="yq-orders-admin"
          aria-labelledby="ordersIndexTitle"
          data-yq-orders-page
+         data-yq-verify-payment-url="@Url.Action("VerifyPayment", "Orders", new { area = "Admin" })"
          data-yq-update-status-url="@Url.Action("UpdateStatus", "Orders", new { area = "Admin" })">
     <header class="yq-orders-hero">
         <div class="yq-orders-hero__content">
@@ -47,23 +49,6 @@
             <strong>@Model.TotalRevenue.ToString("N0") ر.س</strong>
         </div>
     </header>
-
-    <div id="yqOrdersAlertArea">
-        @if (TempData["Error"] != null)
-        {
-            <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--danger" role="alert">
-                <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
-                <span>@TempData["Error"]</span>
-            </div>
-        }
-        else if (TempData["Success"] != null)
-        {
-            <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--success" role="status">
-                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                <span>@TempData["Success"]</span>
-            </div>
-        }
-    </div>
 
     <section class="yq-orders-summary" aria-label="ملخص حالات الطلبات">
         <article class="yq-orders-stat">
@@ -111,7 +96,7 @@
             }
         </div>
 
-        <form method="get" class="yq-orders-filter-form">
+        <form method="get" class="yq-orders-filter-form" data-yq-orders-search-form>
             <input type="hidden" name="pageSize" value="@Model.Orders.PageSize" />
             <div class="yq-orders-search">
                 <label for="ordersSearch">البحث</label>
@@ -132,8 +117,12 @@
                     <span>قيد الانتظار</span>
                 </label>
                 <label>
-                    <input type="checkbox" name="status" value="Processed" checked="@selectedStatus.Contains("Processed")" />
+                    <input type="checkbox" name="status" value="Paid" checked="@selectedStatus.Contains("Paid")" />
                     <span>تم الدفع</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="status" value="Processed" checked="@selectedStatus.Contains("Processed")" />
+                    <span>قيد التجهيز</span>
                 </label>
                 <label>
                     <input type="checkbox" name="status" value="Shipped" checked="@selectedStatus.Contains("Shipped")" />
@@ -154,13 +143,13 @@
             </fieldset>
 
             <div class="yq-orders-filter-actions">
-                <button type="submit" class="btn-yaqut-gold">
+                <button type="submit" class="btn-yaqut-gold yq-workflow-fill">
                     <i class="bi bi-funnel" aria-hidden="true"></i>
                     <span>تطبيق</span>
                 </button>
                 <a asp-action="Index" class="btn-yaqut-outline">
                     <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                    <span>إعادة ضبط</span>
+                    <span>مسح الفلاتر</span>
                 </a>
             </div>
         </form>
@@ -186,7 +175,7 @@
                             <th scope="col">حالة الطلب</th>
                             <th scope="col">تاريخ الطلب</th>
                             <th scope="col">المعلومات السريعة</th>
-                            <th scope="col">الإجراءات</th>
+                            <th scope="col"><span class="yq-orders-actions-heading"><i class="bi bi-sliders" aria-hidden="true"></i> إجراءات الطلب</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -195,7 +184,8 @@
                             var statusLabel = order.Status switch
                             {
                                 "Pending" => "قيد الانتظار",
-                                "Processed" => "تم الدفع",
+                                "Paid" => "تم الدفع",
+                                "Processed" => "قيد التجهيز",
                                 "Shipped" => "تم الشحن",
                                 "Delivered" => "تم التوصيل",
                                 "Cancelled" => "ملغي",
@@ -206,6 +196,7 @@
                             var statusClass = order.Status switch
                             {
                                 "Pending" => "yq-orders-badge--pending",
+                                "Paid" => "yq-orders-badge--processed",
                                 "Processed" => "yq-orders-badge--processed",
                                 "Shipped" => "yq-orders-badge--shipped",
                                 "Delivered" => "yq-orders-badge--delivered",
@@ -219,6 +210,28 @@
                             var customerPhone = DealingApiService.DecryptPhone(order.User?.Phone);
                             var customerEmail = order.User?.Email;
                             var itemCount = order.Orderitems?.Sum(i => i.Quantity) ?? 0;
+                            var isConflictAwaitingDecision =
+                                order.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
+                            var customerResolvedConflict =
+                                order.Workflowstate == OrderWorkflowStates.ConflictResolvedContinue;
+                            var hasPaymentReview = order.Paymentreviewedat.HasValue && order.Paymentreviewedbyuserid.HasValue;
+                            var isLegacyConflictAwaitingReview = isConflictAwaitingDecision &&
+                                !order.Paymentreviewedat.HasValue &&
+                                !order.Paymentreviewedbyuserid.HasValue;
+                            var isTerminal = order.Status is OrderStatuses.Cancelled or OrderStatuses.Delivered or OrderStatuses.Refunded;
+                            var allowedTargets = isConflictAwaitingDecision
+                                ? Array.Empty<string>()
+                                : OrderStatusPolicy.GetAllowedTargets(order.Status);
+                            var canVerifyPayment = order.Status == OrderStatuses.Pending &&
+                                !order.Stockdeducted &&
+                                !order.Paymentverifiedat.HasValue &&
+                                !order.Paymentverifiedbyuserid.HasValue &&
+                                ((!order.Paymentreviewedat.HasValue &&
+                                  !order.Paymentreviewedbyuserid.HasValue &&
+                                  string.IsNullOrWhiteSpace(order.Workflowstate)) ||
+                                 isLegacyConflictAwaitingReview) &&
+                                order.Paymentstatus is "Unpaid" or "Pending";
+                            var whatsAppUrl = OrderWhatsAppLinkBuilder.Build(order, customerPhone);
 
                             var recipientName = !string.IsNullOrWhiteSpace(delivery?.Fullname)
                                 ? delivery.Fullname
@@ -244,14 +257,21 @@
                                 .ToArray();
                             var fullAddress = addressParts.Length > 0 ? string.Join("، ", addressParts) : "-";
 
-                            var paymentMethod = !string.IsNullOrWhiteSpace(order.Paymentmethod)
-                                ? order.Paymentmethod
-                                : "غير محدد";
+                            var paymentPresentation = !string.IsNullOrWhiteSpace(order.Paymentmethod) &&
+                                paymentPresentations?.TryGetValue(order.Paymentmethod, out var configuredPayment) == true
+                                    ? configuredPayment
+                                    : new PaymentMethodPresentation(
+                                        order.Paymentmethod ?? string.Empty,
+                                        string.IsNullOrWhiteSpace(order.Paymentmethod) ? "طريقة دفع غير محددة" : "طريقة دفع مسجلة سابقاً",
+                                        string.Empty,
+                                        string.Empty,
+                                        null,
+                                        false);
                             var receiptImage = !string.IsNullOrWhiteSpace(order.Receipturl)
                                 ? Url.Action("Receipt", "Orders", new { area = "Admin", id = order.Id })
                                 : null;
 
-                            <tr data-order-id="@order.Id">
+                            <tr data-order-id="@order.Id" class="@(isConflictAwaitingDecision ? "yq-orders-row--conflict" : null)">
                                 <td data-label="رقم الطلب">
                                     <div class="yq-orders-number">
                                         <strong>#@order.Id</strong>
@@ -300,6 +320,14 @@
                                     {
                                         <small class="yq-orders-status-date">@order.TimeState.Value.ToString("dd/MM/yyyy")</small>
                                     }
+                                    @if (isConflictAwaitingDecision && hasPaymentReview)
+                                    {
+                                        <small class="yq-orders-payment-review">تمت مراجعة الدفع<br />بانتظار قرار العميل</small>
+                                    }
+                                    else if (isLegacyConflictAwaitingReview)
+                                    {
+                                        <small class="yq-orders-payment-review">يلزم إعادة مراجعة الدفع</small>
+                                    }
                                 </td>
                                 <td data-label="تاريخ الطلب">
                                     <time class="yq-orders-date" datetime="@(order.Orderdate?.ToString("yyyy-MM-dd") ?? "")">
@@ -334,7 +362,7 @@
                                                 data-bs-placement="top"
                                                 data-bs-custom-class="yq-quick-popover yq-quick-popover--payment"
                                                 data-yq-popover-type="payment"
-                                                data-yq-payment-method="@paymentMethod"
+                                                data-yq-payment-method="@paymentPresentation.Name"
                                                 data-yq-status-label="@statusLabel"
                                                 data-yq-details-url="@Url.Action("Details", "Orders", new { area = "Admin", id = order.Id })"
                                                 aria-label="معلومات الدفع">
@@ -362,7 +390,7 @@
                                             <i class="bi bi-eye" aria-hidden="true"></i>
                                             <span>التفاصيل</span>
                                         </a>
-                                        <form class="yq-orders-actions yq-ajax-status-form" data-order-id="@order.Id" aria-label="تحديث حالة الطلب رقم @order.Id">
+                                        <form class="yq-orders-actions yq-ajax-status-form" data-order-id="@order.Id" data-yq-customer-resolved-conflict="@customerResolvedConflict.ToString().ToLowerInvariant()" aria-label="تحديث حالة الطلب رقم @order.Id">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="Id" value="@order.Id" />
                                             <input type="hidden" name="search" value="@search" />
@@ -373,15 +401,57 @@
                                                 <input type="hidden" name="filterStatus" value="@filterStatus" />
                                             }
                                             <label class="visually-hidden" for="orderStatus-@order.Id">تحديث حالة الطلب رقم @order.Id</label>
-                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" data-original-status="@order.Status">
-                                                <option value="Pending" selected="@(order.Status == "Pending")">قيد الانتظار</option>
-                                                <option value="Processed" selected="@(order.Status == "Processed")">تم الدفع</option>
-                                                <option value="Shipped" selected="@(order.Status == "Shipped")">تم الشحن</option>
-                                                <option value="Delivered" selected="@(order.Status == "Delivered")">تم التوصيل</option>
-                                                <option value="Cancelled" selected="@(order.Status == "Cancelled")">ملغي</option>
-                                                <option value="Refunded" selected="@(order.Status == "Refunded")">مرتجع</option>
+                                            <select id="orderStatus-@order.Id" name="Status" class="yq-orders-status-select" data-original-status="@order.Status" disabled="@(isTerminal || isConflictAwaitingDecision)">
+                                                <option value="@order.Status" selected>@statusLabel</option>
+                                                @foreach (var targetStatus in allowedTargets)
+                                                {
+                                                    var targetLabel = targetStatus switch
+                                                    {
+                                                        "Processed" => "قيد التجهيز",
+                                                        "Shipped" => "تم الشحن",
+                                                        "Delivered" => "تم التوصيل",
+                                                        "Cancelled" => "ملغي",
+                                                        _ => targetStatus
+                                                    };
+                                                    <option value="@targetStatus">@targetLabel</option>
+                                                }
                                             </select>
+                                            <button type="submit" class="btn-yaqut-gold yq-orders-save-btn yq-workflow-fill" data-yq-save-status disabled aria-label="حفظ حالة الطلب">
+                                                <i class="bi bi-check2" aria-hidden="true"></i><span class="yq-orders-label--desktop">حفظ</span><span class="yq-orders-label--mobile">حفظ الحالة</span>
+                                            </button>
                                         </form>
+                                        <form asp-action="VerifyPayment" method="post" class="yq-orders-actions yq-verify-payment-form" data-yq-verify-payment>
+                                            <input type="hidden" name="id" value="@order.Id" />
+                                            @{
+                                                var verifyBtnText = "تأكيد التحقق من الدفع";
+                                                if (order.Paymentverifiedat.HasValue)
+                                                {
+                                                    verifyBtnText = "تم التحقق من الدفع";
+                                                }
+                                                else if (isConflictAwaitingDecision)
+                                                {
+                                                    verifyBtnText = hasPaymentReview ? "بانتظار قرار العميل" : "مراجعة الدفع معلّقة";
+                                                }
+                                                var verifyDesktopText = canVerifyPayment ? "تحقق من الدفع" : verifyBtnText;
+                                            }
+                                            <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn yq-workflow-fill" disabled="@(!canVerifyPayment)" aria-label="@verifyBtnText">
+                                                <span class="yq-orders-label--desktop">@verifyDesktopText</span><span class="yq-orders-label--mobile">@verifyBtnText</span>
+                                            </button>
+                                        </form>
+                                        @if (isConflictAwaitingDecision)
+                                        {
+                                            var conflictLines = string.Join("||", (order.Orderitems ?? [])
+                                                .Where(item => (item.UnavailableQuantity ?? 0) > 0)
+                                                .OrderBy(item => item.Id)
+                                                .Select(item => $"{item.Product.Name}: المتاح {Math.Max(0, item.Quantity - (item.UnavailableQuantity ?? 0))} من {item.Quantity}"));
+                                            <button type="button"
+                                                    class="yq-orders-conflict-badge yq-workflow-fill"
+                                                    data-yq-conflict-info
+                                                    data-yq-conflict-title="@(hasPaymentReview ? "مراجعة العميل مطلوبة" : "مراجعة الدفع مطلوبة")"
+                                                    data-yq-conflict-message="@(hasPaymentReview ? "يمكن للعميل اختيار الكمية المتوفرة أو إزالة المنتج أو إلغاء الطلب." : "لم تكتمل مراجعة الدفع لهذا الطلب. راجع الدفع لإرسال الخيارات إلى العميل.")"
+                                                    data-yq-conflict-lines="@conflictLines"
+                                                    data-yq-whatsapp-url="@whatsAppUrl">@(hasPaymentReview ? "بانتظار قرار العميل" : "يلزم إعادة مراجعة الدفع")</button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -412,6 +482,8 @@
         }
     </section>
 </section>
+
+@await Html.PartialAsync("_YaqutOperationDialog")
 
 <!-- Receipt Modal -->
 <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalTitle" aria-hidden="true">

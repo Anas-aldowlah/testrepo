@@ -30,7 +30,6 @@ public class HomeController : Controller
     {
         var newArrivals = await _context.Products
             .AsNoTracking()
-            .Where(p => p.Stockquantity > 0)
             .Include(p => p.Category)
             .Include(p => p.RetailPrices.Where(price =>
                 price.IsActive && price.SizeMl > 0 && price.Price > 0))
@@ -40,7 +39,6 @@ public class HomeController : Controller
 
         var premiumSelection = await _context.Products
             .AsNoTracking()
-            .Where(p => p.Stockquantity > 0)
             .Include(p => p.Category)
             .Include(p => p.RetailPrices.Where(price =>
                 price.IsActive && price.SizeMl > 0 && price.Price > 0))

@@ -1,0 +1,49 @@
+@using YAGOT_2._0.Models
+@model PaymentMethodCardViewModel
+
+<link rel="stylesheet" href="~/css/orders/payment-method-card.css" asp-append-version="true" />
+<section class="yq-payment-card yq-glass" aria-label="طريقة الدفع">
+    <header class="yq-payment-card__header">
+        <span class="yq-payment-card__icon" aria-hidden="true"><i class="bi bi-wallet2"></i></span>
+        <div>
+            <span class="yq-payment-card__eyebrow">طريقة الدفع</span>
+            <h2>@Model.PaymentMethod.Name</h2>
+        </div>
+    </header>
+
+    <p class="yq-payment-card__description">@Model.PaymentMethod.Description</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.PaymentMethod.AccountHolderName) ||
+         !string.IsNullOrWhiteSpace(Model.PaymentMethod.AccountNumber))
+    {
+        <dl class="yq-payment-card__details">
+            @if (!string.IsNullOrWhiteSpace(Model.PaymentMethod.AccountHolderName))
+            {
+                <div class="yq-payment-card__row">
+                    <dt>اسم الحساب</dt>
+                    <dd>@Model.PaymentMethod.AccountHolderName</dd>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.PaymentMethod.AccountNumber))
+            {
+                <div class="yq-payment-card__row yq-payment-card__row--number">
+                    <dt>رقم الحساب</dt>
+                    <dd>
+                        <bdi class="yq-payment-card__number" dir="ltr">@Model.PaymentMethod.AccountNumber</bdi>
+                        <button type="button" class="yq-payment-card__copy" data-yq-copy-payment-number aria-label="نسخ رقم الحساب">
+                            <i class="bi bi-copy" aria-hidden="true"></i>
+                            <span>نسخ</span>
+                        </button>
+                    </dd>
+                </div>
+            }
+        </dl>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.StateDescription))
+    {
+        <p class="yq-payment-card__state" data-kind="@Model.StateKind"><i class="bi bi-shield-check" aria-hidden="true"></i> @Model.StateDescription</p>
+    }
+    <span class="visually-hidden" data-yq-payment-copy-status role="status" aria-live="polite"></span>
+</section>
+<script src="~/js/orders/payment-method-card.js" asp-append-version="true" defer></script>

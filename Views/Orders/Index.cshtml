@@ -1,13 +1,13 @@
-@model IEnumerable<YAGOT_2._0.Models.Order>
+@model YAGOT_2._0.Models.CustomerOrdersIndexViewModel
 @{
     ViewData["Title"] = "طلباتي | ياقوت";
-    var orders = Model?.ToList() ?? new List<YAGOT_2._0.Models.Order>();
-    var hasError = Model == null;
+    var orders = Model.Orders;
 
     string StatusLabel(string status) => status switch
     {
         "Pending" => "قيد الانتظار",
-        "Processed" => "تم الدفع",
+        "Paid" => "تم الدفع",
+        "Processed" => "قيد التجهيز",
         "Shipped" => "تم الشحن",
         "Delivered" => "تم التوصيل",
         "Refunded" => "مرتجع",
@@ -17,6 +17,7 @@
     string StatusBadgeClass(string status) => status.ToLower() switch
     {
         "pending" => "yq-orders-badge--pending",
+        "paid" => "yq-orders-badge--processed",
         "processed" => "yq-orders-badge--processed",
         "shipped" => "yq-orders-badge--shipped",
         "delivered" => "yq-orders-badge--delivered",
@@ -26,8 +27,9 @@
     int StatusProgress(string status) => status switch
     {
         "Pending" => 25,
-        "Processed" => 50,
-        "Shipped" => 75,
+        "Paid" => 40,
+        "Processed" => 60,
+        "Shipped" => 80,
         "Delivered" => 100,
         _ => 0
     };
@@ -36,27 +38,31 @@
     {
         ("all", "الكل"),
         ("Pending", "قيد الانتظار"),
-        ("Processed", "تم الدفع"),
+        ("Paid", "تم الدفع"),
+        ("Processed", "قيد التجهيز"),
         ("Shipped", "تم الشحن"),
         ("Delivered", "تم التوصيل"),
         ("Cancelled", "ملغي")
     };
+
+    string OrdersUrl(string status, int page = 1, string? search = null) =>
+        Url.Action("Index", "Orders", new { status, search = search ?? Model.Search, page }) ?? "/Orders";
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/orders/index.css" asp-append-version="true" />
 }
 
-<div class="yq-orders-page" data-yq-orders-root>
+<div class="yq-orders-page" data-yq-orders-root data-yq-orders-url="@Url.Action("Index", "Orders")">
 
     <!-- HEADER -->
     <header class="yq-orders-header yq-reveal">
         <div>
             <span class="yq-orders-header__eyebrow"><i class="bi bi-bag-check"></i> سجل المشتريات</span>
             <h1 class="yq-orders-header__title">طلباتي</h1>
-            @if (!hasError && orders.Any())
+            @if (Model.AllCount > 0)
             {
-                <p class="yq-orders-header__sub">لديك <strong>@orders.Count</strong> @(orders.Count == 1 ? "طلب" : "طلبات") مسجلة في حسابك</p>
+                <p class="yq-orders-header__sub">لديك <strong>@Model.AllCount</strong> @(Model.AllCount == 1 ? "طلب" : "طلبات") مسجلة في حسابك</p>
             }
         </div>
         <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline yq-orders-header__cta">
@@ -64,19 +70,7 @@
         </a>
     </header>
 
-    @if (hasError)
-    {
-        <!-- ERROR STATE -->
-        <div class="yaqut-empty yq-glass yq-orders-error yq-reveal">
-            <i class="bi bi-exclamation-triangle yaqut-empty__icon"></i>
-            <h2 class="yq-orders-empty__title">تعذّر تحميل طلباتك</h2>
-            <p class="yaqut-empty__text">حدث خطأ أثناء جلب بيانات طلباتك. حاول تحديث الصفحة، أو تواصل معنا إن استمرت المشكلة.</p>
-            <button type="button" class="btn-yaqut-gold mt-3" id="yq-btn-reload">
-                <i class="bi bi-arrow-clockwise"></i> إعادة المحاولة
-            </button>
-        </div>
-    }
-    else if (!orders.Any())
+    @if (Model.AllCount == 0)
     {
         <!-- EMPTY STATE -->
         <div class="yaqut-empty yq-glass yq-orders-empty yq-reveal">
@@ -95,32 +89,36 @@
             <div class="yq-orders-filters" role="tablist" aria-label="تصفية حسب الحالة">
                 @foreach (var (key, label) in statusFilters)
                 {
-                    var count = key == "all" ? orders.Count : orders.Count(o => o.Status == key);
-                    <button type="button"
-                            class="yq-orders-filter @(key == "all" ? "is-active" : "")"
+                    var count = key == "all" ? Model.AllCount : Model.StatusCounts.GetValueOrDefault(key);
+                    <a href="@OrdersUrl(key)"
+                            class="yq-orders-filter @(key == Model.Status ? "is-active" : "")"
                             data-yq-order-filter="@key"
                             role="tab"
-                            aria-selected="@(key == "all" ? "true" : "false")">
+                            aria-selected="@(key == Model.Status ? "true" : "false")">
                         @label
                         @if (count > 0)
                         {
                             <span class="yq-orders-filter__count">@count</span>
                         }
-                    </button>
+                    </a>
                 }
             </div>
 
-            <div class="yq-orders-search">
-                <i class="bi bi-search"></i>
+            <form class="yq-orders-search" method="get" action="@Url.Action("Index", "Orders")" data-yq-orders-search>
+                <button type="submit" class="yq-orders-search__submit" aria-label="تطبيق البحث"><i class="bi bi-search" aria-hidden="true"></i></button>
+                <input type="hidden" name="status" value="@Model.Status" />
                 <input type="search" id="yqOrdersSearchInput" class="yq-orders-search__input"
+                       name="search" value="@Model.Search"
                        placeholder="ابحث برقم التتبع أو اسم المنتج..." autocomplete="off"
                        aria-label="بحث في الطلبات" />
-            </div>
+            </form>
         </div>
 
         <!-- ORDERS GRID -->
-        <div class="yq-orders-grid" id="yqOrdersGrid">
-            @foreach (var order in orders)
+        @if (orders.Count > 0)
+        {
+            <div class="yq-orders-grid" id="yqOrdersGrid">
+                @foreach (var order in orders)
             {
                 var items = order.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
                 var itemCount = items.Sum(i => i.Quantity);
@@ -161,9 +159,17 @@
                             }
                         </div>
 
-                        <span class="yq-orders-badge @StatusBadgeClass(order.Status)">
-                            @StatusLabel(order.Status)
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="yq-orders-badge @StatusBadgeClass(order.Status)">
+                                @StatusLabel(order.Status)
+                            </span>
+                            @if (order.Workflowstate == YAGOT_2._0.Services.OrderWorkflowStates.ConflictAwaitingDecision)
+                            {
+                                <span class="yaqut-badge yaqut-badge--danger" title="الطلب متوقف بانتظار قرارك بشأن الكميات غير المتوفرة">
+                                    يحتاج مراجعتك <i class="bi bi-exclamation-circle-fill"></i>
+                                </span>
+                            }
+                        </div>
                     </div>
 
                     <div class="yq-order-card__body">
@@ -200,26 +206,42 @@
                     </div>
                 </a>
             }
-        </div>
+            </div>
 
-        <!-- NO-RESULTS (search/filter combo yields nothing) -->
-        <div class="yaqut-empty yq-glass yq-orders-no-results" id="yqOrdersNoResults" hidden>
-            <i class="bi bi-search yaqut-empty__icon"></i>
-            <h2 class="yq-orders-empty__title">لا توجد طلبات مطابقة</h2>
-            <p class="yaqut-empty__text">جرّب تعديل كلمة البحث أو اختيار حالة مختلفة.</p>
-            <button type="button" class="btn-yaqut-outline mt-3" id="yqOrdersResetBtn">
-                <i class="bi bi-x-circle"></i> إعادة تعيين الفلاتر
-            </button>
-        </div>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="yq-orders-pager" aria-label="صفحات الطلبات" data-yq-orders-pager>
+                    <a class="yq-orders-pager__link" href="@OrdersUrl(Model.Status, Math.Max(1, Model.CurrentPage - 1))"
+                       aria-label="الصفحة السابقة" aria-disabled="@(!Model.HasPreviousPage ? "true" : "false")" tabindex="@(!Model.HasPreviousPage ? "-1" : null)">
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                    @for (var pageNumber = Math.Max(1, Model.CurrentPage - 2); pageNumber <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); pageNumber++)
+                    {
+                        <a class="yq-orders-pager__link @(pageNumber == Model.CurrentPage ? "is-active" : null)"
+                           href="@OrdersUrl(Model.Status, pageNumber)" aria-current="@(pageNumber == Model.CurrentPage ? "page" : null)">@pageNumber</a>
+                    }
+                    <a class="yq-orders-pager__link" href="@OrdersUrl(Model.Status, Math.Min(Model.TotalPages, Model.CurrentPage + 1))"
+                       aria-label="الصفحة التالية" aria-disabled="@(!Model.HasNextPage ? "true" : "false")" tabindex="@(!Model.HasNextPage ? "-1" : null)">
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    </a>
+                </nav>
+            }
+        }
+
+        @if (orders.Count == 0)
+        {
+            <div class="yaqut-empty yq-glass yq-orders-no-results" id="yqOrdersNoResults">
+                <i class="bi bi-search yaqut-empty__icon"></i>
+                <h2 class="yq-orders-empty__title">لا توجد طلبات مطابقة</h2>
+                <p class="yaqut-empty__text">جرّب تعديل كلمة البحث أو اختيار حالة مختلفة.</p>
+                <a class="btn-yaqut-outline mt-3" href="@OrdersUrl("all", 1, string.Empty)" data-yq-orders-reset>
+                    <i class="bi bi-x-circle"></i> إعادة تعيين الفلاتر
+                </a>
+            </div>
+        }
     }
 </div>
 
 @section Scripts {
     <script src="~/js/orders/index.js" asp-append-version="true"></script>
 }
-
-<script nonce="@Context.Items["csp-nonce"]">
-    document.getElementById('yq-btn-reload')?.addEventListener('click', function() {
-        window.location.reload();
-    });
-</script>

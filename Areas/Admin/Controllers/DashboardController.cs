@@ -31,7 +31,7 @@ public class DashboardController : Controller
             TotalRevenue = await _context.Orders.WhereRevenueEligible()
                 .SumAsync(o => (decimal?)(o.Finalfulfilledamount ?? o.Totalamount)) ?? 0m,
             PendingOrders = await _context.Orders.CountAsync(o => o.Status == "Pending"),
-            ActiveOrders = await _context.Orders.CountAsync(o => o.Status == "Processed" || o.Status == "Shipped"),
+            ActiveOrders = await _context.Orders.CountAsync(o => o.Status == "Paid" || o.Status == "Processed" || o.Status == "Shipped"),
             RecentOrders = await _context.Orders
                 .AsNoTracking()
                 .OrderByDescending(o => o.Orderdate)

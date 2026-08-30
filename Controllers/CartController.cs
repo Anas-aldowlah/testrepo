@@ -57,15 +57,21 @@ public class CartController : Controller
         try
         {
             string? message;
+            string? warningCode;
+            int? availableQuantity;
             if (TryResolveUserId(out var userId))
             {
                 await _cartService.AddToCartAsync(userId, input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _cartService.MESSAGE;
+                warningCode = _cartService.WARNING_CODE;
+                availableQuantity = _cartService.AVAILABLE_QUANTITY;
             }
             else
             {
                 await _guestCartService.AddToCartAsync(input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _guestCartService.Message;
+                warningCode = _guestCartService.WarningCode;
+                availableQuantity = _guestCartService.AvailableQuantity;
             }
 
             if (IsAjaxRequest())
@@ -75,7 +81,9 @@ public class CartController : Controller
                     conflict: false,
                     message,
                     productId: input.ProductId,
-                    retailPriceId: input.RetailPriceId));
+                    retailPriceId: input.RetailPriceId,
+                    warningCode: warningCode,
+                    availableQuantity: availableQuantity));
             }
 
             TempData["Message"] = message;
@@ -101,6 +109,8 @@ public class CartController : Controller
         try
         {
             string? message;
+            string? warningCode;
+            int? availableQuantity;
             if (TryResolveUserId(out var userId))
             {
                 await _cartService.UpdateQuantityAsync(
@@ -109,22 +119,32 @@ public class CartController : Controller
                     input.Quantity,
                     input.ExpectedQuantity);
                 message = _cartService.MESSAGE;
+                warningCode = _cartService.WARNING_CODE;
+                availableQuantity = _cartService.AVAILABLE_QUANTITY;
             }
             else
             {
                 await _guestCartService.UpdateQuantityAsync(input.ProductId, input.Quantity, input.RetailPriceId);
                 message = _guestCartService.Message;
+                warningCode = _guestCartService.WarningCode;
+                availableQuantity = _guestCartService.AvailableQuantity;
             }
 
             if (IsAjaxRequest())
             {
-                return Json(await BuildCartStateAsync(
-                    success: true,
+                var stockRejected = warningCode == "InsufficientStock" &&
+                    availableQuantity.HasValue &&
+                    input.Quantity > availableQuantity.Value;
+                var state = await BuildCartStateAsync(
+                    success: !stockRejected,
                     conflict: false,
                     message,
                     input.CartItemId,
                     input.ProductId,
-                    input.RetailPriceId));
+                    input.RetailPriceId,
+                    warningCode: warningCode,
+                    availableQuantity: availableQuantity);
+                return stockRejected ? BadRequest(state) : Json(state);
             }
 
             TempData["Message"] = message;
@@ -200,7 +220,9 @@ public class CartController : Controller
         string? message,
         int? cartItemId = null,
         int? productId = null,
-        int? retailPriceId = null)
+        int? retailPriceId = null,
+        string? warningCode = null,
+        int? availableQuantity = null)
     {
         var cart = await GetCurrentCartAsync();
         var items = cart.Cartitems
@@ -233,6 +255,8 @@ public class CartController : Controller
             success = success && targetItem?.Quantity > 0,
             conflict,
             message,
+            warningCode,
+            availableQuantity,
             totalQuantity,
             uniqueItemCount = items.Count,
             subtotal,
