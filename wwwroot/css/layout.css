@@ -316,9 +316,15 @@ body {
     min-height: 44px;
     padding-inline: 1rem 1.15rem;
     color: #111;
-    background: var(--yq-gold-grad);
+    background: linear-gradient(135deg, #F0DB98 0%, #D8B95D 50%, #BE9B3F 100%);
     border-color: transparent;
     box-shadow: var(--yq-shadow-gold);
+}
+
+.theme-dark .yaqut-cart-link,
+.dark-mode .yaqut-cart-link,
+html[data-theme="dark"] .yaqut-cart-link {
+    background: linear-gradient(135deg, #E6C87C 0%, #D0AF54 50%, #A98A3C 100%);
 }
 
 .yaqut-cart-link__icon {
@@ -388,6 +394,7 @@ body {
 .yaqut-cart-link[aria-current="page"] {
     color: #111;
     border-color: transparent;
+    filter: brightness(1.05);
 }
 
 .yaqut-admin-link {
