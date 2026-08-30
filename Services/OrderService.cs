@@ -800,7 +800,7 @@ public class OrderService
         int page,
         CancellationToken cancellationToken = default)
     {
-        const int pageSize = 10;
+        const int pageSize = 9;
         var allowedStatuses = new HashSet<string>(StringComparer.Ordinal)
         {
             OrderStatuses.Pending,
