@@ -5,7 +5,7 @@ namespace YAGOT_2._0.Services;
 
 public sealed class ProductCatalogService
 {
-    public const int PageSize = 10;
+    public const int PageSize = 8;
 
     private readonly NeondbContext _context;
 
