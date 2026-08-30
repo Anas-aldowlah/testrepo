@@ -202,7 +202,6 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    width: min(15rem, 100%);
 }
 
 .yq-cart-item__qty-label {
@@ -212,14 +211,8 @@
 }
 
 .yq-cart-item__qty-feedback {
-    width: 100%;
-    max-width: 15rem;
-    min-height: 2rem;
     margin: 0;
-    padding: .42rem .58rem;
-    border-radius: .55rem;
     color: var(--yq-danger-text, #8f1710);
-    background: color-mix(in srgb, var(--yq-danger, #b42318) 10%, transparent);
     font-size: 11.5px;
     font-weight: 700;
     line-height: 1.45;
@@ -228,7 +221,6 @@
 .yq-cart-item__qty-feedback[hidden] {
     display: block;
     visibility: hidden;
-    background: transparent;
 }
 
 .theme-dark .yq-cart-item__qty-feedback,
@@ -263,8 +255,15 @@
     border-radius: 999px;
     background: var(--yq-bg-input);
     padding-inline-end: 0.65rem;
-    width: 100%;
+    width: max-content;
+    max-width: 100%;
     min-height: 38px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.yq-cart-item__qty-control:focus-within {
+    box-shadow: inset 0 0 0 2px rgba(212, 175, 55, 0.24);
+    border-color: rgba(212, 175, 55, 0.6);
 }
 
 .yq-cart-item__qty-select,
@@ -298,7 +297,7 @@
 .yq-cart-item__qty-select:focus,
 .yq-cart-item__qty-input:focus {
     outline: none;
-    box-shadow: inset 0 0 0 2px rgba(212, 175, 55, 0.24);
+    box-shadow: none;
 }
 
 .yq-cart-item__qty-spinner {
