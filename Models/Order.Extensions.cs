@@ -11,11 +11,12 @@ public partial class Order
 
 public static class OrderRevenueExtensions
 {
-    public static readonly string[] RevenueEligibleStatuses = ["Processed", "Shipped", "Delivered"];
+    public static readonly string[] RevenueEligibleStatuses = ["Paid", "Processed", "Shipped", "Delivered"];
 
     public static IQueryable<Order> WhereRevenueEligible(this IQueryable<Order> query)
     {
         return query.Where(o =>
-            (o.Status == "Processed" || o.Status == "Shipped" || o.Status == "Delivered"));
+            o.Stockdeducted &&
+            (o.Status == "Paid" || o.Status == "Processed" || o.Status == "Shipped" || o.Status == "Delivered"));
     }
 }

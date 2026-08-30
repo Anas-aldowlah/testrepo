@@ -11,8 +11,34 @@
     if (request.MinPrice.HasValue) activeFilterCount++;
     if (request.MaxPrice.HasValue) activeFilterCount++;
     if (request.Retail != "all") activeFilterCount++;
+    if (request.Availability != "all") activeFilterCount++;
     activeFilterCount += request.RetailSize.Length;
     var hasActiveFilter = activeFilterCount > 0;
+
+    string CatalogPageUrl(int page)
+    {
+        var values = new List<KeyValuePair<string, string?>>();
+        void Add(string key, object? value)
+        {
+            var serialized = value is IFormattable formattable
+                ? formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture)
+                : value?.ToString();
+            if (!string.IsNullOrWhiteSpace(serialized))
+                values.Add(new KeyValuePair<string, string?>(key, serialized));
+        }
+
+        Add("search", request.Search);
+        Add("categoryId", request.CategoryId);
+        foreach (var brand in request.Brand) Add("brand", brand);
+        Add("minPrice", request.MinPrice);
+        Add("maxPrice", request.MaxPrice);
+        Add("retail", request.Retail);
+        Add("availability", request.Availability);
+        foreach (var size in request.RetailSize) Add("retailSize", size);
+        Add("sort", request.Sort);
+        Add("page", page);
+        return $"{Url.Action("Index", "Products")}{Microsoft.AspNetCore.Http.QueryString.Create(values)}";
+    }
 
     ViewData["Title"] = isSearchMode
         ? $"نتائج البحث: {request.Search}"
@@ -146,6 +172,15 @@
                 }
 
                 <div class="yq-shop-filter-group">
+                    <span class="yq-shop-filter-group__label" id="yqAvailabilityGroupLabel">حالة التوفر</span>
+                    <div class="yq-shop-filter-options" role="radiogroup" aria-labelledby="yqAvailabilityGroupLabel">
+                        <label class="yq-shop-filter-option"><input type="radio" name="availability" value="all" checked="@(request.Availability == "all")" /> الكل</label>
+                        <label class="yq-shop-filter-option"><input type="radio" name="availability" value="available" checked="@(request.Availability == "available")" /> المتوفر</label>
+                        <label class="yq-shop-filter-option"><input type="radio" name="availability" value="unavailable" checked="@(request.Availability == "unavailable")" /> غير المتوفر</label>
+                    </div>
+                </div>
+
+                <div class="yq-shop-filter-group">
                     <span class="yq-shop-filter-group__label" id="yqRetailGroupLabel">توفر البيع بالتجزئة</span>
                     <div class="yq-shop-filter-options" role="radiogroup" aria-labelledby="yqRetailGroupLabel">
                         <label class="yq-shop-filter-option"><input type="radio" name="retail" value="all" checked="@(request.Retail == "all")" /> كل المنتجات</label>
@@ -191,6 +226,8 @@
                     <span class="yq-applied-filters__label">الفلاتر المطبقة:</span>
                     @if (request.Retail == "yes") { <button type="button" class="yq-chip yq-chip-remove yq-recent-search-chip" data-remove-name="retail" data-remove-val="all" aria-label="إزالة فلتر متاح بالتجزئة">متاح بالتجزئة &times;</button> }
                     @if (request.Retail == "no") { <button type="button" class="yq-chip yq-chip-remove yq-recent-search-chip" data-remove-name="retail" data-remove-val="all" aria-label="إزالة فلتر غير متاح بالتجزئة">غير متاح بالتجزئة &times;</button> }
+                    @if (request.Availability == "available") { <button type="button" class="yq-chip yq-chip-remove yq-recent-search-chip" data-remove-name="availability" data-remove-val="all" aria-label="إزالة فلتر المتوفر">المتوفر &times;</button> }
+                    @if (request.Availability == "unavailable") { <button type="button" class="yq-chip yq-chip-remove yq-recent-search-chip" data-remove-name="availability" data-remove-val="all" aria-label="إزالة فلتر غير المتوفر">غير المتوفر &times;</button> }
 
                     @if (selectedCategory != null)
                     {
@@ -228,12 +265,33 @@
                     }
                 </div>
 
-                <div class="yq-shop-load-more">
-                    <button type="button" id="yqLoadMoreBtn" class="btn-yaqut-outline" data-current-page="@Model.CurrentPage" hidden="@(!Model.HasNextPage)">
-                        <i class="bi bi-arrow-down-circle"></i>
-                        عرض المزيد (<span data-yq-remaining>@Model.RemainingCount</span>)
-                    </button>
-                </div>
+                @if (Model.TotalPages > 1)
+                {
+                    var firstPage = Math.Max(1, Model.CurrentPage - 2);
+                    var lastPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                    <nav class="yq-shop-pager" aria-label="صفحات المنتجات" data-yq-catalog-pager>
+                        <a class="yq-shop-pager__link"
+                           href="@CatalogPageUrl(Math.Max(1, Model.CurrentPage - 1))"
+                           aria-label="الصفحة السابقة"
+                           aria-disabled="@(Model.CurrentPage == 1 ? "true" : "false")"
+                           tabindex="@(Model.CurrentPage == 1 ? "-1" : null)">
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </a>
+                        @for (var pageNumber = firstPage; pageNumber <= lastPage; pageNumber++)
+                        {
+                            <a class="yq-shop-pager__link @(pageNumber == Model.CurrentPage ? "is-active" : null)"
+                               href="@CatalogPageUrl(pageNumber)"
+                               aria-current="@(pageNumber == Model.CurrentPage ? "page" : null)">@pageNumber</a>
+                        }
+                        <a class="yq-shop-pager__link"
+                           href="@CatalogPageUrl(Math.Min(Model.TotalPages, Model.CurrentPage + 1))"
+                           aria-label="الصفحة التالية"
+                           aria-disabled="@(!Model.HasNextPage ? "true" : "false")"
+                           tabindex="@(!Model.HasNextPage ? "-1" : null)">
+                            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                        </a>
+                    </nav>
+                }
                 <p id="yqCatalogStatus" class="visually-hidden" role="status" aria-live="polite"></p>
             }
             else if (isSearchMode || isBrandMode)

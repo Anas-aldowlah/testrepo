@@ -10,8 +10,6 @@
         ? $"{item.RetailPrice.SizeMl} ml"
         : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
-    var qualifiesForFreeShipping = ShippingPolicy.QualifiesForFreeShipping(subtotal);
-    var remainingForFreeShipping = ShippingPolicy.RemainingForFreeShipping(subtotal);
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
     var customerName = User.Identity?.Name;
@@ -27,7 +25,9 @@
 
         return fallback ?? string.Empty;
     }
-    var selectedPaymentMethod = CheckoutValue("paymentMethod", "al-amqi");
+    var selectedPaymentMethod = !string.IsNullOrWhiteSpace(Model?.PaymentMethod)
+        ? Model.PaymentMethod
+        : CheckoutValue("PaymentMethod", "al-amqi");
     var hasModelErrors = !ViewData.ModelState.IsValid;
     var paymentMethods = Model?.PaymentMethods ?? Array.Empty<YAGOT_2._0.Models.Paymentmethod>();
     YAGOT_2._0.Models.Paymentmethod PaymentInfo(string code, string name)
@@ -406,6 +406,10 @@
                 <span>قيمة المنتجات</span>
                 <span>@subtotal.ToString("N0") ر.س</span>
             </div>
+            <div class="yq-checkout-summary__row">
+                <span>الشحن</span>
+                @await Html.PartialAsync("_FreeShipping")
+            </div>
 
             <div class="yq-checkout-summary__divider"></div>
 
@@ -414,7 +418,7 @@
                 <span>@subtotal.ToString("N0") <small>ر.س</small></span>
             </div>
 
-            <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn" disabled>
+            <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn yq-workflow-fill yq-paired-action yq-paired-action--primary" id="yqPlaceOrderBtn" disabled>
                 <i class="bi bi-shield-check"></i> تأكيد الطلب
             </button>
 
@@ -432,6 +436,8 @@
         @Html.Raw(ViewData["CheckoutDraftJson"])
     </script>
 }
+
+@await Html.PartialAsync("_YaqutOperationDialog")
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

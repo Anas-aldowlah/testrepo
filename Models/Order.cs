@@ -33,13 +33,15 @@ public partial class Order
 
     public int? Paymentverifiedbyuserid { get; set; }
 
+    public DateTime? Paymentreviewedat { get; set; }
+
+    public int? Paymentreviewedbyuserid { get; set; }
+
     public string? Workflowstate { get; set; }
 
-    public decimal? Refundrequiredamount { get; set; }
-
-    public string? Refundreason { get; set; }
-
     public decimal? Finalfulfilledamount { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
 
     public virtual Deliveryorder? Deliveryorder { get; set; }
 

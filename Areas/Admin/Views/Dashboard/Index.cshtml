@@ -96,7 +96,8 @@
                                 string stateAr = order.Status switch
                                 {
                                     "Pending" => "قيد الانتظار",
-                                    "Processed" => "تم الدفع",
+                                    "Paid" => "تم الدفع",
+                                    "Processed" => "قيد التجهيز",
                                     "Shipped" => "تم الشحن",
                                     "Delivered" => "تم التوصيل",
                                     "Cancelled" => "ملغي",

@@ -5,7 +5,7 @@ namespace YAGOT_2._0.Services;
 
 public sealed class ProductCatalogService
 {
-    public const int PageSize = 12;
+    public const int PageSize = 10;
 
     private readonly NeondbContext _context;
 
@@ -35,8 +35,7 @@ public sealed class ProductCatalogService
         }
 
         var query = _context.Products
-            .AsNoTracking()
-            .Where(product => product.Stockquantity > 0);
+            .AsNoTracking();
 
         if (request.CategoryId.HasValue && request.CategoryId != -100)
             query = query.Where(product => product.Categoryid == request.CategoryId);
@@ -63,6 +62,11 @@ public sealed class ProductCatalogService
 
         if (request.MaxPrice.HasValue)
             query = query.Where(product => product.Price <= request.MaxPrice);
+
+        if (request.Availability == "available")
+            query = query.Where(product => product.Stockquantity > 0);
+        else if (request.Availability == "unavailable")
+            query = query.Where(product => product.Stockquantity <= 0);
 
         if (request.Retail == "yes")
             query = query.WhereEffectiveRetailAvailability(available: true);
@@ -106,7 +110,7 @@ public sealed class ProductCatalogService
 
         var brands = await _context.Products
             .AsNoTracking()
-            .Where(product => product.Stockquantity > 0 && product.Brand != null && product.Brand != "-")
+            .Where(product => product.Brand != null && product.Brand != "-")
             .Select(product => product.Brand!.Trim())
             .Distinct()
             .ToListAsync(cancellationToken);

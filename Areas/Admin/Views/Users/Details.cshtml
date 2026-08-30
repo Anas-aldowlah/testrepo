@@ -152,7 +152,8 @@
                                     var statusLabel = order.Status switch
                                     {
                                         "Pending" => "قيد الانتظار",
-                                        "Processed" => "تم الدفع",
+                                        "Paid" => "تم الدفع",
+                                        "Processed" => "قيد التجهيز",
                                         "Shipped" => "تم الشحن",
                                         "Delivered" => "تم التوصيل",
                                         "Cancelled" => "ملغي",
@@ -161,6 +162,7 @@
                                     var statusClass = order.Status switch
                                     {
                                         "Pending" => "yq-user-order-status--pending",
+                                        "Paid" => "yq-user-order-status--processed",
                                         "Processed" => "yq-user-order-status--processed",
                                         "Shipped" => "yq-user-order-status--shipped",
                                         "Delivered" => "yq-user-order-status--delivered",

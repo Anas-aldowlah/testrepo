@@ -1,16 +1,16 @@
 ﻿namespace YAGOT_2._0.Services;
 
 /// <summary>
-/// Centralized free-shipping threshold rule, shared across Cart and Checkout views
-/// to avoid duplicating this business rule in Razor (see CLAUDE.md: no business logic in Views).
+/// Central shipping rule shared across order totals and storefront views.
 /// </summary>
 public static class ShippingPolicy
 {
-    public const decimal FreeShippingThreshold = 500m;
+    public const decimal Charge = 0m;
+    public const decimal FreeShippingThreshold = 0m;
 
-    public static bool QualifiesForFreeShipping(decimal subtotal) =>
-        subtotal >= FreeShippingThreshold;
+    public static decimal CalculateCharge(decimal subtotal) => Charge;
 
-    public static decimal RemainingForFreeShipping(decimal subtotal) =>
-        Math.Max(0, FreeShippingThreshold - subtotal);
+    public static bool QualifiesForFreeShipping(decimal subtotal) => true;
+
+    public static decimal RemainingForFreeShipping(decimal subtotal) => 0m;
 }

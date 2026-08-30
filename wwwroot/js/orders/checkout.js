@@ -84,6 +84,7 @@
         if (!form || !buttons.length) return;
 
         var isSubmitting = false;
+        var confirmationAccepted = false;
 
         buttons.forEach(function (button) {
             button.dataset.yqOriginalHtml = button.innerHTML;
@@ -117,10 +118,15 @@
             isSubmitting = false;
         }, true);
 
-        form.addEventListener('submit', function (event) {
+        form.addEventListener('submit', async function (event) {
             if (isSubmitting) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
+                return;
+            }
+
+            if (confirmationAccepted) {
+                setSubmitting(true);
                 return;
             }
 
@@ -140,7 +146,27 @@
                 return;
             }
 
-            setSubmitting(true);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (!window.YaqutOperationDialog) return;
+            var confirmed = await window.YaqutOperationDialog.confirm({
+                title: 'تأكيد الطلب',
+                message: 'هل تريد إرسال الطلب بهذه البيانات؟',
+                confirmText: 'تأكيد الطلب',
+                cancelText: 'مراجعة البيانات'
+            });
+            if (!confirmed) {
+                setSubmitting(false);
+                return;
+            }
+
+            confirmationAccepted = true;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit(event.submitter || buttons[0]);
+            } else {
+                setSubmitting(true);
+                form.submit();
+            }
 
             // If a later submit listener cancels the request, restore the controls.
             window.setTimeout(function () {

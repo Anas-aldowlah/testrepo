@@ -1,0 +1,30 @@
+<link rel="stylesheet" href="~/css/yaqut-operation-dialog.css" asp-append-version="true" />
+@{
+    var initialError = TempData["Error"]?.ToString();
+    var initialSuccess = TempData["Success"]?.ToString();
+}
+<dialog class="yq-operation-dialog"
+        data-yq-operation-dialog
+        data-yq-initial-message="@(initialError ?? initialSuccess)"
+        data-yq-initial-kind="@(initialError != null ? "error" : initialSuccess != null ? "success" : "")"
+        aria-labelledby="yqOperationTitle"
+        aria-describedby="yqOperationMessage">
+    <div class="yq-operation-dialog__panel" dir="rtl">
+        <button type="button" class="yq-operation-dialog__close" data-yq-dialog-close aria-label="إغلاق">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <span class="yq-operation-dialog__icon" data-yq-dialog-icon aria-hidden="true"></span>
+        <h2 id="yqOperationTitle" data-yq-dialog-title>تنبيه</h2>
+        <p id="yqOperationMessage" data-yq-dialog-message></p>
+        <ul class="yq-operation-dialog__lines" data-yq-dialog-lines hidden></ul>
+        <p class="yq-operation-dialog__whatsapp-note" data-yq-dialog-whatsapp-note hidden>يمكنك فتح رسالة جاهزة لإشعار العميل بالتحديث.</p>
+        <div class="yq-operation-dialog__actions">
+            <a class="yq-operation-dialog__button yq-operation-dialog__button--whatsapp yq-paired-action yq-paired-action--whatsapp" data-yq-dialog-whatsapp target="_blank" rel="noopener" hidden>
+                <i class="bi bi-whatsapp" aria-hidden="true"></i><span data-yq-dialog-whatsapp-text>إشعار العميل عبر واتساب</span>
+            </a>
+            <button type="button" class="yq-operation-dialog__button yq-operation-dialog__button--primary yq-paired-action yq-paired-action--primary" data-yq-dialog-confirm><span data-yq-dialog-confirm-text>حسنًا</span></button>
+            <button type="button" class="yq-operation-dialog__button yq-operation-dialog__button--secondary yq-paired-action yq-paired-action--secondary" data-yq-dialog-cancel hidden><span data-yq-dialog-cancel-text>رجوع</span></button>
+        </div>
+    </div>
+</dialog>
+<script src="~/js/yaqut-operation-dialog.js" asp-append-version="true" defer></script>

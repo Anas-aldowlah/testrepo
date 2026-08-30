@@ -172,15 +172,21 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("orders", t =>
             {
                 t.HasCheckConstraint("ck_orders_totalamount_nonnegative", "totalamount >= 0");
-                t.HasCheckConstraint("ck_orders_refundrequiredamount_range", "refundrequiredamount IS NULL OR (refundrequiredamount >= 0 AND refundrequiredamount <= totalamount)");
                 t.HasCheckConstraint("ck_orders_finalfulfilledamount_range", "finalfulfilledamount IS NULL OR (finalfulfilledamount >= 0 AND finalfulfilledamount <= totalamount)");
-                t.HasCheckConstraint("ck_orders_financial_resolution_balance", "finalfulfilledamount IS NULL OR refundrequiredamount IS NULL OR finalfulfilledamount + refundrequiredamount = totalamount");
                 t.HasCheckConstraint("ck_orders_payment_verification_pair", "(paymentverifiedat IS NULL) = (paymentverifiedbyuserid IS NULL)");
+                t.HasCheckConstraint("ck_orders_payment_review_pair", "(paymentreviewedat IS NULL) = (paymentreviewedbyuserid IS NULL)");
                 t.HasCheckConstraint("ck_orders_workflowstate", "workflowstate IS NULL OR workflowstate IN ('ConflictAwaitingDecision', 'ConflictResolvedContinue', 'ConflictResolvedCancel')");
+                t.HasCheckConstraint("ck_orders_dh03_status", "status IN ('Pending', 'Paid', 'Processed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')");
+                t.HasCheckConstraint("ck_orders_dh03_stock_owner", "NOT stockdeducted OR status IN ('Paid', 'Processed', 'Shipped', 'Delivered')");
+                t.HasCheckConstraint("ck_orders_dh03_paid", "status <> 'Paid' OR (stockdeducted AND paymentstatus = 'Paid' AND paymentverifiedat IS NOT NULL AND paymentverifiedbyuserid IS NOT NULL AND paymentreviewedat IS NOT NULL AND paymentreviewedbyuserid = paymentverifiedbyuserid AND finalfulfilledamount IS NOT NULL)");
+                t.HasCheckConstraint("ck_orders_dh03_conflict", "workflowstate <> 'ConflictAwaitingDecision' OR (status = 'Pending' AND NOT stockdeducted AND paymentstatus <> 'Paid' AND paymentverifiedat IS NULL AND paymentverifiedbyuserid IS NULL AND finalfulfilledamount IS NULL)");
+                t.HasCheckConstraint("ck_orders_dh03_cancelledat", "(status = 'Cancelled') = (cancelledat IS NOT NULL)");
             });
 
             entity.HasIndex(e => new { e.Status, e.Orderdate }, "ix_orders_status_orderdate")
                 .IsDescending(false, true);
+
+            entity.HasIndex(e => e.CancelledAt, "ix_orders_cancelledat");
 
             entity.HasIndex(e => new { e.Userid, e.Orderdate }, "ix_orders_userid_orderdate")
                 .IsDescending(false, true);
@@ -204,16 +210,17 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("paymentverifiedat");
             entity.Property(e => e.Paymentverifiedbyuserid).HasColumnName("paymentverifiedbyuserid");
+            entity.Property(e => e.Paymentreviewedat)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("paymentreviewedat");
+            entity.Property(e => e.Paymentreviewedbyuserid).HasColumnName("paymentreviewedbyuserid");
             entity.Property(e => e.Receipturl).HasColumnName("receipturl");
+            entity.Property(e => e.CancelledAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("cancelledat");
             entity.Property(e => e.Workflowstate)
                 .HasMaxLength(50)
                 .HasColumnName("workflowstate");
-            entity.Property(e => e.Refundrequiredamount)
-                .HasPrecision(10, 2)
-                .HasColumnName("refundrequiredamount");
-            entity.Property(e => e.Refundreason)
-                .HasMaxLength(100)
-                .HasColumnName("refundreason");
             entity.Property(e => e.Finalfulfilledamount)
                 .HasPrecision(10, 2)
                 .HasColumnName("finalfulfilledamount");

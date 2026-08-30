@@ -1,250 +1,202 @@
-(function () {
-    'use strict';
-
-    const root = document.querySelector('[data-yq-orders-page]');
+(() => {
+    "use strict";
+    const root = document.querySelector("[data-yq-orders-page]");
     if (!root) return;
-    if (root.dataset.yqOrdersInitialized === 'true') return;
-    root.dataset.yqOrdersInitialized = 'true';
+    let latest = 0;
+    let controller;
+    let popovers = [];
+    const unexpectedMessage = "تعذر تنفيذ العملية. حاول مرة أخرى.";
+    const labels = { Pending: "قيد الانتظار", Paid: "تم الدفع", Processed: "قيد التجهيز", Shipped: "تم الشحن", Delivered: "تم التوصيل", Cancelled: "ملغي", Refunded: "مرتجع" };
+    const classes = { Pending: "yq-orders-badge--pending", Paid: "yq-orders-badge--processed", Processed: "yq-orders-badge--processed", Shipped: "yq-orders-badge--shipped", Delivered: "yq-orders-badge--delivered", Cancelled: "yq-orders-badge--cancelled", Refunded: "yq-orders-badge--cancelled" };
 
-    const updateStatusUrl = root.dataset.yqUpdateStatusUrl;
-    const popoverTriggerList = Array.from(root.querySelectorAll('[data-bs-toggle="popover"]'));
-
-    function createPopoverTitle(iconClass, text) {
-        const title = document.createElement('span');
-        const icon = document.createElement('i');
-        icon.className = iconClass;
-        icon.setAttribute('aria-hidden', 'true');
-        title.append(icon, document.createTextNode(' ' + text));
-        return title;
+    function userSafeError(message) {
+        const error = new Error(message);
+        error.userSafe = true;
+        return error;
     }
 
-    function appendPopoverRow(card, label, value, direction) {
-        const row = document.createElement('div');
-        row.className = 'yq-popover-row';
-        const labelElement = document.createElement('span');
-        labelElement.textContent = label;
-        const valueElement = document.createElement('strong');
-        valueElement.textContent = value == null ? '' : String(value);
-        if (direction) valueElement.dir = direction;
-        row.append(labelElement, document.createTextNode(' '), valueElement);
-        card.appendChild(row);
+    function displayError(error, fallback = unexpectedMessage) {
+        return error?.userSafe && error.message ? error.message : fallback;
     }
 
-    function appendPopoverLink(card, href, text) {
-        const footer = document.createElement('div');
-        footer.className = 'yq-popover-footer';
-        const link = document.createElement('a');
-        link.className = 'yq-popover-link';
-        link.href = href;
-        const icon = document.createElement('i');
-        icon.className = 'bi bi-box-arrow-up-right';
-        icon.setAttribute('aria-hidden', 'true');
-        link.append(icon, document.createTextNode(' ' + text));
-        footer.appendChild(link);
-        card.appendChild(footer);
+    async function json(response) {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) throw userSafeError(data.message || "تعذر تنفيذ الطلب.");
+        return data;
     }
 
-    function buildPopoverContent(trigger) {
-        const type = trigger.dataset.yqPopoverType;
-        if (type === 'receipt') {
-            const imageSrc = trigger.dataset.yqReceiptImage;
-            if (!imageSrc) {
-                const empty = document.createElement('div');
-                empty.className = 'yq-popover-empty';
-                const icon = document.createElement('i');
-                icon.className = 'bi bi-image-alt';
-                icon.setAttribute('aria-hidden', 'true');
-                const text = document.createElement('span');
-                text.textContent = 'لا يوجد إيصال مرفق لهذا الطلب';
-                empty.append(icon, text);
-                return empty;
+    function disposePopovers() {
+        const ownedPopovers = popovers;
+        popovers = [];
+        ownedPopovers.forEach(item => item.dispose());
+    }
+
+    function initPopovers() {
+        if (!window.bootstrap?.Popover) return;
+        root.querySelectorAll('[data-bs-toggle="popover"]').forEach(trigger => {
+            popovers.push(new bootstrap.Popover(trigger, {
+                container: "body",
+                html: false,
+                title: trigger.dataset.yqPopoverType === "receipt" ? "إيصال الدفع" : "معلومات الطلب",
+                content: trigger.dataset.yqPopoverType === "receipt"
+                    ? (trigger.dataset.yqReceiptImage ? "افتح تفاصيل الطلب لعرض الإيصال." : "لا يوجد إيصال مرفق.")
+                    : [trigger.dataset.yqCustomerName, trigger.dataset.yqRecipientPhone, trigger.dataset.yqPaymentMethod].filter(Boolean).join(" — ")
+            }));
+        });
+    }
+
+    async function load(url, push = true) {
+        controller?.abort();
+        controller = new AbortController();
+        const request = ++latest;
+        root.setAttribute("aria-busy", "true");
+        try {
+            const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" }, signal: controller.signal });
+            if (!response.ok) throw userSafeError("تعذر تحميل الطلبات.");
+            const next = new DOMParser().parseFromString(await response.text(), "text/html").querySelector("[data-yq-orders-page]");
+            if (!next) throw userSafeError("تعذر تحديث النتائج.");
+            if (request !== latest) return;
+            disposePopovers();
+            root.innerHTML = next.innerHTML;
+            root.dataset.yqUpdateStatusUrl = next.dataset.yqUpdateStatusUrl;
+            root.dataset.yqVerifyPaymentUrl = next.dataset.yqVerifyPaymentUrl;
+            if (push) {
+                history.pushState({}, "", url);
             }
+            root.querySelectorAll(".yq-ajax-status-form").forEach(syncStatusForm);
+            initPopovers();
+        } catch (error) {
+            if (error.name !== "AbortError") await YaqutOperationDialog.show({ title: "تعذر التحديث", message: displayError(error), kind: "error" });
+        } finally {
+            if (request === latest) root.removeAttribute("aria-busy");
+        }
+    }
 
-            const receipt = document.createElement('div');
-            receipt.className = 'yq-popover-receipt';
-            const thumb = document.createElement('div');
-            thumb.className = 'yq-popover-thumb';
-            const image = document.createElement('img');
-            image.src = imageSrc;
-            image.alt = 'إيصال الدفع';
-            thumb.appendChild(image);
+    function isTerminalStatus(status) {
+        return status === "Cancelled" || status === "Delivered" || status === "Refunded";
+    }
 
-            const actions = document.createElement('div');
-            actions.className = 'yq-popover-actions';
-            const zoomButton = document.createElement('button');
-            zoomButton.type = 'button';
-            zoomButton.className = 'yq-popover-btn js-zoom-receipt';
-            zoomButton.id = 'btn-receipt-' + trigger.dataset.yqOrderId;
-            const zoomIcon = document.createElement('i');
-            zoomIcon.className = 'bi bi-zoom-in';
-            zoomIcon.setAttribute('aria-hidden', 'true');
-            zoomButton.append(zoomIcon, document.createTextNode(' عرض الصورة مكبرة'));
+    function syncStatusForm(form) {
+        const select = form?.querySelector('select[name="Status"]');
+        const save = form?.querySelector("[data-yq-save-status]");
+        if (!select || !save) return;
+        const terminal = isTerminalStatus(select.dataset.originalStatus);
+        const unavailable = terminal || select.disabled;
+        save.disabled = unavailable || select.value === select.dataset.originalStatus;
+    }
 
-            const openLink = document.createElement('a');
-            openLink.href = imageSrc;
-            openLink.target = '_blank';
-            openLink.rel = 'noopener';
-            openLink.className = 'yq-popover-btn yq-popover-btn--outline';
-            const openIcon = document.createElement('i');
-            openIcon.className = 'bi bi-box-arrow-up-right';
-            openIcon.setAttribute('aria-hidden', 'true');
-            openLink.append(openIcon, document.createTextNode(' فتح في تبويب جديد'));
-            actions.append(zoomButton, openLink);
-            receipt.append(thumb, actions);
-            return receipt;
+    root.querySelectorAll(".yq-ajax-status-form").forEach(syncStatusForm);
+
+    root.addEventListener("submit", async event => {
+        const search = event.target.closest("[data-yq-orders-search-form]");
+        if (search) {
+            event.preventDefault();
+            const url = new URL(search.action || location.href, location.href);
+            url.search = new URLSearchParams(new FormData(search)).toString();
+            await load(url.href);
+            return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'yq-popover-card';
-        if (type === 'payment') {
-            appendPopoverRow(card, 'وسيلة الدفع:', trigger.dataset.yqPaymentMethod);
-            appendPopoverRow(card, 'حالة الطلب:', trigger.dataset.yqStatusLabel);
-            appendPopoverLink(card, trigger.dataset.yqDetailsUrl, 'عرض تفاصيل الدفع الكاملة');
-            return card;
-        }
-
-        appendPopoverRow(card, 'اسم العميل:', trigger.dataset.yqCustomerName);
-        appendPopoverRow(card, 'اسم المستلم:', trigger.dataset.yqRecipientName);
-        appendPopoverRow(card, 'رقم الجوال:', trigger.dataset.yqRecipientPhone, 'ltr');
-        appendPopoverRow(card, 'المحافظة:', trigger.dataset.yqGovernorate);
-        appendPopoverRow(card, 'المنطقة:', trigger.dataset.yqRegion);
-        appendPopoverLink(card, trigger.dataset.yqDetailsUrl, 'فتح التفاصيل الكاملة');
-        return card;
-    }
-
-    popoverTriggerList.forEach(function (element) {
-        const type = element.dataset.yqPopoverType;
-        const isReceipt = type === 'receipt';
-        const isPayment = type === 'payment';
-        new bootstrap.Popover(element, {
-            container: 'body',
-            html: true,
-            title: function () {
-                return createPopoverTitle(
-                    isReceipt ? 'bi bi-receipt-cutoff' : isPayment ? 'bi bi-credit-card-fill' : 'bi bi-geo-alt-fill',
-                    isReceipt ? 'إيصال الدفع' : isPayment ? 'معلومات الدفع' : 'معلومات التوصيل والمستلم'
-                );
-            },
-            content: function () { return buildPopoverContent(element); }
-        });
-    });
-
-    document.addEventListener('click', function (event) {
-        popoverTriggerList.forEach(function (element) {
-            const instance = bootstrap.Popover.getInstance(element);
-            if (instance && !element.contains(event.target)) {
-                const openPopover = document.querySelector('.popover.show');
-                if (openPopover && !openPopover.contains(event.target)) instance.hide();
+        const statusForm = event.target.closest(".yq-ajax-status-form");
+        if (statusForm) {
+            event.preventDefault();
+            const select = statusForm.querySelector('select[name="Status"]');
+            const save = statusForm.querySelector("[data-yq-save-status]");
+            if (!select || !save || save.disabled) return;
+            const original = select.dataset.originalStatus;
+            if (select.value === "Cancelled" && !await YaqutOperationDialog.confirm({
+                title: "إلغاء الطلب",
+                message: "هل تريد إلغاء الطلب؟\nبعد الإلغاء لن يمكن إعادة فتحه.",
+                confirmText: "إلغاء الطلب",
+                cancelText: "تراجع",
+                kind: "destructive"
+            })) {
+                select.value = original;
+                syncStatusForm(statusForm);
+                return;
             }
-        });
 
-        const button = event.target.closest('.popover.show .js-zoom-receipt');
-        if (!button) return;
-
-        const orderId = button.id.replace('btn-receipt-', '');
-        const link = button.nextElementSibling;
-        const imageSrc = link ? link.getAttribute('href') : '';
-        if (imageSrc) openReceiptModal(imageSrc, orderId);
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key !== 'Escape') return;
-        popoverTriggerList.forEach(function (element) {
-            const instance = bootstrap.Popover.getInstance(element);
-            if (instance) instance.hide();
-        });
-    });
-
-    const statusLabels = {
-        Pending: 'قيد الانتظار',
-        Processed: 'تم الدفع',
-        Shipped: 'تم الشحن',
-        Delivered: 'تم التوصيل',
-        Cancelled: 'ملغي',
-        Refunded: 'مرتجع'
-    };
-    const statusClasses = {
-        Pending: 'yq-orders-badge--pending',
-        Processed: 'yq-orders-badge--processed',
-        Shipped: 'yq-orders-badge--shipped',
-        Delivered: 'yq-orders-badge--delivered',
-        Cancelled: 'yq-orders-badge--cancelled',
-        Refunded: 'yq-orders-badge--cancelled'
-    };
-
-    root.querySelectorAll('.yq-ajax-status-form select').forEach(function (select) {
-        select.addEventListener('change', async function () {
-            const form = this.closest('.yq-ajax-status-form');
-            const orderId = form.dataset.orderId;
-            const newStatus = this.value;
-            const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
-
-            this.disabled = true;
-            this.style.opacity = '0.5';
-
+            select.disabled = true;
+            save.disabled = true;
             try {
-                const response = await fetch(updateStatusUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'RequestVerificationToken': token
-                    },
-                    body: `id=${orderId}&status=${encodeURIComponent(newStatus)}`
-                });
-                const data = await window.YaqutAdminAjax.readJson(response);
-                if (data.success) {
-                    const persistedStatus = data.status;
-                    if (!persistedStatus) throw new Error('Missing persisted order status.');
-                    const badge = root.querySelector(`[data-order-badge="${orderId}"]`);
-                    if (badge) {
-                        badge.className = 'yq-orders-badge ' + (statusClasses[persistedStatus] || 'yq-orders-badge--neutral');
-                        badge.textContent = statusLabels[persistedStatus] || persistedStatus;
-                    }
-                    this.value = persistedStatus;
-                    this.dataset.originalStatus = persistedStatus;
-                    showOrderAlert('success', data.message || 'تم تحديث حالة الطلب بنجاح.');
-                } else {
-                    this.value = this.dataset.originalStatus;
-                    showOrderAlert('danger', data.message || 'حدث خطأ أثناء تحديث الحالة');
+                const data = await json(await fetch(root.dataset.yqUpdateStatusUrl, {
+                    method: "POST",
+                    body: new URLSearchParams({ id: statusForm.dataset.orderId, status: select.value }),
+                    headers: { "X-Requested-With": "XMLHttpRequest", "RequestVerificationToken": statusForm.querySelector('[name="__RequestVerificationToken"]').value }
+                }));
+                const badge = root.querySelector(`[data-order-badge="${statusForm.dataset.orderId}"]`);
+                if (badge) { badge.className = `yq-orders-badge ${classes[data.status] || "yq-orders-badge--neutral"}`; badge.textContent = labels[data.status] || data.status; }
+                select.replaceChildren(...[data.status, ...(data.allowedTargets || [])].map(status => new Option(labels[status] || status, status, status === data.status, status === data.status)));
+                select.dataset.originalStatus = data.status;
+                const terminal = isTerminalStatus(data.status);
+                select.disabled = terminal;
+                if (terminal) {
+                    const verify = statusForm.closest("tr")?.querySelector("[data-yq-verify-payment] button");
+                    if (verify) verify.disabled = true;
                 }
-            } catch (value) {
-                const error = window.YaqutAdminAjax.normalizeError(value);
-                this.value = this.dataset.originalStatus;
-                showOrderAlert('danger', error.message);
-            } finally {
-                this.disabled = false;
-                this.style.opacity = '1';
+                syncStatusForm(statusForm);
+                const customerResolvedConflict = statusForm.dataset.yqCustomerResolvedConflict === "true";
+                await YaqutOperationDialog.show({
+                    title: data.status === "Cancelled" ? "تم إلغاء الطلب" : customerResolvedConflict ? "حدّث العميل طلبه" : "تم التحديث",
+                    message: data.status === "Cancelled"
+                        ? data.message
+                        : customerResolvedConflict
+                            ? "اكتمل قرار العميل، ويمكنك الآن متابعة تجهيز الطلب."
+                            : data.message,
+                    whatsAppUrl: data.whatsAppUrl,
+                    kind: "success"
+                });
+                statusForm.dataset.yqCustomerResolvedConflict = "false";
+            } catch (error) {
+                select.value = original;
+                select.disabled = isTerminalStatus(original);
+                syncStatusForm(statusForm);
+                await YaqutOperationDialog.show({ title: "تعذر التحديث", message: displayError(error), kind: "error" });
             }
-        });
+            return;
+        }
+
+        const form = event.target.closest("[data-yq-verify-payment]");
+        if (!form) return;
+        event.preventDefault();
+        if (!await YaqutOperationDialog.confirm({ title: "تأكيد التحقق من الدفع", message: "هل تريد تأكيد مراجعة الدفع لهذا الطلب؟", confirmText: "تأكيد", cancelText: "رجوع" })) return;
+        const button = form.querySelector("button");
+        button.disabled = true;
+        try {
+            const data = await json(await fetch(form.action, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "XMLHttpRequest" } }));
+            const conflict = data.outcome === "Conflict";
+            await YaqutOperationDialog.show({
+                title: conflict ? "تمت مراجعة الدفع" : "تم التحقق من الدفع بنجاح",
+                message: data.message,
+                whatsAppUrl: data.whatsAppUrl,
+                kind: "success"
+            });
+            await load(location.href, false);
+        } catch (error) {
+            button.disabled = false;
+            await YaqutOperationDialog.show({ title: "تعذر التحقق", message: displayError(error), kind: "error" });
+        }
     });
 
-    function showOrderAlert(type, message) {
-        const area = root.querySelector('#yqOrdersAlertArea');
-        if (!area) return;
+    root.addEventListener("change", event => {
+        const select = event.target.closest(".yq-ajax-status-form select");
+        if (select) syncStatusForm(select.closest("form"));
+    });
 
-        const alert = document.createElement('div');
-        alert.className = `yaqut-alert yq-admin-operation-feedback ${type === 'success' ? 'yaqut-alert--success' : 'yaqut-alert--danger'}`;
-        alert.setAttribute('role', type === 'success' ? 'status' : 'alert');
-        const icon = document.createElement('i');
-        icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-octagon-fill';
-        icon.setAttribute('aria-hidden', 'true');
-        const text = document.createElement('span');
-        text.textContent = message;
-        alert.append(icon, text);
-        area.replaceChildren(alert);
-    }
+    root.addEventListener("click", event => {
+        const conflict = event.target.closest("[data-yq-conflict-info]");
+        if (conflict) {
+            YaqutOperationDialog.show({
+                title: conflict.dataset.yqConflictTitle,
+                message: conflict.dataset.yqConflictMessage,
+                lines: (conflict.dataset.yqConflictLines || "").split("||"),
+                whatsAppUrl: conflict.dataset.yqWhatsappUrl
+            });
+        }
+        const link = event.target.closest(".yq-admin-pager a:not(.is-disabled), .yq-orders-clear-filter");
+        if (link) { event.preventDefault(); load(link.href); }
+    });
 
-    function openReceiptModal(imageSrc, orderId) {
-        popoverTriggerList.forEach(function (element) {
-            const instance = bootstrap.Popover.getInstance(element);
-            if (instance) instance.hide();
-        });
-
-        document.getElementById('modalOrderId').textContent = orderId;
-        document.getElementById('modalReceiptImg').src = imageSrc;
-        document.getElementById('modalReceiptDownload').href = imageSrc;
-        new bootstrap.Modal(document.getElementById('receiptModal')).show();
-    }
+    addEventListener("popstate", () => load(location.href, false));
+    initPopovers();
 })();

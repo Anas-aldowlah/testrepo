@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ياقوت — Products / Details page interactions
  * Quantity, retail choice, wishlist, and recently viewed interactions
  */
@@ -20,17 +20,47 @@
             return Math.min(Math.max(value, min), max);
         }
 
+        function syncButtons() {
+            var value = parseInt(input.value || '1', 10);
+            var max = parseInt(input.max, 10) || Infinity;
+            decreaseBtn.disabled = value <= (parseInt(input.min, 10) || 1);
+            increaseBtn.disabled = value >= max;
+        }
+
+        input.addEventListener('change', function () {
+            var val = parseInt(input.value || '1', 10);
+            var max = parseInt(input.max, 10) || Infinity;
+            if (val > max) {
+                if (window.YaqutOperationDialog) {
+                    var singleUnit = input.dataset.yqUnitKind === 'piece' ? 'قطعة واحدة' : 'وحدة واحدة';
+                    window.YaqutOperationDialog.show({
+                        title: 'الكمية غير متوفرة',
+                        message: max === 1 ? 'المتوفر حاليًا ' + singleUnit + ' فقط.' : 'المتوفر حاليًا ' + max + ' فقط.'
+                    });
+                }
+                input.value = max;
+            } else {
+                input.value = clamp(val);
+            }
+            syncButtons();
+        });
+
         decreaseBtn.addEventListener('click', function () {
-            input.value = clamp((parseInt(input.value, 10) || 1) - 1);
+            input.value = clamp((parseInt(input.value || '1', 10) - 1));
+            syncButtons();
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         increaseBtn.addEventListener('click', function () {
-            input.value = clamp((parseInt(input.value, 10) || 1) + 1);
+            var val = parseInt(input.value || '1', 10);
+            var max = parseInt(input.max, 10) || Infinity;
+            if (val >= max) return;
+            input.value = clamp(val + 1);
+            syncButtons();
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        input.addEventListener('change', function () {
-            input.value = clamp(parseInt(input.value, 10) || 1);
-        });
+        syncButtons();
     }
 
     function getRecentList() {
@@ -129,6 +159,7 @@
             if ((parseInt(qtyInput.value || '1', 10) || 1) > max) {
                 qtyInput.value = Math.max(1, max);
             }
+            qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
 
             var price = parseFloat(selected.dataset.price || '0') || 0;
             var currency = document.createElement('small');

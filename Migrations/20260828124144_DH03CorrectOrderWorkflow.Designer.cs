@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YAGOT_2._0.Models;
@@ -11,9 +12,11 @@ using YAGOT_2._0.Models;
 namespace YAGOT_2._0.Migrations
 {
     [DbContext(typeof(NeondbContext))]
-    partial class NeondbContextModelSnapshot : ModelSnapshot
+    [Migration("20260828124144_DH03CorrectOrderWorkflow")]
+    partial class DH03CorrectOrderWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -221,14 +224,6 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("paymentmethod");
 
-                    b.Property<DateTime?>("Paymentreviewedat")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("paymentreviewedat");
-
-                    b.Property<int?>("Paymentreviewedbyuserid")
-                        .HasColumnType("integer")
-                        .HasColumnName("paymentreviewedbyuserid");
-
                     b.Property<string>("Paymentstatus")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -302,15 +297,13 @@ namespace YAGOT_2._0.Migrations
 
                             t.HasCheckConstraint("ck_orders_dh03_conflict", "workflowstate <> 'ConflictAwaitingDecision' OR (status = 'Pending' AND NOT stockdeducted AND paymentstatus <> 'Paid' AND paymentverifiedat IS NULL AND paymentverifiedbyuserid IS NULL AND finalfulfilledamount IS NULL)");
 
-                            t.HasCheckConstraint("ck_orders_dh03_paid", "status <> 'Paid' OR (stockdeducted AND paymentstatus = 'Paid' AND paymentverifiedat IS NOT NULL AND paymentverifiedbyuserid IS NOT NULL AND paymentreviewedat IS NOT NULL AND paymentreviewedbyuserid = paymentverifiedbyuserid AND finalfulfilledamount IS NOT NULL)");
+                            t.HasCheckConstraint("ck_orders_dh03_paid", "status <> 'Paid' OR (stockdeducted AND paymentstatus = 'Paid' AND paymentverifiedat IS NOT NULL AND paymentverifiedbyuserid IS NOT NULL AND finalfulfilledamount IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_orders_dh03_status", "status IN ('Pending', 'Paid', 'Processed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')");
 
                             t.HasCheckConstraint("ck_orders_dh03_stock_owner", "NOT stockdeducted OR status IN ('Paid', 'Processed', 'Shipped', 'Delivered')");
 
                             t.HasCheckConstraint("ck_orders_finalfulfilledamount_range", "finalfulfilledamount IS NULL OR (finalfulfilledamount >= 0 AND finalfulfilledamount <= totalamount)");
-
-                            t.HasCheckConstraint("ck_orders_payment_review_pair", "(paymentreviewedat IS NULL) = (paymentreviewedbyuserid IS NULL)");
 
                             t.HasCheckConstraint("ck_orders_payment_verification_pair", "(paymentverifiedat IS NULL) = (paymentverifiedbyuserid IS NULL)");
 

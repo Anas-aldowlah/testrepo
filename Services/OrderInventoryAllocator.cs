@@ -25,13 +25,13 @@ public static class OrderInventoryAllocator
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(availableStockByProduct);
 
-        var orderedLines = lines.OrderBy(line => line.ProductId).ThenBy(line => line.OrderitemId).ToArray();
+        var orderedLines = lines.OrderBy(line => line.OrderitemId).ToArray();
         var remainingStock = new Dictionary<int, int>();
         var results = new List<OrderAllocationResult>(orderedLines.Length);
 
         foreach (var line in orderedLines)
         {
-            if (line.OrderitemId <= 0 || line.ProductId <= 0 || line.RequestedQuantity <= 0 || line.StockPerUnit <= 0)
+            if (line.OrderitemId <= 0 || line.ProductId <= 0 || line.RequestedQuantity < 0 || line.StockPerUnit <= 0)
                 throw new InvalidOperationException("Invalid order inventory allocation input.");
 
             if (!remainingStock.TryGetValue(line.ProductId, out var available))
@@ -56,18 +56,6 @@ public static class OrderInventoryAllocator
         return results.OrderBy(result => result.OrderitemId).ToArray();
     }
 
-    public static decimal CalculateRefund(IEnumerable<OrderAllocationResult> allocation)
-    {
-        decimal refund = 0m;
-        checked
-        {
-            foreach (var line in allocation)
-                refund += line.UnavailableQuantity * line.HistoricalUnitPrice;
-        }
-
-        return refund;
-    }
-
     public static decimal CalculateFulfilledValue(IEnumerable<OrderAllocationResult> allocation)
     {
         decimal value = 0m;
@@ -86,7 +74,4 @@ public static class OrderWorkflowStates
     public const string ConflictAwaitingDecision = "ConflictAwaitingDecision";
     public const string ConflictResolvedContinue = "ConflictResolvedContinue";
     public const string ConflictResolvedCancel = "ConflictResolvedCancel";
-
-    public const string PartialUnavailableRefund = "InventoryConflictUnavailableItems";
-    public const string FullCancellationRefund = "InventoryConflictFullCancellation";
 }

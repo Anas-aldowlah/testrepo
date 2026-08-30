@@ -5,20 +5,40 @@
 @{
     ViewData["Title"] = "تأكيد الطلب";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
-    const decimal freeShippingThreshold = 500;
-    var qualifiesForFreeShipping = Model.Totalamount >= freeShippingThreshold;
 
     var customerName = Model.User?.Name ?? User.Identity?.Name;
     var customerPhone = Model.User?.Phone ?? User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     var checkoutDraftIdToClear = ViewData["CheckoutDraftIdToClear"] as string ?? string.Empty;
+    var customerOrderWhatsAppUrl = ViewData["CustomerOrderWhatsAppUrl"] as string;
+    var paymentPresentations = ViewData["PaymentMethodPresentations"] as IReadOnlyDictionary<string, PaymentMethodPresentation>;
+    var paymentPresentation = !string.IsNullOrWhiteSpace(Model.Paymentmethod) &&
+        paymentPresentations?.TryGetValue(Model.Paymentmethod, out var configuredPayment) == true
+            ? configuredPayment
+            : new PaymentMethodPresentation(
+                Model.Paymentmethod ?? string.Empty,
+                string.IsNullOrWhiteSpace(Model.Paymentmethod) ? "طريقة دفع غير محددة" : "طريقة دفع مسجلة سابقاً",
+                string.Empty,
+                string.Empty,
+                null,
+                false);
+    var isConflictAwaitingDecision = Model.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision;
+    var conflictHasPaymentReview = Model.Paymentreviewedat.HasValue && Model.Paymentreviewedbyuserid.HasValue;
+    var paymentStateDescription = isConflictAwaitingDecision
+        ? conflictHasPaymentReview
+            ? "مراجعة الدفع معلّقة بانتظار قرارك بشأن الكميات."
+            : "المتجر يراجع الدفع الآن."
+        : Model.Paymentstatus == "Paid"
+            ? "تم التحقق من الدفع."
+            : "الدفع بانتظار مراجعة المتجر.";
 
-    var statusSteps = new[] { "Pending", "Processed", "Shipped", "Delivered" };
+    var statusSteps = new[] { "Pending", "Paid", "Processed", "Shipped", "Delivered" };
     var currentStepIndex = Array.IndexOf(statusSteps, Model.Status);
     if (currentStepIndex < 0) currentStepIndex = 0;
 
     var stepLabels = new Dictionary<string, string>
     {
         ["Pending"] = "تم استلام الطلب",
+        ["Paid"] = "تم الدفع",
         ["Processed"] = "قيد التحضير",
         ["Shipped"] = "تم الشحن",
         ["Delivered"] = "تم التوصيل"
@@ -36,11 +56,7 @@
 
     <!-- SUCCESS HERO -->
     <section class="yq-confirm-hero yq-reveal">
-        <div class="yq-confirm-hero__icon">
-            <i class="bi bi-check-lg"></i>
-        </div>
-        <h1 class="yq-confirm-hero__title">تم تأكيد طلبك بنجاح!</h1>
-        <p class="yq-confirm-hero__sub">شكراً لثقتك في متجرنا. تم استلام طلبك وسيتم التواصل معك قريباً.</p>
+        @await Html.PartialAsync("_PostOrderWhatsApp", customerOrderWhatsAppUrl)
 
         <div class="yq-confirm-tracking">
             <span class="yq-confirm-tracking__label">رقم التتبع</span>
@@ -116,16 +132,10 @@
             </section>
 
             <!-- PAYMENT -->
-            <section class="yq-confirm-card yq-glass">
-                <h2 class="yq-confirm-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
-                <div class="yq-confirm-payment">
-                    <span class="yq-confirm-payment__icon"><i class="bi bi-cash-coin"></i></span>
-                    <div>
-                        <strong>الدفع عند الاستلام</strong>
-                        <p>سيتم تحصيل المبلغ نقداً عند استلام طلبك</p>
-                    </div>
-                </div>
-            </section>
+            @await Html.PartialAsync("_PaymentMethodCard", new PaymentMethodCardViewModel(
+                paymentPresentation,
+                paymentStateDescription,
+                Model.Paymentstatus == "Paid" ? "verified" : isConflictAwaitingDecision ? "review" : "pending"))
 
             <!-- PURCHASED PRODUCTS -->
             <section class="yq-confirm-card yq-glass">
@@ -163,14 +173,7 @@
             </div>
             <div class="yq-confirm-summary__row">
                 <span>الشحن</span>
-                @if (qualifiesForFreeShipping)
-                {
-                    <span class="yq-confirm-summary__free">مجاني</span>
-                }
-                else
-                {
-                    <span class="yq-confirm-summary__tbd">يُحدد عند التوصيل</span>
-                }
+                @await Html.PartialAsync("_FreeShipping")
             </div>
 
             <div class="yq-confirm-summary__divider"></div>
@@ -180,20 +183,6 @@
                 <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
             </div>
 
-                @if (TempData["WhatsAppUrl"] != null)
-                {
-                    <button type="button" id="yqOpenWaModalBtn" class="btn-yaqut-gold yq-confirm-summary__btn yq-wa-btn-main">
-                        <i class="bi bi-whatsapp"></i> إرسال الطلب عبر الواتساب
-                    </button>
-                }
-                <a asp-controller="Orders" asp-action="Index" class="btn-yaqut-gold yq-confirm-summary__btn">
-                    <i class="bi bi-receipt"></i> عرض طلباتي
-                </a>
-                <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline yq-confirm-summary__btn">
-                    <i class="bi bi-bag-plus"></i> متابعة التسوق
-                </a>
-            </div>
-
             <p class="yq-confirm-summary__note">
                 <i class="bi bi-envelope-check"></i>
                 سيتم التواصل معك عبر رقم الجوال المسجل لتأكيد التوصيل
@@ -201,58 +190,6 @@
         </aside>
     </div>
 </div>
-
-@if (TempData["WhatsAppUrl"] != null)
-{
-    var waUrl = TempData["WhatsAppUrl"]?.ToString();
-    <!-- WHATSAPP OPTIONAL MODAL -->
-    <div class="yaqut-modal yq-wa-modal" id="waOptionalModal" >
-        <div class="yaqut-modal-content yq-wa-modal-content">
-            <div class="yq-wa-icon-wrapper">
-                <i class="bi bi-whatsapp"></i>
-            </div>
-            <h3 class="yq-wa-title">تأكيد سريع للطلب!</h3>
-            <p class="yq-wa-text">
-                تم تسجيل طلبك بنجاح في النظام.<br />
-                لتسريع عملية التجهيز والتوصيل، نوصي بإرسال نسخة من الطلب لإدارة المتجر عبر الواتساب.
-            </p>
-            <div class="yq-wa-actions">
-                <a href="@waUrl"  class="yq-wa-btn-main yq-close-wa-modal">
-                    <i class="bi bi-send-fill"></i> إرسال عبر الواتساب الآن
-                </a>
-                <button type="button"  class="yq-wa-btn-secondary yq-close-wa-modal">
-                    تخطي والاكتفاء بالطلب
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script nonce="@Context.Items["csp-nonce"]">
-        function openWaModal() {
-            const modal = document.getElementById('waOptionalModal');
-            if(modal) {
-                modal.classList.add('is-open');
-            }
-        }
-
-        function closeWaModal() {
-            const modal = document.getElementById('waOptionalModal');
-            if(modal) {
-                modal.classList.remove('is-open');
-            }
-        }
-
-        document.querySelectorAll('.yq-close-wa-modal').forEach(function(btn) {
-            btn.addEventListener('click', closeWaModal);
-        });
-
-        // Show automatically after 1 second
-        setTimeout(openWaModal, 1000);
-
-        // Bind the manual button
-        document.getElementById('yqOpenWaModalBtn').addEventListener('click', openWaModal);
-    </script>
-}
 
 @section Scripts {
     <script src="~/js/orders/confirmation.js" asp-append-version="true"></script>

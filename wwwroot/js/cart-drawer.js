@@ -754,7 +754,8 @@
 
                 var state = payload.state;
                 var result = payload.result;
-                if (isErrorMessage(state.message)) {
+                var isWarning = state.warningCode === 'InsufficientStock';
+                if (isErrorMessage(state.message) && !isWarning) {
                     setAddButtonState(form, 'error', state.message);
                     hideCartToast();
                     announce(state.message);
@@ -768,8 +769,11 @@
 
                 animateProductFlight(snapshot);
                 animateBadgeNudge();
-                setAddButtonState(form, 'success', state.message ? 'تم تحديث السلة' : 'تمت الإضافة');
-                showCartToast(authoritativeItem, result.totalText);
+                setAddButtonState(form, 'success', state.message && !isWarning ? 'تم تحديث السلة' : 'تمت الإضافة');
+                showCartToast(authoritativeItem, result.totalText, isWarning ? state.message : null);
+                if (isWarning && window.YaqutOperationDialog) {
+                    window.YaqutOperationDialog.show({ title: 'الكمية غير متوفرة', message: state.message });
+                }
                 openDrawer(form.querySelector('[data-yq-add-button], button[type="submit"]'));
             })
             .catch(function (error) {
@@ -827,14 +831,23 @@
             if (input) input.value = String(savedQuantity);
             if (expectedInput) expectedInput.value = String(savedQuantity);
 
+            var max = input ? parseInt(input.getAttribute('max'), 10) : NaN;
+            if (state.warningCode === 'InsufficientStock' && Number.isFinite(state.availableQuantity)) {
+                max = state.availableQuantity;
+                if (input) input.setAttribute('max', String(max));
+            }
+
             var minus = form.querySelector('[data-yq-qty-step="-1"]');
             var plus = form.querySelector('[data-yq-qty-step="1"]');
-            var max = input ? parseInt(input.getAttribute('max'), 10) : NaN;
             if (minus) minus.disabled = savedQuantity <= 1;
             if (plus) plus.disabled = Number.isFinite(max) && savedQuantity >= max;
 
             var lineTotal = item ? item.querySelector('.yq-cart-drawer__line-total') : null;
             if (lineTotal && state.item.lineTotalText) lineTotal.textContent = state.item.lineTotalText;
+        }
+
+        if (state.warningCode === 'InsufficientStock' && window.YaqutOperationDialog) {
+            window.YaqutOperationDialog.show({ title: 'الكمية غير متوفرة', message: state.message });
         }
 
         showNotice(state.message || noticeText, false);

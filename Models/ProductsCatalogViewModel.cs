@@ -20,6 +20,8 @@ public sealed class ProductsCatalogRequest : IValidatableObject
 
     public string Retail { get; set; } = "all";
 
+    public string Availability { get; set; } = "all";
+
     public int[] RetailSize { get; set; } = [];
 
     public string Sort { get; set; } = "newest";
@@ -38,6 +40,9 @@ public sealed class ProductsCatalogRequest : IValidatableObject
 
         if (Retail is not ("all" or "yes" or "no"))
             yield return new ValidationResult("Unsupported retail filter.", [nameof(Retail)]);
+
+        if (Availability is not ("all" or "available" or "unavailable"))
+            yield return new ValidationResult("Unsupported availability filter.", [nameof(Availability)]);
 
         if (Sort is not ("newest" or "price-asc" or "price-desc" or "name"))
             yield return new ValidationResult("Unsupported catalog sort.", [nameof(Sort)]);
