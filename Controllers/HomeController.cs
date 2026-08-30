@@ -28,25 +28,15 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var newArrivals = await _context.Products
+        var allProducts = await _context.Products
             .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.RetailPrices.Where(price =>
                 price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .OrderByDescending(p => p.Createdat)
-            .Take(8)
             .ToListAsync();
 
-        var premiumSelection = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
-            .OrderByDescending(p => p.Price)
-            .Take(8)
-            .ToListAsync();
-
-        var productsFromDb = newArrivals.UnionBy(premiumSelection, p => p.Id).ToList();
+        var productsFromDb = allProducts;
         var categoriesFromDb = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
         var model = new ViewModels
         {
