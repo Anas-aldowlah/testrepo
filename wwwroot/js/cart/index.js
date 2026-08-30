@@ -45,6 +45,13 @@
         }));
     }
 
+    function activateRevealState(root) {
+        if (root.matches('.yq-reveal')) root.classList.add('is-visible');
+        root.querySelectorAll('.yq-reveal').forEach(function (element) {
+            element.classList.add('is-visible');
+        });
+    }
+
     function setHeaderBadge(total) {
         var badge = document.querySelector('[data-yq-cart-count]');
         if (!badge) return;
@@ -94,6 +101,7 @@
                     var doc = new window.DOMParser().parseFromString(html, 'text/html');
                     var nextRoot = doc.querySelector('[data-yq-cart-page]');
                     if (!nextRoot) throw new Error('cart response invalid');
+                    activateRevealState(nextRoot);
                     notifyCartReconciliation(doc);
                     root.replaceWith(nextRoot);
                     initCartPage();
