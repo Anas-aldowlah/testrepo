@@ -1,4 +1,4 @@
-﻿/* ═══ Orders / Confirmation — Order Success Page ═══ */
+/* ═══ Orders / Confirmation — Order Success Page ═══ */
 
 .yq-confirm-page {
     display: flex;
@@ -6,6 +6,7 @@
     gap: 1.5rem;
     max-width: 1100px;
     margin: 0 auto;
+    margin-top: 1.5rem;
 }
 
 /* ── Success Hero ── */
