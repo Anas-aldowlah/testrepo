@@ -1,4 +1,4 @@
-﻿.yq-settings-admin {
+.yq-settings-admin {
     display: grid;
     gap: 1rem;
 }
@@ -363,9 +363,29 @@
 .yq-settings-actions .btn-yaqut-gold:disabled:hover {
     border-color: var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-muted, #b6b1a6);
+    color: var(--yq-admin-muted, #b6b1a6) !important;
     cursor: not-allowed;
     opacity: 0.62;
+    transform: none;
+    box-shadow: none;
+}
+
+.yq-settings-actions .btn-yaqut-outline {
+    background: transparent;
+    border-color: var(--yq-admin-danger);
+    color: var(--yq-admin-danger) !important;
+}
+
+.yq-settings-actions .btn-yaqut-outline:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--yq-admin-danger) 12%, transparent);
+    border-color: var(--yq-admin-danger);
+    color: var(--yq-admin-danger) !important;
+    box-shadow: none;
+}
+
+.yq-settings-actions .btn-yaqut-outline:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
     transform: none;
 }
 
