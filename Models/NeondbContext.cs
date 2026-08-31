@@ -553,6 +553,9 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("'Customer'::character varying")
                 .HasColumnType("character varying");
             entity.Property(e => e.UserId).HasColumnName("UserID");
+            entity.Property(e => e.SearchNameSyncVersion)
+                .HasDefaultValue(0)
+                .HasColumnName("SearchNameSyncVersion");
         });
 
         modelBuilder.Entity<Visit>(entity =>
