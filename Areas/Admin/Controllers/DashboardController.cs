@@ -27,11 +27,14 @@ public class DashboardController : Controller
         {
             TotalProducts = await _context.Products.CountAsync(),
             TotalOrders = await _context.Orders.CountAsync(),
-            TotalUsers = await _dbUser.Users.CountAsync(),
+            TotalUsers = await _context.UserSites.CountAsync(),
             TotalRevenue = await _context.Orders.WhereRevenueEligible()
                 .SumAsync(o => (decimal?)(o.Finalfulfilledamount ?? o.Totalamount)) ?? 0m,
             PendingOrders = await _context.Orders.CountAsync(o => o.Status == "Pending"),
-            ActiveOrders = await _context.Orders.CountAsync(o => o.Status == "Paid" || o.Status == "Processed" || o.Status == "Shipped"),
+            PaidOrders = await _context.Orders.CountAsync(o => o.Status == "Paid"),
+            ActiveOrders = await _context.Orders.CountAsync(o => o.Status == "Processed"),
+            ShippedOrder = await _context.Orders.CountAsync(o => o.Status == "Shipped"),
+            CancelledOrder = await _context.Orders.CountAsync(o => o.Status == "Cancelled"),
             RecentOrders = await _context.Orders
                 .AsNoTracking()
                 .OrderByDescending(o => o.Orderdate)
