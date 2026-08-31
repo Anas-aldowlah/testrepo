@@ -416,7 +416,7 @@
                                                     <option value="@targetStatus">@targetLabel</option>
                                                 }
                                             </select>
-                                            <button type="submit" class="btn-yaqut-gold yq-orders-save-btn yq-workflow-fill" data-yq-save-status disabled aria-label="حفظ حالة الطلب">
+                                            <button type="submit" class="btn-yaqut-gold yq-orders-save-btn" data-yq-save-status disabled aria-label="حفظ حالة الطلب">
                                                 <i class="bi bi-check2" aria-hidden="true"></i><span class="yq-orders-label--desktop">حفظ</span><span class="yq-orders-label--mobile">حفظ الحالة</span>
                                             </button>
                                         </form>
@@ -434,7 +434,7 @@
                                                 }
                                                 var verifyDesktopText = canVerifyPayment ? "تحقق من الدفع" : verifyBtnText;
                                             }
-                                            <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn yq-workflow-fill" disabled="@(!canVerifyPayment)" aria-label="@verifyBtnText">
+                                            <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn" disabled="@(!canVerifyPayment)" aria-label="@verifyBtnText">
                                                 <span class="yq-orders-label--desktop">@verifyDesktopText</span><span class="yq-orders-label--mobile">@verifyBtnText</span>
                                             </button>
                                         </form>

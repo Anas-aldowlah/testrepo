@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Admin Categories Index
    Page-specific category management styles only.
    ========================================================================== */
@@ -50,7 +50,7 @@
 .yq-categories-panel h3,
 .yq-categories-empty h3 {
     margin: 0;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-weight: 800;
     line-height: 1.25;
 }
@@ -110,7 +110,7 @@
 
 .yq-categories-stat strong {
     display: block;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.45rem, 2vw, 2rem);
     font-weight: 900;
     line-height: 1.1;
@@ -178,7 +178,7 @@
 }
 
 .yq-categories-table td {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.9rem;
     font-weight: 700;
 }
@@ -233,7 +233,7 @@
 
 .yq-categories-item__meta strong {
     overflow: hidden;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
     font-weight: 900;
     line-height: 1.35;
@@ -295,7 +295,7 @@
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
     background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font: inherit;
     font-size: 0.82rem;
     font-weight: 900;
@@ -305,24 +305,31 @@
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.yq-categories-action:hover {
+.yq-categories-action:not(:disabled):not(.disabled):hover {
     transform: translateY(-1px);
 }
 
-.yq-categories-action--edit:hover {
-    border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+.yq-categories-action--edit:not(:disabled):not(.disabled):hover {
+    border-color: var(--yq-admin-gold, #b8942e);
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 12%, var(--yq-admin-surface-soft, #1b1f22));
-    color: var(--yq-admin-gold-bright, #d4af37);
+    color: var(--yq-admin-text);
 }
 
 .yq-categories-action--delete {
     color: var(--yq-admin-danger, #ff8b8b);
 }
 
-.yq-categories-action--delete:hover {
+.yq-categories-action--delete:not(:disabled):not(.disabled):hover {
     border-color: rgba(197, 73, 73, 0.32);
     background: rgba(197, 73, 73, 0.12);
     color: var(--yq-admin-danger, #ff8b8b);
+}
+
+.yq-categories-action:disabled,
+.yq-categories-action.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: saturate(0.6);
 }
 
 .yq-categories-empty {
@@ -367,7 +374,7 @@
     border: 0;
     border-radius: 8px;
     background: transparent;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
 }
 
 .yq-category-delete-dialog::backdrop {
@@ -421,7 +428,7 @@
 
 .yq-category-delete-dialog__header h3 {
     margin: 0;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.15rem, 2vw, 1.45rem);
     font-weight: 900;
     line-height: 1.3;
@@ -494,7 +501,7 @@
 
 .yq-category-delete-preview__content strong {
     overflow-wrap: anywhere;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.1rem, 2vw, 1.35rem);
     font-weight: 900;
     line-height: 1.35;
@@ -546,7 +553,7 @@
 
 .yq-category-delete-warning strong {
     margin-bottom: 0.18rem;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.9rem;
     font-weight: 900;
 }
@@ -658,7 +665,7 @@
 
 .yq-category-edit-identity strong {
     overflow: hidden;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1rem, 1.5vw, 1.2rem);
     font-weight: 900;
     line-height: 1.35;
@@ -741,7 +748,7 @@
 
 .yq-category-form__section h3 {
     margin: 0;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 1.08rem;
     font-weight: 900;
     line-height: 1.35;
@@ -773,7 +780,7 @@
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
     background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
 }
 
@@ -848,7 +855,7 @@
 }
 
 .yq-category-current-image span {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.86rem;
     font-weight: 900;
 }

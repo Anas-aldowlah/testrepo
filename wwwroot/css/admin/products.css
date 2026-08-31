@@ -53,7 +53,7 @@
 .yq-products-panel h3,
 .yq-products-empty h3 {
     margin: 0;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-weight: 800;
     line-height: 1.25;
 }
@@ -113,7 +113,7 @@
 
 .yq-products-stat strong {
     display: block;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.45rem, 2vw, 2rem);
     font-weight: 900;
     line-height: 1.1;
@@ -181,7 +181,7 @@
 }
 
 .yq-products-table td {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.9rem;
     font-weight: 700;
 }
@@ -223,7 +223,7 @@
 
 .yq-products-item__meta strong {
     overflow: hidden;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
     font-weight: 900;
     line-height: 1.35;
@@ -239,7 +239,7 @@
 }
 
 .yq-products-category {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     white-space: nowrap;
 }
 
@@ -320,7 +320,7 @@
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
     background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font: inherit;
     font-size: 0.82rem;
     font-weight: 900;
@@ -330,30 +330,37 @@
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.yq-products-action:hover {
+.yq-products-action:not(:disabled):not(.disabled):hover {
     transform: translateY(-1px);
 }
 
-.yq-products-action--edit:hover {
-    border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+.yq-products-action--edit:not(:disabled):not(.disabled):hover {
+    border-color: var(--yq-admin-gold, #b8942e);
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 12%, var(--yq-admin-surface-soft, #1b1f22));
-    color: var(--yq-admin-gold-bright, #d4af37);
+    color: var(--yq-admin-text);
 }
 
-.yq-products-action--restore:hover {
-    border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+.yq-products-action--restore:not(:disabled):not(.disabled):hover {
+    border-color: var(--yq-admin-gold, #b8942e);
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 12%, var(--yq-admin-surface-soft, #1b1f22));
-    color: var(--yq-admin-gold-bright, #d4af37);
+    color: var(--yq-admin-text);
 }
 
 .yq-products-action--delete {
     color: var(--yq-admin-danger, #ff8b8b);
 }
 
-.yq-products-action--delete:hover {
+.yq-products-action--delete:not(:disabled):not(.disabled):hover {
     border-color: rgba(197, 73, 73, 0.32);
     background: rgba(197, 73, 73, 0.12);
     color: var(--yq-admin-danger, #ff8b8b);
+}
+
+.yq-products-action:disabled,
+.yq-products-action.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: saturate(0.6);
 }
 
 .yq-products-empty {
@@ -451,7 +458,7 @@
 
 .yq-product-edit-identity strong {
     overflow: hidden;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.05rem, 1.8vw, 1.35rem);
     font-weight: 900;
     line-height: 1.35;
@@ -506,7 +513,7 @@
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 7%, var(--yq-admin-surface-soft, #1b1f22));
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-weight: 900;
 }
 
@@ -546,7 +553,7 @@
 }
 
 .yq-retail-prices__head strong {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
     font-weight: 900;
 }
@@ -768,7 +775,7 @@
 }
 
 .yq-current-stock strong {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: clamp(1.2rem, 2.4vw, 1.65rem);
     font-weight: 900;
 }
@@ -809,7 +816,7 @@
 .yq-stock-preview strong {
     min-width: 0;
     overflow-wrap: anywhere;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
     font-weight: 900;
 }
@@ -975,7 +982,7 @@
 
 .yq-product-form__section h3 {
     margin: 0;
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 1.08rem;
     font-weight: 900;
     line-height: 1.35;
@@ -1025,7 +1032,7 @@
     border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
     background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.95rem;
 }
 
@@ -1114,7 +1121,7 @@
 }
 
 .yq-product-current-image span {
-    color: var(--yq-admin-text, #f8f5ee);
+    color: var(--yq-admin-text);
     font-size: 0.86rem;
     font-weight: 900;
 }
