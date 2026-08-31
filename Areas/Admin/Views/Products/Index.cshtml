@@ -59,7 +59,7 @@
     }
 
     <section class="yq-products-summary" aria-label="ملخص المنتجات">
-        <article class="yq-products-stat">
+        <article class="yq-products-stat yq-products-stat--success">
             <span class="yq-products-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
             <div>
                 <p>المنتجات النشطة</p>
@@ -73,14 +73,14 @@
                 <strong>@categories.Count</strong>
             </div>
         </article>
-        <article class="yq-products-stat">
+        <article class="yq-products-stat yq-products-stat--warning">
             <span class="yq-products-stat__icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
             <div>
                 <p>مخزون منخفض</p>
                 <strong>@Model.LowStockCount</strong>
             </div>
         </article>
-        <article class="yq-products-stat">
+        <article class="yq-products-stat yq-products-stat--danger">
             <span class="yq-products-stat__icon"><i class="bi bi-slash-circle" aria-hidden="true"></i></span>
             <div>
                 <p>نفد المخزون</p>

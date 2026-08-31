@@ -224,7 +224,7 @@ public class OrdersController : Controller
                     success = true,
                     status = normalizedStatus,
                     allowedTargets = OrderStatusPolicy.GetAllowedTargets(normalizedStatus),
-                    whatsAppUrl = normalizedStatus == OrderStatuses.Delivered
+                    whatsAppUrl = normalizedStatus is OrderStatuses.Processed or OrderStatuses.Shipped or OrderStatuses.Delivered or OrderStatuses.Cancelled
                         ? await BuildWhatsAppUrlAsync(id)
                         : null,
                     message = normalizedStatus == OrderStatuses.Cancelled

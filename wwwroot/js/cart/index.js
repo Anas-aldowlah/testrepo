@@ -45,6 +45,52 @@
         }));
     }
 
+    function activateRevealState(root) {
+        if (root.matches('.yq-reveal')) root.classList.add('is-visible');
+        root.querySelectorAll('.yq-reveal').forEach(function (element) {
+            element.classList.add('is-visible');
+        });
+    }
+
+    function cartFeedback(root) {
+        var alert = root ? root.querySelector('.yaqut-alert') : null;
+        return {
+            element: alert,
+            message: alert ? alert.textContent.replace(/\s+/g, ' ').trim() : ''
+        };
+    }
+
+    function isConfirmedRemoveSuccess(message) {
+        return message === 'تم حذف العنصر بنجاح' || message === 'تم حذف العنصر بنجاح.';
+    }
+
+    function showOperationDialog(options) {
+        if (!window.YaqutOperationDialog || typeof window.YaqutOperationDialog.show !== 'function') return;
+        window.YaqutOperationDialog.show(options);
+    }
+
+    function removeFailureMessage(response) {
+        var fallback = 'تعذّر حذف المنتج من السلة حالياً. يرجى المحاولة مرة أخرى.';
+        return response.text().then(function (body) {
+            if (!body || !body.trim()) return fallback;
+
+            var contentType = response.headers.get('content-type') || '';
+            if (contentType.toLowerCase().indexOf('json') === -1 && body.trim().charAt(0) !== '{') {
+                return fallback;
+            }
+
+            try {
+                var problem = JSON.parse(body);
+                var detail = typeof problem.detail === 'string' ? problem.detail.trim() : '';
+                return detail && /[\u0600-\u06ff]/.test(detail) ? detail : fallback;
+            } catch (error) {
+                return fallback;
+            }
+        }, function () {
+            return fallback;
+        });
+    }
+
     function setHeaderBadge(total) {
         var badge = document.querySelector('[data-yq-cart-count]');
         if (!badge) return;
@@ -77,8 +123,20 @@
 
             form.addEventListener('submit', function (event) {
                 if (item.classList.contains('is-removing')) return;
+                if (document.documentElement.dataset.yqCartBusy === 'true') {
+                    event.preventDefault();
+                    announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+                    showOperationDialog({
+                        title: 'السلة قيد التحديث',
+                        message: 'يوجد تحديث آخر قيد التنفيذ. يرجى المحاولة بعد قليل.',
+                        confirmText: 'حسنًا',
+                        kind: 'info'
+                    });
+                    return;
+                }
                 if (typeof window.fetch !== 'function') return;
                 event.preventDefault();
+                document.documentElement.dataset.yqCartBusy = 'true';
                 item.classList.add('is-removing');
                 
                 var payload = new window.FormData(form);
@@ -88,18 +146,59 @@
                     credentials: 'same-origin',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 }).then(function (response) {
-                    if (!response.ok) throw new Error('cart remove failed');
+                    if (!response.ok) {
+                        return removeFailureMessage(response).then(function (message) {
+                            var error = new Error('cart remove failed');
+                            error.userMessage = message;
+                            throw error;
+                        });
+                    }
                     return response.text();
                 }).then(function (html) {
                     var doc = new window.DOMParser().parseFromString(html, 'text/html');
                     var nextRoot = doc.querySelector('[data-yq-cart-page]');
                     if (!nextRoot) throw new Error('cart response invalid');
+                    var feedback = cartFeedback(nextRoot);
+                    activateRevealState(nextRoot);
                     notifyCartReconciliation(doc);
-                    root.replaceWith(nextRoot);
+                    if (feedback.element) feedback.element.remove();
+                    var currentRoot = document.querySelector('[data-yq-cart-page]') || root;
+                    currentRoot.replaceWith(nextRoot);
                     initCartPage();
-                }).catch(function () {
+
+                    if (isConfirmedRemoveSuccess(feedback.message)) {
+                        var successMessage = 'تم حذف المنتج من السلة بنجاح.';
+                        announce(successMessage);
+                        showOperationDialog({
+                            title: 'تم حذف المنتج',
+                            message: successMessage,
+                            confirmText: 'حسنًا',
+                            kind: 'success'
+                        });
+                    } else {
+                        var resultMessage = feedback.message || 'تعذّر تأكيد نتيجة حذف المنتج من السلة.';
+                        announce(resultMessage);
+                        showOperationDialog({
+                            title: 'لم يتم حذف المنتج',
+                            message: resultMessage,
+                            confirmText: 'حسنًا',
+                            kind: 'info'
+                        });
+                    }
+                }).catch(function (error) {
                     item.classList.remove('is-removing');
-                    announce('تعذّر الحذف الآن.');
+                    var message = error && error.userMessage
+                        ? error.userMessage
+                        : 'تعذّر حذف المنتج من السلة حالياً. يرجى المحاولة مرة أخرى.';
+                    announce(message);
+                    showOperationDialog({
+                        title: 'تعذّر حذف المنتج',
+                        message: message,
+                        confirmText: 'حسنًا',
+                        kind: 'error'
+                    });
+                }).finally(function () {
+                    delete document.documentElement.dataset.yqCartBusy;
                 });
             });
         });
@@ -267,6 +366,19 @@
             return;
         }
 
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            syncQuantitySelector(form, previousValue);
+            calculateAndUpdateTotals();
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            showOperationDialog({
+                title: 'السلة قيد التحديث',
+                message: 'يوجد تحديث آخر قيد التنفيذ. يرجى المحاولة بعد قليل.',
+                confirmText: 'حسنًا',
+                kind: 'info'
+            });
+            return;
+        }
+
         if (Number.isFinite(previousValue) && nextValue === previousValue) return;
 
         if (!window.fetch) {
@@ -277,6 +389,7 @@
         var payload = new window.FormData(form);
         form.removeAttribute('data-yq-pending-qty');
         setFormUpdating(form, true);
+        document.documentElement.dataset.yqCartBusy = 'true';
 
         window.fetch(form.action, {
             method: 'POST',
@@ -348,6 +461,7 @@
             announce((state && (state.message || state.detail)) || 'تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
         }).finally(function () {
             setFormUpdating(form, false);
+            delete document.documentElement.dataset.yqCartBusy;
 
             var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
             var savedQuantity = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);

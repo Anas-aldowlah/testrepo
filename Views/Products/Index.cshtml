@@ -51,24 +51,17 @@
 }
 
 <div class="yq-shop" data-yq-search-term="@request.Search">
-    <header class="yq-shop-header yq-reveal">
-        <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
-            <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-            <i class="bi bi-chevron-left"></i>
-            @if (isSearchMode || isBrandMode)
-            {
+    @if (isSearchMode || isBrandMode)
+    {
+        <header class="yq-shop-header yq-reveal">
+            <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
+                <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+                <i class="bi bi-chevron-left"></i>
                 <a asp-action="Index">المنتجات</a>
                 <i class="bi bi-chevron-left"></i>
                 <span>@(isBrandMode && !isSearchMode ? "الشركة المنتجة" : "نتائج البحث")</span>
-            }
-            else
-            {
-                <span>@(selectedCategory?.Name ?? "جميع المنتجات")</span>
-            }
-        </nav>
+            </nav>
 
-        @if (isSearchMode || isBrandMode)
-        {
             <div class="yq-search-banner">
                 <div class="yq-search-banner__icon"><i class="bi @(isBrandMode && !isSearchMode ? "bi-building" : "bi-search")"></i></div>
                 <div class="yq-search-banner__text">
@@ -82,21 +75,30 @@
                     <i class="bi bi-x-circle"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")
                 </a>
             </div>
-        }
-        else
-        {
-            <div class="yq-shop-header__row">
-                <div>
-                    <h1 class="yq-shop-header__title"><span>@(selectedCategory?.Name ?? "جميع المنتجات")</span></h1>
-                    <p class="yq-shop-header__sub">تصفّح منتجاتنا الفاخرة والأصيلة</p>
-                </div>
+        </header>
+    }
+    else
+    {
+        <header class="yq-storefront-hero yq-reveal">
+            <div class="yq-storefront-hero__glow"></div>
+            <div class="yq-storefront-hero__inner">
+                <nav class="yq-storefront-hero__eyebrow yq-shop-breadcrumb" aria-label="مسار التصفح">
+                    <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+                    <i class="bi bi-chevron-left"></i>
+                    <span>@(selectedCategory?.Name ?? "جميع المنتجات")</span>
+                </nav>
+
+                <h1 class="yq-storefront-hero__title">@(selectedCategory?.Name ?? "جميع المنتجات")</h1>
+                <p class="yq-storefront-hero__sub">تصفّح منتجاتنا الفاخرة والأصيلة</p>
                 @if (hasActiveFilter)
                 {
-                    <a asp-action="Index" class="yq-shop-clear-link"><i class="bi bi-x-circle"></i> إزالة الفلاتر</a>
+                    <div style="margin-top: 1rem;">
+                        <a asp-action="Index" class="yq-shop-clear-link"><i class="bi bi-x-circle"></i> إزالة الفلاتر</a>
+                    </div>
                 }
             </div>
-        }
-    </header>
+        </header>
+    }
 
     <div class="yq-recent-searches" id="yqRecentSearches" hidden>
         <span class="yq-recent-searches__label"><i class="bi bi-clock-history"></i> عمليات بحث سابقة</span>

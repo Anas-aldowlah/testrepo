@@ -224,51 +224,32 @@ public class CartController : Controller
         string? warningCode = null,
         int? availableQuantity = null)
     {
-        var cart = await GetCurrentCartAsync();
-        var items = cart.Cartitems
-            .Where(item => item.Product != null)
-            .ToList();
-        var targetItem = cartItemId is > 0
-            ? items.FirstOrDefault(item => item.Id == cartItemId.Value)
-            : items.FirstOrDefault(item =>
-                item.Productid == productId &&
-                item.RetailPriceId == retailPriceId);
-        decimal subtotal = 0m;
-        checked
-        {
-            foreach (var item in items)
-            {
-                subtotal += item.Quantity * (item.RetailPrice?.Price ?? item.Product.Price);
-            }
-        }
-        var totalQuantity = CartQuantity.Total(items);
-
-        if (subtotal > 1000000.00m)
-            throw new OverflowException("Cart subtotal exceeds the allowed currency limit.");
-
-        var lineTotal = targetItem == null
+        var summary = TryResolveUserId(out var userId)
+            ? await _cartService.GetCartStateSummaryAsync(userId, cartItemId, productId, retailPriceId)
+            : await _guestCartService.GetCartStateSummaryAsync(cartItemId, productId, retailPriceId);
+        var lineTotal = summary.Item == null
             ? 0m
-            : checked(targetItem.Quantity * (targetItem.RetailPrice?.Price ?? targetItem.Product.Price));
+            : checked(summary.Item.Quantity * summary.Item.UnitPrice);
 
         return new
         {
-            success = success && targetItem?.Quantity > 0,
+            success = success && summary.Item?.Quantity > 0,
             conflict,
             message,
             warningCode,
             availableQuantity,
-            totalQuantity,
-            uniqueItemCount = items.Count,
-            subtotal,
-            subtotalText = $"{subtotal:N0} ر.س",
-            item = targetItem == null
+            totalQuantity = summary.TotalQuantity,
+            uniqueItemCount = summary.UniqueItemCount,
+            subtotal = summary.Subtotal,
+            subtotalText = $"{summary.Subtotal:N0} ر.س",
+            item = summary.Item == null
                 ? null
                 : new
                 {
-                    cartItemId = targetItem.Id,
-                    productId = targetItem.Productid,
-                    retailPriceId = targetItem.RetailPriceId,
-                    quantity = targetItem.Quantity,
+                    cartItemId = summary.Item.CartItemId,
+                    productId = summary.Item.ProductId,
+                    retailPriceId = summary.Item.RetailPriceId,
+                    quantity = summary.Item.Quantity,
                     lineTotal,
                     lineTotalText = $"{lineTotal:N0} ر.س"
                 }

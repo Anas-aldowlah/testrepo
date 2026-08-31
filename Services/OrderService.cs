@@ -243,6 +243,9 @@ public class OrderService
             $"status-{status}",
             async order =>
             {
+                if (string.Equals(order.Workflowstate, OrderWorkflowStates.ConflictAwaitingDecision, StringComparison.Ordinal))
+                    throw new InvalidOperationException("انتقال حالة الطلب غير مسموح.");
+
                 if (!OrderStatusPolicy.CanTransition(order.Status, status))
                     throw new InvalidOperationException("انتقال حالة الطلب غير مسموح.");
 
@@ -800,7 +803,7 @@ public class OrderService
         int page,
         CancellationToken cancellationToken = default)
     {
-        const int pageSize = 10;
+        const int pageSize = 9;
         var allowedStatuses = new HashSet<string>(StringComparer.Ordinal)
         {
             OrderStatuses.Pending,

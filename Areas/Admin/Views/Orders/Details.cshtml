@@ -342,7 +342,7 @@
                             <option value="@targetStatus">@targetLabel</option>
                         }
                     </select>
-                    <button type="submit" class="btn-yaqut-gold yq-workflow-fill" data-yq-save-status disabled>
+                    <button type="submit" class="btn-yaqut-gold" data-yq-save-status disabled>
                         <i class="bi bi-check2-circle" aria-hidden="true"></i>
                         <span>حفظ الحالة</span>
                     </button>
@@ -365,7 +365,7 @@
                 </dl>
                 <form asp-action="VerifyPayment" method="post" class="yq-order-status-form" data-yq-verify-payment>
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn yq-workflow-fill" disabled="@(!canVerifyPayment)">
+                    <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn" disabled="@(!canVerifyPayment)">
                         <i class="bi bi-shield-check" aria-hidden="true"></i>
                         <span>تحقق من الدفع</span>
                     </button>

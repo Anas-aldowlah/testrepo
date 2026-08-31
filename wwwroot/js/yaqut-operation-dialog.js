@@ -62,7 +62,9 @@
         confirmButton.classList.add(`yq-operation-dialog__button--${confirmStyle}`);
         confirmButton.classList.add(`yq-paired-action--${confirmStyle}`);
         dialog.showModal();
-        confirmButton.focus();
+        requestAnimationFrame(() => {
+            if (dialog.open) confirmButton.focus({ preventScroll: true });
+        });
     };
 
     confirmButton.addEventListener("click", () => finish(true));

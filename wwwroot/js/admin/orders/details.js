@@ -5,6 +5,9 @@
     const statusForm = root.querySelector("[data-yq-status-form]");
     const status = statusForm?.querySelector('select[name="Status"]');
     const save = statusForm?.querySelector("[data-yq-save-status]");
+    const verifyForm = root.querySelector("[data-yq-verify-payment]");
+    const verifyOrderId = verifyForm?.querySelector('input[name="id"]')?.value;
+    const conflictMarkerKey = verifyOrderId ? `yq:admin-payment-conflict:${verifyOrderId}` : null;
     const unexpectedMessage = "تعذر تنفيذ العملية. حاول مرة أخرى.";
 
     function userSafeError(message) {
@@ -19,6 +22,45 @@
 
     function isTerminal(value) {
         return value === "Cancelled" || value === "Delivered" || value === "Refunded";
+    }
+
+    function storeConflictMarker() {
+        if (!conflictMarkerKey) return;
+        try {
+            sessionStorage.setItem(conflictMarkerKey, "1");
+        } catch {
+            // The authoritative reload must still complete when storage is unavailable.
+        }
+    }
+
+    function showPendingConflictFeedback() {
+        if (!conflictMarkerKey) return;
+
+        let hasMarker = false;
+        try {
+            hasMarker = sessionStorage.getItem(conflictMarkerKey) === "1";
+        } catch {
+            return;
+        }
+        if (!hasMarker) return;
+
+        const conflictState = root.querySelector("[data-yq-conflict-info]");
+        try {
+            sessionStorage.removeItem(conflictMarkerKey);
+        } catch {
+            return;
+        }
+        if (!conflictState) return;
+
+        YaqutOperationDialog.show({
+            title: "تم التحقق من الدفع",
+            message: "تم التحقق من الدفع، لكن يوجد تعارض في المخزون. يجب أن يراجع العميل طلبه أولًا.",
+            whatsAppUrl: conflictState.dataset.yqWhatsappUrl || null,
+            whatsAppText: "إشعار العميل عبر واتساب",
+            whatsAppNote: "يمكنك إشعار العميل عبر واتساب لمراجعة الطلب.",
+            confirmText: "حسنًا",
+            kind: "info"
+        });
     }
 
     function syncSaveState() {
@@ -57,17 +99,19 @@
                 if (verifyButton) verifyButton.disabled = true;
             }
             syncSaveState();
-            const customerResolvedConflict = statusForm.dataset.yqCustomerResolvedConflict === "true";
-            await YaqutOperationDialog.show({
-                title: data.status === "Cancelled" ? "تم إلغاء الطلب" : customerResolvedConflict ? "حدّث العميل طلبه" : "تم التحديث",
-                message: data.status === "Cancelled"
-                    ? data.message
-                    : customerResolvedConflict
-                        ? "اكتمل قرار العميل، ويمكنك الآن متابعة تجهيز الطلب."
-                        : data.message,
+            const statusText = status.options[status.selectedIndex].text;
+            const dialogOptions = {
+                title: "تم تحديث الطلب بنجاح",
+                message: `تم تحديث حالة الطلب إلى "${statusText}".`,
                 whatsAppUrl: data.whatsAppUrl,
+                confirmText: "حسنًا",
                 kind: "success"
-            });
+            };
+            if (data.whatsAppUrl) {
+                dialogOptions.whatsAppNote = "هل تود إشعار العميل عبر واتساب؟";
+                dialogOptions.whatsAppText = "إشعار العميل عبر واتساب";
+            }
+            await YaqutOperationDialog.show(dialogOptions);
             statusForm.dataset.yqCustomerResolvedConflict = "false";
             location.reload();
         } catch (error) {
@@ -77,7 +121,7 @@
         }
     });
 
-    root.querySelector("[data-yq-verify-payment]")?.addEventListener("submit", async event => {
+    verifyForm?.addEventListener("submit", async event => {
         event.preventDefault();
         const form = event.currentTarget;
         if (!await YaqutOperationDialog.confirm({ title: "تأكيد التحقق من الدفع", message: "هل تريد تأكيد مراجعة الدفع لهذا الطلب؟", confirmText: "تأكيد", cancelText: "رجوع" })) return;
@@ -88,8 +132,13 @@
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.success) throw userSafeError(data.message || "تعذر التحقق من الدفع.");
             const conflict = data.outcome === "Conflict";
+            if (conflict) {
+                storeConflictMarker();
+                location.reload();
+                return;
+            }
             await YaqutOperationDialog.show({
-                title: conflict ? "تمت مراجعة الدفع" : "تم التحقق من الدفع بنجاح",
+                title: "تم التحقق من الدفع بنجاح",
                 message: data.message,
                 whatsAppUrl: data.whatsAppUrl,
                 kind: "success"
@@ -110,4 +159,6 @@
             whatsAppUrl: button.dataset.yqWhatsappUrl
         });
     });
+
+    showPendingConflictFeedback();
 })();

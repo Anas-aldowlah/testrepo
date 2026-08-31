@@ -30,10 +30,13 @@
     var cartRefreshVersion = 0;
     var cachedCartDoc = null;
     var peekAutoCloseTimer = null;
+    var peekAutoCloseVersion = 0;
     var peekOpenedAt = 0;
+    var isSettingInitialFocus = false;
     var flightLayer = null;
     var toastEl = null;
     var toastAutoHideTimer = null;
+    var PEEK_AUTO_CLOSE_DELAY = 4000;
 
     function requestFrame(callback) {
         if (typeof window.requestAnimationFrame === 'function') {
@@ -191,26 +194,32 @@
     }
 
     function clearPeekAutoCloseTimer() {
+        peekAutoCloseVersion += 1;
         if (peekAutoCloseTimer) {
             window.clearTimeout(peekAutoCloseTimer);
             peekAutoCloseTimer = null;
+        }
+        if (peekTimer) {
+            peekTimer.classList.remove('is-animating');
+            peekTimer.style.removeProperty('--yq-peek-duration');
         }
     }
 
     function schedulePeekAutoClose(delay) {
         clearPeekAutoCloseTimer();
         if (!Number.isFinite(delay) || delay < 0) delay = 0;
+        var timerVersion = peekAutoCloseVersion;
+        peekAutoCloseTimer = window.setTimeout(function () {
+            if (timerVersion !== peekAutoCloseVersion) return;
+            closeDrawer();
+        }, delay);
         if (peekTimer) {
-            peekTimer.classList.remove('is-animating');
             peekTimer.style.setProperty('--yq-peek-duration', delay + 'ms');
             requestFrame(function () {
-                if (!peekTimer) return;
+                if (!peekTimer || !peekAutoCloseTimer || timerVersion !== peekAutoCloseVersion) return;
                 peekTimer.classList.add('is-animating');
             });
         }
-        peekAutoCloseTimer = window.setTimeout(function () {
-            closeDrawer();
-        }, delay);
     }
 
     function showAuthModal(modalId) {
@@ -580,20 +589,30 @@
         if (shipping) shipping.hidden = true;
     }
 
-    function openDrawer(trigger) {
+    function openDrawer(trigger, origin) {
         var transitionVersion = ++drawerTransitionVersion;
+        var shouldAutoClose = origin === 'add-to-cart';
         restoreFocusEl = trigger || document.activeElement;
         drawer.hidden = false;
         drawer.inert = false;
         drawer.setAttribute('aria-hidden', 'false');
         clearPeekAutoCloseTimer();
+        var autoCloseVersion = peekAutoCloseVersion;
 
         requestFrame(function () {
             if (transitionVersion !== drawerTransitionVersion) return;
             drawer.classList.add('is-open');
             var initialFocus = drawer.querySelector('[data-yq-cart-close]:not([tabindex="-1"])') || drawer.querySelector('.yq-cart-drawer__panel');
             if (initialFocus && typeof initialFocus.focus === 'function') {
-                initialFocus.focus({ preventScroll: true });
+                isSettingInitialFocus = true;
+                try {
+                    initialFocus.focus({ preventScroll: true });
+                } finally {
+                    isSettingInitialFocus = false;
+                }
+            }
+            if (shouldAutoClose && autoCloseVersion === peekAutoCloseVersion) {
+                schedulePeekAutoClose(PEEK_AUTO_CLOSE_DELAY);
             }
         });
 
@@ -774,7 +793,7 @@
                 if (isWarning && window.YaqutOperationDialog) {
                     window.YaqutOperationDialog.show({ title: 'الكمية غير متوفرة', message: state.message });
                 }
-                openDrawer(form.querySelector('[data-yq-add-button], button[type="submit"]'));
+                openDrawer(form.querySelector('[data-yq-add-button], button[type="submit"]'), 'add-to-cart');
             })
             .catch(function (error) {
                 setAddButtonState(form, 'error', (error.state && (error.state.message || error.state.detail)) || 'تعذّرت الإضافة. حاول مرة أخرى.');
@@ -788,8 +807,14 @@
 
     function handleDrawerMutation(form, noticeText) {
         if (form.dataset.yqBusy === 'true') return;
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            showNotice('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.', true);
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            return;
+        }
         var item = form.closest('[data-yq-drawer-item]');
         form.dataset.yqBusy = 'true';
+        document.documentElement.dataset.yqCartBusy = 'true';
         if (item) item.classList.add('is-updating');
 
         submitForm(form, false)
@@ -809,6 +834,7 @@
             })
             .finally(function () {
                 form.dataset.yqBusy = 'false';
+                delete document.documentElement.dataset.yqCartBusy;
                 if (item) item.classList.remove('is-updating');
             });
     }
@@ -892,20 +918,29 @@
         if (!Number.isFinite(requestedQuantity) || requestedQuantity < 1) requestedQuantity = 1;
         input.value = String(requestedQuantity);
 
-        if (form.dataset.yqBusy === 'true') {
-            form.setAttribute('data-yq-pending-qty', String(requestedQuantity));
-            return;
-        }
-
         var expectedInput = form.querySelector('input[name="expectedQuantity"]');
         var previousQuantity = parseInt(
             form.getAttribute('data-yq-last-qty') || (expectedInput ? expectedInput.value : '1'),
             10
         );
+
+        if (form.dataset.yqBusy === 'true') {
+            form.setAttribute('data-yq-pending-qty', String(requestedQuantity));
+            return;
+        }
+
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            input.value = String(previousQuantity);
+            showNotice('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.', true);
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            return;
+        }
+
         if (requestedQuantity === previousQuantity) return;
 
         var item = form.closest('[data-yq-drawer-item]');
         form.dataset.yqBusy = 'true';
+        document.documentElement.dataset.yqCartBusy = 'true';
         form.removeAttribute('data-yq-pending-qty');
         if (item) item.classList.add('is-updating');
 
@@ -937,6 +972,7 @@
             })
             .finally(function () {
                 form.dataset.yqBusy = 'false';
+                delete document.documentElement.dataset.yqCartBusy;
                 if (item) item.classList.remove('is-updating');
 
                 var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
@@ -1029,6 +1065,11 @@
         }
     }
 
+    function cancelPeekAutoCloseOnInteraction(event) {
+        if (event.type === 'focusin' && isSettingInitialFocus) return;
+        clearPeekAutoCloseTimer();
+    }
+
     function onDocumentChange(event) {
         var input = event.target.closest('.yq-cart-drawer__qty-input');
         if (!input) return;
@@ -1045,6 +1086,7 @@
 
     function onKeydown(event) {
         if (drawer.hidden) return;
+        if (drawer.contains(event.target)) clearPeekAutoCloseTimer();
         if (event.key === 'Escape') {
             event.preventDefault();
             closeDrawer();
@@ -1077,6 +1119,8 @@
     }
 
     function init() {
+        drawer.addEventListener('pointerdown', cancelPeekAutoCloseOnInteraction);
+        drawer.addEventListener('focusin', cancelPeekAutoCloseOnInteraction);
         document.addEventListener('submit', onDocumentSubmit);
         document.addEventListener('click', onDocumentClick);
         document.addEventListener('change', onDocumentChange);
