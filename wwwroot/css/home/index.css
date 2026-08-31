@@ -261,13 +261,14 @@
     border: none;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(212, 175, 55, 0.45);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transform: rotate(-2.5deg);
+    transition: transform 0.4s var(--yq-ease), box-shadow 0.3s ease;
     z-index: 5;
     pointer-events: auto;
 }
 
 .yq-grand-product__item:hover .yq-grand-product__badge {
-    transform: translateY(-3px) scale(1.03);
+    transform: translateY(-3px) scale(1.03) rotate(0deg);
     box-shadow: 0 12px 28px rgba(212, 175, 55, 0.65);
 }
 
@@ -857,6 +858,7 @@
         gap: 0.1rem;
         width: auto;
         max-width: 80%;
+        transform: rotate(-1.8deg);
         z-index: 5;
     }
 
