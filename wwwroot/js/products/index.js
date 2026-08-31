@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ياقوت — Products / Index page interactions
  * Owns catalog URL/form state and server-page loading only.
  */
@@ -332,12 +332,78 @@
         }
     }
 
+    function updateFilterBadgesAndSelections() {
+        if (!filterForm) return;
+        filterForm.querySelectorAll('.yq-filter-item').forEach(function (item) {
+            var input = item.querySelector('.yq-control-input');
+            if (input) {
+                item.classList.toggle('is-selected', !!input.checked);
+            }
+        });
+    }
+
     function triggerSubmit() {
         submitFilters();
     }
 
-    // Event delegation for category pills and auto-submit controls
+    // Event delegation for category pills, filter cards, and auto-submit controls
     document.addEventListener('click', function(e) {
+        var toggleBtn = e.target.closest('[data-filter-toggle]');
+        if (toggleBtn) {
+            e.preventDefault();
+            var card = toggleBtn.closest('.yq-filter-card');
+            if (card) {
+                var isCollapsed = card.classList.toggle('is-collapsed');
+                toggleBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+            }
+            return;
+        }
+
+        var moreBtn = e.target.closest('[data-toggle-more]');
+        if (moreBtn) {
+            e.preventDefault();
+            var cardMore = moreBtn.closest('.yq-filter-card');
+            if (cardMore) {
+                var isExpanded = moreBtn.classList.toggle('is-expanded');
+                cardMore.querySelectorAll('.is-extra-item').forEach(function(item) {
+                    item.classList.toggle('d-none', !isExpanded);
+                });
+                var span = moreBtn.querySelector('span');
+                if (span) span.textContent = isExpanded ? 'عرض أقل' : 'عرض المزيد';
+            }
+            return;
+        }
+
+        var resetBtn = e.target.closest('#yqFiltersReset');
+        if (resetBtn) {
+            e.preventDefault();
+            if (filterForm) {
+                categoryInput = document.getElementById('yqCategoryId');
+                if (categoryInput) categoryInput.value = '';
+                var catAllRadio = filterForm.querySelector('[data-yq-category-radio][value=""]');
+                if (catAllRadio) catAllRadio.checked = true;
+
+                filterForm.querySelectorAll('input[type="radio"]').forEach(function(r) {
+                    if (r.value === 'all' || r.value === '') r.checked = true;
+                    else r.checked = false;
+                });
+
+                filterForm.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                    cb.checked = false;
+                });
+
+                var minP = filterForm.querySelector('[name="minPrice"]');
+                var maxP = filterForm.querySelector('[name="maxPrice"]');
+                if (minP) minP.value = '';
+                if (maxP) maxP.value = '';
+
+                syncRetailSizeDependency();
+                updateFilterBadgesAndSelections();
+                triggerSubmit();
+            }
+            return;
+        }
+
         var categoryBtn = e.target.closest('[data-yq-category]');
         if (categoryBtn) {
             categoryInput = document.getElementById('yqCategoryId');
@@ -347,7 +413,7 @@
             }
         }
 
-        var clearBtn = e.target.closest('.yq-shop-clear-link, .yq-search-banner__clear');
+        var clearBtn = e.target.closest('.yq-shop-clear-link, .yq-search-banner__clear, #yqFilterClearAll');
         if (clearBtn && clearBtn.tagName === 'A') {
             e.preventDefault();
             window.history.pushState({ path: clearBtn.href }, '', clearBtn.href);
@@ -360,10 +426,10 @@
             var val = removeChip.getAttribute('data-remove-val');
 
             if (name === 'price') {
-                var minP = filterForm.querySelector('[name="minPrice"]');
-                var maxP = filterForm.querySelector('[name="maxPrice"]');
-                if (minP) minP.value = '';
-                if (maxP) maxP.value = '';
+                var minPrice = filterForm.querySelector('[name="minPrice"]');
+                var maxPrice = filterForm.querySelector('[name="maxPrice"]');
+                if (minPrice) minPrice.value = '';
+                if (maxPrice) maxPrice.value = '';
             } else if (name === 'retail' || name === 'availability') {
                 var radio = filterForm.querySelector('input[type="radio"][name="' + name + '"][value="' + val + '"]');
                 if (radio) radio.checked = true;
@@ -398,6 +464,13 @@
     });
 
     document.addEventListener('change', function(e) {
+        if (e.target.matches('[data-yq-category-radio]')) {
+            categoryInput = document.getElementById('yqCategoryId');
+            if (categoryInput) {
+                categoryInput.value = e.target.value;
+            }
+        }
+
         if (e.target.matches('[data-yq-mobile-category]')) {
             categoryInput = document.getElementById('yqCategoryId');
             if (categoryInput) categoryInput.value = e.target.value;
@@ -406,6 +479,8 @@
         if (e.target.name === 'retail') {
             syncRetailSizeDependency();
         }
+
+        updateFilterBadgesAndSelections();
 
         if (e.target.closest('[data-yq-auto-submit]')) {
             triggerSubmit();
