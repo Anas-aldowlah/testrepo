@@ -45,6 +45,20 @@
         .yq-pos .pos-search-card__copy {
             min-width: 0;
         }
+        .yq-pos .pos-cell-quantity .input-group:focus-within {
+            border-radius: var(--bs-border-radius-sm, 0.25rem);
+            box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
+        }
+        .yq-pos .pos-cell-quantity .input-group:focus-within > .btn,
+        .yq-pos .pos-cell-quantity .input-group:focus-within > .form-control {
+            border-color: var(--yq-admin-gold-bright);
+        }
+        .yq-pos .pos-cell-quantity .input-group > .btn:focus {
+            box-shadow: none;
+        }
+        .yq-pos .pos-cell-quantity .input-group > .form-control:focus {
+            box-shadow: none !important;
+        }
         /* Floating Side Search Panel */
         .pos-floating-search-panel {
             position: fixed;

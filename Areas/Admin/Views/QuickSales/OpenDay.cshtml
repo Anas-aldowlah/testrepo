@@ -10,6 +10,24 @@
     <span>فتح يوم بيع</span>
 }
 
+@section Styles {
+    <style nonce="@Context.Items["csp-nonce"]">
+        .yq-open-day-input-group:focus-within {
+            border-radius: var(--bs-border-radius-lg, 0.5rem);
+            box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
+        }
+
+        .yq-open-day-input-group:focus-within > .form-control,
+        .yq-open-day-input-group:focus-within > .input-group-text {
+            border-color: var(--yq-admin-gold-bright);
+        }
+
+        .yq-open-day-input-group > .form-control:focus {
+            box-shadow: none !important;
+        }
+    </style>
+}
+
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         @if (TempData["WarningMessage"] != null)
@@ -38,7 +56,7 @@
 
                     <div class="mb-4">
                         <label asp-for="Date" class="form-label fw-bold">تاريخ اليوم <span class="text-danger">*</span></label>
-                        <div class="input-group">
+                        <div class="input-group yq-open-day-input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
                             <input asp-for="Date" type="date" id="openDayDateInput" class="form-control form-control-lg" max="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" required />
                         </div>
@@ -47,7 +65,7 @@
 
                     <div class="mb-4">
                         <label asp-for="OpeningBalance" class="form-label fw-bold">الرصيد/العهدة الافتتاحية (اختياري)</label>
-                        <div class="input-group">
+                        <div class="input-group yq-open-day-input-group">
                             <span class="input-group-text bg-light">ر.س</span>
                             <input asp-for="OpeningBalance" type="number" step="0.01" min="0" class="form-control form-control-lg" placeholder="0.00" />
                         </div>
