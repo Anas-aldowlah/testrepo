@@ -109,7 +109,6 @@
                             : (product.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || product.Imageurl.StartsWith("/")
                                 ? product.Imageurl
                                 : Url.Content("~/" + product.Imageurl.TrimStart('/')));
-                        @* var badgeText = (i % 4) == 0 ? "وصل حديثاً" : ((i % 4) == 1 ? "الأكثر مبيعاً" : ((i % 4) == 2 ? "مختارات المعرض" : "توقيع خاص")); *@
                         var tagBadge = (i % 3) == 0 ? "جديد" : ((i % 3) == 1 ? "مميز" : "فاخر");
                         <div class="yq-grand-product__item @(i == 0 ? "is-active" : "")" data-slide-index="@i">
                             <span class="yq-grand-product__tag">@tagBadge</span>
@@ -117,9 +116,8 @@
                                 <img src="@productImg" alt="@product.Name" data-yaqut-fallback="/images/placeholder-product.svg" class="yq-grand-product__img" loading="@(i == 0 ? "eager" : "lazy")" />
                             </a>
                             <div class="yq-grand-product__badge">
-                                @* <span class="yq-grand-product__kicker">@badgeText</span> *@
+                                <span class="yq-grand-product__kicker">المنتج</span>
                                 <strong class="yq-grand-product__name">@product.Name</strong>
-                              
                             </div>
                         </div>
                     }
