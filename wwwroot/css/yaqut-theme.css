@@ -570,7 +570,14 @@ a {
 
 .yq-pcard__badge--off {
     background: rgba(140,140,140,0.15);
-    color: var(--yq-text-soft);
+    color: red;
+    border: 1px solid var(--yq-border-sub);
+}
+
+.yq-pcard__badge--retail {
+    background: rgba(140,140,140,0.15);
+    color: lime;
+    font-weight: bold;
     border: 1px solid var(--yq-border-sub);
 }
 
