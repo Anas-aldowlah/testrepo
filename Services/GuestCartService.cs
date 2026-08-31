@@ -91,6 +91,58 @@ public class GuestCartService
         };
     }
 
+    public async Task<CartStateSummary> GetCartStateSummaryAsync(
+        int? cartItemId = null,
+        int? productId = null,
+        int? retailPriceId = null)
+    {
+        var guestItems = ReadItems()
+            .Select((item, index) => new
+            {
+                CartItemId = index + 1,
+                item.ProductId,
+                item.RetailPriceId,
+                item.Quantity
+            })
+            .ToList();
+        var productIds = guestItems.Select(item => item.ProductId).Distinct().ToList();
+        var retailPriceIds = guestItems
+            .Where(item => item.RetailPriceId.HasValue)
+            .Select(item => item.RetailPriceId!.Value)
+            .Distinct()
+            .ToList();
+
+        var priceRows = await _context.Products
+            .AsNoTracking()
+            .Where(product => productIds.Contains(product.Id))
+            .Select(product => new { Kind = 0, product.Id, product.Price })
+            .Concat(_context.ProductRetailPrices
+                .AsNoTracking()
+                .Where(price => retailPriceIds.Contains(price.Id))
+                .Select(price => new { Kind = 1, price.Id, price.Price }))
+            .ToListAsync();
+        var productPrices = priceRows
+            .Where(row => row.Kind == 0)
+            .ToDictionary(row => row.Id, row => row.Price);
+        var retailPrices = priceRows
+            .Where(row => row.Kind == 1)
+            .ToDictionary(row => row.Id, row => row.Price);
+
+        var items = guestItems
+            .Where(item => productPrices.ContainsKey(item.ProductId))
+            .Select(item => new CartStateSummaryItem(
+                item.CartItemId,
+                item.ProductId,
+                item.RetailPriceId,
+                item.Quantity,
+                item.RetailPriceId.HasValue && retailPrices.TryGetValue(item.RetailPriceId.Value, out var retailPrice)
+                    ? retailPrice
+                    : productPrices[item.ProductId]))
+            .ToList();
+
+        return CartStateSummary.Create(items, cartItemId, productId, retailPriceId);
+    }
+
     public async Task AddToCartAsync(int productId, int quantity, int? retailPriceId = null)
     {
         Message = null;

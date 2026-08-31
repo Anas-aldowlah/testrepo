@@ -807,8 +807,14 @@
 
     function handleDrawerMutation(form, noticeText) {
         if (form.dataset.yqBusy === 'true') return;
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            showNotice('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.', true);
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            return;
+        }
         var item = form.closest('[data-yq-drawer-item]');
         form.dataset.yqBusy = 'true';
+        document.documentElement.dataset.yqCartBusy = 'true';
         if (item) item.classList.add('is-updating');
 
         submitForm(form, false)
@@ -828,6 +834,7 @@
             })
             .finally(function () {
                 form.dataset.yqBusy = 'false';
+                delete document.documentElement.dataset.yqCartBusy;
                 if (item) item.classList.remove('is-updating');
             });
     }
@@ -911,20 +918,29 @@
         if (!Number.isFinite(requestedQuantity) || requestedQuantity < 1) requestedQuantity = 1;
         input.value = String(requestedQuantity);
 
-        if (form.dataset.yqBusy === 'true') {
-            form.setAttribute('data-yq-pending-qty', String(requestedQuantity));
-            return;
-        }
-
         var expectedInput = form.querySelector('input[name="expectedQuantity"]');
         var previousQuantity = parseInt(
             form.getAttribute('data-yq-last-qty') || (expectedInput ? expectedInput.value : '1'),
             10
         );
+
+        if (form.dataset.yqBusy === 'true') {
+            form.setAttribute('data-yq-pending-qty', String(requestedQuantity));
+            return;
+        }
+
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            input.value = String(previousQuantity);
+            showNotice('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.', true);
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            return;
+        }
+
         if (requestedQuantity === previousQuantity) return;
 
         var item = form.closest('[data-yq-drawer-item]');
         form.dataset.yqBusy = 'true';
+        document.documentElement.dataset.yqCartBusy = 'true';
         form.removeAttribute('data-yq-pending-qty');
         if (item) item.classList.add('is-updating');
 
@@ -956,6 +972,7 @@
             })
             .finally(function () {
                 form.dataset.yqBusy = 'false';
+                delete document.documentElement.dataset.yqCartBusy;
                 if (item) item.classList.remove('is-updating');
 
                 var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);

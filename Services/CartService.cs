@@ -50,6 +50,34 @@ public class CartService
         }
     }
 
+    public async Task<CartStateSummary> GetCartStateSummaryAsync(
+        int userId,
+        int? cartItemId = null,
+        int? productId = null,
+        int? retailPriceId = null)
+    {
+        try
+        {
+            var items = await _context.Cartitems
+                .AsNoTracking()
+                .Where(item => item.Cart.Userid == userId)
+                .Select(item => new CartStateSummaryItem(
+                    item.Id,
+                    item.Productid,
+                    item.RetailPriceId,
+                    item.Quantity,
+                    item.RetailPrice != null ? item.RetailPrice.Price : item.Product.Price))
+                .ToListAsync();
+
+            return CartStateSummary.Create(items, cartItemId, productId, retailPriceId);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Could not load cart state summary for user {UserId}.", userId);
+            throw;
+        }
+    }
+
     public async Task AddToCartAsync(int userId, int productId, int quantity, int? retailPriceId = null)
     {
         var quantityToAdd = Math.Max(1, quantity);
@@ -301,4 +329,46 @@ public class CartService
         {
             SqlState: PostgresErrorCodes.UniqueViolation
         };
+}
+
+public sealed record CartStateSummaryItem(
+    int CartItemId,
+    int ProductId,
+    int? RetailPriceId,
+    int Quantity,
+    decimal UnitPrice);
+
+public sealed record CartStateSummary(
+    int TotalQuantity,
+    int UniqueItemCount,
+    decimal Subtotal,
+    CartStateSummaryItem? Item)
+{
+    public static CartStateSummary Create(
+        IReadOnlyCollection<CartStateSummaryItem> items,
+        int? cartItemId,
+        int? productId,
+        int? retailPriceId)
+    {
+        var targetItem = cartItemId is > 0
+            ? items.FirstOrDefault(item => item.CartItemId == cartItemId.Value)
+            : items.FirstOrDefault(item =>
+                item.ProductId == productId &&
+                item.RetailPriceId == retailPriceId);
+        decimal subtotal = 0m;
+        var totalQuantity = 0;
+        checked
+        {
+            foreach (var item in items)
+            {
+                subtotal += item.Quantity * item.UnitPrice;
+                totalQuantity += item.Quantity;
+            }
+        }
+
+        if (subtotal > 1000000.00m)
+            throw new OverflowException("Cart subtotal exceeds the allowed currency limit.");
+
+        return new CartStateSummary(totalQuantity, items.Count, subtotal, targetItem);
+    }
 }

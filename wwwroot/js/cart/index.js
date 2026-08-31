@@ -123,8 +123,20 @@
 
             form.addEventListener('submit', function (event) {
                 if (item.classList.contains('is-removing')) return;
+                if (document.documentElement.dataset.yqCartBusy === 'true') {
+                    event.preventDefault();
+                    announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+                    showOperationDialog({
+                        title: 'السلة قيد التحديث',
+                        message: 'يوجد تحديث آخر قيد التنفيذ. يرجى المحاولة بعد قليل.',
+                        confirmText: 'حسنًا',
+                        kind: 'info'
+                    });
+                    return;
+                }
                 if (typeof window.fetch !== 'function') return;
                 event.preventDefault();
+                document.documentElement.dataset.yqCartBusy = 'true';
                 item.classList.add('is-removing');
                 
                 var payload = new window.FormData(form);
@@ -150,7 +162,8 @@
                     activateRevealState(nextRoot);
                     notifyCartReconciliation(doc);
                     if (feedback.element) feedback.element.remove();
-                    root.replaceWith(nextRoot);
+                    var currentRoot = document.querySelector('[data-yq-cart-page]') || root;
+                    currentRoot.replaceWith(nextRoot);
                     initCartPage();
 
                     if (isConfirmedRemoveSuccess(feedback.message)) {
@@ -184,6 +197,8 @@
                         confirmText: 'حسنًا',
                         kind: 'error'
                     });
+                }).finally(function () {
+                    delete document.documentElement.dataset.yqCartBusy;
                 });
             });
         });
@@ -351,6 +366,19 @@
             return;
         }
 
+        if (document.documentElement.dataset.yqCartBusy === 'true') {
+            syncQuantitySelector(form, previousValue);
+            calculateAndUpdateTotals();
+            announce('السلة قيد التحديث حالياً. يرجى المحاولة بعد قليل.');
+            showOperationDialog({
+                title: 'السلة قيد التحديث',
+                message: 'يوجد تحديث آخر قيد التنفيذ. يرجى المحاولة بعد قليل.',
+                confirmText: 'حسنًا',
+                kind: 'info'
+            });
+            return;
+        }
+
         if (Number.isFinite(previousValue) && nextValue === previousValue) return;
 
         if (!window.fetch) {
@@ -361,6 +389,7 @@
         var payload = new window.FormData(form);
         form.removeAttribute('data-yq-pending-qty');
         setFormUpdating(form, true);
+        document.documentElement.dataset.yqCartBusy = 'true';
 
         window.fetch(form.action, {
             method: 'POST',
@@ -432,6 +461,7 @@
             announce((state && (state.message || state.detail)) || 'تعذّر تحديث الكمية الآن. حاول مرة أخرى.');
         }).finally(function () {
             setFormUpdating(form, false);
+            delete document.documentElement.dataset.yqCartBusy;
 
             var pendingQuantity = parseInt(form.getAttribute('data-yq-pending-qty') || '', 10);
             var savedQuantity = parseInt(form.getAttribute('data-yq-last-qty') || '1', 10);
