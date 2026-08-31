@@ -281,7 +281,7 @@
 
 .yq-cart-item__qty-select {
     cursor: pointer;
-    flex: 1;
+    width: 76px;
 }
 
 .yq-cart-item__qty-input {
