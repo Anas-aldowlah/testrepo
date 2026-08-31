@@ -560,25 +560,53 @@ a {
     line-height: 1.2;
     z-index: 3;
     letter-spacing: 0.01em;
+    border: 1px solid var(--yq-border-sub);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .yq-pcard__badge--on {
     background: var(--yq-gold-grad);
     color: #111;
     box-shadow: 0 2px 6px rgba(201,162,75,0.3);
+    border: none;
 }
 
 .yq-pcard__badge--off {
-    background: rgba(140,140,140,0.15);
-    color: red;
-    border: 1px solid var(--yq-border-sub);
+    background: rgba(250, 235, 237, 0.88);
+    color: #b02a37;
+}
+
+.theme-dark .yq-pcard__badge--off,
+.dark-mode .yq-pcard__badge--off,
+html[data-theme='dark'] .yq-pcard__badge--off {
+    background: rgba(60, 25, 28, 0.88);
+    color: #ea868f;
 }
 
 .yq-pcard__badge--retail {
-    background: rgba(140,140,140,0.15);
-    color: lime;
-    font-weight: bold;
-    border: 1px solid var(--yq-border-sub);
+    background: rgba(235, 245, 240, 0.88);
+    color: #146c43;
+}
+
+.theme-dark .yq-pcard__badge--retail,
+.dark-mode .yq-pcard__badge--retail,
+html[data-theme='dark'] .yq-pcard__badge--retail {
+    background: rgba(20, 50, 35, 0.88);
+    color: #75b798;
+}
+
+.yq-pcard__badge--new {
+    background: rgba(250, 245, 235, 0.88);
+    color: #8f7335;
+}
+
+.theme-dark .yq-pcard__badge--new,
+.dark-mode .yq-pcard__badge--new,
+html[data-theme='dark'] .yq-pcard__badge--new {
+    background: rgba(55, 45, 25, 0.88);
+    color: #dfc88e;
 }
 
 /* ── Hover Overlay ── */
@@ -657,6 +685,7 @@ a {
     text-align: center;
     gap: 0.3rem;
     min-width: 0;
+    flex-grow: 1;
 }
 
 .yq-pcard__family {
@@ -694,7 +723,7 @@ a {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 0.25rem;
+    margin-top: auto;
     padding-top: 0.5rem;
     border-top: 1px solid var(--yq-border-sub);
     width: 100%;
@@ -715,15 +744,7 @@ a {
     color: var(--yq-text-soft);
 }
 
-.yq-pcard__unavail {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--yq-text-soft);
-    background: var(--yq-bg);
-    border: 1px solid var(--yq-border-sub);
-    border-radius: 4px;
-    padding: 0.2rem 0.5rem;
-}
+
 
 .yq-pcard__status {
     margin: 0;
@@ -746,6 +767,10 @@ a {
 .yq-pcard__add-form {
     flex: 1;
     display: flex;
+}
+
+.yq-pcard__actions > .yq-pcard__action-add {
+    flex: 1;
 }
 
 .yq-pcard__action-add {

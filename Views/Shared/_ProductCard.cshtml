@@ -61,10 +61,6 @@
         </h3>
         <div class="yq-pcard__footer">
             <span class="yq-pcard__price">@Model.Price.ToString("N0") <small>ر.س</small></span>
-            @if (!isAvailable)
-            {
-                <span class="yq-pcard__unavail">غير متوفر</span>
-            }
         </div>
         <p id="@statusId" class="yq-pcard__status yq-hidden" data-yq-add-status aria-live="polite"></p>
     </div>
