@@ -872,6 +872,7 @@
         font-size: 1.4rem;
         font-weight: 800;
         font-family: var(--yq-font-display);
+        padding : 30px;
     }
 
     /* Slider navigation arrows and dots */
