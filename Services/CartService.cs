@@ -91,7 +91,7 @@ public class CartService
 
             var cart = await GetOrCreateCartAsync(userId);
             var product = await _context.Products.SingleOrDefaultAsync(p => p.Id == productId);
-            if (product == null || product.Stockquantity <= 0)
+            if (product == null)
             {
                 MESSAGE = "هذا المنتج غير متوفر حالياً.";
                 WARNING_CODE = "InsufficientStock";
@@ -103,7 +103,9 @@ public class CartService
             var maxUnits = _inventoryService.GetAvailableSaleUnits(product, retailPrice?.SizeMl);
             if (maxUnits <= 0)
             {
-                MESSAGE = "هذا المنتج غير متوفر حالياً.";
+                MESSAGE = retailPrice == null
+                    ? "هذا المنتج غير متوفر حالياً."
+                    : "الحجم المحدد غير متوفر حالياً.";
                 WARNING_CODE = "InsufficientStock";
                 AVAILABLE_QUANTITY = 0;
                 return;
@@ -119,24 +121,25 @@ public class CartService
             if (existingItem != null)
             {
                 var requestedQuantity = checked(existingItem.Quantity + quantityToAdd);
-                existingItem.Quantity = Math.Min(requestedQuantity, maxUnits);
                 if (requestedQuantity > maxUnits)
                 {
-                    MESSAGE = $"المتوفر حاليًا {(maxUnits == 1 ? "قطعة واحدة" : maxUnits == 2 ? "قطعتان" : maxUnits + " قطع")} فقط.";
+                    MESSAGE = $"الكمية المطلوبة تتجاوز المخزون المتوفر. المتوفر حاليًا {_inventoryService.FormatAvailableQuantity(product, retailPrice, maxUnits)} فقط.";
                     WARNING_CODE = "InsufficientStock";
                     AVAILABLE_QUANTITY = maxUnits;
+                    return;
                 }
 
+                existingItem.Quantity = requestedQuantity;
                 await _context.SaveChangesAsync();
                 return;
             }
 
-            var quantityToSave = Math.Min(quantityToAdd, maxUnits);
             if (quantityToAdd > maxUnits)
             {
-                MESSAGE = $"المتوفر حاليًا {(maxUnits == 1 ? "قطعة واحدة" : maxUnits == 2 ? "قطعتان" : maxUnits + " قطع")} فقط.";
+                MESSAGE = $"الكمية المطلوبة تتجاوز المخزون المتوفر. المتوفر حاليًا {_inventoryService.FormatAvailableQuantity(product, retailPrice, maxUnits)} فقط.";
                 WARNING_CODE = "InsufficientStock";
                 AVAILABLE_QUANTITY = maxUnits;
+                return;
             }
 
             _context.Cartitems.Add(new Cartitem
@@ -144,7 +147,7 @@ public class CartService
                 Cartid = cart.Id,
                 Productid = productId,
                 RetailPriceId = retailPriceId,
-                Quantity = quantityToSave
+                Quantity = quantityToAdd
             });
             await _context.SaveChangesAsync();
         });

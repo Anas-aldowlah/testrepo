@@ -64,9 +64,9 @@ public sealed class ProductCatalogService
             query = query.Where(product => product.Price <= request.MaxPrice);
 
         if (request.Availability == "available")
-            query = query.Where(product => product.Stockquantity > 0);
+            query = query.WhereSellable(available: true);
         else if (request.Availability == "unavailable")
-            query = query.Where(product => product.Stockquantity <= 0);
+            query = query.WhereSellable(available: false);
 
         if (request.Retail == "yes")
             query = query.WhereEffectiveRetailAvailability(available: true);
@@ -85,6 +85,7 @@ public sealed class ProductCatalogService
                     price.SizeMl > 0 &&
                     price.Price > 0 &&
                     price.SizeMl < product.VolumeMl.Value &&
+                    product.Stockquantity >= price.SizeMl &&
                     request.RetailSize.Contains(price.SizeMl)));
         }
 
@@ -130,7 +131,7 @@ public sealed class ProductCatalogService
                 price.Product.StockUnit == "Ml" &&
                 price.Product.VolumeMl.HasValue &&
                 price.SizeMl < price.Product.VolumeMl.Value &&
-                price.Product.Stockquantity > 0)
+                price.Product.Stockquantity >= price.SizeMl)
             .Select(price => price.SizeMl)
             .Distinct()
             .OrderBy(size => size)

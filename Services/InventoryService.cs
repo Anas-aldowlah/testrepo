@@ -41,6 +41,20 @@ public class InventoryService : IInventoryService
         return retailPrice?.Price ?? product.Price;
     }
 
+    public string FormatAvailableQuantity(Product product, ProductRetailPrice? retailPrice, int availableQuantity)
+    {
+        var usesPackages = retailPrice != null ||
+            string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase);
+
+        return availableQuantity switch
+        {
+            1 => usesPackages ? "عبوة واحدة" : "قطعة واحدة",
+            2 => usesPackages ? "عبوتان" : "قطعتان",
+            >= 3 and <= 10 => $"{availableQuantity} {(usesPackages ? "عبوات" : "قطع")}",
+            _ => $"{availableQuantity} {(usesPackages ? "عبوة" : "قطعة")}"
+        };
+    }
+
     public async Task<ProductRetailPrice?> ValidateRetailPriceAsync(
         Product product,
         int? retailPriceId,

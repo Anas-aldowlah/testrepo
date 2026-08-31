@@ -74,16 +74,18 @@ public class CartController : Controller
                 availableQuantity = _guestCartService.AvailableQuantity;
             }
 
+            var stockRejected = warningCode == "InsufficientStock";
             if (IsAjaxRequest())
             {
-                return Json(await BuildCartStateAsync(
-                    success: true,
+                var state = await BuildCartStateAsync(
+                    success: !stockRejected,
                     conflict: false,
                     message,
                     productId: input.ProductId,
                     retailPriceId: input.RetailPriceId,
                     warningCode: warningCode,
-                    availableQuantity: availableQuantity));
+                    availableQuantity: availableQuantity);
+                return stockRejected ? BadRequest(state) : Json(state);
             }
 
             TempData["Message"] = message;
