@@ -146,12 +146,19 @@ public class AccountController : Controller
         }
 
         var userSiteVB = await _db.UserSites.FirstOrDefaultAsync(i => i.UserId == userGloble.Id);
+        if (userSiteVB != null && userSiteVB.SearchNameSyncVersion == 1)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction(nameof(Blocked));
+        }
+
         if (userSiteVB == null)
         {
             var userSite = new UserSite
             {
                 UserId = userGloble.Id,
-                Role = "Customer"
+                Role = "Customer",
+                SearchNameSyncVersion = 0
             };
 
             _db.UserSites.Add(userSite);
@@ -259,6 +266,15 @@ public class AccountController : Controller
             u => u.Email != null && u.Email.ToLower() == normalizedEmail);
         if (existingUser != null)
         {
+            var userSite = await _db.UserSites.FirstOrDefaultAsync(s => s.UserId == existingUser.Id);
+            if (userSite != null && userSite.SearchNameSyncVersion == 1)
+            {
+                await HttpContext.SignOutAsync(AuthenticationSchemes.External);
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                ClearRegistrationState();
+                return RedirectToAction(nameof(Blocked));
+            }
+
             // User exists -> perform login & account linking immediately
             TempData.Remove("GoogleLoginError");
             TempData.Remove("GoogleLoginErrorTitle");
@@ -802,6 +818,28 @@ public class AccountController : Controller
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(passwordHash)));
     }
 
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> Blocked()
+    {
+        var storeSettingsService = HttpContext.RequestServices.GetRequiredService<StoreSettingsService>();
+        var settings = await storeSettingsService.GetSettingsAsync();
+
+        var rawPhone = settings?.WhatsAppNumber;
+        var normalizedPhone = string.Concat((rawPhone ?? string.Empty).Where(char.IsDigit));
+
+        string? whatsAppUrl = null;
+        if (!string.IsNullOrWhiteSpace(normalizedPhone))
+        {
+            var message = "مرحباً، تم حظر حسابي في متجر ياقوت وأود الاستفسار عن سبب الحظر والمساعدة في إعادة تفعيل الحساب.";
+            whatsAppUrl = $"https://wa.me/{normalizedPhone}?text={Uri.EscapeDataString(message)}";
+        }
+
+        ViewBag.WhatsAppUrl = whatsAppUrl;
+        ViewBag.StorePhone = rawPhone;
+        return View();
+    }
+
     private async Task SignInUserAsync(Models.UsersDatabase.User user, int Id)
     {
         if (Id <= 0 || user.Id != Id)
@@ -815,10 +853,16 @@ public class AccountController : Controller
             userSite = new UserSite
             {
                 UserId = Id,
-                Role = "Customer"
+                Role = "Customer",
+                SearchNameSyncVersion = 0
             };
             _db.UserSites.Add(userSite);
             await _db.SaveChangesAsync();
+        }
+
+        if (userSite.SearchNameSyncVersion == 1)
+        {
+            throw new UnauthorizedAccessException("Cannot issue an application cookie for a blocked user.");
         }
 
         var role = userSite.Role;
@@ -827,7 +871,8 @@ public class AccountController : Controller
             new(ClaimTypes.NameIdentifier, Id.ToString()),
             new(ClaimTypes.Name, user.Name),
             new(ClaimTypes.MobilePhone, user.Phone),
-            new(ClaimTypes.Role, role ?? "Customer")
+            new(ClaimTypes.Role, role ?? "Customer"),
+            new("SearchNameSyncVersion", userSite.SearchNameSyncVersion.ToString())
         };
 
         if (!string.IsNullOrEmpty(user.Email))

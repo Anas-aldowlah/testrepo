@@ -18,6 +18,9 @@ public partial class UserSite
     [NotMapped]
     public UsersDatabase.User? User { get; set; }
 
+    [NotMapped]
+    public bool IsBlocked => SearchNameSyncVersion == 1;
+
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

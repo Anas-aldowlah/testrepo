@@ -1,4 +1,4 @@
-﻿@model YAGOT_2._0.Models.Admin.AdminUsersIndexViewModel
+@model YAGOT_2._0.Models.Admin.AdminUsersIndexViewModel
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @{
     ViewData["Title"] = "إدارة المستخدمين";
@@ -28,11 +28,26 @@
         </div>
     </header>
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--danger mb-3" role="alert">
+            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    else if (TempData["SuccessMessage"] != null)
+    {
+        <div class="yaqut-alert yq-admin-operation-feedback yaqut-alert--success mb-3" role="status">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
     <section class="yq-users-panel" aria-labelledby="usersTableTitle">
         <div class="yq-users-panel__header">
             <div>
                 <h3 id="usersTableTitle">سجل المستخدمين</h3>
-                <p>البيانات الأساسية لكل حساب مسجل.</p>
+                <p>البيانات الأساسية لكل حساب مسجل وحالة النشاط والحظر.</p>
             </div>
         </div>
 
@@ -46,6 +61,7 @@
                             <th scope="col">الاسم</th>
                             <th scope="col">رقم الجوال</th>
                             <th scope="col">الدور</th>
+                            <th scope="col">الحالة</th>
                             <th scope="col">تاريخ التسجيل</th>
                             <th scope="col">الإجراءات</th>
                         </tr>
@@ -84,14 +100,46 @@
                                         <span class="yq-users-badge yq-users-badge--customer">زبون</span>
                                     }
                                 </td>
+                                <td data-label="الحالة">
+                                    @if (user.SearchNameSyncVersion == 1)
+                                    {
+                                        <span class="yq-users-badge yq-users-badge--blocked"><i class="bi bi-slash-circle"></i> محظور</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-users-badge yq-users-badge--active"><i class="bi bi-check-circle"></i> نشط</span>
+                                    }
+                                </td>
                                 <td data-label="تاريخ التسجيل">
                                     <time class="yq-users-date">@(user.Createdat.HasValue ? user.Createdat.Value.ToString("dd/MM/yyyy") : "-")</time>
                                 </td>
                                 <td data-label="الإجراءات">
-                                    <a asp-action="Details" asp-route-id="@user.Id" class="yq-users-detail-link" aria-label="عرض تفاصيل @user.Name">
-                                        <i class="bi bi-eye" aria-hidden="true"></i>
-                                        <span>التفاصيل</span>
-                                    </a>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a asp-action="Details" asp-route-id="@user.Id" class="yq-users-detail-link" aria-label="عرض تفاصيل @user.Name">
+                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                            <span>التفاصيل</span>
+                                        </a>
+                                        <form asp-action="ToggleBlock" method="post" class="d-inline" onsubmit="return confirm('@(user.SearchNameSyncVersion == 1 ? $"هل أنت متأكد من رغبتك في إلغاء حظر {user.Name}؟" : $"هل أنت متأكد من رغبتك في حظر حساب {user.Name}؟")');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <input type="hidden" name="block" value="@(user.SearchNameSyncVersion == 1 ? "false" : "true")" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                            @if (user.SearchNameSyncVersion == 1)
+                                            {
+                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--unblock" title="إلغاء حظر هذا الحساب">
+                                                    <i class="bi bi-unlock-fill"></i>
+                                                    <span>إلغاء الحظر</span>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--block" title="حظر هذا الحساب">
+                                                    <i class="bi bi-slash-circle-fill"></i>
+                                                    <span>حظر</span>
+                                                </button>
+                                            }
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             rowNumber += 1;
