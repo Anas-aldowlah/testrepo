@@ -9,6 +9,9 @@ public class AdminDashboardViewModel
     public int TotalUsers { get; init; }
     public decimal TotalRevenue { get; init; }
     public int PendingOrders { get; init; }
+    public int PaidOrders { get; init; }
     public int ActiveOrders { get; init; }
+    public int ShippedOrder { get; init; }
+    public int CancelledOrder { get; init; }
     public IReadOnlyList<Order> RecentOrders { get; init; } = Array.Empty<Order>();
 }
