@@ -272,6 +272,17 @@
         outline-offset: 3px;
     }
 
+.btn-close:focus {
+    outline: 0;
+    box-shadow: none;
+}
+
+.btn-close:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--yq-admin-gold-bright) 58%, transparent);
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
 .yq-admin-nav {
     position: relative;
     display: flex;
@@ -507,7 +518,8 @@
     transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-    .yq-admin-user__trigger:hover {
+    .yq-admin-user__trigger:hover,
+    .yq-admin-user__trigger[aria-expanded="true"] {
         border-color: var(--yq-admin-border-strong);
         background: color-mix(in srgb, var(--yq-admin-gold) 8%, var(--yq-admin-surface-solid));
         box-shadow: 0 14px 32px rgba(184, 148, 46, 0.1);

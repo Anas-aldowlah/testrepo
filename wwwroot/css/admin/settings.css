@@ -204,6 +204,22 @@
     box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
 }
 
+.yq-settings-field .input-group:focus-within {
+    border-radius: 8px;
+    box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
+}
+
+.yq-settings-field .input-group:focus-within .form-control,
+.yq-settings-field .input-group:focus-within .form-select,
+.yq-settings-field .input-group:focus-within .input-group-text {
+    border-color: var(--yq-admin-gold-bright);
+}
+
+.yq-settings-field .input-group .form-control:focus,
+.yq-settings-field .input-group .form-select:focus {
+    box-shadow: none;
+}
+
 .yq-settings-field .input-group-text {
     background: var(--yq-admin-surface-soft);
     border-color: var(--yq-admin-border-strong);
@@ -509,6 +525,22 @@
 .yq-settings-field .form-select:focus {
     border-color: var(--yq-admin-gold-bright);
     box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
+}
+
+.yq-settings-field .input-group:focus-within {
+    border-radius: 8px;
+    box-shadow: 0 0 0 0.18rem rgba(212, 175, 55, 0.18);
+}
+
+.yq-settings-field .input-group:focus-within .form-control,
+.yq-settings-field .input-group:focus-within .form-select,
+.yq-settings-field .input-group:focus-within .input-group-text {
+    border-color: var(--yq-admin-gold-bright);
+}
+
+.yq-settings-field .input-group .form-control:focus,
+.yq-settings-field .input-group .form-select:focus {
+    box-shadow: none;
 }
 
 .yq-settings-field .input-group-text {

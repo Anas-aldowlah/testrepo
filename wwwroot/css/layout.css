@@ -151,9 +151,20 @@ body {
 .yaqut-footer__social a:focus-visible,
 .yaqut-footer__col ul a:focus-visible,
 .yaqut-nav a:focus-visible,
-.yaqut-nav__theme .yaqut-theme-pill__btn:focus-visible {
+.yaqut-theme-pill__btn:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--yq-gold-bright) 60%, transparent);
     outline-offset: 3px;
+}
+
+.btn-close:focus {
+    outline: 0;
+    box-shadow: none;
+}
+
+.btn-close:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--yq-gold-bright) 60%, transparent);
+    outline-offset: 3px;
+    box-shadow: none;
 }
 
 /* ── Search ── */
