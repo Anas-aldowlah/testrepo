@@ -224,7 +224,7 @@ public class QuickSalesController : Controller
                 sale = new Sale
                 {
                     SalesDayId = lockedOpenDay.Id,
-                    InvoiceNumber = $"POS-{lockedOpenDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid():N}",
+                    InvoiceNumber = $"POS-{lockedOpenDay.Id}-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..4]}",
                     Status = "Draft",
                     CreatedBy = User.Identity?.Name ?? "المدير",
                     CreatedAt = DateTime.Now
