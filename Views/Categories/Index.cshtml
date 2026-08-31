@@ -26,7 +26,7 @@
         <div class="yq-categories-grid">
             @foreach (var cat in categories)
             {
-                var productCount = cat.Products?.Count(p => p.Stockquantity > 0) ?? 0;
+                var productCount = cat.Products?.Count ?? 0;
                 var categoryImageUrl = Url.Content("~/images/placeholder-product.svg");
                 if (!string.IsNullOrWhiteSpace(cat.Imageurl))
                 {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Controllers;
 
@@ -16,24 +17,24 @@ public class CategoriesController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var categoriesWithCounts = await _context.Categories
+        var sellableCounts = await _context.Products
+            .AsNoTracking()
+            .WhereSellable(available: true)
+            .GroupBy(product => product.Categoryid)
+            .Select(group => new { CategoryId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.CategoryId, item => item.Count);
+
+        var categories = await _context.Categories
             .AsNoTracking()
             .OrderBy(c => c.Name)
-            .Select(c => new
-            {
-                Category = c,
-                InStockCount = c.Products.Count(p => p.Stockquantity > 0)
-            })
             .ToListAsync();
 
-        var categories = categoriesWithCounts.Select(x =>
+        foreach (var category in categories)
         {
-            var cat = x.Category;
-            cat.Products = Enumerable.Range(0, x.InStockCount)
+            category.Products = Enumerable.Range(0, sellableCounts.GetValueOrDefault(category.Id))
                 .Select(_ => new Product { Stockquantity = 1 })
                 .ToList();
-            return cat;
-        }).ToList();
+        }
 
         return View(categories);
     }

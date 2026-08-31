@@ -408,6 +408,7 @@
     function getProductSnapshot(form) {
         var card = form.closest('[data-yq-product-card]');
         var productId = form.querySelector('input[name="productId"]');
+        var retailPriceId = form.querySelector('input[name="retailPriceId"]');
         var quantityInput = form.querySelector('input[name="quantity"]');
         var image = card ? card.querySelector('.yq-pcard__img, .yaqut-card-img, img') : document.querySelector('.yq-pdp-gallery__img');
         var nameLink = card ? card.querySelector('.yq-pcard__name-link, .yaqut-product-card__name-link') : null;
@@ -419,6 +420,7 @@
 
         return {
             productId: productId ? productId.value : '',
+            retailPriceId: retailPriceId ? retailPriceId.value : '',
             name: name || 'عطر من ياقوت',
             href: href,
             category: category ? category.textContent.trim() : '',
@@ -710,6 +712,7 @@
         var button = form.querySelector('[data-yq-add-button], button[type="submit"]');
         var label = button ? button.querySelector('[data-yq-add-label]') : null;
         var status = form.closest('[data-yq-product-card]') ? form.closest('[data-yq-product-card]').querySelector('[data-yq-add-status]') : null;
+        var stockUnavailable = form.dataset.yqStockUnavailable === 'true';
 
         if (!button) return;
         if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
@@ -726,7 +729,7 @@
             if (label) label.textContent = 'جارٍ الإضافة...';
             else button.innerHTML = '<i class="bi bi-arrow-repeat" aria-hidden="true"></i> جارٍ الإضافة...';
         } else if (state === 'success') {
-            button.disabled = false;
+            button.disabled = stockUnavailable;
             button.classList.add('is-success');
             if (label) label.textContent = message || 'تمت الإضافة';
             else button.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> ' + (message || 'تمت الإضافة');
@@ -737,16 +740,17 @@
                 if (status) status.textContent = '';
             }, reduceMotion.matches ? 400 : 1500);
         } else if (state === 'error') {
-            button.disabled = false;
+            button.disabled = stockUnavailable;
             button.innerHTML = button.dataset.originalHtml;
             if (status) {
                 status.classList.add('is-error');
                 status.textContent = message || 'تعذّرت الإضافة. حاول مرة أخرى.';
             }
         } else {
-            button.disabled = false;
+            button.disabled = stockUnavailable;
             button.innerHTML = button.dataset.originalHtml;
         }
+        button.setAttribute('aria-disabled', button.disabled ? 'true' : 'false');
     }
 
     function handleAdd(form) {
@@ -782,7 +786,11 @@
                 }
 
                 var authoritativeItem = result.items.find(function (item) {
-                    return String(item.productId) === String(snapshot.productId);
+                    var itemRetailPriceId = item.retailPriceId === null || item.retailPriceId === undefined
+                        ? ''
+                        : String(item.retailPriceId);
+                    return String(item.productId) === String(snapshot.productId) &&
+                        itemRetailPriceId === String(snapshot.retailPriceId || '');
                 });
                 if (!authoritativeItem) throw new Error('cart-added-item-missing');
 

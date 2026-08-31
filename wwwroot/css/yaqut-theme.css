@@ -770,6 +770,19 @@ a {
     opacity: 0.85;
 }
 
+a.yq-pcard__action-add,
+a.yq-pcard__action-add:visited,
+a.yq-pcard__action-add:hover,
+a.yq-pcard__action-add:focus-visible {
+    color: #111;
+    text-decoration: none;
+}
+
+a.yq-pcard__action-add:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--yq-gold-bright) 60%, transparent);
+    outline-offset: 3px;
+}
+
 .yq-pcard__action-add:disabled {
     background: var(--yq-bg-elevated);
     color: var(--yq-text-soft);

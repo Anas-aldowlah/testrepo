@@ -3,7 +3,8 @@
 @{
     var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
     var categoryName = Model.Category?.Name ?? string.Empty;
-    var isAvailable = Model.Stockquantity > 0;
+    var isAvailable = ProductRetailAvailability.IsSellable(Model);
+    var isBaseOptionAvailable = ProductRetailAvailability.IsBaseOptionSellable(Model);
     var isRetailAvailable = ProductRetailAvailability.IsAvailable(Model);
     var isNew = Model.Createdat.HasValue && Model.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
     var statusId = $"yq-ps-{Model.Id}-{Guid.NewGuid():N}";
@@ -71,7 +72,7 @@
     @if (showQuickAdd)
     {
         <div class="yq-pcard__actions" aria-label="إجراءات @Model.Name">
-            @if (isAvailable)
+            @if (isBaseOptionAvailable)
             {
                 <form asp-controller="Cart" asp-action="Add" method="post"
                       class="yaqut-quick-add-form yq-pcard__add-form"
@@ -84,6 +85,13 @@
                         <span data-yq-add-label>أضف للسلة</span>
                     </button>
                 </form>
+            }
+            else if (isAvailable)
+            {
+                <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
+                   class="yq-pcard__action-add" aria-label="اختر حجم @Model.Name">
+                    <i class="bi bi-sliders" aria-hidden="true"></i><span>اختر الحجم</span>
+                </a>
             }
             else
             {

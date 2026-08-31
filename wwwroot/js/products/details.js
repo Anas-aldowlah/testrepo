@@ -8,6 +8,11 @@
     var RECENT_KEY = 'yaqut-recently-viewed';
     var MAX_RECENT = 6;
 
+    function readQuantityMax(input) {
+        var max = parseInt(input.max, 10);
+        return Number.isFinite(max) && max >= 0 ? max : Infinity;
+    }
+
     function initQtyStepper(root) {
         var input = root.querySelector('#yqQtyInput');
         var decreaseBtn = root.querySelector('[data-yq-qty-decrease]');
@@ -16,26 +21,33 @@
 
         function clamp(value) {
             var min = parseInt(input.min, 10) || 1;
-            var max = parseInt(input.max, 10) || Infinity;
+            var max = readQuantityMax(input);
             return Math.min(Math.max(value, min), max);
         }
 
         function syncButtons() {
             var value = parseInt(input.value || '1', 10);
-            var max = parseInt(input.max, 10) || Infinity;
-            decreaseBtn.disabled = value <= (parseInt(input.min, 10) || 1);
-            increaseBtn.disabled = value >= max;
+            var max = readQuantityMax(input);
+            var unavailable = input.disabled || max === 0;
+            decreaseBtn.disabled = unavailable || value <= (parseInt(input.min, 10) || 1);
+            increaseBtn.disabled = unavailable || value >= max;
         }
 
         input.addEventListener('change', function () {
             var val = parseInt(input.value || '1', 10);
-            var max = parseInt(input.max, 10) || Infinity;
+            var max = readQuantityMax(input);
+            if (max === 0) {
+                input.value = '1';
+                syncButtons();
+                return;
+            }
             if (val > max) {
                 if (window.YaqutOperationDialog) {
-                    var singleUnit = input.dataset.yqUnitKind === 'piece' ? 'قطعة واحدة' : 'وحدة واحدة';
                     window.YaqutOperationDialog.show({
                         title: 'الكمية غير متوفرة',
-                        message: max === 1 ? 'المتوفر حاليًا ' + singleUnit + ' فقط.' : 'المتوفر حاليًا ' + max + ' فقط.'
+                        message: max === 1
+                            ? 'المتوفر حاليًا ' + (input.dataset.yqUnitOne || 'وحدة واحدة') + ' فقط.'
+                            : 'المتوفر حاليًا ' + max + ' فقط.'
                     });
                 }
                 input.value = max;
@@ -53,12 +65,14 @@
 
         increaseBtn.addEventListener('click', function () {
             var val = parseInt(input.value || '1', 10);
-            var max = parseInt(input.max, 10) || Infinity;
+            var max = readQuantityMax(input);
             if (val >= max) return;
             input.value = clamp(val + 1);
             syncButtons();
             input.dispatchEvent(new Event('change', { bubbles: true }));
         });
+
+        input.addEventListener('yq:quantity-availability-changed', syncButtons);
 
         syncButtons();
     }
@@ -150,16 +164,39 @@
         var retailInput = root.querySelector('#yqRetailPriceId');
         var qtyInput = root.querySelector('#yqQtyInput');
         var priceBox = root.querySelector('.yq-pdp-price');
-        if (!choices.length || !retailInput || !qtyInput || !priceBox) return;
+        var form = root.querySelector('.yq-pdp-purchase');
+        var addButton = form ? form.querySelector('[data-yq-add-button]') : null;
+        var stockBadge = root.querySelector('[data-yq-stock-badge]');
+        var stockIcon = stockBadge ? stockBadge.querySelector('[data-yq-stock-icon]') : null;
+        var stockLabel = stockBadge ? stockBadge.querySelector('[data-yq-stock-label]') : null;
+        var stockStateText = root.querySelector('[data-yq-stock-state-text]');
+        var lowStockMessage = root.querySelector('[data-yq-low-stock-message]');
+        if (!choices.length || !retailInput || !qtyInput || !priceBox || !form || !addButton) return;
+
+        function formatAvailableUnits(max, selected) {
+            if (max === 0) return 'غير متوفر';
+            if (max === 1) return selected.dataset.unitOne || 'وحدة واحدة';
+            if (max === 2) return selected.dataset.unitTwo || 'وحدتان';
+            if (max >= 3 && max <= 10) return max + ' ' + (selected.dataset.unitFew || 'وحدات');
+            return max + ' ' + (selected.dataset.unitMany || 'وحدة');
+        }
 
         function syncRetailChoice(selected) {
             retailInput.value = selected.value || '';
-            var max = parseInt(selected.dataset.max || '1', 10);
-            qtyInput.max = Math.max(1, max).toString();
-            if ((parseInt(qtyInput.value || '1', 10) || 1) > max) {
-                qtyInput.value = Math.max(1, max);
-            }
-            qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+            var parsedMax = parseInt(selected.dataset.max, 10);
+            var max = Number.isFinite(parsedMax) && parsedMax >= 0 ? parsedMax : 0;
+            var isAvailable = max > 0;
+            var currentQuantity = parseInt(qtyInput.value || '1', 10) || 1;
+
+            qtyInput.max = String(max);
+            qtyInput.disabled = !isAvailable;
+            qtyInput.value = isAvailable ? String(Math.min(Math.max(currentQuantity, 1), max)) : '1';
+            qtyInput.dataset.yqUnitOne = selected.dataset.unitOne || 'وحدة واحدة';
+            qtyInput.dispatchEvent(new Event('yq:quantity-availability-changed'));
+
+            form.dataset.yqStockUnavailable = isAvailable ? 'false' : 'true';
+            addButton.disabled = !isAvailable;
+            addButton.setAttribute('aria-disabled', isAvailable ? 'false' : 'true');
 
             var price = parseFloat(selected.dataset.price || '0') || 0;
             var currency = document.createElement('small');
@@ -169,10 +206,28 @@
                 currency
             );
 
-            var label = (max >= 3 && max <= 10) ? 'عبوات' : 'عبوة';
+            var availableText = formatAvailableUnits(max, selected);
             root.querySelectorAll('.yq-available-stock-text').forEach(function (stockText) {
-                stockText.textContent = max + ' ' + label;
+                stockText.textContent = availableText;
             });
+
+            if (stockBadge) {
+                stockBadge.classList.toggle('yq-pdp-stock__badge--in', isAvailable);
+                stockBadge.classList.toggle('yq-pdp-stock__badge--out', !isAvailable);
+            }
+            if (stockIcon) stockIcon.className = isAvailable ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill';
+            if (stockLabel) stockLabel.textContent = isAvailable ? 'متوفر في المخزون' : 'غير متوفر حالياً';
+            if (stockStateText) {
+                stockStateText.classList.toggle('text-green', isAvailable);
+                stockStateText.classList.toggle('text-red', !isAvailable);
+                stockStateText.textContent = isAvailable ? 'متوفر' : 'نفذت الكمية';
+            }
+
+            if (lowStockMessage) {
+                lowStockMessage.hidden = !isAvailable || max > 5;
+                var messageText = lowStockMessage.querySelector('span');
+                if (messageText) messageText.textContent = 'المتوفر حاليًا ' + availableText + ' فقط';
+            }
         }
 
         choices.forEach(function (choice) {

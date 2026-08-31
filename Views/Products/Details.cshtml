@@ -8,18 +8,36 @@
     var topNote    = parts.Length > 0 ? parts[0] : "";
     var heartNote  = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "");
     var baseNote   = parts.Length > 2 ? parts[2] : "";
-    var inStock    = Model != null && Model.Stockquantity > 0;
     var hasNotes   = parts.Length >= 2;
     var isMlProduct = Model?.StockUnit == "Ml" && Model.VolumeMl is > 0;
     var pieceAvailableUnits = Model?.Stockquantity ?? 0;
     var fullAvailableUnits = isMlProduct ? (int)Math.Floor((double)Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
-    var mlLabel = (fullAvailableUnits >= 3 && fullAvailableUnits <= 10) ? "عبوات" : "عبوة";
-    var availableStockText = isMlProduct ? $"{fullAvailableUnits:N0} {mlLabel}" : $"{pieceAvailableUnits:N0} قطعة";
-    var lowStock   = Model != null && Model.Stockquantity > 0 && fullAvailableUnits <= 5;
-    var lowStockMessage = !isMlProduct && fullAvailableUnits == 1
-        ? "المتوفر حاليًا قطعة واحدة فقط"
-        : $"المتوفر حاليًا {availableStockText} فقط";
     var retailPrices = Model is null ? [] : ProductRetailAvailability.GetCustomerUsablePrices(Model);
+    var firstSellableRetailPrice = Model is null
+        ? null
+        : retailPrices.FirstOrDefault(price => Model.Stockquantity / price.SizeMl >= 1);
+    int? selectedRetailPriceId = fullAvailableUnits > 0 ? null : firstSellableRetailPrice?.Id;
+    var initialAvailableUnits = selectedRetailPriceId.HasValue && firstSellableRetailPrice is not null
+        ? Model!.Stockquantity / firstSellableRetailPrice.SizeMl
+        : fullAvailableUnits;
+    var initialPrice = selectedRetailPriceId.HasValue && firstSellableRetailPrice is not null
+        ? firstSellableRetailPrice.Price
+        : Model?.Price ?? 0;
+    var inStock = Model != null && ProductRetailAvailability.IsSellable(Model);
+    var unitOne = isMlProduct ? "عبوة واحدة" : "قطعة واحدة";
+    var unitTwo = isMlProduct ? "عبوتان" : "قطعتان";
+    var unitFew = isMlProduct ? "عبوات" : "قطع";
+    var unitMany = isMlProduct ? "عبوة" : "قطعة";
+    var availableStockText = initialAvailableUnits switch
+    {
+        0 => "غير متوفر",
+        1 => unitOne,
+        2 => unitTwo,
+        >= 3 and <= 10 => $"{initialAvailableUnits:N0} {unitFew}",
+        _ => $"{initialAvailableUnits:N0} {unitMany}"
+    };
+    var lowStock = initialAvailableUnits is > 0 and <= 5;
+    var lowStockMessage = $"المتوفر حاليًا {availableStockText} فقط";
     var productImageUrl = Url.Content("~/images/placeholder-product.svg");
     if (!string.IsNullOrWhiteSpace(Model?.Imageurl))
     {
@@ -126,7 +144,7 @@
 
                     <div class="yq-pdp-price-row">
                         <div class="yq-pdp-price">
-                            @Model.Price.ToString("N0") <small>ر.س</small>
+                            @initialPrice.ToString("N0") <small>ر.س</small>
                         </div>
                         <!-- WISHLIST BUTTON -->
                         <button type="button"
@@ -142,14 +160,16 @@
                     <div class="yq-pdp-stock">
                         @if (inStock)
                         {
-                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in">
-                                <i class="bi bi-check-circle-fill"></i> متوفر في المخزون
+                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in" data-yq-stock-badge>
+                                <i class="bi bi-check-circle-fill" data-yq-stock-icon></i>
+                                <span data-yq-stock-label>متوفر في المخزون</span>
                             </span>
                         }
                         else
                         {
-                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--out">
-                                <i class="bi bi-x-circle-fill"></i> غير متوفر حالياً
+                            <span class="yq-pdp-stock__badge yq-pdp-stock__badge--out" data-yq-stock-badge>
+                                <i class="bi bi-x-circle-fill" data-yq-stock-icon></i>
+                                <span data-yq-stock-label>غير متوفر حالياً</span>
                             </span>
                         }
                     </div>
@@ -170,14 +190,21 @@
                               data-product-name="@Model.Name">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="productId" value="@Model.Id" />
-                            <input type="hidden" name="retailPriceId" id="yqRetailPriceId" value="" />
+                            <input type="hidden" name="retailPriceId" id="yqRetailPriceId" value="@selectedRetailPriceId" />
 
                             @if (retailPrices.Count > 0)
                             {
                                 <fieldset class="yq-pdp-retail-options" aria-label="اختيار الحجم">
                                     <legend class="yq-pdp-qty__label">الحجم</legend>
                                     <label class="yq-pdp-retail-option">
-                                        <input type="radio" name="retailChoice" value="" checked data-price="@Model.Price" data-max="@fullAvailableUnits" />
+                                        <input type="radio" name="retailChoice" value=""
+                                               checked="@(!selectedRetailPriceId.HasValue)"
+                                               data-price="@Model.Price"
+                                               data-max="@fullAvailableUnits"
+                                               data-unit-one="عبوة واحدة"
+                                               data-unit-two="عبوتان"
+                                               data-unit-few="عبوات"
+                                               data-unit-many="عبوة" />
                                         <span class="yq-pdp-retail-option__body">
                                             <span>عبوة كاملة @Model.VolumeMl مل</span>
                                             <strong>@Model.Price.ToString("N0") ر.س</strong>
@@ -187,7 +214,14 @@
                                         @foreach (var price in retailPrices)
                                         {
                                             <label class="yq-pdp-retail-option">
-                                                <input type="radio" name="retailChoice" value="@price.Id" data-price="@price.Price" data-max="@((int)Math.Floor((double)Model.Stockquantity / price.SizeMl))" />
+                                                <input type="radio" name="retailChoice" value="@price.Id"
+                                                       checked="@(selectedRetailPriceId == price.Id)"
+                                                       data-price="@price.Price"
+                                                       data-max="@(Model.Stockquantity / price.SizeMl)"
+                                                       data-unit-one="عبوة واحدة"
+                                                       data-unit-two="عبوتان"
+                                                       data-unit-few="عبوات"
+                                                       data-unit-many="عبوة" />
                                                 <span class="yq-pdp-retail-option__body">
                                                     <span>@price.SizeMl مل</span>
                                                     <strong>@price.Price.ToString("N0") ر.س</strong>
@@ -198,31 +232,31 @@
                             }
 
                             <div class="yq-pdp-qty">
-                                @if (lowStock)
-                                {
-                                    <p class="yq-pdp-qty__availability"
-                                       data-yq-low-stock-message
-                                       data-yq-unit-kind="@(isMlProduct ? "unit" : "piece")">
-                                        <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
-                                        <span>@lowStockMessage</span>
-                                    </p>
-                                }
+                                <p class="yq-pdp-qty__availability"
+                                   data-yq-low-stock-message
+                                   hidden="@(!lowStock)">
+                                    <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                                    <span>@lowStockMessage</span>
+                                </p>
                                 <span class="yq-pdp-qty__label">الكمية</span>
                                 <div class="yq-pdp-qty__stepper">
-                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-decrease aria-label="تقليل الكمية">
+                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-decrease aria-label="تقليل الكمية" disabled>
                                         <i class="bi bi-dash"></i>
                                     </button>
                                     <input type="number" name="quantity" id="yqQtyInput" value="1"
-                                           min="1" max="@Math.Max(1, fullAvailableUnits)"
-                                           data-yq-unit-kind="@(isMlProduct ? "unit" : "piece")"
+                                           min="1" max="@initialAvailableUnits"
+                                           data-yq-unit-one="@unitOne"
+                                           disabled="@(initialAvailableUnits == 0)"
                                            class="yq-pdp-qty__input" aria-label="الكمية المطلوبة" />
-                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية">
+                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية"
+                                            disabled="@(initialAvailableUnits <= 1)">
                                         <i class="bi bi-plus"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn" data-yq-add-button>
+                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn" data-yq-add-button
+                                    disabled="@(initialAvailableUnits == 0)" aria-disabled="@(initialAvailableUnits == 0 ? "true" : "false")">
                                 <i class="bi bi-bag-plus" aria-hidden="true"></i>
                                 <span data-yq-add-label>إضافة للسلة</span>
                             </button>
@@ -332,7 +366,7 @@
                         }
                         <li>
                             <span class="yq-pdp-quick-specs__key"><i class="bi bi-box-seam"></i> الحالة</span>
-                            <span class="yq-pdp-quick-specs__val @(inStock ? "text-green" : "text-red")">
+                            <span class="yq-pdp-quick-specs__val @(inStock ? "text-green" : "text-red")" data-yq-stock-state-text>
                                 @(inStock ? "متوفر" : "نفذت الكمية")
                             </span>
                         </li>
