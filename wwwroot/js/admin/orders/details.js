@@ -99,17 +99,19 @@
                 if (verifyButton) verifyButton.disabled = true;
             }
             syncSaveState();
-            const customerResolvedConflict = statusForm.dataset.yqCustomerResolvedConflict === "true";
-            await YaqutOperationDialog.show({
-                title: data.status === "Cancelled" ? "تم إلغاء الطلب" : customerResolvedConflict ? "حدّث العميل طلبه" : "تم التحديث",
-                message: data.status === "Cancelled"
-                    ? data.message
-                    : customerResolvedConflict
-                        ? "اكتمل قرار العميل، ويمكنك الآن متابعة تجهيز الطلب."
-                        : data.message,
+            const statusText = status.options[status.selectedIndex].text;
+            const dialogOptions = {
+                title: "تم تحديث الطلب بنجاح",
+                message: `تم تحديث حالة الطلب إلى "${statusText}".`,
                 whatsAppUrl: data.whatsAppUrl,
+                confirmText: "حسنًا",
                 kind: "success"
-            });
+            };
+            if (data.whatsAppUrl) {
+                dialogOptions.whatsAppNote = "هل تود إشعار العميل عبر واتساب؟";
+                dialogOptions.whatsAppText = "إشعار العميل عبر واتساب";
+            }
+            await YaqutOperationDialog.show(dialogOptions);
             statusForm.dataset.yqCustomerResolvedConflict = "false";
             location.reload();
         } catch (error) {
