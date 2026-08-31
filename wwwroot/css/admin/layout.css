@@ -1605,14 +1605,132 @@ body.dark-mode .btn-outline-secondary:hover {
 
 .yq-modal-receipt-img { max-height: 75vh; object-fit: contain; }
 
-.yq-qs-hero-card { background: linear-gradient(135deg, #111622 0%, #1e293b 100%); border: 1px solid rgba(212, 175, 55, 0.2); }
-.yq-qs-hero-icon { background: rgba(212, 175, 55, 0.15); width: 60px; height: 60px; border: 1px solid rgba(212, 175, 55, 0.3); }
-.yq-qs-action-gold { background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.25); }
-.yq-qs-action-green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); }
-.yq-qs-action-gray { background: rgba(30, 41, 59, 0.03); border: 1px solid rgba(148, 163, 184, 0.2); }
-.yq-qs-action-blue { background: rgba(59, 130, 246, 0.03); border: 1px solid rgba(59, 130, 246, 0.2); }
-.yq-qs-warning-box { background: rgba(239, 68, 68, 0.03); border: 1px dashed rgba(239, 68, 68, 0.3); }
-.yq-qs-warning-text { max-width: 500px; margin: 0 auto; }
+.yq-qs-hero-card {
+    background: linear-gradient(135deg, #111622 0%, #172033 100%);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.yq-qs-hero-icon {
+    background: rgba(212, 175, 55, 0.12);
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 16px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--yq-gold, #d4af37);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.yq-qs-action-card {
+    border-radius: 18px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.yq-qs-action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+.yq-qs-action-gold {
+    background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.02) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.yq-qs-action-green {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.yq-qs-action-gray {
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.08) 0%, rgba(148, 163, 184, 0.02) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.yq-qs-action-blue {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.yq-qs-warning-box {
+    background: linear-gradient(180deg, #0e121a 0%, #141b27 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.yq-qs-empty-icon-box {
+    width: 86px;
+    height: 86px;
+    min-width: 86px;
+    max-width: 86px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1.5px solid rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    font-size: 2.4rem;
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.2);
+    flex-shrink: 0;
+}
+
+.yq-qs-empty-title {
+    font-family: var(--yq-font-display, 'Cairo', sans-serif);
+    font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.yq-qs-warning-text {
+    max-width: 520px;
+    margin: 0 auto 2rem auto;
+    color: #94a3b8 !important;
+    font-size: 0.98rem;
+    line-height: 1.65;
+}
+
+.yq-qs-btn-secondary {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff !important;
+    border-radius: 12px;
+    font-weight: 700;
+    transition: all 0.25s ease;
+}
+
+.yq-qs-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff !important;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 767.98px) {
+    .yq-qs-hero-card .card-body {
+        padding: 1.25rem !important;
+    }
+    
+    .yq-qs-warning-box {
+        padding: 2.25rem 1.25rem !important;
+    }
+    
+    .yq-qs-empty-icon-box {
+        width: 72px;
+        height: 72px;
+        min-width: 72px;
+        max-width: 72px;
+        font-size: 2rem;
+        margin-bottom: 1.25rem;
+    }
+}
 .yq-th-w20 { width: 20%; }
 .yq-th-w15 { width: 15%; }
 .yq-th-w10 { width: 10%; }
