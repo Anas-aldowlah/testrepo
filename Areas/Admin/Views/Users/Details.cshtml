@@ -117,6 +117,19 @@
                         <dd><span class="yq-users-badge @roleClass">@displayRole</span></dd>
                     </div>
                     <div>
+                        <dt>حالة الحساب</dt>
+                        <dd>
+                            @if (Model.SearchNameSyncVersion == 1)
+                            {
+                                <span class="yq-users-badge yq-users-badge--blocked"><i class="bi bi-slash-circle"></i> محظور</span>
+                            }
+                            else
+                            {
+                                <span class="yq-users-badge yq-users-badge--active"><i class="bi bi-check-circle"></i> نشط</span>
+                            }
+                        </dd>
+                    </div>
+                    <div>
                         <dt>تاريخ التسجيل</dt>
                         <dd>@(Model.Createdat.HasValue ? Model.Createdat.Value.ToString("dd/MM/yyyy HH:mm") : "غير متوفر")</dd>
                     </div>
@@ -205,6 +218,49 @@
         </div>
 
         <aside class="yq-user-details-side" aria-label="معلومات الحساب">
+
+            <!-- بطاقة إدارة حالة الحظر -->
+            <section class="yq-user-detail-card" aria-labelledby="blockManagementTitle">
+                <div class="yq-user-detail-card__header">
+                    <div>
+                        <span class="yq-users-eyebrow">الأمان والوصول</span>
+                        <h3 id="blockManagementTitle">حالة الحظر</h3>
+                    </div>
+                </div>
+                <div class="yq-role-card-body">
+                    @if (Model.SearchNameSyncVersion == 1)
+                    {
+                        <div class="yq-role-notice yq-role-notice--blocked mb-3">
+                            <i class="bi bi-slash-circle-fill"></i>
+                            <p>هذا الحساب <strong>محظور حالياً</strong> ولا يمكنه الوصول للمتجر.</p>
+                        </div>
+                        <form asp-action="ToggleBlock" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في إلغاء حظر هذا الحساب؟');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <input type="hidden" name="block" value="false" />
+                            <button type="submit" class="yq-users-btn-unblock w-100">
+                                <i class="bi bi-unlock-fill"></i>
+                                <span>إلغاء حظر الحساب</span>
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="yq-block-hint">
+                            عند حظر الحساب، سيتم إنهاء جلسة المستخدم ومنعه فوراً من الوصول إلى المتجر.
+                        </p>
+                        <form asp-action="ToggleBlock" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في حظر هذا الحساب؟ سيتم منعه فوراً من تسجيل الدخول أو إتمام الطلبات.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <input type="hidden" name="block" value="true" />
+                            <button type="submit" class="yq-users-btn-block w-100">
+                                <i class="bi bi-slash-circle-fill"></i>
+                                <span>حظر هذا الحساب</span>
+                            </button>
+                        </form>
+                    }
+                </div>
+            </section>
 
             <!-- بطاقة التحكم بالصلاحيات -->
             <section class="yq-user-detail-card" aria-labelledby="roleManagementTitle">

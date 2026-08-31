@@ -6,4 +6,10 @@ public partial class User
 {
     [NotMapped]
     public string? Role { get; set; }
+
+    [NotMapped]
+    public int SearchNameSyncVersion { get; set; }
+
+    [NotMapped]
+    public bool IsBlocked => SearchNameSyncVersion == 1;
 }

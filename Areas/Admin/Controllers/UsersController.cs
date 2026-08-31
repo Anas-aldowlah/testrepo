@@ -41,15 +41,18 @@ public class UsersController : Controller
             .ToListAsync();
 
         var roleCache = new Dictionary<int, string?>();
+        var blockedCache = new Dictionary<int, int>();
         foreach (var us in userSites)
         {
             roleCache[us.UserId] = us.Role;
+            blockedCache[us.UserId] = us.SearchNameSyncVersion;
         }
 
         foreach (var user in usersPage.Items)
         {
             user.Phone = DecryptPhoneOrUnavailable(user.Phone);
             user.Role = roleCache.GetValueOrDefault(user.Id);
+            user.SearchNameSyncVersion = blockedCache.GetValueOrDefault(user.Id);
         }
 
         var model = new AdminUsersIndexViewModel
@@ -72,11 +75,13 @@ public class UsersController : Controller
             return NotFound();
         }
 
+        var userSite = await _context.UserSites
+            .AsNoTracking()
+            .FirstOrDefaultAsync(us => us.UserId == id);
+
         user.Phone = DecryptPhoneOrUnavailable(user.Phone);
-        user.Role = await _context.UserSites
-            .Where(us => us.UserId == id)
-            .Select(us => us.Role)
-            .FirstOrDefaultAsync();
+        user.Role = userSite?.Role;
+        user.SearchNameSyncVersion = userSite?.SearchNameSyncVersion ?? 0;
 
         ViewBag.RecentOrders = await _context.Orders
             .AsNoTracking()
@@ -192,5 +197,94 @@ public class UsersController : Controller
             TempData["SuccessMessage"] = "تم تحديث دور المستخدم بنجاح.";
             return RedirectToAction(nameof(Details), new { id = userId });
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Developer")]
+    public async Task<IActionResult> ToggleBlock(int userId, bool block, string? returnUrl = null)
+    {
+        var userExists = await _dbUser.Users.AnyAsync(u => u.Id == userId);
+        if (!userExists)
+        {
+            return NotFound("المستخدم غير موجود");
+        }
+
+        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(currentUserIdStr, out var currentUserId) && currentUserId == userId)
+        {
+            TempData["ErrorMessage"] = "لا يمكنك حظر حسابك الحالي المسجل به الدخول.";
+            return RedirectToUser(userId, returnUrl);
+        }
+
+        bool isCurrentUserDeveloper = User.IsInRole("Developer");
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            _context.ChangeTracker.Clear();
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
+            var userSite = await _context.UserSites
+                .FirstOrDefaultAsync(us => us.UserId == userId);
+
+            // 1. منع المدير من حظر حساب مطور
+            if (!isCurrentUserDeveloper && userSite != null && userSite.Role == "Developer")
+            {
+                TempData["ErrorMessage"] = "عذراً، لا يمكن للمدير حظر حسابات المطورين.";
+                return RedirectToUser(userId, returnUrl);
+            }
+
+            // 2. منع حظر آخر مسؤول/مطور في النظام
+            if (block && userSite != null && (userSite.Role == "Developer" || userSite.Role == "Admin"))
+            {
+                var activeDevCount = await _context.UserSites.CountAsync(us => us.Role == "Developer" && us.SearchNameSyncVersion == 0);
+                var activeAdminCount = await _context.UserSites.CountAsync(us => us.Role == "Admin" && us.SearchNameSyncVersion == 0);
+
+                if (userSite.Role == "Developer" && activeDevCount <= 1)
+                {
+                    TempData["ErrorMessage"] = "لا يمكن حظر المطور النشط الوحيد في النظام.";
+                    return RedirectToUser(userId, returnUrl);
+                }
+
+                if (userSite.Role == "Admin" && activeDevCount == 0 && activeAdminCount <= 1)
+                {
+                    TempData["ErrorMessage"] = "لا يمكن حظر المدير النشط الوحيد في النظام في غياب أي مطور نشط.";
+                    return RedirectToUser(userId, returnUrl);
+                }
+            }
+
+            // إتمام التعديل
+            if (userSite != null)
+            {
+                userSite.SearchNameSyncVersion = block ? 1 : 0;
+                _context.UserSites.Update(userSite);
+            }
+            else
+            {
+                var newUserSite = new YAGOT_2._0.Models.UserSite
+                {
+                    UserId = userId,
+                    Role = "Customer",
+                    SearchNameSyncVersion = block ? 1 : 0
+                };
+                await _context.UserSites.AddAsync(newUserSite);
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["SuccessMessage"] = block ? "تم حظر المستخدم بنجاح." : "تم إلغاء حظر المستخدم بنجاح.";
+            return RedirectToUser(userId, returnUrl);
+        });
+    }
+
+    private IActionResult RedirectToUser(int userId, string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
+        return RedirectToAction(nameof(Details), new { id = userId });
     }
 }

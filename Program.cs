@@ -195,10 +195,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 .FirstOrDefaultAsync(site => site.UserId == userId, context.HttpContext.RequestAborted);
             var databaseRole = string.IsNullOrWhiteSpace(userSite?.Role) ? "Customer" : userSite.Role;
 
-            if (userSite == null || !string.Equals(databaseRole, cookieRole, StringComparison.Ordinal))
+            if (userSite == null || userSite.SearchNameSyncVersion == 1 || !string.Equals(databaseRole, cookieRole, StringComparison.Ordinal))
             {
                 context.RejectPrincipal();
                 await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                if (userSite?.SearchNameSyncVersion == 1 && !IsAjaxOrJsonRequest(context.HttpContext.Request))
+                {
+                    context.HttpContext.Response.Redirect("/Account/Blocked");
+                }
             }
         };
     })
@@ -247,22 +251,30 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<NeondbContext>(options =>
+{
     options.UseNpgsql(builder.Configuration.GetConnectionString("MYDB"),
         npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-        }));
+        });
+    options.ConfigureWarnings(warnings =>
+        warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 builder.Services.AddDataProtection()
     .SetApplicationName("YAGOT")
     .PersistKeysToDbContext<NeondbContext>();
 
 builder.Services.AddDbContext<UsersDbContext>(options =>
+{
     options.UseNpgsql(builder.Configuration.GetConnectionString("User"),
         npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-        }));
+        });
+    options.ConfigureWarnings(warnings =>
+        warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 //  انشاء كائن object (Dependency Injection - DI) كل مايتم انشاء HTTP Request
 builder.Services.AddScoped<CartService>();
