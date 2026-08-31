@@ -58,21 +58,21 @@
                 <strong>@Model.Orders.TotalItems</strong>
             </div>
         </article>
-        <article class="yq-orders-stat">
+        <article class="yq-orders-stat yq-orders-stat--warning">
             <span class="yq-orders-stat__icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
             <div>
                 <p>قيد الانتظار</p>
                 <strong>@Model.PendingCount</strong>
             </div>
         </article>
-        <article class="yq-orders-stat">
+        <article class="yq-orders-stat yq-orders-stat--info">
             <span class="yq-orders-stat__icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
             <div>
                 <p>قيد التنفيذ</p>
                 <strong>@Model.ActiveCount</strong>
             </div>
         </article>
-        <article class="yq-orders-stat">
+        <article class="yq-orders-stat yq-orders-stat--success">
             <span class="yq-orders-stat__icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
             <div>
                 <p>تم التوصيل</p>
