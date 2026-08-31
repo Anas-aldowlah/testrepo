@@ -281,10 +281,10 @@
     align-items: center;
     min-height: 30px;
     padding: 0.26rem 0.68rem;
-    border: 1px solid rgba(212, 175, 55, 0.28);
+    border: 1px solid var(--yq-admin-border-strong, rgba(212, 175, 55, 0.32));
     border-radius: 999px;
-    background: rgba(212, 175, 55, 0.12);
-    color: var(--yq-admin-gold-bright, #d4af37);
+    background: var(--yq-admin-surface-soft, #1b1f22);
+    color: var(--yq-admin-text, #191714);
     font-size: 0.78rem;
     font-weight: 900;
     white-space: nowrap;
