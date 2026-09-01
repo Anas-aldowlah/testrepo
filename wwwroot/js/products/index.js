@@ -87,7 +87,126 @@
         wrapper.hidden = false;
     })();
 
+
     var lastCommittedFormData = null;
+
+    var currentFetchPromise = null;
+    var lastAppliedQuery = canonicalizeParams(new URLSearchParams(window.location.search));
+    var lastAppliedActionQuery = getCanonicalQuery();
+    var defaultQuery = getDefaultQuery();
+    var inFlightQuery = null;
+    var pendingSubmitTimer = null;
+    var priceQuietUntil = 0;
+
+    function canonicalizeParams(source) {
+        var valuesByKey = {};
+        source.forEach(function (value, key) {
+            value = String(value);
+            if (key !== 'mobileCategory' && value !== '') {
+                if (!valuesByKey[key]) valuesByKey[key] = [];
+                valuesByKey[key].push(value);
+            }
+        });
+
+        var params = new URLSearchParams();
+        Object.keys(valuesByKey).sort().forEach(function (key) {
+            valuesByKey[key].sort().forEach(function (value) {
+                params.append(key, value);
+            });
+        });
+        return params.toString();
+    }
+
+    function getCanonicalQuery() {
+        if (!filterForm) return '';
+        return canonicalizeParams(new FormData(filterForm));
+    }
+
+    function getDefaultQuery() {
+        if (!filterForm) return '';
+        var fd = new FormData(filterForm);
+        [
+            'availability',
+            'retail',
+            'categoryId',
+            'filterCategoryRadio',
+            'brand',
+            'retailSize',
+            'minPrice',
+            'maxPrice'
+        ].forEach(function (key) {
+            fd.delete(key);
+        });
+        fd.append('availability', 'all');
+        fd.append('retail', 'all');
+        return canonicalizeParams(fd);
+    }
+
+    function isPriceRangeValid() {
+        var minEl = document.getElementById('yqMinPriceInput');
+        var maxEl = document.getElementById('yqMaxPriceInput');
+        if (!minEl || !maxEl) return true;
+        var minVal = parseFloat(minEl.value);
+        var maxVal = parseFloat(maxEl.value);
+        return isNaN(minVal) || isNaN(maxVal) || minVal <= maxVal;
+    }
+
+    function updateFilterActionState() {
+        var primaryBtn = document.getElementById('yqPrimaryActionBtn');
+        var resetBtn = document.getElementById('yqFiltersReset');
+        if (!primaryBtn && !resetBtn) return;
+
+        var currentQuery = getCanonicalQuery();
+        defaultQuery = getDefaultQuery();
+        var isDirty = currentQuery !== lastAppliedActionQuery;
+        var isDefault = currentQuery === defaultQuery;
+        var priceIsValid = isPriceRangeValid();
+
+        if (primaryBtn) {
+            primaryBtn.disabled = isLoading || !priceIsValid || !isDirty;
+        }
+        if (resetBtn) {
+            resetBtn.disabled = isLoading || (!isDirty && isDefault);
+        }
+    }
+
+
+    function validatePrice() {
+        var minEl = document.getElementById('yqMinPriceInput');
+        var maxEl = document.getElementById('yqMaxPriceInput');
+        if (!minEl || !maxEl) return true;
+        var errorEl = document.getElementById('yqPriceError');
+        var isValid = isPriceRangeValid();
+
+        if (errorEl) errorEl.classList.toggle('d-none', isValid);
+        minEl.setAttribute('aria-invalid', !isValid ? 'true' : 'false');
+        maxEl.setAttribute('aria-invalid', !isValid ? 'true' : 'false');
+        return isValid;
+    }
+
+
+    function scheduleUpdate(delay) {
+        if (pendingSubmitTimer) {
+            clearTimeout(pendingSubmitTimer);
+            pendingSubmitTimer = null;
+        }
+        var now = Date.now();
+        var timeUntilPriceQuiet = Math.max(0, priceQuietUntil - now);
+        var effectiveDelay = Math.max(delay, timeUntilPriceQuiet);
+
+        pendingSubmitTimer = setTimeout(function() {
+            pendingSubmitTimer = null;
+            if (validatePrice()) {
+                var currentQuery = getCanonicalQuery();
+                if (currentQuery !== lastAppliedActionQuery) {
+                    submitFilters();
+                }
+            }
+            updateFilterActionState();
+        }, effectiveDelay);
+        updateFilterActionState();
+    }
+
     function syncRetailSizeDependency() {
         if (!filterForm) return;
         var sizeGroup = document.getElementById('yqRetailSizeGroup');
@@ -122,6 +241,9 @@
             }
         }
         syncRetailSizeDependency();
+        validatePrice();
+        updateFilterBadgesAndSelections();
+        updateFilterActionState();
     }
 
     if (filterForm) {
@@ -142,72 +264,121 @@
             });
             observer.observe(filtersPanel, { attributes: true, attributeOldValue: true, attributeFilter: ['class'] });
         }
+        updateFilterActionState();
     }
 
-    async function submitFilters(e, isPopState, popUrl) {
+    function submitFilters(e, isPopState, popUrl) {
         if (e) e.preventDefault();
-        if (!filterForm) return;
+        if (!filterForm) return Promise.resolve({ applied: false, query: '' });
 
-        var filters = document.getElementById('yaqutFilters');
-        var isMobileDrawerApply = window.innerWidth < 992
-            && !isPopState
-            && !!e
-            && filters
-            && filters.classList.contains('is-open');
+        var currentQuery = '';
+        var nextUrlString = '';
+        var isMobileDrawerApply = false;
+
+        if (isPopState && popUrl) {
+            var tempUrl = new URL(popUrl);
+            currentQuery = canonicalizeParams(new URLSearchParams(tempUrl.search));
+            nextUrlString = popUrl;
+        } else {
+            currentQuery = getCanonicalQuery();
+            var nextUrl = new URL(filterForm.action || window.location.href);
+            nextUrl.search = currentQuery;
+            nextUrlString = nextUrl.toString();
+            var filters = document.getElementById('yaqutFilters');
+            isMobileDrawerApply = window.innerWidth < 992
+                && !isPopState
+                && !!e
+                && filters
+                && filters.classList.contains('is-open');
+        }
 
         if (typeof window.fetch !== 'function' || !window.history.pushState) {
             if (!isPopState) filterForm.submit();
-            return;
+            return Promise.resolve({ applied: false, query: currentQuery });
         }
 
-        var nextUrl;
-        if (isPopState && popUrl) {
-            nextUrl = new URL(popUrl);
-        } else {
-            nextUrl = new URL(filterForm.action || window.location.href);
-            var fd = new FormData(filterForm);
-            var params = new URLSearchParams();
-            fd.forEach(function (val, key) {
-                if (key !== 'mobileCategory' && val !== '') params.append(key, val);
-            });
-            nextUrl.search = params.toString();
+        if (currentQuery === lastAppliedQuery) {
+            updateFilterActionState();
+            return Promise.resolve({ applied: true, query: currentQuery });
         }
 
-        var nextUrlString = nextUrl.toString();
+        if (inFlightQuery === currentQuery && currentFetchPromise) {
+            return currentFetchPromise;
+        }
 
         if (abortController) {
             abortController.abort();
         }
-        abortController = new AbortController();
+        var requestAbortController = new AbortController();
+        abortController = requestAbortController;
 
         var requestId = ++currentRequestId;
+        inFlightQuery = currentQuery;
+
+        isLoading = true;
+        currentFetchPromise = (async function() {
 
                 if (status) {
             status.textContent = 'جارٍ تحديث المنتجات...';
             status.classList.remove('visually-hidden');
         }
+        var primaryBtn = document.getElementById('yqPrimaryActionBtn');
+        if (primaryBtn) {
+            var primarySpan = primaryBtn.querySelector('span');
+            if (primarySpan) {
+                if (!primarySpan.dataset.originalText) {
+                    primarySpan.dataset.originalText = primarySpan.textContent;
+                }
+                primarySpan.textContent = 'جاري التحديث...';
+            }
+        }
+        updateFilterActionState();
         if (grid) {
             grid.setAttribute('aria-busy', 'true');
             grid.style.opacity = '0.6';
             grid.style.transition = 'opacity 0.15s ease-in-out';
         }
-        isLoading = true;
-
         try {
             var response = await window.fetch(nextUrlString, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                signal: abortController.signal
+                signal: requestAbortController.signal
             });
 
-            if (!response.ok) throw new Error('Filter request failed.');
+            if (!response.ok) {
+                if (response.status === 400) {
+                    var contentType = response.headers.get('content-type');
+                    if (contentType && contentType.indexOf('application/json') !== -1) {
+                        throw new Error('Validation error');
+                    }
+                }
+                throw new Error('Filter request failed.');
+            }
 
             var html = await response.text();
 
-            if (requestId !== currentRequestId) return;
+            if (requestId !== currentRequestId) {
+                return { applied: false, query: currentQuery };
+            }
 
             var parsed = new window.DOMParser().parseFromString(html, 'text/html');
 
+
+            var activeEl = document.activeElement;
+            var focusId = activeEl ? activeEl.id : null;
+            var focusName = activeEl ? activeEl.name : null;
+            var focusValue = activeEl ? activeEl.value : null;
+            var selectionStart = null;
+            var selectionEnd = null;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl.type !== 'radio' && activeEl.type !== 'checkbox') {
+                try {
+                    selectionStart = activeEl.selectionStart;
+                    selectionEnd = activeEl.selectionEnd;
+                } catch(e) {}
+            }
+            var filtersPanel = document.getElementById('yaqutFilters');
+            var drawerScrollTop = filtersPanel ? filtersPanel.scrollTop : 0;
             var newShop = parsed.querySelector('.yq-shop');
+
             var oldShop = document.querySelector('.yq-shop');
 
             if (!newShop || !oldShop) {
@@ -286,6 +457,7 @@
                 if (newForm && filterForm) {
                     filterForm.innerHTML = newForm.innerHTML;
                     syncRetailSizeDependency();
+                    updateFilterActionState();
                 }
 
                 grid = document.getElementById('yaqutProductsGrid');
@@ -293,6 +465,26 @@
 
                 if (parsed.title) document.title = parsed.title;
                 bindImageFallbacks(oldShop);
+
+                if (focusId) {
+                    var el = document.getElementById(focusId);
+                    if (!el && focusName) {
+                        el = filterForm.querySelector('[name="' + focusName + '"][value="' + focusValue + '"]');
+                        if (!el) el = filterForm.querySelector('[name="' + focusName + '"]');
+                    }
+                    if (el) {
+                        el.focus();
+                        if (selectionStart !== null) {
+                            try {
+                                el.setSelectionRange(selectionStart, selectionEnd);
+                            } catch(e) {}
+                        }
+                    }
+                }
+                if (filtersPanel) {
+                    filtersPanel.scrollTop = drawerScrollTop;
+                }
+
             }
 
             if (!isPopState && window.location.href !== nextUrlString) {
@@ -304,6 +496,10 @@
             }
 
             saveCommittedState();
+            var appliedQuery = getCanonicalQuery();
+            lastAppliedQuery = appliedQuery;
+            lastAppliedActionQuery = appliedQuery;
+            updateFilterActionState();
 
             if (isMobileDrawerApply && filters) {
                 filters.classList.remove('is-open');
@@ -311,16 +507,27 @@
                 var filterToggle = document.getElementById('yaqutFilterToggle');
                 if (filterToggle) filterToggle.focus();
             }
+            return { applied: true, query: appliedQuery };
         } catch (error) {
-            if (requestId !== currentRequestId) return;
+            if (requestId !== currentRequestId) {
+                return { applied: false, query: currentQuery };
+            }
             if (error.name !== 'AbortError') {
-                if (!window.catalogHarness) {
+                if (!window.catalogHarness && error.message !== 'Validation error') {
                     window.location.assign(nextUrlString);
                 }
             }
+            return { applied: false, query: currentQuery };
         } finally {
             if (requestId === currentRequestId) {
                 isLoading = false;
+                var primaryBtn = document.getElementById('yqPrimaryActionBtn');
+                if (primaryBtn) {
+                    var primarySpan = primaryBtn.querySelector('span');
+                    if (primarySpan && primarySpan.dataset.originalText) {
+                        primarySpan.textContent = primarySpan.dataset.originalText;
+                    }
+                }
                 if (status) {
                     status.classList.add('visually-hidden');
                 }
@@ -328,8 +535,14 @@
                     grid.removeAttribute('aria-busy');
                     grid.style.opacity = '';
                 }
+                inFlightQuery = null;
+                currentFetchPromise = null;
+                abortController = null;
+                updateFilterActionState();
             }
         }
+        })();
+        return currentFetchPromise;
     }
 
     function updateFilterBadgesAndSelections() {
@@ -342,12 +555,59 @@
         });
     }
 
+
     function triggerSubmit() {
-        submitFilters();
+        if (!validatePrice()) return Promise.resolve();
+        return submitFilters();
     }
+
 
     // Event delegation for category pills, filter cards, and auto-submit controls
     document.addEventListener('click', function(e) {
+        var primaryBtn = e.target.closest('#yqPrimaryActionBtn');
+        if (primaryBtn) {
+            e.preventDefault();
+            if (primaryBtn.disabled || isLoading) return;
+            if (!validatePrice()) {
+                if (pendingSubmitTimer) {
+                    clearTimeout(pendingSubmitTimer);
+                    pendingSubmitTimer = null;
+                }
+                return;
+            }
+
+            (async function() {
+                if (pendingSubmitTimer) {
+                    clearTimeout(pendingSubmitTimer);
+                    pendingSubmitTimer = null;
+                }
+
+                var currentQuery = getCanonicalQuery();
+
+                var result = { applied: true, query: currentQuery };
+                if (currentQuery !== lastAppliedActionQuery) {
+                    if (currentQuery === inFlightQuery && currentFetchPromise) {
+                        result = await currentFetchPromise;
+                    } else {
+                        result = await submitFilters();
+                    }
+                }
+
+                if (!result.applied || lastAppliedQuery !== getCanonicalQuery()) return;
+
+                if (window.innerWidth < 992) {
+                    var closeButton = document.getElementById('yqFiltersClose');
+                    if (closeButton) closeButton.click();
+                } else {
+                    var mainArea = document.querySelector('.yq-shop-main');
+                    if (mainArea) {
+                        mainArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            })().catch(function () {});
+            return;
+        }
+
         var toggleBtn = e.target.closest('[data-filter-toggle]');
         if (toggleBtn) {
             e.preventDefault();
@@ -377,6 +637,7 @@
         var resetBtn = e.target.closest('#yqFiltersReset');
         if (resetBtn) {
             e.preventDefault();
+            if (resetBtn.disabled || isLoading) return;
             if (filterForm) {
                 categoryInput = document.getElementById('yqCategoryId');
                 if (categoryInput) categoryInput.value = '';
@@ -397,9 +658,19 @@
                 if (minP) minP.value = '';
                 if (maxP) maxP.value = '';
 
+                if (pendingSubmitTimer) {
+                    clearTimeout(pendingSubmitTimer);
+                    pendingSubmitTimer = null;
+                }
+                priceQuietUntil = 0;
+                validatePrice();
                 syncRetailSizeDependency();
                 updateFilterBadgesAndSelections();
-                triggerSubmit();
+                updateFilterActionState();
+                var currentQuery = getCanonicalQuery();
+                if (currentQuery !== lastAppliedQuery) {
+                    submitFilters();
+                }
             }
             return;
         }
@@ -409,7 +680,7 @@
             categoryInput = document.getElementById('yqCategoryId');
             if (categoryInput) {
                 categoryInput.value = categoryBtn.getAttribute('data-yq-category') || '';
-                triggerSubmit();
+                scheduleUpdate(350);
             }
         }
 
@@ -440,7 +711,7 @@
                 var category = filterForm.querySelector('[name="categoryId"]');
                 if (category) category.value = '';
             }
-            triggerSubmit();
+            scheduleUpdate(350);
         }
 
         var filtersCancel = e.target.closest('#yqFiltersCancel');
@@ -464,6 +735,12 @@
     });
 
     document.addEventListener('change', function(e) {
+        if (filterForm && filterForm.contains(e.target) && (e.target.type === 'radio' || e.target.type === 'checkbox')) {
+            updateFilterBadgesAndSelections();
+            if (validatePrice()) {
+                scheduleUpdate(350);
+            }
+        }
         if (e.target.matches('[data-yq-category-radio]')) {
             categoryInput = document.getElementById('yqCategoryId');
             if (categoryInput) {
@@ -481,9 +758,10 @@
         }
 
         updateFilterBadgesAndSelections();
+        updateFilterActionState();
 
         if (e.target.closest('[data-yq-auto-submit]')) {
-            triggerSubmit();
+            scheduleUpdate(350);
         }
     });
 
@@ -501,6 +779,24 @@
         var filters = document.getElementById('yaqutFilters');
         if (filters && filters.classList.contains('is-open')) return;
         submitFilters(null, true, window.location.href);
+    });
+
+
+    document.addEventListener('input', function(e) {
+        if (e.target.id === 'yqMinPriceInput' || e.target.id === 'yqMaxPriceInput') {
+            var isValid = validatePrice();
+            if (!isValid) {
+                if (pendingSubmitTimer) {
+                    clearTimeout(pendingSubmitTimer);
+                    pendingSubmitTimer = null;
+                }
+                updateFilterActionState();
+                return;
+            }
+            priceQuietUntil = Date.now() + 600;
+            scheduleUpdate(600);
+            updateFilterActionState();
+        }
     });
 
 })(window, document);

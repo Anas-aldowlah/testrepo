@@ -21,7 +21,13 @@ public class ProductsController : Controller
     public async Task<IActionResult> Index(ProductsCatalogRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return BadRequest(ModelState);
+
+            request.MinPrice = null;
+            request.MaxPrice = null;
+        }
 
         var model = await _catalogService.GetCatalogAsync(request, cancellationToken);
         return View(model);

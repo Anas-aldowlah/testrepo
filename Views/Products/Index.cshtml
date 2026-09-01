@@ -151,10 +151,6 @@
                         <h3 id="yqFilterMainTitle">تصفية المنتجات</h3>
                     </div>
                     <div class="yq-filter-header__actions">
-                        <a asp-action="Index" class="yq-filter-clear-all yq-shop-clear-link" id="yqFilterClearAll" aria-label="مسح الكل">
-                            <i class="bi bi-trash3" aria-hidden="true"></i>
-                            <span>مسح الكل</span>
-                        </a>
                         <button type="button" class="yq-shop-filters__close" id="yqFiltersClose" aria-label="إغلاق الفلاتر">
                             <i class="bi bi-x-lg" aria-hidden="true"></i>
                         </button>
@@ -166,6 +162,76 @@
             <form id="yqCatalogFilters" asp-action="Index" method="get" class="yq-filter-form">
                 <input type="hidden" name="search" value="@request.Search" />
                 <input type="hidden" id="yqCategoryId" name="categoryId" value="@request.CategoryId" />
+
+                @{
+                    var hasAvailabilityFilter = request.Availability != "all";
+                }
+                <div class="yq-filter-card" data-filter-card="availability">
+                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                        <span class="yq-filter-card__title">
+                            <i class="bi bi-tag-fill text-gold" aria-hidden="true"></i>
+                            <span>حالة المنتج</span>
+                        </span>
+                        <span class="yq-filter-card__meta">
+                            <span class="yq-filter-card__badge @(hasAvailabilityFilter ? "" : "d-none")">(1)</span>
+                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                        </span>
+                    </button>
+                    <div class="yq-filter-card__body">
+                        <div class="yq-filter-grid yq-filter-grid--3col" role="radiogroup" aria-label="حالة توفر المنتج">
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "all" ? "is-selected" : "")">
+                                <input type="radio" name="availability" value="all" class="yq-control-input" checked="@(request.Availability == "all")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">الكل</span>
+                            </label>
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "available" ? "is-selected" : "")">
+                                <input type="radio" name="availability" value="available" class="yq-control-input" checked="@(request.Availability == "available")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">متوفر</span>
+                            </label>
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "unavailable" ? "is-selected" : "")">
+                                <input type="radio" name="availability" value="unavailable" class="yq-control-input" checked="@(request.Availability == "unavailable")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">غير متوفر</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                @{
+                    var hasRetailFilter = request.Retail != "all";
+                }
+                <div class="yq-filter-card" data-filter-card="retail">
+                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                        <span class="yq-filter-card__title">
+                            <i class="bi bi-box-seam-fill text-gold" aria-hidden="true"></i>
+                            <span>نوع المنتج</span>
+                        </span>
+                        <span class="yq-filter-card__meta">
+                            <span class="yq-filter-card__badge @(hasRetailFilter ? "" : "d-none")">(1)</span>
+                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                        </span>
+                    </button>
+                    <div class="yq-filter-card__body">
+                        <div class="yq-filter-grid yq-filter-grid--3col" role="radiogroup" aria-label="نوع المنتج وتوفر التجزئة">
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "all" ? "is-selected" : "")">
+                                <input type="radio" name="retail" value="all" class="yq-control-input" checked="@(request.Retail == "all")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">الكل</span>
+                            </label>
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "no" ? "is-selected" : "")">
+                                <input type="radio" name="retail" value="no" class="yq-control-input" checked="@(request.Retail == "no")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">عادي</span>
+                            </label>
+                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "yes" ? "is-selected" : "")">
+                                <input type="radio" name="retail" value="yes" class="yq-control-input" checked="@(request.Retail == "yes")" />
+                                <span class="yq-control-radio" aria-hidden="true"></span>
+                                <span class="yq-control-label">تجزئة</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                 @if (Model.Categories.Count > 0)
                 {
@@ -246,96 +312,39 @@
                     </div>
                 }
 
-                @{
-                    var hasAvailabilityFilter = request.Availability != "all";
-                }
-                <div class="yq-filter-card" data-filter-card="availability">
-                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
-                        <span class="yq-filter-card__title">
-                            <i class="bi bi-tag-fill text-gold" aria-hidden="true"></i>
-                            <span>حالة المنتج</span>
-                        </span>
-                        <span class="yq-filter-card__meta">
-                            <span class="yq-filter-card__badge @(hasAvailabilityFilter ? "" : "d-none")">(1)</span>
-                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
-                        </span>
-                    </button>
-                    <div class="yq-filter-card__body">
-                        <div class="yq-filter-grid yq-filter-grid--3col" role="radiogroup" aria-label="حالة توفر المنتج">
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "all" ? "is-selected" : "")">
-                                <input type="radio" name="availability" value="all" class="yq-control-input" checked="@(request.Availability == "all")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">الكل</span>
-                            </label>
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "available" ? "is-selected" : "")">
-                                <input type="radio" name="availability" value="available" class="yq-control-input" checked="@(request.Availability == "available")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">متوفر</span>
-                            </label>
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Availability == "unavailable" ? "is-selected" : "")">
-                                <input type="radio" name="availability" value="unavailable" class="yq-control-input" checked="@(request.Availability == "unavailable")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">غير متوفر</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                @{
-                    var hasRetailFilter = request.Retail != "all" || request.RetailSize.Length > 0;
-                }
-                <div class="yq-filter-card" data-filter-card="retail">
-                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
-                        <span class="yq-filter-card__title">
-                            <i class="bi bi-box-seam-fill text-gold" aria-hidden="true"></i>
-                            <span>نوع المنتج</span>
-                        </span>
-                        <span class="yq-filter-card__meta">
-                            <span class="yq-filter-card__badge @(hasRetailFilter ? "" : "d-none")">(1)</span>
-                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
-                        </span>
-                    </button>
-                    <div class="yq-filter-card__body">
-                        <div class="yq-filter-grid yq-filter-grid--3col" role="radiogroup" aria-label="نوع المنتج وتوفر التجزئة">
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "all" ? "is-selected" : "")">
-                                <input type="radio" name="retail" value="all" class="yq-control-input" checked="@(request.Retail == "all")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">الكل</span>
-                            </label>
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "no" ? "is-selected" : "")">
-                                <input type="radio" name="retail" value="no" class="yq-control-input" checked="@(request.Retail == "no")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">عادي</span>
-                            </label>
-                            <label class="yq-filter-item yq-filter-item--radio @(request.Retail == "yes" ? "is-selected" : "")">
-                                <input type="radio" name="retail" value="yes" class="yq-control-input" checked="@(request.Retail == "yes")" />
-                                <span class="yq-control-radio" aria-hidden="true"></span>
-                                <span class="yq-control-label">تجزئة</span>
-                            </label>
-                        </div>
-
-                        @if (Model.RetailSizes.Count > 0)
-                        {
-                            <div class="yq-filter-subgroup @(request.Retail == "no" ? "d-none" : "")" id="yqRetailSizeGroup">
-                                <span class="yq-filter-subgroup__label" id="yqRetailSizeGroupLabel">أحجام التجزئة:</span>
-                                <div class="yq-filter-grid yq-filter-grid--2col" role="group" aria-labelledby="yqRetailSizeGroupLabel">
-                                    @foreach (var size in Model.RetailSizes)
-                                    {
-                                        var isSizeChecked = request.RetailSize.Contains(size);
-                                        <label class="yq-filter-item @(isSizeChecked ? "is-selected" : "")">
-                                            <input type="checkbox" name="retailSize" value="@size" class="yq-control-input" checked="@isSizeChecked" />
-                                            <span class="yq-control-box" aria-hidden="true"></span>
-                                            <span class="yq-control-label">@size مل</span>
-                                        </label>
-                                    }
-                                </div>
+                @if (Model.RetailSizes.Count > 0)
+                {
+                    var hasRetailSizeFilter = request.RetailSize.Length > 0;
+                    <div class="yq-filter-card @(request.Retail == "no" ? "d-none" : "")" data-filter-card="retailsize" id="yqRetailSizeGroup">
+                        <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                            <span class="yq-filter-card__title">
+                                <i class="bi bi-aspect-ratio text-gold" aria-hidden="true"></i>
+                                <span>أحجام التجزئة</span>
+                            </span>
+                            <span class="yq-filter-card__meta">
+                                <span class="yq-filter-card__badge @(hasRetailSizeFilter ? "" : "d-none")">(@request.RetailSize.Length)</span>
+                                <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                            </span>
+                        </button>
+                        <div class="yq-filter-card__body">
+                            <div class="yq-filter-grid yq-filter-grid--2col" role="group" aria-label="أحجام التجزئة">
+                                @foreach (var size in Model.RetailSizes)
+                                {
+                                    var isSizeChecked = request.RetailSize.Contains(size);
+                                    <label class="yq-filter-item @(isSizeChecked ? "is-selected" : "")">
+                                        <input type="checkbox" name="retailSize" value="@size" class="yq-control-input" checked="@isSizeChecked" />
+                                        <span class="yq-control-box" aria-hidden="true"></span>
+                                        <span class="yq-control-label">@size مل</span>
+                                    </label>
+                                }
                             </div>
-                        }
+                        </div>
                     </div>
-                </div>
+                }
 
                 @{
                     var hasPriceFilter = request.MinPrice.HasValue || request.MaxPrice.HasValue;
+                    var priceIsInvalid = request.MinPrice.HasValue && request.MaxPrice.HasValue && request.MinPrice > request.MaxPrice;
                 }
                 <div class="yq-filter-card" data-filter-card="price">
                     <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
@@ -350,21 +359,22 @@
                     </button>
                     <div class="yq-filter-card__body">
                         <div class="yq-price-inputs-row">
-                            <div class="yq-price-field">
+                            <div class="yq-price-field w-100">
                                 <label class="yq-price-label" for="yqMinPriceInput">الحد الأدنى</label>
                                 <div class="yq-price-input-wrap">
-                                    <input type="number" id="yqMinPriceInput" name="minPrice" value="@request.MinPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="من" min="0" step="0.01" inputmode="decimal" class="yq-price-input" />
+                                    <input type="number" id="yqMinPriceInput" name="minPrice" value="@request.MinPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="من" min="0" step="0.01" inputmode="decimal" class="yq-price-input w-100" aria-invalid="@(priceIsInvalid ? "true" : "false")" aria-describedby="yqPriceError" />
                                 </div>
                             </div>
                             <span class="yq-price-separator" aria-hidden="true">—</span>
-                            <div class="yq-price-field">
+                            <div class="yq-price-field w-100">
                                 <label class="yq-price-label" for="yqMaxPriceInput">الحد الأعلى</label>
                                 <div class="yq-price-input-wrap">
-                                    <input type="number" id="yqMaxPriceInput" name="maxPrice" value="@request.MaxPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="إلى" min="0" step="0.01" inputmode="decimal" class="yq-price-input" />
+                                    <input type="number" id="yqMaxPriceInput" name="maxPrice" value="@request.MaxPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="إلى" min="0" step="0.01" inputmode="decimal" class="yq-price-input w-100" aria-invalid="@(priceIsInvalid ? "true" : "false")" aria-describedby="yqPriceError" />
                                 </div>
                             </div>
                         </div>
-                        <div class="yq-price-currency">ريال سعودي</div>
+                        <div class="yq-price-currency mt-2 text-end text-muted small">ريال سعودي</div>
+                        <div id="yqPriceError" class="text-danger mt-2 small @(priceIsInvalid ? "" : "d-none")">يجب أن يكون الحد الأعلى للسعر أكبر من أو يساوي الحد الأدنى.</div>
                     </div>
                 </div>
 
@@ -373,9 +383,9 @@
                         <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
                         <span>مسح الفلاتر</span>
                     </button>
-                    <button type="submit" form="yqCatalogFilters" class="btn-yaqut-gold yq-filter-btn-submit">
+                    <button type="button" class="btn-yaqut-gold yq-filter-btn-submit" data-yq-drawer-close id="yqPrimaryActionBtn">
                         <i class="bi bi-funnel-fill" aria-hidden="true"></i>
-                        <span>عرض النتائج</span>
+                        <span>عرض @Model.TotalCount نتيجة</span>
                     </button>
                 </div>
             </form>
