@@ -1,4 +1,4 @@
-@model YAGOT_2._0.Models.ProductsCatalogViewModel
+﻿@model YAGOT_2._0.Models.ProductsCatalogViewModel
 @{
     var request = Model.Request;
     var selectedCategory = Model.SelectedCategory;
@@ -146,9 +146,7 @@
         <aside id="yaqutFilters" class="yq-shop-filters yq-glass" aria-labelledby="yqFilterMainTitle">
             <div class="yq-filter-header">
                 <div class="yq-filter-header__top">
-                    <div class="yq-filter-header__title">
-                        <i class="bi bi-funnel-fill text-gold" aria-hidden="true"></i>
-                        <h3 id="yqFilterMainTitle">تصفية المنتجات</h3>
+                    <div class="yq-filter-header__title">                        <h3 id="yqFilterMainTitle">تصفية المنتجات</h3>
                     </div>
                     <div class="yq-filter-header__actions">
                         <button type="button" class="yq-shop-filters__close" id="yqFiltersClose" aria-label="إغلاق الفلاتر">
@@ -166,15 +164,14 @@
                 @{
                     var hasAvailabilityFilter = request.Availability != "all";
                 }
-                <div class="yq-filter-card" data-filter-card="availability">
-                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                <div class="yq-filter-card is-collapsed" data-filter-card="availability">
+                    <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                         <span class="yq-filter-card__title">
-                            <i class="bi bi-tag-fill text-gold" aria-hidden="true"></i>
-                            <span>حالة المنتج</span>
+                              <span>حالة المنتج</span>
                         </span>
                         <span class="yq-filter-card__meta">
                             <span class="yq-filter-card__badge @(hasAvailabilityFilter ? "" : "d-none")">(1)</span>
-                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                            <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                         </span>
                     </button>
                     <div class="yq-filter-card__body">
@@ -201,15 +198,14 @@
                 @{
                     var hasRetailFilter = request.Retail != "all";
                 }
-                <div class="yq-filter-card" data-filter-card="retail">
-                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                <div class="yq-filter-card is-collapsed" data-filter-card="retail">
+                    <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                         <span class="yq-filter-card__title">
-                            <i class="bi bi-box-seam-fill text-gold" aria-hidden="true"></i>
-                            <span>نوع المنتج</span>
+                              <span>نوع المنتج</span>
                         </span>
                         <span class="yq-filter-card__meta">
                             <span class="yq-filter-card__badge @(hasRetailFilter ? "" : "d-none")">(1)</span>
-                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                            <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                         </span>
                     </button>
                     <div class="yq-filter-card__body">
@@ -236,15 +232,14 @@
                 @if (Model.Categories.Count > 0)
                 {
                     var catSelectedCount = request.CategoryId.HasValue ? 1 : 0;
-                    <div class="yq-filter-card" data-filter-card="category">
-                        <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                    <div class="yq-filter-card is-collapsed" data-filter-card="category">
+                        <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                             <span class="yq-filter-card__title">
-                                <i class="bi bi-grid-fill text-gold" aria-hidden="true"></i>
-                                <span>الفئة</span>
+                              <span>الفئة</span>
                             </span>
                             <span class="yq-filter-card__meta">
                                 <span class="yq-filter-card__badge @(catSelectedCount > 0 ? "" : "d-none")" data-badge-category>(@catSelectedCount)</span>
-                                <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                                <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                             </span>
                         </button>
                         <div class="yq-filter-card__body">
@@ -278,15 +273,14 @@
                 @if (Model.Brands.Count > 0)
                 {
                     var brandCount = request.Brand.Length;
-                    <div class="yq-filter-card" data-filter-card="brand">
-                        <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                    <div class="yq-filter-card is-collapsed" data-filter-card="brand">
+                        <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                             <span class="yq-filter-card__title">
-                                <i class="bi bi-building-fill text-gold" aria-hidden="true"></i>
-                                <span>الشركة المنتجة</span>
+                              <span>الشركة المنتجة</span>
                             </span>
                             <span class="yq-filter-card__meta">
                                 <span class="yq-filter-card__badge @(brandCount > 0 ? "" : "d-none")" data-badge-brand>(@brandCount)</span>
-                                <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                                <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                             </span>
                         </button>
                         <div class="yq-filter-card__body">
@@ -315,15 +309,14 @@
                 @if (Model.RetailSizes.Count > 0)
                 {
                     var hasRetailSizeFilter = request.RetailSize.Length > 0;
-                    <div class="yq-filter-card @(request.Retail == "no" ? "d-none" : "")" data-filter-card="retailsize" id="yqRetailSizeGroup">
-                        <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                    <div class="yq-filter-card is-collapsed @(request.Retail == "no" ? "d-none" : "")" data-filter-card="retailsize" id="yqRetailSizeGroup">
+                        <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                             <span class="yq-filter-card__title">
-                                <i class="bi bi-aspect-ratio text-gold" aria-hidden="true"></i>
-                                <span>أحجام التجزئة</span>
+                              <span>أحجام التجزئة</span>
                             </span>
                             <span class="yq-filter-card__meta">
                                 <span class="yq-filter-card__badge @(hasRetailSizeFilter ? "" : "d-none")">(@request.RetailSize.Length)</span>
-                                <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                                <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                             </span>
                         </button>
                         <div class="yq-filter-card__body">
@@ -346,15 +339,14 @@
                     var hasPriceFilter = request.MinPrice.HasValue || request.MaxPrice.HasValue;
                     var priceIsInvalid = request.MinPrice.HasValue && request.MaxPrice.HasValue && request.MinPrice > request.MaxPrice;
                 }
-                <div class="yq-filter-card" data-filter-card="price">
-                    <button type="button" class="yq-filter-card__header" aria-expanded="true" data-filter-toggle>
+                <div class="yq-filter-card is-collapsed" data-filter-card="price">
+                    <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                         <span class="yq-filter-card__title">
-                            <i class="bi bi-wallet2 text-gold" aria-hidden="true"></i>
-                            <span>نطاق السعر</span>
+                              <span>نطاق السعر</span>
                         </span>
                         <span class="yq-filter-card__meta">
                             <span class="yq-filter-card__badge @(hasPriceFilter ? "" : "d-none")">(1)</span>
-                            <i class="bi bi-chevron-up yq-filter-card__arrow" aria-hidden="true"></i>
+                            <span class="yq-filter-card__arrow" aria-hidden="true"></span>
                         </span>
                     </button>
                     <div class="yq-filter-card__body">

@@ -220,6 +220,29 @@
             });
         }
     }
+
+    function captureAccordionState() {
+        var state = {};
+        if (!filterForm) return state;
+        filterForm.querySelectorAll('[data-filter-card]').forEach(function (card) {
+            var key = card.getAttribute('data-filter-card');
+            if (key) state[key] = card.classList.contains('is-collapsed');
+        });
+        return state;
+    }
+
+    function restoreAccordionState(state) {
+        if (!filterForm || !state) return;
+        filterForm.querySelectorAll('[data-filter-card]').forEach(function (card) {
+            var key = card.getAttribute('data-filter-card');
+            if (!key || !Object.prototype.hasOwnProperty.call(state, key)) return;
+            var isCollapsed = !!state[key];
+            card.classList.toggle('is-collapsed', isCollapsed);
+            var header = card.querySelector('[data-filter-toggle]');
+            if (header) header.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+        });
+    }
+
     function saveCommittedState() {
         if (filterForm) {
             lastCommittedFormData = new FormData(filterForm);
@@ -455,7 +478,9 @@
 
                 var newForm = parsed.getElementById('yqCatalogFilters');
                 if (newForm && filterForm) {
+                    var accordionState = captureAccordionState();
                     filterForm.innerHTML = newForm.innerHTML;
+                    restoreAccordionState(accordionState);
                     syncRetailSizeDependency();
                     updateFilterActionState();
                 }

@@ -1,4 +1,4 @@
-/* ═══ Products / Index — Shop Page ═══ */
+﻿/* â•â•â• Products / Index â€” Shop Page â•â•â• */
 
 .yq-shop {
     display: flex;
@@ -7,7 +7,7 @@
     padding-top: 2rem;
 }
 
-/* ── Header ── */
+/* â”€â”€ Header â”€â”€ */
 
 
 .yq-shop-breadcrumb {
@@ -58,7 +58,7 @@
         border-color: var(--yq-gold);
     }
 
-/* ── Category Pills ── */
+/* â”€â”€ Category Pills â”€â”€ */
 .yq-shop-pills {
     display: flex;
     flex-wrap: wrap;
@@ -96,7 +96,7 @@
         box-shadow: var(--yq-shadow-gold);
     }
 
-/* ── Toolbar ── */
+/* â”€â”€ Toolbar â”€â”€ */
 .yq-shop-toolbar {
     display: flex;
     justify-content: space-between;
@@ -172,7 +172,7 @@
     display: none;
 }
 
-/* ── Layout ── */
+/* â”€â”€ Layout â”€â”€ */
 .yq-shop-layout {
     display: grid;
     grid-template-columns: 295px 1fr;
@@ -180,7 +180,7 @@
     align-items: start;
 }
 
-/* ── Filters Sidebar & Redesigned Component ── */
+/* â”€â”€ Filters Sidebar & Redesigned Component â”€â”€ */
 .yq-shop-filters {
     position: sticky;
     top: 100px;
@@ -192,7 +192,7 @@
     transition: all var(--yq-ease);
 }
 
-/* ── Filter Header ── */
+/* â”€â”€ Filter Header â”€â”€ */
 .yq-filter-header {
     margin-bottom: 1.35rem;
     padding-bottom: 0.25rem;
@@ -282,7 +282,7 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* ── Filter Form & Cards ── */
+/* â”€â”€ Filter Form & Cards â”€â”€ */
 .yq-filter-form {
     display: flex;
     flex-direction: column;
@@ -303,8 +303,8 @@
 
 .yq-filter-card__header {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(1.75rem, 1fr) auto minmax(1.75rem, 1fr);
     align-items: center;
     padding: 0.95rem 1.15rem;
     background: transparent;
@@ -314,48 +314,79 @@
     color: var(--yq-text);
     text-align: right;
     user-select: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.yq-filter-card__header:hover {
+    background: rgba(212, 175, 55, 0.045);
+}
+
+.yq-filter-card__header:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--yq-gold) 55%, transparent);
+    outline-offset: -2px;
+    background: rgba(212, 175, 55, 0.055);
 }
 
 .yq-filter-card__title {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    grid-column: 2;
+    justify-self: center;
+    min-width: 0;
     font-size: 0.98rem;
     font-weight: 800;
-    color: var(--yq-gold);
+    color: var(--yq-text);
+    text-align: center;
     letter-spacing: -0.01em;
+    transition: color 0.2s ease;
 }
 
-.yq-filter-card__title i {
-    font-size: 1.12rem;
+.yq-filter-card__header:hover .yq-filter-card__title,
+.yq-filter-card__header:focus-visible .yq-filter-card__title {
     color: var(--yq-gold);
 }
 
 .yq-filter-card__meta {
+    grid-column: 3;
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .yq-filter-card__badge {
     font-size: 0.78rem;
     font-weight: 800;
-    color: var(--yq-gold);
-    background: rgba(212, 175, 55, 0.12);
-    border: 1px solid rgba(212, 175, 55, 0.28);
-    padding: 0.15rem 0.55rem;
+    color: var(--yq-text);
+    background: rgba(212, 175, 55, 0.07);
+    border: 1px solid rgba(184, 148, 46, 0.24);
+    min-width: 1.75rem;
+    padding: 0.15rem 0.45rem;
     border-radius: 20px;
     line-height: 1.2;
+    text-align: center;
+}
+
+.theme-dark .yq-filter-card__badge,
+.dark-mode .yq-filter-card__badge,
+html[data-theme="dark"] .yq-filter-card__badge {
+    color: var(--yq-gold-bright, var(--yq-gold));
+    background: rgba(212, 175, 55, 0.1);
+    border-color: rgba(212, 175, 55, 0.3);
 }
 
 .yq-filter-card__arrow {
-    font-size: 0.8rem;
-    color: var(--yq-text-soft);
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    color: var(--yq-gold);
+    transform: translateY(-20%) rotate(45deg); /* Collapsed: points DOWN */
+    transition: transform 0.25s ease, color 0.2s ease;
 }
 
-.yq-filter-card.is-collapsed .yq-filter-card__arrow {
-    transform: rotate(180deg);
+.yq-filter-card:not(.is-collapsed) .yq-filter-card__arrow {
+    transform: translateY(20%) rotate(225deg); /* Expanded: points UP */
 }
 
 .yq-filter-card__body {
@@ -363,11 +394,23 @@
     display: block;
 }
 
+.theme-dark .yq-filter-card__arrow,
+.dark-mode .yq-filter-card__arrow,
+html[data-theme="dark"] .yq-filter-card__arrow {
+    color: var(--yq-gold-bright, var(--yq-gold));
+}
+
+.yq-filter-card__header:hover .yq-filter-card__arrow,
+.yq-filter-card__header:focus-visible .yq-filter-card__arrow {
+    color: var(--yq-gold);
+}
+
+
 .yq-filter-card.is-collapsed .yq-filter-card__body {
     display: none;
 }
 
-/* ── Filter Grid & Options ── */
+/* â”€â”€ Filter Grid & Options â”€â”€ */
 .yq-filter-grid {
     display: grid;
     gap: 0.5rem 0.6rem;
@@ -417,8 +460,8 @@
 }
 
 .yq-filter-item:hover {
-    background: rgba(212, 175, 55, 0.08);
-    border-color: rgba(212, 175, 55, 0.15);
+    background: rgba(212, 175, 55, 0.045);
+    border-color: rgba(212, 175, 55, 0.22);
 }
 
 .yq-filter-item.is-selected {
@@ -433,6 +476,22 @@ html[data-theme="dark"] .yq-filter-item.is-selected {
     border-color: rgba(212, 175, 55, 0.38);
 }
 
+.yq-filter-item:has(.yq-control-input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.65;
+    background: transparent;
+    border-color: transparent;
+}
+
+.yq-filter-item:has(.yq-control-input:disabled) .yq-control-label {
+    color: var(--yq-text-soft);
+}
+
+.yq-filter-item:has(.yq-control-input:disabled) :is(.yq-control-box, .yq-control-radio) {
+    border-color: var(--yq-text-soft);
+    box-shadow: none;
+}
+
 .yq-control-input {
     position: absolute;
     opacity: 0;
@@ -441,7 +500,7 @@ html[data-theme="dark"] .yq-filter-item.is-selected {
     pointer-events: none;
 }
 
-/* ── Custom Checkbox Box ── */
+/* â”€â”€ Custom Checkbox Box â”€â”€ */
 .yq-control-box {
     width: 19px;
     height: 19px;
@@ -478,7 +537,7 @@ html[data-theme="dark"] .yq-filter-item.is-selected {
     margin-top: -2px;
 }
 
-/* ── Custom Radio Circle ── */
+/* â”€â”€ Custom Radio Circle â”€â”€ */
 .yq-control-radio {
     width: 19px;
     height: 19px;
@@ -518,7 +577,7 @@ html[data-theme="dark"] .yq-filter-item.is-selected {
     height: 7px;
 }
 
-/* ── Control Label (Complete Text Visibility & Natural Wrapping) ── */
+/* â”€â”€ Control Label (Complete Text Visibility & Natural Wrapping) â”€â”€ */
 .yq-control-label {
     flex: 1;
     font-family: var(--yq-font-body);
@@ -552,7 +611,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     color: var(--yq-gold-bright, var(--yq-gold));
 }
 
-/* ── Show More Button ── */
+/* â”€â”€ Show More Button â”€â”€ */
 .yq-filter-more-btn {
     width: 100%;
     display: flex;
@@ -586,7 +645,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     transform: rotate(180deg);
 }
 
-/* ── Subgroup for Retail Sizes ── */
+/* â”€â”€ Subgroup for Retail Sizes â”€â”€ */
 .yq-filter-subgroup {
     margin-top: 0.85rem;
     padding-top: 0.85rem;
@@ -601,7 +660,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     margin-bottom: 0.5rem;
 }
 
-/* ── Price Range Section ── */
+/* â”€â”€ Price Range Section â”€â”€ */
 .yq-price-inputs-row {
     display: flex;
     align-items: flex-end;
@@ -666,7 +725,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     letter-spacing: 0.02em;
 }
 
-/* ── Bottom Actions ── */
+/* â”€â”€ Bottom Actions â”€â”€ */
 .yq-filter-footer {
     position: sticky;
     bottom: 0;
@@ -751,7 +810,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     transform: none;
 }
 
-/* ── Product Grid ── */
+/* â”€â”€ Product Grid â”€â”€ */
 .yq-shop-grid {
     --bs-gutter-x: 1rem;
     --bs-gutter-y: 1rem;
@@ -761,7 +820,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     min-height: 2.8em;
 }
 
-/* ── Products card action ── */
+/* â”€â”€ Products card action â”€â”€ */
 .yq-shop .yq-pcard__action-add:not(:disabled) {
     background: linear-gradient(135deg, #F0DB98 0%, #D8B95D 50%, #BE9B3F 100%);
     color: #111;
@@ -795,7 +854,7 @@ html[data-theme="dark"] .yq-shop .yq-pcard__action-add:not(:disabled) {
     border-color: transparent;
 }
 
-/* ── Server pager ── */
+/* â”€â”€ Server pager â”€â”€ */
 .yq-shop-pager {
     display: flex;
     align-items: center;
@@ -861,7 +920,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
     opacity: .45;
 }
 
-/* ── Empty State ── */
+/* â”€â”€ Empty State â”€â”€ */
 .yq-shop-empty {
     padding: 5rem 2rem;
 }
@@ -873,7 +932,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
     margin: 0.5rem 0 0.75rem;
 }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 991.98px) {
     .yq-shop-layout {
         grid-template-columns: 1fr;
@@ -956,7 +1015,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         align-items: flex-start;
     }
 }
-/* ── Search Banner ── */
+/* â”€â”€ Search Banner â”€â”€ */
 .yq-search-banner {
     display: flex;
     align-items: center;
@@ -1037,7 +1096,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         border-color: var(--yq-gold);
     }
 
-/* ── Recent Searches ── */
+/* â”€â”€ Recent Searches â”€â”€ */
 .yq-recent-searches {
     display: flex;
     align-items: center;
@@ -1090,7 +1149,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         opacity: 0.7;
     }
 
-/* ── Search Empty State ── */
+/* â”€â”€ Search Empty State â”€â”€ */
 .yq-search-empty {
     padding: 5rem 2rem;
 }
@@ -1116,7 +1175,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
     gap: 0.6rem;
 }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 575.98px) {
     .yq-shop-grid {
         --bs-gutter-x: 0.65rem;
