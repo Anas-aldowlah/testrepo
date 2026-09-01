@@ -887,28 +887,50 @@
     align-items: center;
     justify-content: center;
     min-height: 44px;
-    gap: 0.5rem;
+    gap: 0.45rem;
     padding: 0.68rem 0.9rem;
-    border: 1px dashed var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+    border: 1px solid var(--yq-admin-gold);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 9%, var(--yq-admin-surface-soft, #1b1f22));
+    background: var(--yq-admin-surface-solid);
+    color: var(--yq-admin-gold);
     cursor: pointer;
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .yq-category-upload__label:hover {
-    border-color: var(--yq-admin-gold-bright, #d4af37);
-    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 14%, var(--yq-admin-surface-soft, #1b1f22));
+    border-color: var(--yq-admin-gold-bright);
+    background: color-mix(in srgb, var(--yq-admin-gold) 8%, var(--yq-admin-surface-solid));
+    color: var(--yq-admin-gold-bright);
 }
 
 .yq-category-upload input[type="file"] {
     width: 100%;
-    padding: 0.65rem;
-    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--yq-admin-border-strong);
     border-radius: 8px;
-    background: var(--yq-admin-surface-soft, #1b1f22);
-    color: var(--yq-admin-muted, #b6b1a6);
+    background: var(--yq-admin-surface-solid);
+    color: var(--yq-admin-text);
     font-size: 0.84rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.yq-category-upload input[type="file"]:focus {
+    outline: none;
+    border-color: var(--yq-admin-gold-bright);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+.yq-category-upload input[type="file"]::-webkit-file-upload-button {
+    margin-inline-end: 0.75rem;
+    padding: 0.48rem 0.75rem;
+    border: 0;
+    border-radius: 6px;
+    background: var(--yq-admin-gold-soft);
+    color: #111;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
 
 .yq-category-upload input[type="file"]::file-selector-button {
@@ -916,11 +938,20 @@
     padding: 0.48rem 0.75rem;
     border: 0;
     border-radius: 6px;
-    background: var(--yq-admin-gold, #b8942e);
+    background: var(--yq-admin-gold-soft);
     color: #111;
     font: inherit;
     font-weight: 900;
     cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.yq-category-upload input[type="file"]::-webkit-file-upload-button:hover {
+    background: var(--yq-admin-gold-bright);
+}
+
+.yq-category-upload input[type="file"]::file-selector-button:hover {
+    background: var(--yq-admin-gold-bright);
 }
 
 .yq-category-form__actions {
