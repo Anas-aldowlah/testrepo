@@ -1,4 +1,4 @@
-﻿/* â•â•â• Products / Index â€” Shop Page â•â•â• */
+/* â•â•â• Products / Index â€” Shop Page â•â•â• */
 
 .yq-shop {
     display: flex;
@@ -414,7 +414,7 @@ html[data-theme="dark"] .yq-filter-card__arrow {
 .yq-filter-grid {
     display: grid;
     gap: 0.5rem 0.6rem;
-    align-items: stretch;
+    align-items: start;
 }
 
 .yq-filter-grid--2col {
@@ -429,7 +429,7 @@ html[data-theme="dark"] .yq-filter-card__arrow {
 .yq-filter-item {
     position: relative;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.55rem;
     padding: 0.5rem 0.55rem;
     min-height: 38px;
