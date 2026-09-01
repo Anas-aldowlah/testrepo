@@ -375,17 +375,13 @@
 }
 
 .yq-confirm-summary__row--total {
-    font-family: var(--yq-font-display);
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--yq-gold);
     margin-bottom: 1.75rem;
 }
 
-    .yq-confirm-summary__row--total small {
-        font-size: 0.82rem;
-        font-family: var(--yq-font-body);
-    }
+
 
 .yq-confirm-summary__actions {
     display: flex;

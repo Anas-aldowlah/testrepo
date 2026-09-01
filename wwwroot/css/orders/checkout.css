@@ -672,17 +672,13 @@
     }
 
 .yq-checkout-summary__row--total {
-    font-family: var(--yq-font-display);
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--yq-gold);
     margin-bottom: 1.5rem;
 }
 
-    .yq-checkout-summary__row--total small {
-        font-size: 0.82rem;
-        font-family: var(--yq-font-body);
-    }
+
 
 .yq-checkout-place-btn {
     width: 100%;
