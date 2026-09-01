@@ -166,10 +166,10 @@
                                 <div class="yq-cart-item__pricing">
                                     <span class="yq-cart-item__unit-price"
                                           data-unit-price="@UnitPrice(item).ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                                        @UnitPrice(item).ToString("N0") ر.س / @UnitLabel(item)
+                                        @(UnitPrice(item).ToYaqutPrice()) / @UnitLabel(item)
                                     </span>
                                     <span class="yq-cart-item__line-total">
-                                        @lineTotal.ToString("N0") <small>ر.س</small>
+                                        @(lineTotal.ToYaqutPrice())
                                     </span>
                                 </div>
                             </div>
@@ -190,8 +190,7 @@
                     <div class="yq-cart-summary__total-box">
                         <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
                         <div class="yq-cart-summary__total-value">
-                            <span data-yq-summary-total>@subtotal.ToString("N0")</span>
-                            <small>ر.س</small>
+                            <span data-yq-summary-total>@(subtotal.ToYaqutPrice())</span>
                         </div>
                     </div>
                 </div>

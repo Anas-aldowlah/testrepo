@@ -204,7 +204,7 @@
                                 <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-od-product__name">
                                     @item.Product?.Name
                                 </a>
-                                <span class="yq-od-product__meta">الكمية: @item.Quantity × @item.Unitprice.ToString("N0") ر.س</span>
+                                <span class="yq-od-product__meta">الكمية: @item.Quantity × @(item.Unitprice.ToYaqutPrice())</span>
                                 @if (item.UnavailableQuantity.HasValue)
                                 {
                                     <span class="yq-od-product__meta">المتاح: @Math.Max(0, item.Quantity - item.UnavailableQuantity.Value) — غير المتوفر: @item.UnavailableQuantity</span>
@@ -214,7 +214,7 @@
                                     <span class="yq-od-product__meta">الكمية المنفذة: @item.FulfilledQuantity</span>
                                 }
                             </div>
-                            <span class="yq-od-product__total">@lineTotal.ToString("N0") ر.س</span>
+                            <span class="yq-od-product__total">@(lineTotal.ToYaqutPrice())</span>
                         </div>
                     }
                 </div>
@@ -238,13 +238,13 @@
 
             <div class="yq-od-summary__row yq-od-summary__row--total">
                 <span>المبلغ الأصلي المدفوع</span>
-                <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
+                <span>@(Model.Totalamount.ToYaqutPrice())</span>
             </div>
             @if (Model.Finalfulfilledamount.HasValue)
             {
                 <div class="yq-od-summary__row">
                     <span>قيمة الطلب المنفذ</span>
-                    <span>@Model.Finalfulfilledamount.Value.ToString("N0") <small>ر.س</small></span>
+                    <span>@(Model.Finalfulfilledamount.Value.ToYaqutPrice())</span>
                 </div>
             }
 

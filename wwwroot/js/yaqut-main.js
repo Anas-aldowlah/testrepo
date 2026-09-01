@@ -597,6 +597,28 @@
         });
     }
 
+    window.Yaqut = window.Yaqut || {};
+    window.Yaqut.formatPrice = function(amount) {
+        if (
+            amount === null ||
+            amount === undefined ||
+            (typeof amount === 'string' && amount.trim() === '')
+        ) {
+            return '\u2014';
+        }
+
+        var num = Number(amount);
+
+        if (!Number.isFinite(num)) {
+            return '\u2014';
+        }
+
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(num) + ' ر.س';
+    };
+
     function init() {
         initThemeToggle();
         initAuthPanels();

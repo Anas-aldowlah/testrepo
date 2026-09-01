@@ -549,7 +549,7 @@ html[data-theme="dark"] .form-select,
 
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-white-50">المجموع الفرعي:</span>
-                    <strong class="fs-6 text-white" id="summarySubtotal">0.00 ر.س</strong>
+                    <strong class="fs-6 text-white" id="summarySubtotal">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                 </div>
 
                 <div class="mb-3">
@@ -561,7 +561,7 @@ html[data-theme="dark"] .form-select,
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fs-5 fw-bold text-white">المبلغ النهائي:</span>
-                    <strong class="fs-4 text-warning fw-bold" id="summaryFinalTotal">0.00 ر.س</strong>
+                    <strong class="fs-4 text-warning fw-bold" id="summaryFinalTotal">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                 </div>
 
                 <!-- PAYMENT METHODS SECTION -->
@@ -580,11 +580,11 @@ html[data-theme="dark"] .form-select,
                     <div class="bg-dark bg-opacity-50 p-2 rounded-3 mt-2 border border-secondary border-opacity-50">
                         <div class="d-flex justify-content-between align-items-center small text-white-50 mb-1" >
                             <span class="block-color">إجمالي المدفوع:</span>
-                            <strong class="fs-7 block-color" id="summaryTotalPaid">0.00 ر.س</strong>
+                            <strong class="fs-7 block-color" id="summaryTotalPaid">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                         </div>
                         <div class="d-flex justify-content-between align-items-center small">
                             <span class="block-color">المبلغ المتبقي:</span>
-                            <strong class="text-danger fw-bold fs-7 block-color" id="summaryRemaining">0.00 ر.س</strong>
+                            <strong class="text-danger fw-bold fs-7 block-color" id="summaryRemaining">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                         </div>
                     </div>
                 </div>
@@ -653,7 +653,7 @@ html[data-theme="dark"] .form-select,
                     </div>
                     <div class="d-flex flex-wrap justify-content-between gap-2 mb-2 pos-success-detail">
                         <span class="text-white-50">الإجمالي المسدد:</span>
-                        <strong class="text-white" id="successFinalAmount">0.00 ر.س</strong>
+                        <strong class="text-white" id="successFinalAmount">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                     </div>
                     <div class="d-flex flex-wrap justify-content-between gap-2 pos-success-detail">
                         <span class="text-white-50">تاريخ الاعتماد:</span>
@@ -1165,7 +1165,7 @@ html[data-theme="dark"] .form-select,
                 </td>
                 <td class="text-end pos-cell-total">
                     <span class="pos-mobile-label">الإجمالي</span>
-                    <strong class="pos-row-total text-dark fs-6">0.00 ر.س</strong>
+                    <strong class="pos-row-total text-dark fs-6">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                 </td>
                 <td class="text-center pos-cell-remove">
                     <button type="button" class="btn btn-sm btn-outline-danger pos-btn-remove" aria-label="إزالة الصنف"><i class="bi bi-trash"></i><span class="pos-btn-remove__text">إزالة الصنف</span></button>
@@ -1240,7 +1240,7 @@ html[data-theme="dark"] .form-select,
                         option.value = pId;
                         option.dataset.size = size;
                         option.dataset.price = pVal;
-                        option.textContent = '🧪 تجزئة ' + size + ' ml — ' + Number(pVal).toFixed(2) + ' ر.س';
+                        option.textContent = '🧪 تجزئة ' + size + ' ml — ' + window.Yaqut.formatPrice(Number(pVal));
                         if (itemData && itemData.retailPriceId && String(itemData.retailPriceId) === String(pId)) {
                             option.selected = true;
                         }
@@ -1524,7 +1524,7 @@ html[data-theme="dark"] .form-select,
                                     price.className = 'pos-search-card__price text-end flex-shrink-0';
                                     var amount = document.createElement('div');
                                     amount.className = 'fw-bold text-warning fs-6';
-                                    amount.textContent = (Number(p.price) || 0).toFixed(2) + ' ر.س';
+                                    amount.textContent = (Number(p.price) || window.Yaqut.formatPrice(0));
                                     var actionHint = document.createElement('div');
                                     actionHint.className = 'fs-8 text-muted';
                                     actionHint.textContent = 'اضغط للاختيار';
@@ -1667,7 +1667,7 @@ html[data-theme="dark"] .form-select,
                 var hasRetail = product.isRetailEnabled || product.IsRetailEnabled || prices.length > 0 || (product.volumeMl && product.volumeMl > 0);
                 if (isMl && hasRetail) {
                     retailSelect.style.display = 'block';
-                    var fullLabel = '📦 بالعبوة الكاملة' + (product.volumeMl ? ' (' + product.volumeMl + ' ml)' : '') + ' — ' + Number(product.price).toFixed(2) + ' ر.س';
+                    var fullLabel = '📦 بالعبوة الكاملة' + (product.volumeMl ? ' (' + product.volumeMl + ' ml)' : '') + ' — ' + window.Yaqut.formatPrice(Number(product.price));
                     retailSelect.replaceChildren();
                     var fullOption = document.createElement('option');
                     fullOption.value = '';
@@ -1684,7 +1684,7 @@ html[data-theme="dark"] .form-select,
                             option.value = pId;
                             option.dataset.size = size;
                             option.dataset.price = pVal;
-                            option.textContent = '🧪 تجزئة ' + size + ' ml — ' + Number(pVal).toFixed(2) + ' ر.س';
+                            option.textContent = '🧪 تجزئة ' + size + ' ml — ' + window.Yaqut.formatPrice(Number(pVal));
                             retailSelect.appendChild(option);
                         });
                     }
@@ -1825,12 +1825,12 @@ html[data-theme="dark"] .form-select,
                     }
 
                     var lineTotal = Math.max(0, lineGross - disc);
-                    row.querySelector('.pos-row-total').textContent = lineTotal.toFixed(2) + ' ر.س';
+                    row.querySelector('.pos-row-total').textContent = window.Yaqut.formatPrice(lineTotal);
 
                     grossSubtotal += lineGross;
                     lineDiscountsTotal += disc;
                 } else {
-                    row.querySelector('.pos-row-total').textContent = '0.00 ر.س';
+                    row.querySelector('.pos-row-total').textContent = window.Yaqut.formatPrice(0);
                     var hint = row.querySelector('.pos-stock-hint');
                     if (hint) hint.style.display = 'none';
                 }
@@ -1866,8 +1866,8 @@ html[data-theme="dark"] .form-select,
             var finalTotal = Math.max(0, grossSubtotal - totalDiscounts);
 
             document.getElementById('summaryItemsCount').textContent = validItemsCount + ' أصناف';
-            document.getElementById('summarySubtotal').textContent = grossSubtotal.toFixed(2) + ' ر.س';
-            document.getElementById('summaryFinalTotal').textContent = finalTotal.toFixed(2) + ' ر.س';
+            document.getElementById('summarySubtotal').textContent = window.Yaqut.formatPrice(grossSubtotal);
+            document.getElementById('summaryFinalTotal').textContent = window.Yaqut.formatPrice(finalTotal);
 
             // Calculate Payment Totals
             var pContainer = document.getElementById('posPaymentsContainer');
@@ -1885,10 +1885,10 @@ html[data-theme="dark"] .form-select,
             }
 
             var remaining = finalTotal - totalPaid;
-            document.getElementById('summaryTotalPaid').textContent = totalPaid.toFixed(2) + ' ر.س';
+            document.getElementById('summaryTotalPaid').textContent = window.Yaqut.formatPrice(totalPaid);
 
             var remainingSpan = document.getElementById('summaryRemaining');
-            remainingSpan.textContent = remaining.toFixed(2) + ' ر.س';
+            remainingSpan.textContent = window.Yaqut.formatPrice(remaining);
 
             if (Math.abs(remaining) == 0.00) {
                 remainingSpan.className = 'text-success fw-bold fs-7';
@@ -2042,7 +2042,7 @@ html[data-theme="dark"] .form-select,
                 var totalPaid = data.payments.reduce(function(sum, p) { return sum + (p.amount || 0); }, 0);
 
                 if (Math.abs(totalPaid - calcFinalTotal) > 0.01) {
-                    showAlert(`مجموع الدفعات المدخلة (${totalPaid.toFixed(2)} ر.س) لا يطابق المبلغ النهائي المطلوب (${calcFinalTotal.toFixed(2)} ر.س).`, 'warning');
+                    showAlert(`مجموع الدفعات المدخلة (${window.Yaqut.formatPrice(totalPaid)}) لا يطابق المبلغ النهائي المطلوب (${window.Yaqut.formatPrice(calcFinalTotal)}).`, 'warning');
                     return;
                 }
 
@@ -2070,7 +2070,7 @@ html[data-theme="dark"] .form-select,
                 if (res.success) {
                     saleCompleted = true;
                     document.getElementById('successInvoiceNum').textContent = res.invoiceNumber || '-';
-                    document.getElementById('successFinalAmount').textContent = res.finalAmount.toFixed(2) + ' ر.س';
+                    document.getElementById('successFinalAmount').textContent = window.Yaqut.formatPrice(res.finalAmount);
                     document.getElementById('successCompletedAt').textContent = res.completedAt || '-';
                     document.getElementById('successModalMessage').textContent = res.message || 'تمت العملية بنجاح.';
 

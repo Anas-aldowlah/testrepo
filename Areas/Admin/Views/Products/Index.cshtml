@@ -177,8 +177,7 @@
                                 </td>
                                 <td data-label="السعر">
                                     <div class="yq-products-price">
-                                        <strong>@p.Price.ToString("N0")</strong>
-                                        <span>ر.س</span>
+                                        <strong>@(p.Price.ToYaqutPrice())</strong>
                                     </div>
                                 </td>
                                 <td data-label="المخزون">

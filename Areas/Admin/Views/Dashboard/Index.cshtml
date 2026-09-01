@@ -59,7 +59,7 @@
             <span class="yq-dashboard-kpi__icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
             <div>
                 <p class="yq-dashboard-kpi__label">الإيرادات</p>
-                <strong class="yq-dashboard-kpi__value">@Model.TotalRevenue.ToString("N0") <span>ر.س</span></strong>
+                <strong class="yq-dashboard-kpi__value">@(Model.TotalRevenue.ToYaqutPrice())</strong>
             </div>
         </article>
     </section>
@@ -109,7 +109,7 @@
                                 <tr>
                                     <td data-label="رقم الطلب"><strong>#@order.Id</strong></td>
                                     <td data-label="رقم التتبع">@(string.IsNullOrWhiteSpace(order.Trackingnumber) ? "-" : order.Trackingnumber)</td>
-                                    <td data-label="الإجمالي">@order.Totalamount.ToString("N0") ر.س</td>
+                                    <td data-label="الإجمالي">@(order.Totalamount.ToYaqutPrice())</td>
                                     <td data-label="الحالة">
                                         <span class="yq-dashboard-status yq-dashboard-status--@statusClass">@stateAr</span>
                                     </td>

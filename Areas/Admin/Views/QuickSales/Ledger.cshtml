@@ -83,7 +83,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">إجمالي مبيعات اليوم</span>
-                        <h3 class="fw-bold mb-0 text-success">@Model.TotalSalesAmount.ToString("N2") <small class="fs-6">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-success">@(Model.TotalSalesAmount.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-success bg-opacity-10 text-success p-3">
                         <i class="bi bi-currency-dollar fs-3"></i>
@@ -97,7 +97,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">العهدة الافتتاحية</span>
-                        <h3 class="fw-bold mb-0 text-dark">@Model.SalesDay.OpeningBalance.ToString("N2") <small class="fs-6 text-muted">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-dark">@(Model.SalesDay.OpeningBalance.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-info bg-opacity-10 text-info p-3">
                         <i class="bi bi-wallet2 fs-3"></i>
@@ -111,7 +111,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">الصافي الإجمالي</span>
-                        <h3 class="fw-bold mb-0 text-primary">@Model.NetTotalAmount.ToString("N2") <small class="fs-6 text-muted">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-primary">@(Model.NetTotalAmount.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3">
                         <i class="bi bi-graph-up-arrow fs-3"></i>
@@ -154,7 +154,7 @@
                                 <div class="mt-auto pt-2 border-top border-secondary border-opacity-10 d-flex align-items-baseline justify-content-between flex-wrap gap-1">
                                     <span class="text-muted small">إجمالي التحصيل:</span>
                                     <strong class="fs-5 text-warning fw-bold text-nowrap">
-                                        @pm.TotalAmount.ToString("N2") <small class="fs-7 text-dark fw-normal">ر.س</small>
+                                        @(pm.TotalAmount.ToYaqutPrice())
                                     </strong>
                                 </div>
                             </div>
@@ -216,7 +216,7 @@
                                             {
                                                 <div>
                                                     <span class="badge bg-dark text-warning border border-secondary px-2 py-1 text-wrap text-start">
-                                                        <i class="bi bi-wallet2 me-1"></i>@(sp.PaymentMethod?.Name ?? "طريقة دفع") (@FormatMethodCode(sp.PaymentMethod?.Type)): @sp.Amount.ToString("N2") ر.س
+                                                        <i class="bi bi-wallet2 me-1"></i>@(sp.PaymentMethod?.Name ?? "طريقة دفع") (@FormatMethodCode(sp.PaymentMethod?.Type)): @(sp.Amount.ToYaqutPrice())
                                                     </span>
                                                 </div>
                                             }
@@ -227,9 +227,9 @@
                                         <span class="pos-text-muted">-</span>
                                     }
                                 </td>
-                                <td class="text-nowrap">@(sale.DiscountTotal > 0 ? sale.DiscountTotal.ToString("N2") + " ر.س" : "-")</td>
+                                <td class="text-nowrap">@(sale.DiscountTotal > 0 ? sale.DiscountTotal.ToYaqutPrice() : "-")</td>
                                 <td class="text-nowrap">
-                                    <strong class="fs-6 fw-bold">@sale.FinalAmount.ToString("N2") ر.س</strong>
+                                    <strong class="fs-6 fw-bold">@(sale.FinalAmount.ToYaqutPrice())</strong>
                                 </td>
                                 <td class="text-end">
                                     <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-3 text-nowrap yq-btn-view-sale" data-sale-id="@sale.Id">
@@ -289,7 +289,7 @@
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">إجمالي المبيعات:</span>
-                            <strong class="text-success fw-bold">@Model.TotalSalesAmount.ToString("N2") ر.س</strong>
+                            <strong class="text-success fw-bold">@(Model.TotalSalesAmount.ToYaqutPrice())</strong>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">عدد المسودات المتبقية:</span>
@@ -392,9 +392,9 @@
                             <tr>
                                 <td><strong class="text-dark">${escapeHtml(item.productName)}${modeLabel}</strong></td>
                                 <td class="text-center">${item.quantity}</td>
-                                <td class="text-end">${item.unitPrice.toFixed(2)} ر.س</td>
-                                <td class="text-end">${item.discount > 0 ? item.discount.toFixed(2) + ' ر.س' : '-'}</td>
-                                <td class="text-end text-dark"><strong >${item.total.toFixed(2)} ر.س</strong></td>
+                                <td class="text-end">${window.Yaqut.formatPrice(item.unitPrice)}</td>
+                                <td class="text-end">${item.discount > 0 ? window.Yaqut.formatPrice(item.discount) : '-'}</td>
+                                <td class="text-end text-dark"><strong >${window.Yaqut.formatPrice(item.total)}</strong></td>
                             </tr>
                         `;
                     });
@@ -404,7 +404,7 @@
                         paymentsHtml += `
                             <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light mb-1 border">
                                 <span><i class="bi bi-wallet2 me-1"></i> ${escapeHtml(pm.methodName)} (${escapeHtml(pm.methodCode)})</span>
-                                <strong class="text-warning">${pm.amount.toFixed(2)} ر.س</strong>
+                                <strong class="text-warning">${window.Yaqut.formatPrice(pm.amount)}</strong>
                             </div>
                         `;
                     });
@@ -444,15 +444,15 @@
                                 <div class="bg-dark text-white p-3 rounded-3">
                                     <div class="d-flex justify-content-between mb-1 text-white-50">
                                         <span>المجموع الفرعي:</span>
-                                        <span>${data.totalAmount.toFixed(2)} ر.س</span>
+                                        <span>${window.Yaqut.formatPrice(data.totalAmount)}</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-2 text-white-50">
                                         <span>خصم الفاتورة:</span>
-                                        <span>${data.discountTotal.toFixed(2)} ر.س</span>
+                                        <span>${window.Yaqut.formatPrice(data.discountTotal)}</span>
                                     </div>
                                     <div class="d-flex justify-content-between border-top border-secondary pt-2">
                                         <span class="fw-bold fs-6">الإجمالي النهائي:</span>
-                                        <strong class="text-warning fs-5">${data.finalAmount.toFixed(2)} ر.س</strong>
+                                        <strong class="text-warning fs-5">${window.Yaqut.formatPrice(data.finalAmount)}</strong>
                                     </div>
                                 </div>
                             </div>

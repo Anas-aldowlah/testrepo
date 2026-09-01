@@ -190,7 +190,7 @@
                                         <td data-label="الحالة">
                                             <span class="yq-user-order-status @statusClass">@statusLabel</span>
                                         </td>
-                                        <td data-label="الإجمالي">@order.Totalamount.ToString("N0") ر.س</td>
+                                        <td data-label="الإجمالي">@(order.Totalamount.ToYaqutPrice())</td>
                                         <td data-label="التاريخ">
                                             @(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "غير متوفر")
                                         </td>

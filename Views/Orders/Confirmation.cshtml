@@ -154,9 +154,9 @@
                                 <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Productid" class="yq-confirm-product__name">
                                     @item.Product?.Name
                                 </a>
-                                <span class="yq-confirm-product__meta">الكمية: @item.Quantity × @item.Unitprice.ToString("N0") ر.س</span>
+                                <span class="yq-confirm-product__meta">الكمية: @item.Quantity × @(item.Unitprice.ToYaqutPrice())</span>
                             </div>
-                            <span class="yq-confirm-product__total">@lineTotal.ToString("N0") ر.س</span>
+                            <span class="yq-confirm-product__total">@(lineTotal.ToYaqutPrice())</span>
                         </div>
                     }
                 </div>
@@ -180,7 +180,7 @@
 
             <div class="yq-confirm-summary__row yq-confirm-summary__row--total">
                 <span>الإجمالي</span>
-                <span>@Model.Totalamount.ToString("N0") <small>ر.س</small></span>
+                <span>@(Model.Totalamount.ToYaqutPrice())</span>
             </div>
 
             <p class="yq-confirm-summary__note">

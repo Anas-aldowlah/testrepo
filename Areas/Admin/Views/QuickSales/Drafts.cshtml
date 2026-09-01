@@ -95,9 +95,9 @@
                                         @draft.SaleItems.Count أصناف
                                     </span>
                                 </td>
-                                <td class="text-nowrap">@(draft.DiscountTotal > 0 ? draft.DiscountTotal.ToString("N2") + " ر.س" : "-")</td>
+                                <td class="text-nowrap">@(draft.DiscountTotal > 0 ? draft.DiscountTotal.ToYaqutPrice() : "-")</td>
                                 <td class="text-nowrap">
-                                    <strong class="fs-6 fw-bold pos-text-main">@draft.FinalAmount.ToString("N2") ر.س</strong>
+                                    <strong class="fs-6 fw-bold pos-text-main">@(draft.FinalAmount.ToYaqutPrice())</strong>
                                 </td>
                                 <td class="pos-text-muted small text-nowrap">
                                     @((draft.UpdatedAt ?? draft.CreatedAt).ToString("yyyy/MM/dd HH:mm"))

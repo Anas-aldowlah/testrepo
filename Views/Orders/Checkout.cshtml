@@ -395,7 +395,7 @@
                             <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
                         </div>
                         <span class="yq-checkout-summary__item-name">@item.Product?.Name @(string.IsNullOrWhiteSpace(UnitLabel(item)) ? "" : $" - {UnitLabel(item)}")</span>
-                        <span class="yq-checkout-summary__item-price">@lineTotal.ToString("N0") ر.س</span>
+                        <span class="yq-checkout-summary__item-price">@(lineTotal.ToYaqutPrice())</span>
                     </div>
                 }
             </div>
@@ -404,7 +404,7 @@
 
             <div class="yq-checkout-summary__row">
                 <span>قيمة المنتجات</span>
-                <span>@subtotal.ToString("N0") ر.س</span>
+                <span>@(subtotal.ToYaqutPrice())</span>
             </div>
             <div class="yq-checkout-summary__row">
                 <span>الشحن</span>
@@ -415,7 +415,7 @@
 
             <div class="yq-checkout-summary__row yq-checkout-summary__row--total">
                 <span>الإجمالي</span>
-                <span>@subtotal.ToString("N0") <small>ر.س</small></span>
+                <span>@(subtotal.ToYaqutPrice())</span>
             </div>
 
             <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn" disabled>

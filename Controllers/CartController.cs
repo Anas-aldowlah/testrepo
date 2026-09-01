@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Security.Claims;
@@ -243,7 +244,7 @@ public class CartController : Controller
             totalQuantity = summary.TotalQuantity,
             uniqueItemCount = summary.UniqueItemCount,
             subtotal = summary.Subtotal,
-            subtotalText = $"{summary.Subtotal:N0} ر.س",
+            subtotalText = $"{summary.Subtotal.ToYaqutPrice()}",
             item = summary.Item == null
                 ? null
                 : new
@@ -253,7 +254,7 @@ public class CartController : Controller
                     retailPriceId = summary.Item.RetailPriceId,
                     quantity = summary.Item.Quantity,
                     lineTotal,
-                    lineTotalText = $"{lineTotal:N0} ر.س"
+                    lineTotalText = $"{lineTotal.ToYaqutPrice()}"
                 }
         };
     }

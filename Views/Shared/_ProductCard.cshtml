@@ -60,7 +60,10 @@
             <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yq-pcard__name-link">@Model.Name</a>
         </h3>
         <div class="yq-pcard__footer">
-            <span class="yq-pcard__price">@Model.Price.ToString("N0") <small>ر.س</small></span>
+            <span class="yq-pcard__price">
+                <span class="yq-pcard__price-number">@(Model.Price.ToYaqutAmount())</span>
+                <small class="yq-pcard__price-currency">ر.س</small>
+            </span>
         </div>
         <p id="@statusId" class="yq-pcard__status yq-hidden" data-yq-add-status aria-live="polite"></p>
     </div>

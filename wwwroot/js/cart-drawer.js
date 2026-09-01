@@ -309,16 +309,7 @@
             // Try the new cart structure first: data-yq-summary-total + sibling <small>
             var summaryTotalEl = summary.querySelector('[data-yq-summary-total]');
             if (summaryTotalEl) {
-                var totalBox = summaryTotalEl.closest('.yq-cart-summary__total-value, .yq-cart-summary__total-box');
-                if (totalBox) {
-                    // Grab the number + the currency text from <small>
-                    var numText = summaryTotalEl.textContent.trim();
-                    var smallEl = totalBox.querySelector('small');
-                    var currency = smallEl ? smallEl.textContent.trim() : 'ر.س';
-                    totalText = numText + ' ' + currency;
-                } else {
-                    totalText = summaryTotalEl.textContent.trim();
-                }
+                totalText = summaryTotalEl.textContent.trim();
                 subtotalText = totalText;
             }
 
@@ -401,7 +392,7 @@
         ].join('');
         if (footer) footer.hidden = false;
         setCheckoutAvailable(false);
-        if (totalEl) totalEl.textContent = '0 ر.س';
+        if (totalEl) totalEl.textContent = window.Yaqut.formatPrice(0);
         if (shipping) shipping.hidden = true;
     }
 
@@ -553,7 +544,7 @@
 
             if (footer) footer.hidden = false;
             setCheckoutAvailable(true);
-            if (totalEl) totalEl.textContent = summary.totalText || '0 ر.س';
+            if (totalEl) totalEl.textContent = summary.totalText || window.Yaqut.formatPrice(0);
             updateShipping(summary);
         }
 

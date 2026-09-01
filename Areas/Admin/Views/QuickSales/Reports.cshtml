@@ -56,7 +56,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">المبيعات الإجمالية</span>
-                        <h3 class="fw-bold mb-0 text-dark">@Model.GrossSales.ToString("N2") <small class="fs-6 text-muted">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-dark">@(Model.GrossSales.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3">
                         <i class="bi bi-bag-check fs-3"></i>
@@ -70,7 +70,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">إجمالي الخصومات</span>
-                        <h3 class="fw-bold mb-0 text-danger">@Model.TotalDiscounts.ToString("N2") <small class="fs-6">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-danger">@(Model.TotalDiscounts.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3">
                         <i class="bi bi-tag fs-3"></i>
@@ -84,7 +84,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted small d-block mb-1">صافي المبيعات (Net Revenue)</span>
-                        <h3 class="fw-bold mb-0 text-success">@Model.NetSales.ToString("N2") <small class="fs-6">ر.س</small></h3>
+                        <h3 class="fw-bold mb-0 text-success">@(Model.NetSales.ToYaqutPrice())</h3>
                     </div>
                     <div class="rounded-circle bg-success bg-opacity-10 text-success p-3">
                         <i class="bi bi-graph-up-arrow fs-3"></i>
@@ -132,7 +132,7 @@
                                 <div>
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <span class="fw-bold text-dark">@pm.PaymentMethodName </span>
-                                        <strong class="text-warning">@pm.TotalAmount.ToString("N2") ر.س (@pct.ToString("N1")%)</strong>
+                                        <strong class="text-warning">@(pm.TotalAmount.ToYaqutPrice()) (@pct.ToString("N1")%)</strong>
                                     </div>
                                     <div class="progress yq-progress-sm">
                                         <style nonce="@Context.Items["csp-nonce"]">.yq-report-progress-@(pmIndex) { width: @pct.ToString("0.0")%; }</style>
@@ -176,7 +176,7 @@
                                     <tr>
                                         <td><strong class="fw-bold">@prod.ProductName</strong></td>
                                         <td class="text-center"><span class="badge bg-secondary px-3 py-1 fw-bold">@prod.TotalQuantitySold قطعة</span></td>
-                                        <td class="text-end text-warning"><strong >@prod.TotalRevenue.ToString("N2") ر.س</strong></td>
+                                        <td class="text-end text-warning"><strong >@(prod.TotalRevenue.ToYaqutPrice())</strong></td>
                                     </tr>
                                 }
                             }
@@ -226,7 +226,7 @@
                                             {
                                                 <div>
                                                     <span class="badge bg-dark text-warning border border-secondary px-2 py-1">
-                                                        <i class="bi bi-wallet2 me-1"></i>@(sp.PaymentMethod?.Name ?? "دفع"): @sp.Amount.ToString("N2") ر.س
+                                                        <i class="bi bi-wallet2 me-1"></i>@(sp.PaymentMethod?.Name ?? "دفع"): @(sp.Amount.ToYaqutPrice())
                                                     </span>
                                                 </div>
                                             }
@@ -237,7 +237,7 @@
                                         <span class="pos-text-muted">-</span>
                                     }
                                 </td>
-                                <td><strong class="fs-6 fw-bold">@sale.FinalAmount.ToString("N2") ر.س</strong></td>
+                                <td><strong class="fs-6 fw-bold">@(sale.FinalAmount.ToYaqutPrice())</strong></td>
                             </tr>
                         }
                     }

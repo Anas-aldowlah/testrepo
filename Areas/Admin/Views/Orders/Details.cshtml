@@ -141,7 +141,7 @@
 
         <div class="yq-order-details-hero__status">
             <span class="yq-orders-badge @statusClass">@statusLabel</span>
-            <strong>@Model.Totalamount.ToString("N0") ر.س</strong>
+            <strong>@(Model.Totalamount.ToYaqutPrice())</strong>
             <small>@itemCount قطعة</small>
         </div>
     </header>
@@ -270,12 +270,12 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td data-label="سعر الوحدة">@item.Unitprice.ToString("N0") ر.س</td>
+                                        <td data-label="سعر الوحدة">@(item.Unitprice.ToYaqutPrice())</td>
                                         <td data-label="المطلوب">@item.Quantity</td>
                                         <td data-label="المتاح عند الفحص">@(item.UnavailableQuantity.HasValue ? availableAtCheck.ToString() : "-")</td>
                                         <td data-label="غير المتوفر">@(item.UnavailableQuantity?.ToString() ?? "-")</td>
                                         <td data-label="المنفذ">@(item.FulfilledQuantity?.ToString() ?? "-")</td>
-                                        <td data-label="الإجمالي"><strong>@lineTotal.ToString("N0") ر.س</strong></td>
+                                        <td data-label="الإجمالي"><strong>@(lineTotal.ToYaqutPrice())</strong></td>
                                     </tr>
                                 }
                             </tbody>
@@ -522,7 +522,7 @@
                 <dl class="yq-order-totals">
                     <div>
                         <dt>إجمالي المنتجات</dt>
-                        <dd>@subtotal.ToString("N0") ر.س</dd>
+                        <dd>@(subtotal.ToYaqutPrice())</dd>
                     </div>
                     <div>
                         <dt>الشحن</dt>
@@ -532,16 +532,16 @@
                     {
                         <div>
                             <dt>فروقات مسجلة</dt>
-                            <dd>@totalAdjustment.ToString("N0") ر.س</dd>
+                            <dd>@(totalAdjustment.ToYaqutPrice())</dd>
                         </div>
                     }
                     <div class="yq-order-totals__total">
                         <dt>المبلغ الأصلي المدفوع</dt>
-                        <dd>@Model.Totalamount.ToString("N0") ر.س</dd>
+                        <dd>@(Model.Totalamount.ToYaqutPrice())</dd>
                     </div>
                     <div>
                         <dt>قيمة الطلب المنفذ</dt>
-                        <dd>@(Model.Finalfulfilledamount.HasValue ? $"{Model.Finalfulfilledamount.Value:N0} ر.س" : "لم تتحدد بعد")</dd>
+                        <dd>@(Model.Finalfulfilledamount.HasValue ? $"{Model.Finalfulfilledamount.Value.ToYaqutPrice()}" : "لم تتحدد بعد")</dd>
                     </div>
                 </dl>
             </section>

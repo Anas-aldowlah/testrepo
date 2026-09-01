@@ -143,7 +143,7 @@
             var price = document.createElement('span');
             price.className = 'yq-pdp-recent__price';
             var priceNum = parseFloat(product.price);
-            price.textContent = (isNaN(priceNum) ? '' : priceNum.toLocaleString('ar-SA')) + ' ر.س';
+            price.textContent = window.Yaqut.formatPrice(priceNum);
 
             card.appendChild(media);
             card.appendChild(name);
@@ -199,12 +199,7 @@
             addButton.setAttribute('aria-disabled', isAvailable ? 'false' : 'true');
 
             var price = parseFloat(selected.dataset.price || '0') || 0;
-            var currency = document.createElement('small');
-            currency.textContent = 'ر.س';
-            priceBox.replaceChildren(
-                document.createTextNode(price.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' '),
-                currency
-            );
+            priceBox.textContent = window.Yaqut.formatPrice(price);
 
             var availableText = formatAvailableUnits(max, selected);
             root.querySelectorAll('.yq-available-stock-text').forEach(function (stockText) {

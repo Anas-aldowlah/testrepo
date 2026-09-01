@@ -46,7 +46,7 @@
 
         <div class="yq-orders-hero__meta" aria-label="ملخص الطلبات المعروضة">
             <span>@Model.Orders.TotalItems طلب</span>
-            <strong>@Model.TotalRevenue.ToString("N0") ر.س</strong>
+            <strong>@(Model.TotalRevenue.ToYaqutPrice())</strong>
         </div>
     </header>
 
@@ -309,8 +309,7 @@
                                 </td>
                                 <td data-label="الإجمالي">
                                     <div class="yq-orders-total">
-                                        <strong>@order.Totalamount.ToString("N0")</strong>
-                                        <span>ر.س</span>
+                                        <strong>@(order.Totalamount.ToYaqutPrice())</strong>
                                         <small>@itemCount قطعة</small>
                                     </div>
                                 </td>

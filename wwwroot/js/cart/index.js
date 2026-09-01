@@ -309,7 +309,7 @@
             
             var lineTotalEl = item.querySelector('.yq-cart-item__line-total');
             if (lineTotalEl) {
-                lineTotalEl.innerHTML = lineTotal.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+                lineTotalEl.innerHTML = window.Yaqut.formatPrice(lineTotal);
             }
         });
 
@@ -337,7 +337,7 @@
         var item = form.closest('[data-yq-cart-item]');
         var lineTotalEl = item ? item.querySelector('.yq-cart-item__line-total') : null;
         if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
-            lineTotalEl.innerHTML = Number(state.item.lineTotal).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' <small>ر.س</small>';
+            lineTotalEl.innerHTML = window.Yaqut.formatPrice(state.item.lineTotal);
         }
 
         if (state.warningCode === 'InsufficientStock' && Number.isFinite(Number(state.availableQuantity))) {

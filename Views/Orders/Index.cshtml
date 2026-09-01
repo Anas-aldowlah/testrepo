@@ -205,7 +205,7 @@
                     <div class="yq-order-card__footer">
                         <div>
                             <span class="yq-order-card__label">الإجمالي</span>
-                            <strong class="yq-order-card__total">@order.Totalamount.ToString("N0") <small>ر.س</small></strong>
+                            <strong class="yq-order-card__total">@(order.Totalamount.ToYaqutPrice())</strong>
                         </div>
                         <span class="yq-order-card__link">
                             عرض التفاصيل <i class="bi bi-arrow-left"></i>

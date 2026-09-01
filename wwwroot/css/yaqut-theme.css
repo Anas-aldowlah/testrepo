@@ -730,18 +730,23 @@ html[data-theme='dark'] .yq-pcard__badge--new {
 }
 
 .yq-pcard__price {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.15rem;
     font-family: var(--yq-font-display);
     font-size: 1.05rem;
-    font-weight: 800;
     color: var(--yq-gold);
     line-height: 1;
 }
 
-.yq-pcard__price small {
-    font-size: 0.72rem;
-    font-family: var(--yq-font-body);
+.yq-pcard__price-number {
+    font-weight: 800;
+}
+
+.yq-pcard__price-currency {
+    font-size: 0.75em;
     font-weight: 600;
-    color: var(--yq-text-soft);
+    opacity: 0.95;
 }
 
 

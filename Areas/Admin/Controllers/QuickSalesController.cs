@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using YAGOT_2._0.Filters;
@@ -1055,7 +1056,7 @@ public class QuickSalesController : Controller
                         return Json(new CompleteSaleResponseDto
                         {
                             Success = false,
-                            Message = $"مجموع الدفعات المدخلة ({totalPaid:N2} ر.س) لا يساوي المبلغ الإجمالي النهائي للبيع ({finalAmount:N2} ر.س)."
+                            Message = $"مجموع الدفعات المدخلة ({totalPaid.ToYaqutPrice()}) لا يساوي المبلغ الإجمالي النهائي للبيع ({finalAmount.ToYaqutPrice()})."
                         });
                     }
 
