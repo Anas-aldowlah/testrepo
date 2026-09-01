@@ -660,6 +660,11 @@ html[data-theme='dark'] .yq-pcard__badge--new {
     box-shadow: 0 2px 8px rgba(201,162,75,0.4);
 }
 
+a.yq-pcard__ov-btn--gold:hover,
+a.yq-pcard__ov-btn--gold:focus-visible {
+    color: #111;
+}
+
 .yq-pcard__ov-btn--ghost {
     background: rgba(255,255,255,0.15);
     color: #fff;

@@ -4,6 +4,7 @@
 @foreach (var product in Model)
 {
     var isAvailable = ProductRetailAvailability.IsSellable(product);
+    var isBaseOptionAvailable = ProductRetailAvailability.IsBaseOptionSellable(product);
     var isRetailAvailable = ProductRetailAvailability.IsAvailable(product);
     var isNew = product.Createdat.HasValue && product.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
     var imageUrl = string.IsNullOrWhiteSpace(product.Imageurl)
@@ -12,9 +13,11 @@
             ? product.Imageurl
             : Url.Content("~/" + product.Imageurl.TrimStart('/')));
 
-    <a href="@Url.Action("Details", "Products", new { id = product.Id })" class="yq-pdp-recent__card">
+    <article class="yq-pdp-recent__card">
         <div class="yq-pdp-recent__media">
-            <img src="@imageUrl" alt="@product.Name" loading="lazy" decoding="async" data-yaqut-fallback="/images/placeholder-product.svg" />
+            <a href="@Url.Action("Details", "Products", new { id = product.Id })" class="yq-pdp-recent__img-link" aria-label="عرض @product.Name">
+                <img src="@imageUrl" alt="@product.Name" loading="lazy" decoding="async" data-yaqut-fallback="/images/placeholder-product.svg" />
+            </a>
             
             @if (!isAvailable)
             {
@@ -34,9 +37,43 @@
                     <i class="bi bi-stars" aria-hidden="true"></i> جديد
                 </span>
             }
+
+            <div class="yq-pcard__overlay">
+                @if (isBaseOptionAvailable)
+                {
+                    <form asp-controller="Cart" asp-action="Add" method="post"
+                          class="yaqut-quick-add-form"
+                          data-yq-add-to-cart-form data-product-id="@product.Id" data-product-name="@product.Name">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="productId" value="@product.Id" />
+                        <input type="hidden" name="quantity" value="1" />
+                        <button type="submit" class="yq-pcard__ov-btn yq-pcard__ov-btn--gold" aria-label="أضف للسلة">
+                            <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                            <span>أضف للسلة</span>
+                        </button>
+                    </form>
+                }
+                else if (isAvailable)
+                {
+                    <a href="@Url.Action("Details", "Products", new { id = product.Id })"
+                       class="yq-pcard__ov-btn yq-pcard__ov-btn--gold" aria-label="اختر الحجم">
+                        <i class="bi bi-sliders" aria-hidden="true"></i>
+                        <span>اختر الحجم</span>
+                    </a>
+                }
+                else
+                {
+                    <button type="button" class="yq-pcard__ov-btn yq-pcard__ov-btn--ghost" disabled aria-disabled="true" aria-label="غير متوفر">
+                        <i class="bi bi-bag-x" aria-hidden="true"></i>
+                        <span>غير متوفر</span>
+                    </button>
+                }
+            </div>
         </div>
         
-        <span class="yq-pdp-recent__name">@product.Name</span>
+        <a href="@Url.Action("Details", "Products", new { id = product.Id })" class="yq-pdp-recent__name-link">
+            <span class="yq-pdp-recent__name">@product.Name</span>
+        </a>
         <span class="yq-pdp-recent__price">@(product.Price.ToYaqutPrice())</span>
-    </a>
+    </article>
 }
