@@ -194,6 +194,7 @@ public class OrdersController : Controller
     public async Task<IActionResult> UpdateStatus(
         int id,
         string status,
+        string? adminNote = null,
         bool returnToDetails = false,
         string[]? filterStatus = null,
         string? search = null,
@@ -209,9 +210,18 @@ public class OrdersController : Controller
             return BadRequest("Invalid order status.");
         }
 
+        var trimmedAdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
+        if (trimmedAdminNote != null && trimmedAdminNote.Length > 500)
+        {
+            if (isAjax)
+                return Json(new { success = false, message = "ملاحظة الإدارة يجب ألا تتجاوز 500 حرف." });
+            TempData["Error"] = "ملاحظة الإدارة يجب ألا تتجاوز 500 حرف.";
+            return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
+        }
+
         try
         {
-            if (!await _orderService.UpdateStatusAsync(id, normalizedStatus))
+            if (!await _orderService.UpdateStatusAsync(id, normalizedStatus, trimmedAdminNote))
             {
                 if (isAjax)
                     return Json(new { success = false, message = "الطلب غير موجود." });
@@ -223,6 +233,7 @@ public class OrdersController : Controller
                 {
                     success = true,
                     status = normalizedStatus,
+                    adminNote = trimmedAdminNote,
                     allowedTargets = OrderStatusPolicy.GetAllowedTargets(normalizedStatus),
                     whatsAppUrl = normalizedStatus is OrderStatuses.Processed or OrderStatuses.Shipped or OrderStatuses.Delivered or OrderStatuses.Cancelled
                         ? await BuildWhatsAppUrlAsync(id)
@@ -250,6 +261,55 @@ public class OrdersController : Controller
         }
 
         return RedirectAfterStatusUpdate(id, returnToDetails, filterStatus, search, page, pageSize);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateAdminNote(int id, string? adminNote)
+    {
+        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+        var trimmedAdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
+        if (trimmedAdminNote != null && trimmedAdminNote.Length > 500)
+        {
+            if (isAjax)
+                return Json(new { success = false, message = "ملاحظة الإدارة يجب ألا تتجاوز 500 حرف." });
+            TempData["Error"] = "ملاحظة الإدارة يجب ألا تتجاوز 500 حرف.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            if (!await _orderService.UpdateAdminNoteAsync(id, trimmedAdminNote, HttpContext.RequestAborted))
+            {
+                if (isAjax)
+                    return Json(new { success = false, message = "الطلب غير موجود." });
+                return NotFound();
+            }
+
+            var message = trimmedAdminNote == null
+                ? "تم حذف ملاحظة الإدارة بنجاح."
+                : "تم حفظ ملاحظة الإدارة بنجاح.";
+
+            if (isAjax)
+            {
+                return Json(new
+                {
+                    success = true,
+                    adminNote = trimmedAdminNote,
+                    message
+                });
+            }
+
+            TempData["Success"] = message;
+        }
+        catch (Exception)
+        {
+            if (isAjax)
+                return Json(new { success = false, message = "حدث خطأ غير متوقع أثناء حفظ ملاحظة الإدارة." });
+            TempData["Error"] = "حدث خطأ غير متوقع أثناء حفظ ملاحظة الإدارة.";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     private IActionResult RedirectAfterStatusUpdate(

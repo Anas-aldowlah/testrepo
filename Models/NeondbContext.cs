@@ -195,6 +195,9 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Notes)
                 .HasMaxLength(500)
                 .HasColumnName("notes");
+            entity.Property(e => e.AdminNote)
+                .HasMaxLength(500)
+                .HasColumnName("admin_note");
             entity.Property(e => e.Orderdate)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")

@@ -116,12 +116,32 @@
                 return;
             }
 
+            let adminNote = null;
+            if (select.value === "Shipped") {
+                const promptResult = await YaqutOperationDialog.prompt({
+                    title: "إضافة ملاحظة الشحن",
+                    message: "يمكنك كتابة ملاحظة إدارية مع شحن هذا الطلب (اختياري):",
+                    placeholder: "أدخل ملاحظة الشحن هنا...",
+                    confirmText: "أضف الملاحظة",
+                    cancelText: "تراجع",
+                    maxLength: 500
+                });
+                if (!promptResult || !promptResult.confirmed) {
+                    select.value = original;
+                    syncStatusForm(statusForm);
+                    return;
+                }
+                adminNote = promptResult.value;
+            }
+
             select.disabled = true;
             save.disabled = true;
             try {
+                const payload = { id: statusForm.dataset.orderId, status: select.value };
+                if (adminNote !== null) payload.adminNote = adminNote;
                 const data = await json(await fetch(root.dataset.yqUpdateStatusUrl, {
                     method: "POST",
-                    body: new URLSearchParams({ id: statusForm.dataset.orderId, status: select.value }),
+                    body: new URLSearchParams(payload),
                     headers: { "X-Requested-With": "XMLHttpRequest", "RequestVerificationToken": statusForm.querySelector('[name="__RequestVerificationToken"]').value }
                 }));
                 const badge = root.querySelector(`[data-order-badge="${statusForm.dataset.orderId}"]`);

@@ -85,9 +85,31 @@
             syncSaveState();
             return;
         }
+        let adminNote = null;
+        if (status.value === "Shipped") {
+            const promptResult = await YaqutOperationDialog.prompt({
+                title: "إضافة ملاحظة الشحن",
+                message: "يمكنك كتابة ملاحظة إدارية مع شحن هذا الطلب (اختياري):",
+                placeholder: "أدخل ملاحظة الشحن هنا...",
+                confirmText: "أضف الملاحظة",
+                cancelText: "تراجع",
+                maxLength: 500
+            });
+            if (!promptResult || !promptResult.confirmed) {
+                status.value = status.dataset.originalStatus;
+                syncSaveState();
+                return;
+            }
+            adminNote = promptResult.value;
+        }
+
         save.disabled = true;
         try {
-            const response = await fetch(root.dataset.yqUpdateStatusUrl, { method: "POST", body: new FormData(statusForm), headers: { "X-Requested-With": "XMLHttpRequest" } });
+            const formData = new FormData(statusForm);
+            if (adminNote !== null) {
+                formData.set("adminNote", adminNote);
+            }
+            const response = await fetch(root.dataset.yqUpdateStatusUrl, { method: "POST", body: formData, headers: { "X-Requested-With": "XMLHttpRequest" } });
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.success) throw userSafeError(data.message || "تعذر تحديث الحالة.");
             status.dataset.originalStatus = data.status;
@@ -118,6 +140,82 @@
             status.value = status.dataset.originalStatus;
             syncSaveState();
             await YaqutOperationDialog.show({ title: "تعذر التحديث", message: displayError(error), kind: "error" });
+        }
+    });
+
+    const editNoteBtn = root.querySelector("[data-yq-edit-admin-note]");
+    editNoteBtn?.addEventListener("click", async () => {
+        const orderId = editNoteBtn.dataset.orderId;
+        const currentNote = editNoteBtn.dataset.currentNote || "";
+        const promptResult = await YaqutOperationDialog.prompt({
+            title: currentNote ? "تعديل ملاحظة الإدارة" : "إضافة ملاحظة الإدارة",
+            message: "أدخل ملاحظة الإدارة لهذا الطلب (أو اتركها فارغة لحذفها):",
+            initialValue: currentNote,
+            placeholder: "أدخل ملاحظة الإدارة هنا...",
+            confirmText: "حفظ الملاحظة",
+            cancelText: "إلغاء",
+            maxLength: 500
+        });
+        if (!promptResult || !promptResult.confirmed) return;
+
+        editNoteBtn.disabled = true;
+        try {
+            const updateUrl = root.dataset.yqUpdateAdminNoteUrl || "/Admin/Orders/UpdateAdminNote";
+            const token = root.querySelector('input[name="__RequestVerificationToken"]')?.value ||
+                          document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const formData = new FormData();
+            formData.append("id", orderId);
+            if (promptResult.value !== null) {
+                formData.append("adminNote", promptResult.value);
+            }
+            const response = await fetch(updateUrl, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...(token ? { "RequestVerificationToken": token } : {})
+                }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw userSafeError(data.message || "تعذر حفظ ملاحظة الإدارة.");
+
+            const newNote = data.adminNote;
+            editNoteBtn.dataset.currentNote = newNote || "";
+            const btnSpan = editNoteBtn.querySelector("span");
+            const btnIcon = editNoteBtn.querySelector("i");
+            if (btnSpan) btnSpan.textContent = newNote ? "تعديل الملاحظة" : "إضافة ملاحظة";
+            if (btnIcon) btnIcon.className = `bi ${newNote ? "bi-pencil-square" : "bi-plus-lg"}`;
+
+            const noteDisplay = root.querySelector("[data-yq-admin-note-display]");
+            if (noteDisplay) {
+                if (newNote) {
+                    noteDisplay.innerHTML = `
+                        <div class="yq-order-details-state-note yq-order-details-state-note--admin">
+                            <i class="bi bi-shield-check" aria-hidden="true"></i>
+                            <span data-yq-admin-note-text>${newNote}</span>
+                        </div>`;
+                } else {
+                    noteDisplay.innerHTML = `
+                        <div class="yq-order-details-state-note">
+                            <i class="bi bi-shield" aria-hidden="true"></i>
+                            <span data-yq-admin-note-text>لا توجد ملاحظة مسجلة من الإدارة.</span>
+                        </div>`;
+                }
+            }
+
+            await YaqutOperationDialog.show({
+                title: "تم الحفظ بنجاح",
+                message: data.message,
+                kind: "success"
+            });
+        } catch (error) {
+            await YaqutOperationDialog.show({
+                title: "تعذر الحفظ",
+                message: displayError(error),
+                kind: "error"
+            });
+        } finally {
+            editNoteBtn.disabled = false;
         }
     });
 

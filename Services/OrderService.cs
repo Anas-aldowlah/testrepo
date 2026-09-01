@@ -233,10 +233,14 @@ public class OrderService
 
     public static string? NormalizeStatus(string? status) => OrderStatusPolicy.Normalize(status);
 
-    public async Task<bool> UpdateStatusAsync(int orderId, string requestedStatus)
+    public async Task<bool> UpdateStatusAsync(int orderId, string requestedStatus, string? adminNote = null)
     {
         var status = NormalizeStatus(requestedStatus)
             ?? throw new ArgumentException("Invalid order status.", nameof(requestedStatus));
+
+        var trimmedAdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
+        if (trimmedAdminNote != null && trimmedAdminNote.Length > 500)
+            throw new ArgumentException("Admin note cannot exceed 500 characters.", nameof(adminNote));
 
         return await ExecuteLockedOrderTransitionAsync(
             orderId,
@@ -250,7 +254,13 @@ public class OrderService
                     throw new InvalidOperationException("انتقال حالة الطلب غير مسموح.");
 
                 if (string.Equals(order.Status, status, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (status == OrderStatuses.Shipped && adminNote != null)
+                    {
+                        order.AdminNote = trimmedAdminNote;
+                    }
                     return true;
+                }
 
                 if (status == OrderStatuses.Cancelled)
                 {
@@ -266,10 +276,34 @@ public class OrderService
 
                 order.Status = status;
                 order.TimeState = DateTime.UtcNow;
+                if (status == OrderStatuses.Shipped)
+                {
+                    order.AdminNote = trimmedAdminNote;
+                }
                 return true;
             },
             CancellationToken.None,
             includeOrderItems: status == OrderStatuses.Cancelled);
+    }
+
+    public async Task<bool> UpdateAdminNoteAsync(
+        int orderId,
+        string? adminNote,
+        CancellationToken cancellationToken = default)
+    {
+        var trimmedAdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
+        if (trimmedAdminNote != null && trimmedAdminNote.Length > 500)
+            throw new ArgumentException("Admin note cannot exceed 500 characters.", nameof(adminNote));
+
+        return await ExecuteLockedOrderTransitionAsync(
+            orderId,
+            "update-admin-note",
+            async order =>
+            {
+                order.AdminNote = trimmedAdminNote;
+                return true;
+            },
+            cancellationToken);
     }
 
     public async Task<PaymentVerificationOutcome> VerifyPaymentAsync(

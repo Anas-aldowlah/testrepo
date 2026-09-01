@@ -1227,6 +1227,21 @@
     color: var(--yq-admin-danger, #ff8b8b);
 }
 
+.yq-order-details-state-note--admin {
+    border-color: rgba(212, 175, 55, 0.28);
+    background: rgba(212, 175, 55, 0.08);
+    color: var(--yq-admin-text, #f0ede6);
+}
+
+.yq-edit-note-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+
 .yq-order-details-empty {
     align-items: center;
     justify-content: center;

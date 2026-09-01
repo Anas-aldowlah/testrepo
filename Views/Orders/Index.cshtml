@@ -185,6 +185,13 @@
                             <span class="yq-order-card__label">عدد القطع</span>
                             <span>@itemCount @(itemCount == 1 ? "قطعة" : "قطع")</span>
                         </div>
+                        @if (!string.IsNullOrWhiteSpace(order.AdminNote))
+                        {
+                            <div class="yq-order-card__row yq-order-card__row--admin-note">
+                                <span class="yq-order-card__label">ملاحظة الإدارة</span>
+                                <span class="yq-order-card__admin-note">@order.AdminNote</span>
+                            </div>
+                        }
                     </div>
 
                     @if (!isCancelled)
