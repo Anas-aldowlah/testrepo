@@ -1773,3 +1773,39 @@ body.dark-mode .btn-outline-secondary:hover {
 .yq-th-w16 { width: 16%; }
 .yq-th-w12 { width: 12%; }
 .yq-th-w11 { width: 11%; }
+
+/* Shared Admin Destructive Action */
+.yq-admin-shell .yq-admin-action--destructive {
+    color: var(--yq-admin-danger, #ff8b8b);
+    background: var(--yq-admin-surface-soft, #f1ead9);
+    border-color: var(--yq-admin-border, rgba(20, 20, 20, 0.08));
+}
+
+.yq-admin-shell .yq-admin-action--destructive:not(:disabled):not(.disabled):hover {
+    border-color: rgba(197, 73, 73, 0.32);
+    background: rgba(197, 73, 73, 0.12);
+    color: var(--yq-admin-danger, #ff8b8b);
+}
+
+.yq-admin-shell .yq-admin-action--destructive:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--yq-admin-gold-bright, #d4af37) 55%, transparent);
+    outline-offset: 3px;
+}
+
+/* Shared Admin Success Action */
+.yq-admin-shell .yq-admin-action--success {
+    color: var(--yq-admin-success, #10b981);
+    background: var(--yq-admin-surface-soft, #f1ead9);
+    border-color: var(--yq-admin-border, rgba(20, 20, 20, 0.08));
+}
+
+.yq-admin-shell .yq-admin-action--success:not(:disabled):not(.disabled):hover {
+    border-color: rgba(16, 185, 129, 0.32);
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--yq-admin-success, #10b981);
+}
+
+.yq-admin-shell .yq-admin-action--success:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--yq-admin-gold-bright, #d4af37) 55%, transparent);
+    outline-offset: 3px;
+}

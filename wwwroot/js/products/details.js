@@ -163,6 +163,7 @@
         var stockLabel = stockBadge ? stockBadge.querySelector('[data-yq-stock-label]') : null;
         var stockStateText = root.querySelector('[data-yq-stock-state-text]');
         var lowStockMessage = root.querySelector('[data-yq-low-stock-message]');
+        var detailsPriceBox = root.querySelector('[data-yq-details-price]');
         if (!choices.length || !retailInput || !qtyInput || !priceBox || !form || !addButton) return;
 
         function formatAvailableUnits(max, selected) {
@@ -192,6 +193,9 @@
 
             var price = parseFloat(selected.dataset.price || '0') || 0;
             priceBox.textContent = window.Yaqut.formatPrice(price);
+            if (detailsPriceBox) {
+                detailsPriceBox.textContent = window.Yaqut.formatPrice(price);
+            }
 
             var availableText = formatAvailableUnits(max, selected);
             root.querySelectorAll('.yq-available-stock-text').forEach(function (stockText) {

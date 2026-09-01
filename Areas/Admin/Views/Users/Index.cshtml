@@ -103,11 +103,11 @@
                                 <td data-label="الحالة">
                                     @if (user.SearchNameSyncVersion == 1)
                                     {
-                                        <span class="yq-users-badge yq-users-badge--blocked"><i class="bi bi-slash-circle"></i> محظور</span>
+                                        <span class="yq-users-badge yq-users-badge--blocked"> <i class="bi bi-slash-circle"></i> محظور </span>
                                     }
                                     else
                                     {
-                                        <span class="yq-users-badge yq-users-badge--active"><i class="bi bi-check-circle"></i> نشط</span>
+                                        <span class="yq-users-badge yq-users-badge--active"> <i class="bi bi-check-circle"></i> نشط </span>
                                     }
                                 </td>
                                 <td data-label="تاريخ التسجيل">
@@ -119,21 +119,21 @@
                                             <i class="bi bi-eye" aria-hidden="true"></i>
                                             <span>التفاصيل</span>
                                         </a>
-                                        <form asp-action="ToggleBlock" method="post" class="d-inline" onsubmit="return confirm('@(user.SearchNameSyncVersion == 1 ? $"هل أنت متأكد من رغبتك في إلغاء حظر {user.Name}؟" : $"هل أنت متأكد من رغبتك في حظر حساب {user.Name}؟")');">
+                                        <form asp-action="ToggleBlock" method="post" class="d-inline" data-yq-user-block-form data-yq-block-action="@(user.SearchNameSyncVersion == 1 ? "unblock" : "block")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="userId" value="@user.Id" />
                                             <input type="hidden" name="block" value="@(user.SearchNameSyncVersion == 1 ? "false" : "true")" />
                                             <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
                                             @if (user.SearchNameSyncVersion == 1)
                                             {
-                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--unblock" title="إلغاء حظر هذا الحساب">
+                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--unblock yq-admin-action--success" title="إلغاء حظر هذا الحساب">
                                                     <i class="bi bi-unlock-fill"></i>
                                                     <span>إلغاء الحظر</span>
                                                 </button>
                                             }
                                             else
                                             {
-                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--block" title="حظر هذا الحساب">
+                                                <button type="submit" class="yq-users-action-btn yq-users-action-btn--block yq-admin-action--destructive" title="حظر هذا الحساب">
                                                     <i class="bi bi-slash-circle-fill"></i>
                                                     <span>حظر</span>
                                                 </button>
@@ -159,3 +159,9 @@
         }
     </section>
 </section>
+
+@await Html.PartialAsync("_YaqutOperationDialog")
+
+@section Scripts {
+    <script src="~/js/admin/users/block.js" asp-append-version="true"></script>
+}

@@ -896,9 +896,9 @@
     justify-items: start;
     gap: 0.45rem;
     padding: 1rem;
-    border: 1px solid var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
+    border: 1px solid var(--yq-admin-border-strong);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 11%, var(--yq-admin-surface-soft, #1b1f22));
+    background: var(--yq-admin-surface-solid);
 }
 
 .yq-order-details-hero__status strong {
@@ -931,6 +931,8 @@
     align-items: center;
     gap: 0.9rem;
     padding: 1rem;
+    background: var(--yq-admin-surface-solid);
+    border: 1px solid var(--yq-admin-border-strong);
 }
 
 .yq-order-detail-card__icon {
@@ -941,8 +943,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 16%, var(--yq-admin-surface-soft, #1b1f22));
-    color: var(--yq-admin-gold-bright, #d4af37);
+    background: var(--yq-admin-surface-soft);
+    color: var(--yq-admin-text);
     font-size: 1.2rem;
 }
 
@@ -1055,7 +1057,7 @@
 .yq-order-details-timeline li.is-done .yq-order-details-timeline__dot,
 .yq-order-details-timeline li.is-active .yq-order-details-timeline__dot {
     border-color: var(--yq-admin-border-strong, rgba(212, 175, 55, 0.24));
-    background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 18%, var(--yq-admin-surface-soft, #1b1f22));
+    background: var(--yq-admin-surface-solid);
     color: var(--yq-admin-gold-bright, #d4af37);
 }
 

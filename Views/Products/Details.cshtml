@@ -51,7 +51,7 @@
         }
         else
         {
-            var localImageUrl = candidateImageUrl.TrimStart('/');
+            var localImageUrl = candidateImageUrl.Replace('\\', '/').TrimStart('/');
             while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
             {
                 localImageUrl = localImageUrl[2..];
@@ -63,7 +63,6 @@
             var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
             if (!string.IsNullOrWhiteSpace(localImagePath) &&
                 !localImagePath.Contains(':') &&
-                !localImagePath.Contains('\\') &&
                 !hasParentSegment)
             {
                 productImageUrl = Url.Content("~/" + localImageUrl);
@@ -379,7 +378,7 @@
                         }
                         <li>
                             <span class="yq-pdp-quick-specs__key"><i class="bi bi-currency-exchange"></i> السعر</span>
-                            <span class="yq-pdp-quick-specs__val yq-pdp-quick-specs__val--gold">@(Model.Price.ToYaqutPrice())</span>
+                            <span class="yq-pdp-quick-specs__val yq-pdp-quick-specs__val--gold" data-yq-details-price>@(initialPrice.ToYaqutPrice())</span>
                         </li>
                     </ul>
                 </div>
