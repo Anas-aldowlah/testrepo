@@ -384,6 +384,7 @@ app.Use(async (context, next) =>
         await next();
         return;
     }
+
     // حماية لوحة الإدارة
     if (path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase))
     {
