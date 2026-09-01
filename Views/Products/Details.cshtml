@@ -51,7 +51,7 @@
         }
         else
         {
-            var localImageUrl = candidateImageUrl.TrimStart('/');
+            var localImageUrl = candidateImageUrl.Replace('\\', '/').TrimStart('/');
             while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
             {
                 localImageUrl = localImageUrl[2..];
@@ -63,7 +63,6 @@
             var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
             if (!string.IsNullOrWhiteSpace(localImagePath) &&
                 !localImagePath.Contains(':') &&
-                !localImagePath.Contains('\\') &&
                 !hasParentSegment)
             {
                 productImageUrl = Url.Content("~/" + localImageUrl);
