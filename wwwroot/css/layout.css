@@ -1299,9 +1299,8 @@ html[data-theme="dark"] .yaqut-cart-link {
 
 .yq-cart-drawer__line-total {
     color: var(--yq-gold);
-    font-family: var(--yq-font-display);
     font-size: 1.08rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .yq-cart-drawer__footer {
@@ -1356,7 +1355,6 @@ html[data-theme="dark"] .yaqut-cart-link {
 
 .yq-cart-drawer__total strong {
     color: var(--yq-gold);
-    font-family: var(--yq-font-display);
     font-size: 1.35rem;
 }
 

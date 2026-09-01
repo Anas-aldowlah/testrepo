@@ -341,7 +341,6 @@
 }
 
 .yq-cart-item__line-total {
-    font-family: var(--yq-font-display);
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--yq-gold);
@@ -411,9 +410,8 @@
 }
 
 .yq-cart-summary__total-value {
-    font-family: var(--yq-font-display);
     font-size: 2.2rem;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--yq-gold);
     display: flex;
     align-items: baseline;
