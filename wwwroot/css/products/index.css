@@ -1208,3 +1208,19 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         justify-content: center;
     }
 }
+
+/* â”€â”€ Product Status (Availability) Single-Line Overrides â”€â”€ */
+[data-filter-card="availability"] .yq-filter-grid--3col {
+    grid-template-columns: auto auto auto;
+    justify-content: space-between;
+    gap: 0.2rem;
+}
+
+[data-filter-card="availability"] .yq-filter-item {
+    padding-inline: 0.15rem;
+    gap: 0.25rem;
+}
+
+[data-filter-card="availability"] .yq-control-label {
+    white-space: nowrap;
+}
