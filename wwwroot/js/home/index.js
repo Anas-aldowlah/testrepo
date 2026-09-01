@@ -104,6 +104,7 @@
         }
 
         function moveTo(nextIndex) {
+            isPaused = false;
             showSlide(nextIndex);
             startAutoplay();
         }
@@ -139,45 +140,40 @@
             });
         }
 
-        hero.addEventListener('mouseenter', function () {
-            isPaused = true;
-            stopAutoplay();
-        });
+        // إيقاف واستئناف الحركة التلقائية عند التفاعل مع إطار بطاقة المنتج فقط
+        if (productContainer) {
+            productContainer.addEventListener('mouseenter', function () {
+                isPaused = true;
+                stopAutoplay();
+            });
 
-        hero.addEventListener('mouseleave', function () {
-            isPaused = false;
-            startAutoplay();
-        });
-
-        hero.addEventListener('focusin', function () {
-            isPaused = true;
-            stopAutoplay();
-        });
-
-        hero.addEventListener('focusout', function (e) {
-            if (!hero.contains(e.relatedTarget)) {
+            productContainer.addEventListener('mouseleave', function () {
                 isPaused = false;
                 startAutoplay();
-            }
-        });
+            });
 
-        hero.addEventListener('touchstart', function (e) {
-            touchStartX = e.touches[0].clientX;
-            stopAutoplay();
-        }, { passive: true });
+            productContainer.addEventListener('touchstart', function (e) {
+                touchStartX = e.touches[0].clientX;
+                stopAutoplay();
+            }, { passive: true });
 
-        hero.addEventListener('touchend', function (e) {
-            var distance = e.changedTouches[0].clientX - touchStartX;
-            if (Math.abs(distance) > 45) {
-                moveTo(currentIndex + (distance > 0 ? -1 : 1));
-            } else {
-                startAutoplay();
-            }
-        }, { passive: true });
+            productContainer.addEventListener('touchend', function (e) {
+                var distance = e.changedTouches[0].clientX - touchStartX;
+                if (Math.abs(distance) > 45) {
+                    moveTo(currentIndex + (distance > 0 ? -1 : 1));
+                } else {
+                    isPaused = false;
+                    startAutoplay();
+                }
+            }, { passive: true });
+        }
 
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) stopAutoplay();
-            else startAutoplay();
+            else {
+                isPaused = false;
+                startAutoplay();
+            }
         });
 
         startAutoplay();
