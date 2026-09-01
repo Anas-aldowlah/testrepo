@@ -738,20 +738,21 @@ a.yq-pcard__ov-btn--gold:focus-visible {
     display: inline-flex;
     align-items: baseline;
     gap: 0.15rem;
-    font-family: var(--yq-font-display);
-    font-size: 1.05rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: var(--yq-gold);
-    line-height: 1;
+    line-height: inherit;
 }
 
 .yq-pcard__price-number {
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .yq-pcard__price-currency {
-    font-size: 0.75em;
-    font-weight: 600;
-    opacity: 0.95;
+    font-size: 1em;
+    font-weight: 700;
+    opacity: 1;
 }
 
 
@@ -848,7 +849,6 @@ a.yq-pcard__action-add:focus-visible {
     .yq-pcard__img { padding: 0; }
     .yq-pcard__body { padding: 0.65rem 0.65rem 0.5rem; gap: 0.25rem; }
     .yq-pcard__name { font-size: 0.85rem; }
-    .yq-pcard__price { font-size: 1rem; }
     .yq-pcard__family { font-size: 0.62rem; }
     .yq-pcard__badge { font-size: 0.6rem; top: 6px; padding: 0.15rem 0.45rem; }
 }

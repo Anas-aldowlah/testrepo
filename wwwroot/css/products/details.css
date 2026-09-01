@@ -733,7 +733,7 @@
 
 .yq-pdp-recent__name-link { display: block; text-decoration: none; color: inherit; overflow: hidden; }
 .yq-pdp-recent__name  { display: block; text-align: center; font-size: 0.88rem; font-weight: 700; color: var(--yq-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.yq-pdp-recent__price { display: block; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--yq-gold); }
+.yq-pdp-recent__price { display: flex; justify-content: center; align-items: baseline; }
 
 /* ── Keyframes ── */
 @keyframes yqPdpFadeIn {

@@ -74,6 +74,11 @@
         <a href="@Url.Action("Details", "Products", new { id = product.Id })" class="yq-pdp-recent__name-link">
             <span class="yq-pdp-recent__name">@product.Name</span>
         </a>
-        <span class="yq-pdp-recent__price">@(product.Price.ToYaqutPrice())</span>
+        <div class="yq-pdp-recent__price">
+            <span class="yq-pcard__price">
+                <span class="yq-pcard__price-number">@(product.Price.ToYaqutAmount())</span>
+                <small class="yq-pcard__price-currency">ر.س</small>
+            </span>
+        </div>
     </article>
 }
