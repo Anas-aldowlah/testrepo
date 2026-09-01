@@ -222,6 +222,7 @@
 .yq-users-badge {
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
     min-height: 28px;
     padding: 0.24rem 0.65rem;
     border: 1px solid transparent;
@@ -284,31 +285,25 @@
     font-weight: 800;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid transparent;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent; /* Default transparent for non-destructive buttons */
 }
 
 .yq-users-action-btn--block {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    /* Colors moved to .yq-admin-action--destructive */
 }
 
 .yq-users-action-btn--block:hover {
-    background: #ef4444;
-    color: #ffffff;
-    border-color: #ef4444;
+    /* Colors moved to .yq-admin-action--destructive */
 }
 
 .yq-users-action-btn--unblock {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #34d399;
+    /* Colors moved to .yq-admin-action--success */
 }
 
 .yq-users-action-btn--unblock:hover {
-    background: #10b981;
-    color: #ffffff;
-    border-color: #10b981;
+    /* Colors moved to .yq-admin-action--success */
 }
 
 .yq-users-btn-block {
@@ -317,10 +312,9 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1.5px solid rgba(239, 68, 68, 0.35);
+    border-width: 1.5px;
+    border-style: solid;
     border-radius: 8px;
-    color: #f87171;
     font-weight: 800;
     font-size: 0.92rem;
     cursor: pointer;
@@ -328,11 +322,8 @@
 }
 
 .yq-users-btn-block:hover {
-    background: #ef4444;
-    color: #ffffff;
-    border-color: #ef4444;
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 14px rgba(197, 73, 73, 0.2);
 }
 
 .yq-users-btn-unblock {
@@ -341,10 +332,9 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(16, 185, 129, 0.12);
-    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-width: 1.5px;
+    border-style: solid;
     border-radius: 8px;
-    color: #34d399;
     font-weight: 800;
     font-size: 0.92rem;
     cursor: pointer;
@@ -352,9 +342,6 @@
 }
 
 .yq-users-btn-unblock:hover {
-    background: #10b981;
-    color: #ffffff;
-    border-color: #10b981;
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }

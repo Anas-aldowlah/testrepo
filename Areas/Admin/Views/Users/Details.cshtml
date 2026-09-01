@@ -234,11 +234,11 @@
                             <i class="bi bi-slash-circle-fill"></i>
                             <p>هذا الحساب <strong>محظور حالياً</strong> ولا يمكنه الوصول للمتجر.</p>
                         </div>
-                        <form asp-action="ToggleBlock" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في إلغاء حظر هذا الحساب؟');">
+                        <form asp-action="ToggleBlock" method="post" data-yq-user-block-form data-yq-block-action="unblock">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="userId" value="@Model.Id" />
                             <input type="hidden" name="block" value="false" />
-                            <button type="submit" class="yq-users-btn-unblock w-100">
+                            <button type="submit" class="yq-users-btn-unblock w-100 yq-admin-action--success">
                                 <i class="bi bi-unlock-fill"></i>
                                 <span>إلغاء حظر الحساب</span>
                             </button>
@@ -249,11 +249,11 @@
                         <p class="yq-block-hint">
                             عند حظر الحساب، سيتم إنهاء جلسة المستخدم ومنعه فوراً من الوصول إلى المتجر.
                         </p>
-                        <form asp-action="ToggleBlock" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في حظر هذا الحساب؟ سيتم منعه فوراً من تسجيل الدخول أو إتمام الطلبات.');">
+                        <form asp-action="ToggleBlock" method="post" data-yq-user-block-form data-yq-block-action="block">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="userId" value="@Model.Id" />
                             <input type="hidden" name="block" value="true" />
-                            <button type="submit" class="yq-users-btn-block w-100">
+                            <button type="submit" class="yq-users-btn-block w-100 yq-admin-action--destructive">
                                 <i class="bi bi-slash-circle-fill"></i>
                                 <span>حظر هذا الحساب</span>
                             </button>
@@ -336,6 +336,9 @@
     </div>
 </section>
 
+@await Html.PartialAsync("_YaqutOperationDialog")
+
 @section Scripts {
     <script src="~/js/admin/users/details.js" asp-append-version="true"></script>
+    <script src="~/js/admin/users/block.js" asp-append-version="true"></script>
 }
