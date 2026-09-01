@@ -29,6 +29,10 @@ public partial class Product
 
     public string? Brand { get; set; }
 
+    public int TotalSold { get; set; } = 0;
+
+    public DateTime? SalesLastUpdatedAt { get; set; }
+
     public virtual ICollection<Cartitem> Cartitems { get; set; } = new List<Cartitem>();
 
     public virtual Category Category { get; set; } = null!;

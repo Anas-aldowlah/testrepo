@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +21,7 @@ public class ProductsController : Controller
     private readonly NeondbContext _context;
     private readonly Image _imageService;
     private readonly IInventoryService _inventoryService;
+    private readonly IBestSellerService _bestSellerService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -29,12 +30,14 @@ public class ProductsController : Controller
         IWebHostEnvironment webHostEnvironment,
         Image imageService,
         IInventoryService inventoryService,
+        IBestSellerService bestSellerService,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
         _context = context;
         _imageService = imageService;
         _inventoryService = inventoryService;
+        _bestSellerService = bestSellerService;
         _logger = logger;
     }
 
@@ -75,10 +78,39 @@ public class ProductsController : Controller
                 ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
                  (p.StockUnit != "Ml" && p.Stockquantity < 5))),
             OutOfStockCount = await activeQuery.CountAsync(p => p.Stockquantity <= 0),
-            Search = search ?? string.Empty
+            Search = search ?? string.Empty,
+            BestSellersLastUpdated = await _bestSellerService.GetLastRefreshTimeAsync()
         };
 
         return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Developer")]
+    public async Task<IActionResult> RefreshBestSellers(string? returnUrl = null)
+    {
+        _logger.LogInformation("Admin user {AdminUser} initiated a manual Best Sellers refresh.", User.Identity?.Name);
+
+        var result = await _bestSellerService.RefreshBestSellersAsync(HttpContext.RequestAborted);
+
+        if (result.Success)
+        {
+            TempData["Success"] = $"تم تحديث قائمة الأكثر مبيعاً بنجاح ({result.TotalUnitsSold} وحدة مباعة خلال آخر {BestSellerConstants.BestSellerPeriodDays} يوماً).";
+        }
+        else
+        {
+            TempData["Error"] = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                ? "تعذر تحديث بيانات الأكثر مبيعاً حالياً. يرجى المحاولة لاحقاً."
+                : $"فشل تحديث الأكثر مبيعاً: {result.ErrorMessage}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     [Authorize(Roles = "Admin,Developer")]

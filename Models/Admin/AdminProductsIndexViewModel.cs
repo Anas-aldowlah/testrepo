@@ -11,4 +11,5 @@ public class AdminProductsIndexViewModel
     public int LowStockCount { get; init; }
     public int OutOfStockCount { get; init; }
     public string Search { get; init; } = string.Empty;
+    public DateTime? BestSellersLastUpdated { get; init; }
 }

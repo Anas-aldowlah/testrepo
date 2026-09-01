@@ -286,6 +286,8 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddSingleton<ReceiptStorageService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<ProductCatalogService>();
+builder.Services.AddScoped<IBestSellerService, BestSellerService>();
+builder.Services.AddHostedService<BestSellerBackgroundService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
 builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
