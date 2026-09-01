@@ -1224,3 +1224,16 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
 [data-filter-card="availability"] .yq-control-label {
     white-space: nowrap;
 }
+
+/* â”€â”€ Category & Manufacturer Compact Horizontal Spacing â”€â”€ */
+[data-filter-card="category"] .yq-filter-grid--2col,
+[data-filter-card="brand"] .yq-filter-grid--2col {
+    gap: 0.5rem 0.25rem;
+    align-items: center;
+}
+
+[data-filter-card="category"] .yq-filter-item,
+[data-filter-card="brand"] .yq-filter-item {
+    padding-inline: 0.25rem;
+    gap: 0.25rem;
+}
