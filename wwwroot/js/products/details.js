@@ -118,40 +118,32 @@
         var list = getRecentList().filter(function (p) { return p.id !== root.dataset.id; });
         if (!list.length) return;
 
-        grid.replaceChildren();
-        list.forEach(function (product) {
-            var card = document.createElement('a');
-            card.className = 'yq-pdp-recent__card';
-            card.href = '/Products/Details/' + encodeURIComponent(product.id);
+        var params = new URLSearchParams();
+        list.forEach(function (p) { params.append('ids', p.id); });
 
-            var media = document.createElement('div');
-            media.className = 'yq-pdp-recent__media';
-            var img = document.createElement('img');
-            img.src = product.image || '/images/placeholder-product.svg';
-            img.alt = product.name || '';
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            img.addEventListener('error', function () {
-                img.src = '/images/placeholder-product.svg';
-            }, { once: true });
-            media.appendChild(img);
-
-            var name = document.createElement('span');
-            name.className = 'yq-pdp-recent__name';
-            name.textContent = product.name || '';
-
-            var price = document.createElement('span');
-            price.className = 'yq-pdp-recent__price';
-            var priceNum = parseFloat(product.price);
-            price.textContent = window.Yaqut.formatPrice(priceNum);
-
-            card.appendChild(media);
-            card.appendChild(name);
-            card.appendChild(price);
-            grid.appendChild(card);
-        });
-
-        section.hidden = false;
+        fetch('/Products/RecentlyViewed?' + params.toString())
+            .then(function (response) {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.text();
+            })
+            .then(function (html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var cards = doc.querySelectorAll('.yq-pdp-recent__card');
+                
+                if (cards.length > 0) {
+                    grid.replaceChildren();
+                    cards.forEach(function(card) {
+                        grid.appendChild(card.cloneNode(true));
+                    });
+                    section.hidden = false;
+                } else {
+                    section.hidden = true;
+                }
+            })
+            .catch(function (error) {
+                // Fail gracefully
+            });
     }
 
     function initRecentlyViewed(root) {

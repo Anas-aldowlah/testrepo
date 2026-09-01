@@ -41,5 +41,36 @@ public class ProductsController : Controller
         return View(product);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> RecentlyViewed([FromQuery] int[] ids)
+    {
+        if (ids == null || ids.Length == 0)
+            return PartialView("_RecentlyViewedCard", new List<Product>());
+
+        var validIds = ids.Where(id => id > 0).Distinct().Take(6).ToList();
+        if (!validIds.Any())
+            return PartialView("_RecentlyViewedCard", new List<Product>());
+
+        var products = await _context.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
+            .Where(p => validIds.Contains(p.Id))
+            .ToListAsync();
+
+        var orderedProducts = new List<Product>();
+        foreach (var id in validIds)
+        {
+            var p = products.FirstOrDefault(x => x.Id == id);
+            if (p != null)
+            {
+                p.RetailPrices = ProductRetailAvailability.GetCustomerUsablePrices(p).ToList();
+                orderedProducts.Add(p);
+            }
+        }
+
+        return PartialView("_RecentlyViewedCard", orderedProducts);
+    }
 }
 

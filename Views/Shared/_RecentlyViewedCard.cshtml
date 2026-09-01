@@ -1,0 +1,42 @@
+@model IEnumerable<YAGOT_2._0.Models.Product>
+@using YAGOT_2._0.Services
+
+@foreach (var product in Model)
+{
+    var isAvailable = ProductRetailAvailability.IsSellable(product);
+    var isRetailAvailable = ProductRetailAvailability.IsAvailable(product);
+    var isNew = product.Createdat.HasValue && product.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
+    var imageUrl = string.IsNullOrWhiteSpace(product.Imageurl)
+        ? Url.Content("~/images/placeholder-product.svg")
+        : (product.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || product.Imageurl.StartsWith("/")
+            ? product.Imageurl
+            : Url.Content("~/" + product.Imageurl.TrimStart('/')));
+
+    <a href="@Url.Action("Details", "Products", new { id = product.Id })" class="yq-pdp-recent__card">
+        <div class="yq-pdp-recent__media">
+            <img src="@imageUrl" alt="@product.Name" loading="lazy" decoding="async" data-yaqut-fallback="/images/placeholder-product.svg" />
+            
+            @if (!isAvailable)
+            {
+                <span class="yq-pcard__badge yq-pcard__badge--off">
+                    <i class="bi bi-bag-x" aria-hidden="true"></i> غير متوفر
+                </span>
+            }
+            else if (isRetailAvailable)
+            {
+                <span class="yq-pcard__badge yq-pcard__badge--retail">
+                    <i class="bi bi-droplet-half" aria-hidden="true"></i> يباع بالتجزئة
+                </span>
+            }
+            else if (isNew)
+            {
+                <span class="yq-pcard__badge yq-pcard__badge--new">
+                    <i class="bi bi-stars" aria-hidden="true"></i> جديد
+                </span>
+            }
+        </div>
+        
+        <span class="yq-pdp-recent__name">@product.Name</span>
+        <span class="yq-pdp-recent__price">@(product.Price.ToYaqutPrice())</span>
+    </a>
+}

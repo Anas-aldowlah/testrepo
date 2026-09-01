@@ -713,6 +713,7 @@
     }
 
 .yq-pdp-recent__media {
+    position: relative;
     aspect-ratio: 1;
     border-radius: var(--yq-radius-sm);
     overflow: hidden;
@@ -721,8 +722,8 @@
 
     .yq-pdp-recent__media img { width: 100%; height: 100%; object-fit: cover; }
 
-.yq-pdp-recent__name  { font-size: 0.88rem; font-weight: 700; color: var(--yq-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.yq-pdp-recent__price { font-size: 0.85rem; font-weight: 700; color: var(--yq-gold); }
+.yq-pdp-recent__name  { text-align: center; font-size: 0.88rem; font-weight: 700; color: var(--yq-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yq-pdp-recent__price { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--yq-gold); }
 
 /* ── Keyframes ── */
 @keyframes yqPdpFadeIn {
