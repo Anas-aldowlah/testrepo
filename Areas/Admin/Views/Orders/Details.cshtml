@@ -126,7 +126,8 @@
 <section class="yq-order-details-admin"
          aria-labelledby="orderDetailsTitle"
          data-yq-order-details
-         data-yq-update-status-url="@Url.Action("UpdateStatus")">
+         data-yq-update-status-url="@Url.Action("UpdateStatus")"
+         data-yq-update-admin-note-url="@Url.Action("UpdateAdminNote")">
     <header class="yq-order-details-hero">
         <div class="yq-order-details-hero__content">
             <a asp-action="Index" class="yq-order-details-back">
@@ -290,27 +291,56 @@
                 }
             </section>
 
-            <section class="yq-order-detail-card" aria-labelledby="orderNotesTitle">
+            <section class="yq-order-detail-card" aria-labelledby="customerNotesTitle">
                 <div class="yq-order-detail-card__header">
                     <div>
-                        <span class="yq-orders-eyebrow">الملاحظات</span>
-                        <h3 id="orderNotesTitle">ملاحظات الطلب</h3>
+                        <span class="yq-orders-eyebrow">ملاحظات العميل</span>
+                        <h3 id="customerNotesTitle">ملاحظات التوصيل (العميل)</h3>
                     </div>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.Notes))
                 {
                     <div class="yq-order-details-state-note">
-                        <i class="bi bi-journal-text" aria-hidden="true"></i>
+                        <i class="bi bi-chat-left-text" aria-hidden="true"></i>
                         <span>@Model.Notes</span>
                     </div>
                 }
                 else
                 {
                     <div class="yq-order-details-state-note">
-                        <i class="bi bi-journal-text" aria-hidden="true"></i>
-                        <span>لا توجد ملاحظات على هذا الطلب.</span>
+                        <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+                        <span>لا توجد ملاحظات توصيل من العميل.</span>
                     </div>
                 }
+            </section>
+
+            <section class="yq-order-detail-card" aria-labelledby="adminNotesTitle" data-yq-admin-note-section>
+                <div class="yq-order-detail-card__header">
+                    <div>
+                        <span class="yq-orders-eyebrow">ملاحظات الإدارة</span>
+                        <h3 id="adminNotesTitle">ملاحظة الإدارة</h3>
+                    </div>
+                    <button type="button" class="btn-yaqut-outline yq-edit-note-btn" data-yq-edit-admin-note data-order-id="@Model.Id" data-current-note="@Model.AdminNote">
+                        <i class="bi @(string.IsNullOrWhiteSpace(Model.AdminNote) ? "bi-plus-lg" : "bi-pencil-square")" aria-hidden="true"></i>
+                        <span>@(string.IsNullOrWhiteSpace(Model.AdminNote) ? "إضافة ملاحظة" : "تعديل الملاحظة")</span>
+                    </button>
+                </div>
+                <div data-yq-admin-note-display>
+                    @if (!string.IsNullOrWhiteSpace(Model.AdminNote))
+                    {
+                        <div class="yq-order-details-state-note">
+                            <i class="bi bi-shield-check" aria-hidden="true"></i>
+                            <span data-yq-admin-note-text>@Model.AdminNote</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="yq-order-details-state-note">
+                            <i class="bi bi-shield" aria-hidden="true"></i>
+                            <span data-yq-admin-note-text>لا توجد ملاحظة مسجلة من الإدارة.</span>
+                        </div>
+                    }
+                </div>
             </section>
         </div>
 

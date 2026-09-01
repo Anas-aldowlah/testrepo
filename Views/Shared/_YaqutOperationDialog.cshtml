@@ -16,6 +16,11 @@
         <span class="yq-operation-dialog__icon" data-yq-dialog-icon aria-hidden="true"></span>
         <h2 id="yqOperationTitle" data-yq-dialog-title>تنبيه</h2>
         <p id="yqOperationMessage" data-yq-dialog-message></p>
+        <div class="yq-operation-dialog__input-wrap" data-yq-dialog-input-wrap hidden>
+            <label for="yqDialogInput" class="visually-hidden" data-yq-dialog-input-label>الملاحظة</label>
+            <textarea id="yqDialogInput" class="yq-operation-dialog__textarea" data-yq-dialog-input rows="3" maxlength="500" placeholder="أدخل الملاحظة هنا..."></textarea>
+            <span class="yq-operation-dialog__counter" data-yq-dialog-counter>0 / 500</span>
+        </div>
         <ul class="yq-operation-dialog__lines" data-yq-dialog-lines hidden></ul>
         <p class="yq-operation-dialog__whatsapp-note" data-yq-dialog-whatsapp-note hidden>يمكنك فتح رسالة جاهزة لإشعار العميل بالتحديث.</p>
         <div class="yq-operation-dialog__actions">

@@ -373,6 +373,19 @@
     text-align: end;
 }
 
+.yq-order-card__row--admin-note {
+    align-items: flex-start;
+}
+
+.yq-order-card__admin-note {
+    color: var(--yq-text-soft, rgba(255, 255, 255, 0.85));
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: end;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 /* PROGRESS */
 .yq-order-card__progress {
     height: 4px;

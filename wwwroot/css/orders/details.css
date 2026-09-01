@@ -1,4 +1,4 @@
-﻿.yq-order-details {
+.yq-order-details {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -758,4 +758,12 @@
     .yq-conflict-dialog__close { position: absolute; inset: -.25rem auto auto -.25rem; }
     .yq-conflict-dialog .yq-conflict-resolution__actions { display: grid; grid-template-columns: 1fr; }
     .yq-conflict-dialog .yq-conflict-resolution__button { width: 100%; }
+}
+
+.yq-od-admin-note-text {
+    margin: 0;
+    line-height: 1.8;
+    color: var(--yq-text-soft, rgba(255, 255, 255, 0.85));
+    font-size: 0.95rem;
+    white-space: pre-line;
 }

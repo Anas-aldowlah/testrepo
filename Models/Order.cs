@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
@@ -22,6 +22,8 @@ public partial class Order
     public DateTime? TimeState { get; set; }
 
     public string? Notes { get; set; }
+
+    public string? AdminNote { get; set; }
 
     public string? Paymentmethod { get; set; }
 

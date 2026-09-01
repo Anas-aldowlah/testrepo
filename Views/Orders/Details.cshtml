@@ -173,6 +173,14 @@
                 </div>
             </section>
 
+            @if (!string.IsNullOrWhiteSpace(Model.AdminNote))
+            {
+                <section class="yq-od-card yq-glass">
+                    <h2 class="yq-od-card__title"><i class="bi bi-info-circle"></i> ملاحظة الإدارة</h2>
+                    <p class="yq-od-admin-note-text">@Model.AdminNote</p>
+                </section>
+            }
+
             <!-- PAYMENT -->
             @await Html.PartialAsync("_PaymentMethodCard", new PaymentMethodCardViewModel(
                 paymentPresentation,
