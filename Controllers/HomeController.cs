@@ -37,10 +37,33 @@ public class HomeController : Controller
             .ToListAsync();
 
         var productsFromDb = allProducts;
+
+        const int bestSellersLimit = 8;
+        const int minBestSellersCount = 3;
+
+        var bestSellingProducts = await _context.Products
+            .AsNoTracking()
+            .WhereSellable(true)
+            .Where(p => p.TotalSold > 0)
+            .OrderByDescending(p => p.TotalSold)
+            .ThenByDescending(p => p.Createdat)
+            .ThenByDescending(p => p.Id)
+            .Include(p => p.Category)
+            .Include(p => p.RetailPrices.Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0))
+            .Take(bestSellersLimit)
+            .ToListAsync();
+
+        if (bestSellingProducts.Count < minBestSellersCount)
+        {
+            bestSellingProducts.Clear();
+        }
+
         var categoriesFromDb = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
         var model = new ViewModels
         {
             Products = productsFromDb,
+            BestSellingProducts = bestSellingProducts,
             Categories = categoriesFromDb,
             StoreSettings = await _storeSettingsService.GetSettingsAsync()
         };

@@ -597,10 +597,22 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("volume_ml");
 
+                    b.Property<int>("TotalSold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("total_sold");
+
+                    b.Property<DateTime?>("SalesLastUpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("sales_last_updated_at");
+
                     b.HasKey("Id")
                         .HasName("products_pkey");
 
                     b.HasIndex("Categoryid");
+
+                    b.HasIndex(new[] { "TotalSold" }, "ix_products_total_sold");
 
                     b.ToTable("products", null, t =>
                         {

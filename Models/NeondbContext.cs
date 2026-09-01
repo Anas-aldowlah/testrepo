@@ -415,6 +415,14 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_retail_enabled");
             entity.Property(e => e.Stockquantity).HasColumnName("stockquantity");
+            entity.Property(e => e.TotalSold)
+                .HasDefaultValue(0)
+                .HasColumnName("total_sold");
+            entity.Property(e => e.SalesLastUpdatedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("sales_last_updated_at");
+
+            entity.HasIndex(e => e.TotalSold, "ix_products_total_sold");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.Categoryid)

@@ -1649,3 +1649,13 @@
         flex: 0 0 auto;
     }
 }
+
+@keyframes yq-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    display: inline-block;
+    animation: yq-spin 0.9s linear infinite;
+}

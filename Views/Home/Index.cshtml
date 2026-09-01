@@ -5,15 +5,13 @@
 
     var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
     var products = Model.Products?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
+    var bestSellingProducts = Model.BestSellingProducts?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
 
     var newArrivals = products
         .OrderByDescending(product => product.Createdat ?? DateTime.MinValue)
         .Take(8)
         .ToList();
-    var premiumSelection = products
-        .OrderByDescending(product => product.Price)
-        .Take(8)
-        .ToList();
+
     var allProductsWithImages = products
         .Where(product => !string.IsNullOrWhiteSpace(product.Imageurl))
         .DistinctBy(product => product.Id)
@@ -201,19 +199,19 @@
         }
     </section>
 
-    @if (premiumSelection.Any())
+    @if (bestSellingProducts.Count >= 3)
     {
-        <section class="container yq-home-section" aria-labelledby="premiumTitle">
+        <section class="container yq-home-section" aria-labelledby="bestSellersTitle">
             <header class="yq-home-section__head">
                 <div>
-                    <span class="yq-home-kicker">توقيع فاخر</span>
-                    <h2 id="premiumTitle" class="yq-home-section__title">المختارات الفاخرة</h2>
-                    <p class="yq-home-section__sub">قطع استثنائية لعشّاق الروائح الراقية</p>
+                    <span class="yq-home-kicker"><i class="bi bi-fire text-warning"></i> الأكثر طلباً</span>
+                    <h2 id="bestSellersTitle" class="yq-home-section__title">الأكثر مبيعاً</h2>
+                    <p class="yq-home-section__sub">العطور الأكثر اختياراً وإقبالاً من قِبل عملائنا</p>
                 </div>
                 <a asp-controller="Products" asp-action="Index" class="yq-home-section__link">عرض الكل <i class="bi bi-arrow-left"></i></a>
             </header>
-            <div class="yq-home-product-rail" tabindex="0" aria-label="المختارات الفاخرة">
-                @foreach (var product in premiumSelection)
+            <div class="yq-home-product-rail" tabindex="0" aria-label="المنتجات الأكثر مبيعاً">
+                @foreach (var product in bestSellingProducts)
                 {
                     <partial name="_ProductCard" model="product" />
                 }
