@@ -58,7 +58,7 @@ public class UsersController : Controller
         var model = new AdminUsersIndexViewModel
         {
             Users = usersPage,
-            TotalUsers = await _dbUser.Users.CountAsync()
+            TotalUsers = await _context.UserSites.CountAsync()
         };
 
         return View(model);
