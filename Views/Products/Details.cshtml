@@ -85,16 +85,16 @@
          data-image="@productImageUrl">
 
         <!-- BREADCRUMB -->
-        <nav class="yq-pdp-breadcrumb" aria-label="مسار التصفح">
+        <nav class="yq-page-breadcrumb yq-reveal mb-4" aria-label="مسار التصفح">
             <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-            <i class="bi bi-chevron-left"></i>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
             <a asp-controller="Products" asp-action="Index">المنتجات</a>
             @if (Model.Category != null)
             {
-                <i class="bi bi-chevron-left"></i>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
                 <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id">@Model.Category.Name</a>
             }
-            <i class="bi bi-chevron-left"></i>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
             <span>@Model.Name</span>
         </nav>
 

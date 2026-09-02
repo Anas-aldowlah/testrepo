@@ -1,4 +1,5 @@
-﻿@model YAGOT_2._0.Models.ProductsCatalogViewModel
+@model YAGOT_2._0.Models.ProductsCatalogViewModel
+@using Microsoft.AspNetCore.Html
 @{
     var request = Model.Request;
     var selectedCategory = Model.SelectedCategory;
@@ -51,53 +52,52 @@
 }
 
 <div class="yq-shop" data-yq-search-term="@request.Search">
-    @if (isSearchMode || isBrandMode)
-    {
-        <header class="yq-shop-header yq-reveal">
-            <nav class="yq-shop-breadcrumb" aria-label="مسار التصفح">
+    @{
+        Func<dynamic, IHtmlContent>? breadcrumbTemplate = null;
+        if (isSearchMode || isBrandMode)
+        {
+            breadcrumbTemplate = @<text>
                 <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-                <i class="bi bi-chevron-left"></i>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
                 <a asp-action="Index">المنتجات</a>
-                <i class="bi bi-chevron-left"></i>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
                 <span>@(isBrandMode && !isSearchMode ? "الشركة المنتجة" : "نتائج البحث")</span>
-            </nav>
+            </text>;
+            
+            Func<dynamic, IHtmlContent> actionTemplate = @<a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")</a>;
+            
+            var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+                Variant = "Utility",
+                Title = $"\"{(isBrandMode && !isSearchMode ? string.Join(", ", request.Brand) : request.Search)}\"",
+                Subtitle = $"تم العثور على <strong>{Model.TotalCount}</strong> {(Model.TotalCount == 1 ? "منتج" : "منتجات")}",
+                Breadcrumbs = breadcrumbTemplate != null ? breadcrumbTemplate(null) : null,
+                Actions = actionTemplate(null)
+            };
+            <partial name="_PageHeader" model="headerVM" />
+        }
+        else
+        {
+            breadcrumbTemplate = @<text>
+                <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                <span>@(selectedCategory?.Name ?? "جميع المنتجات")</span>
+            </text>;
 
-            <div class="yq-search-banner">
-                <div class="yq-search-banner__icon"><i class="bi @(isBrandMode && !isSearchMode ? "bi-building" : "bi-search")"></i></div>
-                <div class="yq-search-banner__text">
-                    <span class="yq-search-banner__label">@(isBrandMode && !isSearchMode ? "منتجات الشركة" : "نتائج البحث عن")</span>
-                    <h1 class="yq-search-banner__query">"@(isBrandMode && !isSearchMode ? string.Join(", ", request.Brand) : request.Search)"</h1>
-                    <p class="yq-search-banner__count">
-                        تم العثور على <strong>@Model.TotalCount</strong> @(Model.TotalCount == 1 ? "منتج" : "منتجات")
-                    </p>
-                </div>
-                <a asp-action="Index" class="yq-search-banner__clear">
-                    <i class="bi bi-x-circle"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")
-                </a>
-            </div>
-        </header>
-    }
-    else
-    {
-        <header class="yq-storefront-hero yq-reveal">
-            <div class="yq-storefront-hero__glow"></div>
-            <div class="yq-storefront-hero__inner">
-                <nav class="yq-storefront-hero__eyebrow yq-shop-breadcrumb" aria-label="مسار التصفح">
-                    <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-                    <i class="bi bi-chevron-left"></i>
-                    <span>@(selectedCategory?.Name ?? "جميع المنتجات")</span>
-                </nav>
+            Func<dynamic, IHtmlContent>? clearAction = null;
+            if (hasActiveFilter)
+            {
+                clearAction = @<a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> إزالة الفلاتر</a>;
+            }
 
-                <h1 class="yq-storefront-hero__title">@(selectedCategory?.Name ?? "جميع المنتجات")</h1>
-                <p class="yq-storefront-hero__sub">تصفّح منتجاتنا الفاخرة والأصيلة</p>
-                @if (hasActiveFilter)
-                {
-                    <div style="margin-top: 1rem;">
-                        <a asp-action="Index" class="yq-shop-clear-link"><i class="bi bi-x-circle"></i> إزالة الفلاتر</a>
-                    </div>
-                }
-            </div>
-        </header>
+            var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+                Variant = "Catalog",
+                Title = selectedCategory?.Name ?? "جميع المنتجات",
+                Subtitle = "تصفّح منتجاتنا الفاخرة والأصيلة",
+                Breadcrumbs = breadcrumbTemplate != null ? breadcrumbTemplate(null) : null,
+                Actions = clearAction != null ? clearAction(null) : null
+            };
+            <partial name="_PageHeader" model="headerVM" />
+        }
     }
 
     <div class="yq-recent-searches" id="yqRecentSearches" hidden>

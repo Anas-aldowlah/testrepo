@@ -1,3 +1,4 @@
+@import url('components/page-header.css');
 /* ═══ Shared Storefront Shell — Header, Navigation, Footer ═══ */
 
 /* ── Accessibility ── */
@@ -1816,77 +1817,3 @@ html[data-theme="dark"] .yaqut-cart-link {
 
 .yq-brand-link { color: inherit; text-decoration: underline dotted; }
 
-/* -- Shared Storefront Hero -- */
-.yq-storefront-hero {
-    text-align: center;
-    position: relative;
-    padding: 3rem 1.5rem;
-    border-radius: 24px;
-    margin: 0 -1.5rem;
-    background: var(--yq-bg-elevated);
-    border-bottom: 1px solid var(--yq-border-sub);
-    overflow: hidden;
-}
-
-.yq-storefront-hero__glow {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--yq-gold) 15%, transparent) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-.yq-storefront-hero__inner {
-    position: relative;
-    z-index: 2;
-    max-width: 680px;
-    margin: 0 auto;
-}
-
-.yq-storefront-hero__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--yq-gold);
-    margin-bottom: 1.25rem;
-    padding: 0.4rem 1.1rem;
-    border: 1px solid var(--yq-border);
-    border-radius: 50px;
-    background: var(--yq-bg-glass);
-}
-
-.yq-storefront-hero__title {
-    font-family: var(--yq-font-display);
-    font-size: clamp(2rem, 5vw, 3rem);
-    font-weight: 700;
-    color: var(--yq-text);
-    margin: 0 0 1rem;
-    line-height: 1.2;
-    padding-bottom: 0.1em;
-    background: linear-gradient(90deg, var(--yq-text) 20%, var(--yq-gold) 50%, var(--yq-text) 80%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: yqHomeShine 6s linear infinite;
-}
-
-.yq-storefront-hero__sub {
-    color: var(--yq-text-soft);
-    font-size: 1.05rem;
-    line-height: 1.8;
-    margin: 0;
-}
-
-@media (max-width: 576px) {
-    .yq-storefront-hero {
-        margin: 0 -1rem;
-        padding: 2.5rem 1rem;
-        border-radius: 0 0 24px 24px;
-    }
-    .yq-storefront-hero__title {
-        font-size: 2.2rem;
-    }
-}

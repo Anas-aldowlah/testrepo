@@ -1,5 +1,6 @@
 @model YAGOT_2._0.Models.Order
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Html
 @using YAGOT_2._0.Services
 @inject DealingAPI DealingApiService
 @{
@@ -81,34 +82,35 @@
         @await Html.PartialAsync("_CustomerInventoryConflict", inventoryConflict)
     }
 
-    <!-- BREADCRUMB -->
-    <nav class="yq-od-breadcrumb yq-reveal" aria-label="مسار التصفح">
-        <a asp-controller="Home" asp-action="Index">الرئيسية</a>
-        <i class="bi bi-chevron-left"></i>
-        <a asp-controller="Orders" asp-action="Index">طلباتي</a>
-        <i class="bi bi-chevron-left"></i>
-        <span>تفاصيل الطلب</span>
-    </nav>
+    @{
+        Func<dynamic, IHtmlContent> odBreadcrumb = @<text>
+            <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            <a asp-controller="Orders" asp-action="Index">طلباتي</a>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            <span>تفاصيل الطلب</span>
+        </text>;
 
-    <!-- HEADER -->
-    <header class="yq-od-header yq-reveal">
-        <div>
-            <a asp-controller="Orders" asp-action="Index" class="yq-od-back-link">
-                <i class="bi bi-arrow-right"></i> العودة لطلباتي
-            </a>
-            <h1 class="yq-od-header__title">
-                <i class="bi bi-receipt"></i> تفاصيل الطلب
-            </h1>
-            <div class="yq-od-header__tracking">
-                <span>رقم التتبع</span>
-                <strong id="yqDetailsTrackingNumber">@Model.Trackingnumber</strong>
-                <button type="button" class="yq-od-copy-btn" id="yqDetailsCopyTrackingBtn" aria-label="نسخ رقم التتبع">
-                    <i class="bi bi-clipboard"></i>
-                </button>
-            </div>
-        </div>
-        <span class="yaqut-badge @badgeClass yq-od-header__badge">@stateAr</span>
-    </header>
+        Func<dynamic, IHtmlContent> odMetadata = @<text>
+            <span>رقم التتبع</span>
+            <strong id="yqDetailsTrackingNumber">@Model.Trackingnumber</strong>
+            <button type="button" class="yq-od-copy-btn btn btn-sm btn-link p-0 text-secondary" id="yqDetailsCopyTrackingBtn" aria-label="نسخ رقم التتبع">
+                <i class="bi bi-clipboard" aria-hidden="true"></i>
+            </button>
+            <span class="yaqut-badge @badgeClass ms-auto">@stateAr</span>
+        </text>;
+
+        Func<dynamic, IHtmlContent> odActions = @<a asp-controller="Orders" asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-right" aria-hidden="true"></i> العودة لطلباتي</a>;
+
+        var odHeaderVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+            Variant = "Detail",
+            Title = "<i class=\"bi bi-receipt\" aria-hidden=\"true\"></i> تفاصيل الطلب",
+            Breadcrumbs = odBreadcrumb != null ? odBreadcrumb(null) : null,
+            Metadata = odMetadata != null ? odMetadata(null) : null,
+            Actions = odActions(null)
+        };
+    }
+    <partial name="_PageHeader" model="odHeaderVM" />
 
     @if (isCancelled)
     {

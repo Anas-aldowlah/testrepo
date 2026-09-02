@@ -1,4 +1,5 @@
 @model YAGOT_2._0.Models.CustomerOrdersIndexViewModel
+@using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "طلباتي | ياقوت";
     var orders = Model.Orders;
@@ -56,19 +57,19 @@
 <div class="yq-orders-page" data-yq-orders-root data-yq-orders-url="@Url.Action("Index", "Orders")">
 
     <!-- HEADER -->
-    <header class="yq-orders-header yq-reveal">
-        <div>
-            <span class="yq-orders-header__eyebrow"><i class="bi bi-bag-check"></i> سجل المشتريات</span>
-            <h1 class="yq-orders-header__title">طلباتي</h1>
-            @if (Model.AllCount > 0)
-            {
-                <p class="yq-orders-header__sub">لديك <strong>@Model.AllCount</strong> @(Model.AllCount == 1 ? "طلب" : "طلبات") مسجلة في حسابك</p>
-            }
-        </div>
-        <a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline yq-orders-header__cta">
-            <i class="bi bi-bag-plus"></i> تسوق الآن
-        </a>
-    </header>
+    @{
+        Func<dynamic, IHtmlContent> ordersAction = @<a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-bag-plus" aria-hidden="true"></i> تسوق الآن</a>;
+        
+        var ordersHeaderVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+            Variant = "Utility",
+            Title = "طلباتي",
+            Eyebrow = "سجل المشتريات",
+            EyebrowIcon = "bi-bag-check",
+            Subtitle = Model.AllCount > 0 ? $"لديك <strong>{Model.AllCount}</strong> {(Model.AllCount == 1 ? "طلب" : "طلبات")} مسجلة في حسابك" : null,
+            Actions = ordersAction(null)
+        };
+    }
+    <partial name="_PageHeader" model="ordersHeaderVM" />
 
     @if (Model.AllCount == 0)
     {

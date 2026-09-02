@@ -8,25 +8,7 @@
     padding-bottom: 2rem;
 }
 
-/* ── Breadcrumb ── */
-.yq-pdp-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--yq-text-soft);
-    flex-wrap: wrap;
-}
 
-    .yq-pdp-breadcrumb a {
-        color: var(--yq-text-soft);
-        transition: color var(--yq-ease);
-    }
-
-        .yq-pdp-breadcrumb a:hover { color: var(--yq-gold); }
-
-    .yq-pdp-breadcrumb i    { font-size: 0.7rem; color: var(--yq-gold); }
-    .yq-pdp-breadcrumb span { color: var(--yq-gold); font-weight: 700; }
 
 /* ── Main Layout ── */
 .yq-pdp-main {
