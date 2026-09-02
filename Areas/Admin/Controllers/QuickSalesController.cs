@@ -257,7 +257,7 @@ public class QuickSalesController : Controller
     {
         var availableProducts = await _context.Products
             .AsNoTracking()
-            .Where(p => p.Stockquantity > 0)
+            .WhereSellable(available: true)
             .OrderBy(p => p.Name)
             .Take(100)
             .Select(p => new ProductSearchResultDto
@@ -271,7 +271,7 @@ public class QuickSalesController : Controller
                 VolumeMl = p.VolumeMl,
                 IsRetailEnabled = p.IsRetailEnabled,
                 RetailPrices = p.RetailPrices
-                    .Where(price => price.IsActive)
+                    .Where(price => price.IsActive && price.SizeMl > 0 && price.Price > 0)
                     .OrderBy(price => price.SizeMl)
                     .Select(price => new ProductRetailPriceDto
                     {
@@ -327,7 +327,7 @@ public class QuickSalesController : Controller
 
         var products = await _context.Products
             .AsNoTracking()
-            .Include(p => p.RetailPrices)
+            .WhereSellable(available: true)
             .Where(p => p.Name.ToLower().Contains(query) || (p.Brand != null && p.Brand.ToLower().Contains(query)))
             .OrderBy(p => p.Name)
             .Take(12)
@@ -342,6 +342,7 @@ public class QuickSalesController : Controller
                 VolumeMl = p.VolumeMl,
                 IsRetailEnabled = p.IsRetailEnabled,
                 RetailPrices = p.RetailPrices
+                    .Where(price => price.IsActive && price.SizeMl > 0 && price.Price > 0)
                     .OrderBy(price => price.SizeMl)
                     .Select(price => new ProductRetailPriceDto
                     {
