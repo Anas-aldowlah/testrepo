@@ -66,7 +66,7 @@ namespace YAGOT_2._0.Services
                     ex,
                     "The site-status service failed for site {SiteId}; access is failing closed.",
                     siteID);
-                return StatueSite.ColsePlane;
+                return StatueSite.Developer;
             }
         }
         public string DecryptPhone(string? encryptedPhone)
