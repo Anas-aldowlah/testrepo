@@ -185,8 +185,8 @@ a {
     margin-bottom: 0.5rem;
 }
 
-.theme-light .yaqut-logo-wrap--header,
-.theme-light .yaqut-logo-wrap--auth {
+.yaqut-logo-wrap--header,
+.yaqut-logo-wrap--auth {
     background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
     padding: 0.4rem 1.25rem;
     border-radius: 50px;

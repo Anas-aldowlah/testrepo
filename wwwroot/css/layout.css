@@ -1715,7 +1715,7 @@ html[data-theme="dark"] .yaqut-cart-link {
         height: 34px;
     }
 
-    .theme-light .yaqut-logo-wrap--header {
+    .yaqut-logo-wrap--header {
         padding: 0.32rem 0.8rem;
     }
 

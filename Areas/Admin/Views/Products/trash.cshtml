@@ -40,10 +40,7 @@
         </div>
     </header>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="yaqut-alert yaqut-alert--danger" role="alert">@TempData["Error"]</div>
-    }
+    <partial name="_YaqutOperationDialog" />
 
     <section class="yq-products-panel" aria-labelledby="archivedProductsTitle">
         <div class="yq-products-panel__header">

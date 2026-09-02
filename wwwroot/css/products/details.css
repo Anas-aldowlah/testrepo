@@ -180,6 +180,12 @@
     cursor: pointer;
     transition: all var(--yq-ease);
     flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+}
+
+.yq-pdp-wishlist i {
+    line-height: 0;
 }
 
     .yq-pdp-wishlist:hover {
