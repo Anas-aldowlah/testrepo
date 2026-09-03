@@ -14,7 +14,7 @@
     const closeButton = dialog.querySelector("[data-yq-conflict-close]");
 
     const openDialog = () => {
-        if (!dialog.open) dialog.showModal();
+        if (!dialog.open) window.YaqutDialog.showModal(dialog);
     };
 
     const hasCompleteDecision = () => decisionFields.length > 0 &&

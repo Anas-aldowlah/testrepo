@@ -220,6 +220,18 @@
         border-color: var(--yq-gold, #c9a24b);
     }
 
+.yq-order-card--attention {
+    background: color-mix(in srgb, var(--yq-danger, #ef4444) 4%, var(--yq-surface, #ffffff));
+    border-color: color-mix(in srgb, var(--yq-danger, #ef4444) 30%, var(--yq-border, rgba(255, 255, 255, 0.08)));
+    border-inline-start: 4px solid var(--yq-danger, #ef4444);
+}
+
+.theme-dark .yq-order-card--attention,
+.dark-mode .yq-order-card--attention {
+    background: color-mix(in srgb, var(--yq-danger, #ef4444) 4%, var(--yq-surface, #1e1e20));
+}
+
+
 .yq-order-card__top {
     display: flex;
     align-items: flex-start;

@@ -890,6 +890,21 @@ public class OrderService
                 .ThenInclude(item => item.RetailPrice)
             .ToListAsync(cancellationToken);
 
+        var reviewRequiredQuery = customerOrders
+            .Where(order => order.Workflowstate == OrderWorkflowStates.ConflictAwaitingDecision);
+
+        var reviewRequiredCount = await reviewRequiredQuery.CountAsync(cancellationToken);
+
+        int? firstReviewRequiredOrderId = null;
+        if (reviewRequiredCount > 0)
+        {
+            firstReviewRequiredOrderId = await reviewRequiredQuery
+                .OrderByDescending(order => order.Orderdate)
+                .ThenByDescending(order => order.Id)
+                .Select(order => order.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         return new CustomerOrdersIndexViewModel
         {
             Orders = orders,
@@ -899,7 +914,9 @@ public class OrderService
             CurrentPage = currentPage,
             PageSize = pageSize,
             TotalCount = totalCount,
-            TotalPages = totalPages
+            TotalPages = totalPages,
+            ReviewRequiredCount = reviewRequiredCount,
+            FirstReviewRequiredOrderId = firstReviewRequiredOrderId
         };
     }
 

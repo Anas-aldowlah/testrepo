@@ -619,6 +619,26 @@
         }).format(num) + ' ر.س';
     };
 
+    /* ═══ GLOBAL DIALOG HELPER ═══ */
+    window.YaqutDialog = window.YaqutDialog || {};
+    window.YaqutDialog.showModal = function (dialog) {
+        if (!dialog || typeof dialog.showModal !== 'function') return;
+
+        const autoFocusedElements = dialog.querySelectorAll("[autofocus]");
+        autoFocusedElements.forEach(btn => btn.removeAttribute("autofocus"));
+
+        dialog.setAttribute("tabindex", "-1");
+        dialog.setAttribute("autofocus", "");
+
+        dialog.showModal();
+
+        window.requestAnimationFrame(() => {
+            if (dialog.open) {
+                dialog.focus({ preventScroll: true });
+            }
+        });
+    };
+
     function init() {
         initThemeToggle();
         initAuthPanels();

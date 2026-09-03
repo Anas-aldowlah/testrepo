@@ -54,7 +54,9 @@
     <link rel="stylesheet" href="~/css/orders/index.css" asp-append-version="true" />
 }
 
-<div class="yq-orders-page" data-yq-orders-root data-yq-orders-url="@Url.Action("Index", "Orders")">
+<div class="yq-orders-page" data-yq-orders-root data-yq-orders-url="@Url.Action("Index", "Orders")"
+     data-yq-review-count="@Model.ReviewRequiredCount"
+     data-yq-review-url="@(Model.FirstReviewRequiredOrderId.HasValue ? Url.Action("Details", "Orders", new { id = Model.FirstReviewRequiredOrderId.Value }) : "")">
 
     <!-- HEADER -->
     @{
@@ -129,7 +131,7 @@
                 var extraCount = items.Count - thumbs.Count;
 
                 <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id"
-                   class="yq-order-card yq-glass yq-reveal"
+                   class="yq-order-card yq-glass yq-reveal @(order.Workflowstate == YAGOT_2._0.Services.OrderWorkflowStates.ConflictAwaitingDecision ? "yq-order-card--attention" : "")"
                    data-yq-order-card
                    data-status="@order.Status"
                    data-search="@searchBlob">
@@ -249,6 +251,8 @@
         }
     }
 </div>
+
+<partial name="_YaqutOperationDialog" />
 
 @section Scripts {
     <script src="~/js/orders/index.js" asp-append-version="true"></script>

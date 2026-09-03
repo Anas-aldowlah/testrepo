@@ -104,14 +104,24 @@
                                     _ => "غير معروف"
                                 };
 
-                                var statusClass = (order.Status ?? "unknown").ToLowerInvariant();
+                                var statusClass = order.Status switch
+                                {
+                                    "Pending" => "yq-orders-badge--pending",
+                                    "Paid" => "yq-orders-badge--paid",
+                                    "Processed" => "yq-orders-badge--processed",
+                                    "Shipped" => "yq-orders-badge--shipped",
+                                    "Delivered" => "yq-orders-badge--delivered",
+                                    "Cancelled" => "yq-orders-badge--cancelled",
+                                    "Refunded" => "yq-orders-badge--cancelled",
+                                    _ => "yq-orders-badge--neutral"
+                                };
 
                                 <tr>
                                     <td data-label="رقم الطلب"><strong>#@order.Id</strong></td>
                                     <td data-label="رقم التتبع">@(string.IsNullOrWhiteSpace(order.Trackingnumber) ? "-" : order.Trackingnumber)</td>
                                     <td data-label="الإجمالي">@(order.Totalamount.ToYaqutPrice())</td>
                                     <td data-label="الحالة">
-                                        <span class="yq-dashboard-status yq-dashboard-status--@statusClass">@stateAr</span>
+                                        <span class="yq-orders-badge @statusClass">@stateAr</span>
                                     </td>
                                     <td data-label="التاريخ">@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</td>
                                 </tr>

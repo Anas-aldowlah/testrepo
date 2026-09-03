@@ -1809,3 +1809,55 @@ body.dark-mode .btn-outline-secondary:hover {
     outline: 3px solid color-mix(in srgb, var(--yq-admin-gold-bright, #d4af37) 55%, transparent);
     outline-offset: 3px;
 }
+/* Orders Badge (Unified Status Style) */
+.yq-orders-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0.24rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.yq-orders-badge--pending {
+    border-color: rgba(212, 175, 55, 0.28);
+    background: rgba(212, 175, 55, 0.12);
+    color: var(--yq-admin-gold-bright, #d4af37);
+}
+
+.yq-orders-badge--paid,
+.yq-orders-badge--processed,
+.yq-orders-badge--shipped {
+    border-color: rgba(71, 135, 201, 0.3);
+    background: rgba(71, 135, 201, 0.12);
+    color: #7db7f0;
+}
+
+.yq-orders-badge--delivered {
+    border-color: rgba(82, 181, 128, 0.28);
+    background: rgba(82, 181, 128, 0.12);
+    color: #7fd6a7;
+}
+
+.yq-orders-badge--cancelled {
+    border-color: rgba(197, 73, 73, 0.28);
+    background: rgba(197, 73, 73, 0.12);
+    color: var(--yq-admin-danger, #ff8b8b);
+}
+
+.theme-light .yq-orders-badge--paid,
+.theme-light .yq-orders-badge--processed,
+.theme-light .yq-orders-badge--shipped { color: #2563eb; }
+.theme-light .yq-orders-badge--delivered { color: #059669; }
+.theme-light .yq-orders-badge--cancelled { color: #dc2626; }
+.theme-light .yq-orders-badge--pending { color: #b45309; }
+
+.yq-orders-badge--neutral {
+    border-color: var(--yq-admin-border, rgba(255, 255, 255, 0.08));
+    background: var(--yq-admin-surface-soft, #1b1f22);
+    color: var(--yq-admin-muted, #b6b1a6);
+}

@@ -6,6 +6,37 @@
 
     var abortController = null;
     var latestRequestId = 0;
+    var reviewDialogShown = false;
+
+    function checkReviewPopup() {
+        if (reviewDialogShown) return;
+        var count = parseInt(root.getAttribute('data-yq-review-count') || '0', 10);
+        if (count <= 0) return;
+        reviewDialogShown = true;
+
+        if (count === 1) {
+            window.YaqutOperationDialog.confirm({
+                title: "طلب يحتاج مراجعتك",
+                message: "يوجد طلب يحتاج إلى مراجعتك قبل استكمال المعالجة.",
+                confirmText: "مراجعة الطلب",
+                confirmStyle: "primary"
+            }).then(function (result) {
+                if (result) {
+                    var url = root.getAttribute('data-yq-review-url');
+                    if (url) window.location.assign(url);
+                }
+            });
+        } else {
+            window.YaqutOperationDialog.confirm({
+                title: "طلبات تحتاج مراجعتك",
+                message: "لديك " + count + " طلبات تحتاج إلى مراجعتك لاتخاذ الإجراء المناسب.",
+                confirmText: "عرض الطلبات",
+                confirmStyle: "primary"
+            }).then(function (result) {
+                // Confirmation simply closes the dialog and stays on the Orders list.
+            });
+        }
+    }
 
     function hydrateThumbnails() {
         root.querySelectorAll('.yq-order-card__thumb img').forEach(function (img) {
@@ -95,5 +126,14 @@
         loadOrders(window.location.href, null);
     });
 
-    hydrateThumbnails();
+    function init() {
+        hydrateThumbnails();
+        checkReviewPopup();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+    } else {
+        init();
+    }
 })(window, document);

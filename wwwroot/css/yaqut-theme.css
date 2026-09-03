@@ -2247,6 +2247,11 @@ a.yq-pcard__action-add:focus-visible {
     color: #c0392b;
 }
 
+.yaqut-badge--danger {
+    background: rgba(180, 35, 24, 0.12);
+    color: var(--yq-danger, #b42318);
+}
+
 /* Admin Area */
 .yaqut-admin-wrapper {
     display: flex;
@@ -3118,7 +3123,7 @@ html[data-theme="dark"] .yq-workflow-fill:hover:not(:disabled):not(.is-disabled)
 .yq-paired-action:not(:disabled):not([aria-disabled="true"]):hover { transform: translateY(-1px); }
 
 .yq-paired-action.yq-paired-action--primary {
-    --yq-paired-fill: color-mix(in srgb, #fff 82%, var(--yq-btn-gold));
+    --yq-paired-fill: var(--yq-btn-gold-light);
 }
 
 .yq-paired-action.yq-paired-action--secondary {
