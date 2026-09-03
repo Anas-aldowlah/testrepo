@@ -10,28 +10,7 @@
     padding-block: 2rem 4rem;
 }
 
-/* ─── BREADCRUMB ─── */
-.yq-profile-breadcrumb {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    font-size: 0.83rem;
-    color: var(--yq-text-muted, #94a3b8);
-}
 
-.yq-profile-breadcrumb a {
-    color: var(--yq-text-muted, #94a3b8);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.yq-profile-breadcrumb a:hover { color: var(--yq-gold, #c9a24b); }
-
-.yq-profile-breadcrumb span {
-    color: var(--yq-text, inherit);
-    font-weight: 600;
-}
 
 /* ─── HERO BANNER ─── */
 .yq-profile-hero {

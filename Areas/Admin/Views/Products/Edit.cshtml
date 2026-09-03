@@ -1,4 +1,4 @@
-﻿@using YAGOT_2._0.Models.Admin
+@using YAGOT_2._0.Models.Admin
 @model AdminProductEditViewModel
 @{
     ViewData["Title"] = "تعديل المنتج";
@@ -33,17 +33,11 @@
     </header>
 
     <div class="yq-product-feedback-region" aria-live="polite">
-    @if (TempData["Success"] is string successMessage)
-    {
-        <div class="yaqut-alert yq-product-feedback yq-product-feedback--success" role="status">
-            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-            <span>@successMessage</span>
-        </div>
-    }
+    <partial name="_YaqutOperationDialog" />
     @if (ViewData.ModelState.TryGetValue(string.Empty, out var pageErrors) && pageErrors.Errors.Count > 0)
     {
         <div class="yaqut-alert yq-product-feedback yq-product-feedback--danger" role="alert">
-            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <div asp-validation-summary="ModelOnly" class="yq-product-feedback__message"></div>
         </div>
     }

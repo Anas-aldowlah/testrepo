@@ -7,56 +7,7 @@
     padding-top: 2rem;
 }
 
-/* â”€â”€ Header â”€â”€ */
 
-
-.yq-shop-breadcrumb {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--yq-text-soft);
-    margin-bottom: 1rem;
-}
-
-    .yq-shop-breadcrumb a {
-        color: var(--yq-text-soft);
-    }
-
-        .yq-shop-breadcrumb a:hover {
-            color: var(--yq-gold);
-        }
-
-    .yq-shop-breadcrumb i {
-        font-size: 0.7rem;
-        color: var(--yq-gold);
-    }
-
-    .yq-shop-breadcrumb span {
-        color: var(--yq-gold);
-        font-weight: 700;
-    }
-
-
-
-.yq-shop-clear-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--yq-text-soft);
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--yq-border-sub);
-    border-radius: 50px;
-    transition: all var(--yq-ease);
-}
-
-    .yq-shop-clear-link:hover {
-        color: var(--yq-gold);
-        border-color: var(--yq-gold);
-    }
 
 /* â”€â”€ Category Pills â”€â”€ */
 .yq-shop-pills {
@@ -1015,86 +966,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         align-items: flex-start;
     }
 }
-/* â”€â”€ Search Banner â”€â”€ */
-.yq-search-banner {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 1.75rem;
-    border-radius: var(--yq-radius);
-    background: var(--yq-bg-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--yq-glass-border);
-    box-shadow: var(--yq-shadow);
-}
 
-.yq-search-banner__icon {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: var(--yq-gold-grad);
-    color: #111;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-    box-shadow: var(--yq-shadow-gold);
-}
-
-.yq-search-banner__text {
-    flex: 1;
-    min-width: 0;
-}
-
-.yq-search-banner__label {
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--yq-text-soft);
-    letter-spacing: 0.05em;
-}
-
-.yq-search-banner__query {
-    font-family: var(--yq-font-display);
-    font-size: clamp(1.4rem, 3vw, 1.9rem);
-    font-weight: 700;
-    color: var(--yq-gold);
-    margin: 0.25rem 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.yq-search-banner__count {
-    font-size: 0.88rem;
-    color: var(--yq-text-soft);
-    margin: 0;
-}
-
-    .yq-search-banner__count strong {
-        color: var(--yq-text);
-    }
-
-.yq-search-banner__clear {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--yq-text-soft);
-    padding: 0.55rem 1.1rem;
-    border: 1px solid var(--yq-border-sub);
-    border-radius: 50px;
-    white-space: nowrap;
-    transition: all var(--yq-ease);
-}
-
-    .yq-search-banner__clear:hover {
-        color: var(--yq-gold);
-        border-color: var(--yq-gold);
-    }
 
 /* â”€â”€ Recent Searches â”€â”€ */
 .yq-recent-searches {
@@ -1198,15 +1070,7 @@ html[data-theme="dark"] .yq-shop-pager__link.is-active {
         justify-content: center;
     }
 
-    .yq-search-banner {
-        flex-wrap: wrap;
-        padding: 1.25rem;
-    }
 
-    .yq-search-banner__clear {
-        width: 100%;
-        justify-content: center;
-    }
 }
 
 /* â”€â”€ Product Status (Availability) Single-Line Overrides â”€â”€ */

@@ -1,5 +1,6 @@
 @model YAGOT_2._0.Models.Cart
 @using YAGOT_2._0.Services
+@using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "سلة المشتريات";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
@@ -24,18 +25,17 @@
 
 <div class="yq-cart" data-yq-cart-page>
 
-    <header class="yq-cart-header yq-reveal">
-        <div>
-            <h1 class="yq-cart-header__title"><i class="bi bi-bag"></i> سلة المشتريات</h1>
-            @if (items.Any())
-            {
-                <p class="yq-cart-header__sub">@items.Count @(items.Count == 1 ? "منتج" : "منتجات") في سلتك</p>
-            }
-        </div>
-        <a asp-controller="Products" asp-action="Index" class="yq-cart-continue-link">
-            <i class="bi bi-arrow-left"></i> متابعة التسوق
-        </a>
-    </header>
+    @{
+        Func<dynamic, IHtmlContent> cartAction = @<a asp-controller="Products" asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-arrow-left" aria-hidden="true"></i> متابعة التسوق</a>;
+        
+        var cartHeaderVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+            Variant = "Utility",
+            Title = "<i class=\"bi bi-bag\" aria-hidden=\"true\"></i> سلة المشتريات",
+            Subtitle = items.Any() ? $"{items.Count} {(items.Count == 1 ? "منتج" : "منتجات")} في سلتك" : null,
+            Actions = cartAction(null)
+        };
+    }
+    <partial name="_PageHeader" model="cartHeaderVM" />
 
     @if (TempData["Message"] != null)
     {

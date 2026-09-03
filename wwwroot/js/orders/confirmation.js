@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ياقوت — Orders / Confirmation page interactions
  */
 (function (window, document) {
@@ -71,7 +71,7 @@
         dialog.addEventListener('click', function (event) {
             if (event.target === dialog) close();
         });
-        dialog.showModal();
+        window.YaqutDialog.showModal(dialog);
     }
 
     function init() {

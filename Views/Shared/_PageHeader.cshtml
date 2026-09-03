@@ -1,0 +1,67 @@
+@model YAGOT_2._0.Models.PageHeaderViewModel
+@{
+    var variantClass = Model.Variant switch
+    {
+        "Catalog" => "yq-page-header--catalog",
+        "Utility" => "yq-page-header--utility",
+        "Detail" => "yq-page-header--detail",
+        _ => "yq-page-header--utility"
+    };
+}
+
+<header class="yq-page-header @variantClass yq-reveal">
+    @if (Model.Variant == "Catalog")
+    {
+        <div class="yq-page-header__glow"></div>
+    }
+    
+    <div class="yq-page-header__inner">
+        @if (Model.Variant == "Detail" && Model.Breadcrumbs != null)
+        {
+            <div class="yq-page-header__breadcrumb-wrapper yq-page-breadcrumb">
+                @Model.Breadcrumbs
+            </div>
+        }
+        else if (Model.Breadcrumbs != null)
+        {
+            <div class="yq-page-header__eyebrow yq-page-breadcrumb">
+                @Model.Breadcrumbs
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Model.Eyebrow))
+        {
+            <span class="yq-page-header__eyebrow">
+                @if (!string.IsNullOrEmpty(Model.EyebrowIcon))
+                {
+                    <i class="bi @Model.EyebrowIcon" aria-hidden="true"></i>
+                }
+                @Model.Eyebrow
+            </span>
+        }
+
+        <div class="yq-page-header__main">
+            <div class="yq-page-header__content">
+                <h1 class="yq-page-header__title">@Html.Raw(Model.Title)</h1>
+                
+                @if (Model.Metadata != null)
+                {
+                    <div class="yq-page-header__metadata">
+                        @Model.Metadata
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Subtitle))
+                {
+                    <p class="yq-page-header__description">@Html.Raw(Model.Subtitle)</p>
+                }
+            </div>
+
+            @if (Model.Actions != null)
+            {
+                <div class="yq-page-header__action">
+                    @Model.Actions
+                </div>
+            }
+        </div>
+    </div>
+</header>

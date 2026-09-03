@@ -14,4 +14,6 @@ public sealed class CustomerOrdersIndexViewModel
     public int AllCount => StatusCounts.Values.Sum();
     public bool HasPreviousPage => CurrentPage > 1;
     public bool HasNextPage => CurrentPage < TotalPages;
+    public int ReviewRequiredCount { get; init; }
+    public int? FirstReviewRequiredOrderId { get; init; }
 }

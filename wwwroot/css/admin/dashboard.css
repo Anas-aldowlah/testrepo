@@ -225,43 +225,7 @@
         border-bottom: 0;
     }
 
-.yq-dashboard-status {
-    display: inline-flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 0.24rem 0.65rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    font-size: 0.76rem;
-    font-weight: 900;
-    white-space: nowrap;
-}
 
-.yq-dashboard-status--pending {
-    border-color: rgba(212, 175, 55, 0.28);
-    background: rgba(212, 175, 55, 0.12);
-    color: var(--yq-admin-gold-bright, #d4af37);
-}
-
-.yq-dashboard-status--processed,
-.yq-dashboard-status--shipped {
-    border-color: rgba(91, 141, 239, 0.28);
-    background: rgba(91, 141, 239, 0.12);
-    color: #8fb5ff;
-}
-
-.yq-dashboard-status--delivered {
-    border-color: rgba(82, 181, 128, 0.28);
-    background: rgba(82, 181, 128, 0.12);
-    color: #7fd6a7;
-}
-
-.yq-dashboard-status--cancelled,
-.yq-dashboard-status--unknown {
-    border-color: rgba(197, 73, 73, 0.28);
-    background: rgba(197, 73, 73, 0.12);
-    color: var(--yq-admin-danger, #ff8b8b);
-}
 
 .yq-dashboard-metrics {
     display: grid;
@@ -312,7 +276,7 @@
     }
 
         .yq-dashboard-actions a:hover {
-            background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 10%, var(--yq-admin-surface-soft, #1b1f22));
+            background: var(--yq-admin-border, rgba(20, 20, 20, 0.08));
         }
 
     .yq-dashboard-actions span {
@@ -330,7 +294,7 @@
             height: 28px;
             flex: 0 0 28px;
             border-radius: 8px;
-            background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 14%, transparent);
+            background: var(--yq-admin-border, rgba(20, 20, 20, 0.08));
             color: var(--yq-admin-gold-bright, #d4af37);
         }
 

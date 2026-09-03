@@ -103,16 +103,12 @@
         const confirmStyle = options.confirmStyle || (options.kind === "destructive" ? "destructive" : "primary");
         confirmButton.classList.add(`yq-operation-dialog__button--${confirmStyle}`);
         confirmButton.classList.add(`yq-paired-action--${confirmStyle}`);
-        dialog.showModal();
-        requestAnimationFrame(() => {
-            if (dialog.open) {
-                if (options.input && textarea) {
-                    textarea.focus({ preventScroll: true });
-                } else {
-                    confirmButton.focus({ preventScroll: true });
-                }
-            }
-        });
+        if (options.input && textarea && !textarea.hidden && !textarea.disabled) {
+            textarea.setAttribute("autofocus", "");
+        } else {
+            if (textarea) textarea.removeAttribute("autofocus");
+        }
+        window.YaqutDialog.showModal(dialog);
     };
 
     confirmButton.addEventListener("click", () => finish(true));

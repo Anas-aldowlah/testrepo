@@ -1,4 +1,5 @@
 @model IEnumerable<YAGOT_2._0.Models.Category>
+@using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "التصنيفات";
     var categories = Model.ToList();
@@ -10,16 +11,21 @@
 
 <div class="yq-categories-page">
 
-    <header class="yq-storefront-hero yq-reveal">
-        <div class="yq-storefront-hero__glow"></div>
-        <div class="yq-storefront-hero__inner">
-            <span class="yq-storefront-hero__eyebrow"><i class="bi bi-flower1"></i> تصفح حسب الفئة</span>
-            <h1 class="yq-storefront-hero__title">التصنيفات</h1>
-            <p class="yq-storefront-hero__sub">
-                اكتشف تصنيفاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.
-            </p>
-        </div>
-    </header>
+    @{
+        Func<dynamic, IHtmlContent> catBreadcrumb = @<text>
+            <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            <span>التصنيفات</span>
+        </text>;
+
+        var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
+            Variant = "Catalog",
+            Title = "التصنيفات",
+            Subtitle = "اكتشف تصنيفاتنا المنسقة بعناية، وابحث عن العطر الذي يعكس شخصيتك الفريدة.",
+            Breadcrumbs = catBreadcrumb(null)
+        };
+    }
+    <partial name="_PageHeader" model="headerVM" />
 
     @if (categories.Any())
     {
