@@ -490,14 +490,27 @@
             '</form>',
             '</div>',
             '<div class="yq-cart-drawer__row">',
+            '<div class="yq-cart-item__qty-block" aria-label="تحديث كمية ' + itemNameAttr + '">',
             '<form class="yq-cart-drawer__qty-form" action="' + qtyAction + '" method="post" data-yq-drawer-qty-form>',
             item.qtyHidden,
-            '<div class="yq-cart-drawer__qty" aria-label="تحديث كمية ' + itemNameAttr + '">',
-            '<button type="button" class="yq-cart-drawer__qty-btn" data-yq-qty-step="-1" aria-label="تقليل الكمية"' + disabledMinus + '><i class="bi bi-dash" aria-hidden="true"></i></button>',
-            '<input class="yq-cart-drawer__qty-input" type="number" name="quantity" min="1"' + max + ' value="' + item.quantity + '" aria-label="كمية ' + itemNameAttr + '" />',
-            '<button type="button" class="yq-cart-drawer__qty-btn" data-yq-qty-step="1" aria-label="زيادة الكمية"><i class="bi bi-plus" aria-hidden="true"></i></button>',
+            '<div class="yq-cart-item__qty-control">',
+            '<select class="yq-cart-item__qty-select' + (item.quantity <= 10 ? '' : ' d-none') + '" data-yq-drawer-qty-select aria-label="الكمية المطلوبة">',
+            (function() {
+                var opts = '';
+                var limit = Math.min(item.max || 10, 10);
+                for (var i = 1; i <= limit; i++) {
+                    opts += '<option value="' + i + '"' + (item.quantity === i ? ' selected' : '') + '>' + i + '</option>';
+                }
+                if (item.max === undefined || item.max > 10) {
+                    opts += '<option value="custom"' + (item.quantity > 10 ? ' selected' : '') + '>أكثر من 10 (10+)</option>';
+                }
+                return opts;
+            })(),
+            '</select>',
+            '<input class="yq-cart-item__qty-input' + (item.quantity <= 10 ? ' d-none' : '') + '" type="number" name="quantity" min="1"' + max + ' value="' + item.quantity + '" aria-label="كمية ' + itemNameAttr + '" data-yq-drawer-qty-input />',
             '</div>',
             '</form>',
+            '</div>',
             '<div class="yq-cart-drawer__prices">',
             item.unitPrice ? '<span class="yq-cart-drawer__unit">' + escapeHtml(item.unitPrice) + '</span>' : '',
             '<strong class="yq-cart-drawer__line-total">' + escapeHtml(item.lineTotal) + '</strong>',
@@ -862,10 +875,50 @@
                 if (input) input.setAttribute('max', String(max));
             }
 
-            var minus = form.querySelector('[data-yq-qty-step="-1"]');
-            var plus = form.querySelector('[data-yq-qty-step="1"]');
-            if (minus) minus.disabled = savedQuantity <= 1;
-            if (plus) plus.disabled = Number.isFinite(max) && savedQuantity >= max;
+            var select = form.querySelector('[data-yq-drawer-qty-select]');
+            if (select) {
+                var presetLimit = Math.min(Number.isFinite(max) ? max : 10, 10);
+                
+                var needsRebuild = false;
+                var optionsArr = Array.from(select.options);
+                var lastVal = optionsArr.length > 0 ? optionsArr[optionsArr.length - 1].value : null;
+                var hasCustom = lastVal === 'custom';
+                var maxVal = Number.isFinite(max) ? max : 999;
+                var expectedOptionsCount = presetLimit + (maxVal > 10 ? 1 : 0);
+                
+                if (optionsArr.length !== expectedOptionsCount || (maxVal > 10 && !hasCustom)) {
+                    needsRebuild = true;
+                }
+                
+                if (needsRebuild) {
+                    select.replaceChildren();
+                    for (var i = 1; i <= presetLimit; i++) {
+                        var opt = document.createElement('option');
+                        opt.value = String(i);
+                        opt.textContent = String(i);
+                        select.appendChild(opt);
+                    }
+                    if (maxVal > 10) {
+                        var customOpt = document.createElement('option');
+                        customOpt.value = 'custom';
+                        customOpt.textContent = 'أكثر من 10 (10+)';
+                        select.appendChild(customOpt);
+                    }
+                }
+
+                if (savedQuantity <= 10) {
+                    select.value = String(savedQuantity);
+                    select.classList.remove('d-none');
+                    if (input) input.classList.add('d-none');
+                } else {
+                    select.value = 'custom';
+                    select.classList.add('d-none');
+                    if (input) {
+                        input.value = String(savedQuantity);
+                        input.classList.remove('d-none');
+                    }
+                }
+            }
 
             var lineTotal = item ? item.querySelector('.yq-cart-drawer__line-total') : null;
             if (lineTotal && state.item.lineTotalText) lineTotal.textContent = state.item.lineTotalText;
@@ -1044,24 +1097,6 @@
             else openDrawer(opener);
             return;
         }
-
-        var step = event.target.closest('[data-yq-qty-step]');
-        if (step && drawer.contains(step)) {
-            var form = step.closest('[data-yq-drawer-qty-form]');
-            var input = form ? form.querySelector('input[name="quantity"]') : null;
-            if (!form || !input) return;
-            var delta = parseInt(step.getAttribute('data-yq-qty-step'), 10) || 0;
-            var current = parseInt(normalizeDigits(input.value), 10) || 1;
-            var min = parseInt(input.getAttribute('min'), 10) || 1;
-            var max = parseInt(input.getAttribute('max'), 10);
-            var next = current + delta;
-
-            if (Number.isFinite(max)) next = Math.min(next, max);
-            next = Math.max(min, next);
-            if (next === current) return;
-            input.value = next;
-            handleDrawerQuantity(form, 'تم تحديث الكمية');
-        }
     }
 
     function cancelPeekAutoCloseOnInteraction(event) {
@@ -1070,17 +1105,53 @@
     }
 
     function onDocumentChange(event) {
-        var input = event.target.closest('.yq-cart-drawer__qty-input');
-        if (!input) return;
-        var form = input.closest('[data-yq-drawer-qty-form]');
-        var value = parseInt(normalizeDigits(input.value), 10);
-        var min = parseInt(input.getAttribute('min'), 10) || 1;
-        var max = parseInt(input.getAttribute('max'), 10);
+        var select = event.target.closest('[data-yq-drawer-qty-select]');
+        if (select) {
+            var form = select.closest('[data-yq-drawer-qty-form]');
+            var input = form ? form.querySelector('input[name="quantity"]') : null;
+            if (!form || !input) return;
 
-        if (!Number.isFinite(value) || value < min) value = min;
-        if (Number.isFinite(max)) value = Math.min(value, max);
-        input.value = value;
-        if (form) handleDrawerQuantity(form, 'تم تحديث الكمية');
+            if (select.value === 'custom') {
+                var current = parseInt(normalizeDigits(input.value), 10) || 1;
+                input.value = String(Math.max(11, current));
+                select.classList.add('d-none');
+                input.classList.remove('d-none');
+                input.focus();
+                input.select();
+                return;
+            }
+            
+            input.value = select.value;
+            handleDrawerQuantity(form, 'تم تحديث الكمية');
+            return;
+        }
+
+        var input = event.target.closest('[data-yq-drawer-qty-input]');
+        if (input) {
+            var form = input.closest('[data-yq-drawer-qty-form]');
+            var select = form ? form.querySelector('[data-yq-drawer-qty-select]') : null;
+            var value = parseInt(normalizeDigits(input.value), 10);
+            var min = parseInt(input.getAttribute('min'), 10) || 1;
+            var max = parseInt(input.getAttribute('max'), 10);
+
+            if (!Number.isFinite(value) || value < min) value = min;
+            if (Number.isFinite(max)) value = Math.min(value, max);
+            input.value = String(value);
+            
+            if (select) {
+                if (value <= 10) {
+                    select.value = String(value);
+                    select.classList.remove('d-none');
+                    input.classList.add('d-none');
+                } else {
+                    select.value = 'custom';
+                    select.classList.add('d-none');
+                    input.classList.remove('d-none');
+                }
+            }
+
+            if (form) handleDrawerQuantity(form, 'تم تحديث الكمية');
+        }
     }
 
     function onKeydown(event) {

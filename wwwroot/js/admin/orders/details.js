@@ -59,6 +59,7 @@
             whatsAppText: "إشعار العميل عبر واتساب",
             whatsAppNote: "يمكنك إشعار العميل عبر واتساب لمراجعة الطلب.",
             confirmText: "حسنًا",
+            confirmStyle: "secondary",
             kind: "info"
         });
     }
@@ -254,7 +255,8 @@
             title: button.dataset.yqConflictTitle,
             message: button.dataset.yqConflictMessage,
             lines: (button.dataset.yqConflictLines || "").split("||"),
-            whatsAppUrl: button.dataset.yqWhatsappUrl
+            whatsAppUrl: button.dataset.yqWhatsappUrl,
+            confirmStyle: "secondary"
         });
     });
 

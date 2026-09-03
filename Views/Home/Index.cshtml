@@ -24,10 +24,10 @@
     var storeSettings = Model.StoreSettings ?? new YAGOT_2._0.Models.StoreSettings();
     var heroTitle = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingText)
         ? storeSettings.HeroMarketingText
-        : "عطور مختارة تروي حضورك";
+        : "متجر ياقوت للعطور";
     var heroDescription = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingDesc)
         ? storeSettings.HeroMarketingDesc
-        : "اكتشف تشكيلة ياقوت من العطور الشرقية والغربية الأصيلة، مختارة بعناية لترافق أجمل لحظاتك.";
+        : "اكتشف تشكيلة مختارة من العطور المميزة، بروائح أنيقة تناسب ذوقك وكل مناسبة.";
     var heroDesc = heroDescription;
     var configuredFeaturedCategory = storeSettings.FeaturedCategoryId.HasValue
         ? categories.FirstOrDefault(category => category.Id == storeSettings.FeaturedCategoryId.Value)
@@ -73,7 +73,7 @@
             <!-- النصوص والأزرار (الجانب الأيمن) -->
             <div class="yq-home-hero__content">
                 <span class="yq-home-hero__eyebrow">
-                    <i class="bi bi-stars"></i> متجر الياقوت
+                    <i class="bi bi-stars"></i> متجر ياقوت
                 </span>
                 <h1 class="yq-home-hero__title">@heroTitle</h1>
                 <p class="yq-home-hero__desc">

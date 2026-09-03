@@ -237,20 +237,27 @@
                                     <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
                                     <span>@lowStockMessage</span>
                                 </p>
-                                <span class="yq-pdp-qty__label">الكمية</span>
-                                <div class="yq-pdp-qty__stepper">
-                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-decrease aria-label="تقليل الكمية" disabled>
-                                        <i class="bi bi-dash"></i>
-                                    </button>
+                                <span class="yq-cart-item__qty-label">الكمية</span>
+                                <div class="yq-cart-item__qty-control">
+                                    <select class="yq-cart-item__qty-select"
+                                            id="yqQtySelect"
+                                            aria-label="الكمية المطلوبة"
+                                            disabled="@(initialAvailableUnits == 0)">
+                                        @for (var quantityOption = 1; quantityOption <= Math.Min(initialAvailableUnits, 10); quantityOption++)
+                                        {
+                                            <option value="@quantityOption">@quantityOption</option>
+                                        }
+                                        @if (initialAvailableUnits > 10)
+                                        {
+                                            <option value="custom">أكثر من 10 (10+)</option>
+                                        }
+                                    </select>
                                     <input type="number" name="quantity" id="yqQtyInput" value="1"
                                            min="1" max="@initialAvailableUnits"
                                            data-yq-unit-one="@unitOne"
                                            disabled="@(initialAvailableUnits == 0)"
-                                           class="yq-pdp-qty__input" aria-label="الكمية المطلوبة" />
-                                    <button type="button" class="yq-pdp-qty__btn" data-yq-qty-increase aria-label="زيادة الكمية"
-                                            disabled="@(initialAvailableUnits <= 1)">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
+                                           class="yq-cart-item__qty-input d-none" 
+                                           aria-label="الكمية المطلوبة" />
                                 </div>
                             </div>
 

@@ -310,15 +310,12 @@
                                 <td data-label="الإجمالي">
                                     <div class="yq-orders-total">
                                         <strong>@(order.Totalamount.ToYaqutPrice())</strong>
-                                        <small>@itemCount قطعة</small>
+
                                     </div>
                                 </td>
                                 <td data-label="حالة الطلب">
                                     <span class="yq-orders-badge @statusClass" data-order-badge="@order.Id">@statusLabel</span>
-                                    @if (order.TimeState.HasValue)
-                                    {
-                                        <small class="yq-orders-status-date">@order.TimeState.Value.ToString("dd/MM/yyyy")</small>
-                                    }
+
                                     @if (isConflictAwaitingDecision && hasPaymentReview)
                                     {
                                         <small class="yq-orders-payment-review">تمت مراجعة الدفع<br />بانتظار قرار العميل</small>

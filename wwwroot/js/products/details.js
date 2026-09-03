@@ -15,32 +15,84 @@
 
     function initQtyStepper(root) {
         var input = root.querySelector('#yqQtyInput');
-        var decreaseBtn = root.querySelector('[data-yq-qty-decrease]');
-        var increaseBtn = root.querySelector('[data-yq-qty-increase]');
-        if (!input || !decreaseBtn || !increaseBtn) return;
+        var select = root.querySelector('#yqQtySelect');
+        if (!input || !select) return;
 
-        function clamp(value) {
-            var min = parseInt(input.min, 10) || 1;
+        function syncControls() {
             var max = readQuantityMax(input);
-            return Math.min(Math.max(value, min), max);
-        }
-
-        function syncButtons() {
-            var value = parseInt(input.value || '1', 10);
-            var max = readQuantityMax(input);
-            var unavailable = input.disabled || max === 0;
-            decreaseBtn.disabled = unavailable || value <= (parseInt(input.min, 10) || 1);
-            increaseBtn.disabled = unavailable || value >= max;
-        }
-
-        input.addEventListener('change', function () {
-            var val = parseInt(input.value || '1', 10);
-            var max = readQuantityMax(input);
-            if (max === 0) {
+            var isAvailable = max > 0;
+            var currentVal = parseInt(input.value || '1', 10);
+            
+            select.disabled = !isAvailable;
+            input.disabled = !isAvailable;
+            
+            if (!isAvailable) {
                 input.value = '1';
-                syncButtons();
+                select.replaceChildren();
                 return;
             }
+
+            var presetLimit = Math.min(max, 10);
+            
+            var needsRebuild = false;
+            var options = Array.from(select.options);
+            var lastVal = options.length > 0 ? options[options.length - 1].value : null;
+            var hasCustom = lastVal === 'custom';
+            var expectedOptionsCount = presetLimit + (max > 10 ? 1 : 0);
+            
+            if (options.length !== expectedOptionsCount || (max > 10 && !hasCustom)) {
+                needsRebuild = true;
+            }
+            
+            if (needsRebuild) {
+                select.replaceChildren();
+                for (var i = 1; i <= presetLimit; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = String(i);
+                    opt.textContent = String(i);
+                    select.appendChild(opt);
+                }
+                if (max > 10) {
+                    var customOpt = document.createElement('option');
+                    customOpt.value = 'custom';
+                    customOpt.textContent = 'أكثر من 10 (10+)';
+                    select.appendChild(customOpt);
+                }
+            }
+
+            if (currentVal <= 10) {
+                select.value = String(currentVal);
+                select.classList.remove('d-none');
+                input.classList.add('d-none');
+            } else {
+                select.value = 'custom';
+                select.classList.add('d-none');
+                input.value = String(currentVal);
+                input.classList.remove('d-none');
+            }
+        }
+
+        select.addEventListener('change', function () {
+            if (select.value === 'custom') {
+                var current = parseInt(input.value, 10) || 1;
+                input.value = String(Math.max(11, current));
+                select.classList.add('d-none');
+                input.classList.remove('d-none');
+                input.focus();
+                input.select();
+                return;
+            }
+            
+            input.value = select.value;
+        });
+
+        input.addEventListener('blur', function () {
+            var val = parseInt(input.value || '1', 10);
+            var min = parseInt(input.min, 10) || 1;
+            var max = readQuantityMax(input);
+            
+            if (!Number.isFinite(val) || val < min) val = min;
+            
             if (val > max) {
                 if (window.YaqutOperationDialog) {
                     window.YaqutOperationDialog.show({
@@ -50,31 +102,23 @@
                             : 'المتوفر حاليًا ' + max + ' فقط.'
                     });
                 }
-                input.value = max;
-            } else {
-                input.value = clamp(val);
+                val = max;
             }
-            syncButtons();
+            
+            input.value = String(val);
+            syncControls();
         });
 
-        decreaseBtn.addEventListener('click', function () {
-            input.value = clamp((parseInt(input.value || '1', 10) - 1));
-            syncButtons();
-            input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                input.blur();
+            }
         });
 
-        increaseBtn.addEventListener('click', function () {
-            var val = parseInt(input.value || '1', 10);
-            var max = readQuantityMax(input);
-            if (val >= max) return;
-            input.value = clamp(val + 1);
-            syncButtons();
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        });
+        input.addEventListener('yq:quantity-availability-changed', syncControls);
 
-        input.addEventListener('yq:quantity-availability-changed', syncButtons);
-
-        syncButtons();
+        syncControls();
     }
 
     function getRecentList() {
