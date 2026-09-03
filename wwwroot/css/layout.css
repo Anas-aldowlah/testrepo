@@ -135,6 +135,13 @@ body {
     transition: color var(--yq-ease), border-color var(--yq-ease), box-shadow var(--yq-ease), transform var(--yq-ease);
 }
 
+.yaqut-menu-toggle svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+}
+
 .yaqut-menu-toggle:hover,
 .yaqut-menu-toggle[aria-expanded="true"] {
     color: var(--yq-gold);
@@ -342,6 +349,10 @@ html[data-theme="dark"] .yaqut-cart-link {
 
 .yaqut-cart-link__icon {
     font-size: 1.15rem;
+    width: 1em;
+    height: 1em;
+    display: block;
+    flex-shrink: 0;
 }
 
 .yaqut-cart-link__count {
@@ -737,24 +748,15 @@ html[data-theme="dark"] .yaqut-cart-link {
     100% { transform: scale(1.6); opacity: 0; }
 }
 
-.yq-contact-float__toggle:hover {
-    width: 170px;
-    border-radius: 30px;
-    padding: 0 1.25rem;
-    gap: 0.6rem;
-    box-shadow: 0 12px 32px rgba(37, 211, 102, 0.5);
-    transform: translateY(-4px);
-}
-
-.yq-contact-float__toggle i {
+.yq-contact-float__toggle i,
+.yq-contact-float__toggle svg {
     font-size: 1.6rem;
+    width: 1em;
+    height: 1em;
+    display: block;
     flex-shrink: 0;
     margin: 0 auto;
     transition: margin 0.4s ease;
-}
-
-.yq-contact-float__toggle:hover i {
-    margin: 0;
 }
 
 .yq-contact-float__toggle span {
@@ -766,10 +768,26 @@ html[data-theme="dark"] .yaqut-cart-link {
     width: 0;
 }
 
-.yq-contact-float__toggle:hover span {
-    opacity: 1;
-    transform: translateX(0);
-    width: auto;
+@media (hover: hover) and (pointer: fine) {
+    .yq-contact-float__toggle:hover {
+        width: 170px;
+        border-radius: 30px;
+        padding: 0 1.25rem;
+        gap: 0.6rem;
+        box-shadow: 0 12px 32px rgba(37, 211, 102, 0.5);
+        transform: translateY(-4px);
+    }
+
+    .yq-contact-float__toggle:hover i,
+    .yq-contact-float__toggle:hover svg {
+        margin: 0;
+    }
+
+    .yq-contact-float__toggle:hover span {
+        opacity: 1;
+        transform: translateX(0);
+        width: auto;
+    }
 }
 
 .yq-contact-float__panel {
@@ -1808,13 +1826,21 @@ html[data-theme="dark"] .yaqut-cart-link {
         inset-inline-start: auto;
     }
 
-    .yq-contact-float__toggle {
+    .yq-contact-float__toggle,
+    .yq-contact-float__toggle:hover,
+    .yq-contact-float__toggle:focus,
+    .yq-contact-float__toggle:active {
         /* Keep it circular on mobile */
         width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        padding: 0;
+        gap: 0;
+        transform: none;
     }
 
     .yq-contact-float__toggle span {
-        display: none;
+        display: none !important;
     }
 
     .yq-contact-float__panel {
