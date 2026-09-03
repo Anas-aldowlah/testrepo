@@ -15,55 +15,61 @@ public class HomeController : Controller
     private readonly NeondbContext _context;
     private readonly IVisitService _visitService;
     private readonly StoreSettingsService _storeSettingsService;
+    private readonly ProductCatalogService _catalogService;
 
     public HomeController(
         NeondbContext context,
         IVisitService visitService,
-        StoreSettingsService storeSettingsService)
+        StoreSettingsService storeSettingsService,
+        ProductCatalogService catalogService)
     {
         _context = context;
         _visitService = visitService;
         _storeSettingsService = storeSettingsService;
+        _catalogService = catalogService;
     }
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var allProducts = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
+        var newArrivals = await _context.Products
             .OrderByDescending(p => p.Createdat)
-            .ToListAsync();
+            .Take(8)
+            .ToProductCardsAsync(HttpContext.RequestAborted);
 
-        var productsFromDb = allProducts;
+        var heroSlides = await _context.Products
+            .Where(product => product.Imageurl != null && product.Imageurl.Trim() != string.Empty)
+            .OrderByDescending(product => product.Createdat)
+            .Take(12)
+            .ToHeroProductsAsync(HttpContext.RequestAborted);
+
+        if (heroSlides.Count == 0)
+            heroSlides = newArrivals.Take(6).ToList();
 
         const int bestSellersLimit = 8;
         const int minBestSellersCount = 3;
 
         var bestSellingProducts = await _context.Products
-            .AsNoTracking()
             .WhereSellable(true)
             .Where(p => p.TotalSold > 0)
             .OrderByDescending(p => p.TotalSold)
             .ThenByDescending(p => p.Createdat)
             .ThenByDescending(p => p.Id)
-            .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .Take(bestSellersLimit)
-            .ToListAsync();
+            .ToProductCardsAsync(HttpContext.RequestAborted);
 
         if (bestSellingProducts.Count < minBestSellersCount)
         {
             bestSellingProducts.Clear();
         }
 
-        var categoriesFromDb = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
+        var categoriesFromDb = (await _catalogService.GetCategoriesAsync(HttpContext.RequestAborted)).ToList();
+        var brands = (await _catalogService.GetBrandsAsync(HttpContext.RequestAborted)).ToList();
         var model = new ViewModels
         {
-            Products = productsFromDb,
+            NewArrivals = newArrivals,
+            HeroSlides = heroSlides,
             BestSellingProducts = bestSellingProducts,
+            Brands = brands,
             Categories = categoriesFromDb,
             StoreSettings = await _storeSettingsService.GetSettingsAsync()
         };

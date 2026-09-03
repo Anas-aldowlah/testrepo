@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
@@ -8,10 +9,16 @@ public sealed class ProductCatalogService
     public const int PageSize = 8;
 
     private readonly NeondbContext _context;
+    private readonly IMemoryCache _cache;
+    private static readonly SemaphoreSlim MetadataLock = new(1, 1);
+    private static readonly TimeSpan MetadataCacheDuration = TimeSpan.FromMinutes(5);
+    private const string MetadataCacheKey = "storefront:catalog-metadata:v1";
+    private static long _metadataVersion;
 
-    public ProductCatalogService(NeondbContext context)
+    public ProductCatalogService(NeondbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<ProductsCatalogViewModel> GetCatalogAsync(
@@ -96,53 +103,19 @@ public sealed class ProductCatalogService
 
         var orderedQuery = ApplyOrdering(query, request.Sort);
         var products = await orderedQuery
-            .Include(product => product.Category)
-            .Include(product => product.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .Skip((currentPage - 1) * PageSize)
             .Take(PageSize)
-            .ToListAsync(cancellationToken);
+            .ToProductCardsAsync(cancellationToken);
 
-        var categories = await _context.Categories
-            .AsNoTracking()
-            .OrderBy(category => category.Name)
-            .ThenBy(category => category.Id)
-            .ToListAsync(cancellationToken);
-
-        var brands = await _context.Products
-            .AsNoTracking()
-            .Where(product => product.Brand != null && product.Brand != "-")
-            .Select(product => product.Brand!.Trim())
-            .Distinct()
-            .ToListAsync(cancellationToken);
-
-        var sortedBrands = brands
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(brand => brand, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var retailSizes = await _context.ProductRetailPrices
-            .AsNoTracking()
-            .Where(price =>
-                price.IsActive &&
-                price.SizeMl > 0 &&
-                price.Price > 0 &&
-                price.Product.IsRetailEnabled &&
-                price.Product.StockUnit == "Ml" &&
-                price.Product.VolumeMl.HasValue &&
-                price.SizeMl < price.Product.VolumeMl.Value &&
-                price.Product.Stockquantity >= price.SizeMl)
-            .Select(price => price.SizeMl)
-            .Distinct()
-            .OrderBy(size => size)
-            .ToListAsync(cancellationToken);
+        var metadata = await GetMetadataAsync(cancellationToken);
+        var retailSizes = await GetRetailSizesAsync(cancellationToken);
 
         return new ProductsCatalogViewModel
         {
             Request = request,
             Products = products,
-            Categories = categories,
-            Brands = sortedBrands,
+            Categories = metadata.Categories,
+            Brands = metadata.Brands,
             RetailSizes = retailSizes,
             TotalCount = totalCount,
             PageSize = PageSize,
@@ -150,6 +123,72 @@ public sealed class ProductCatalogService
             TotalPages = totalPages
         };
     }
+
+    public void InvalidateMetadataCache()
+    {
+        Interlocked.Increment(ref _metadataVersion);
+        _cache.Remove(MetadataCacheKey);
+    }
+
+    public async Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken = default) =>
+        (await GetMetadataAsync(cancellationToken)).Categories;
+
+    public async Task<IReadOnlyList<string>> GetBrandsAsync(CancellationToken cancellationToken = default) =>
+        (await GetMetadataAsync(cancellationToken)).Brands;
+
+    private async Task<CatalogMetadata> GetMetadataAsync(CancellationToken cancellationToken)
+    {
+        if (_cache.TryGetValue(MetadataCacheKey, out CatalogMetadata? cached) && cached != null)
+            return cached;
+
+        await MetadataLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_cache.TryGetValue(MetadataCacheKey, out cached) && cached != null)
+                return cached;
+
+            var loadVersion = Volatile.Read(ref _metadataVersion);
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .OrderBy(category => category.Name)
+                .ThenBy(category => category.Id)
+                .ToListAsync(cancellationToken);
+
+            var brands = await _context.Products
+                .AsNoTracking()
+                .Where(product => product.Brand != null && product.Brand != "-")
+                .Select(product => product.Brand!.Trim())
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var metadata = new CatalogMetadata(
+                categories,
+                brands.Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(brand => brand, StringComparer.OrdinalIgnoreCase)
+                    .ToList());
+            if (loadVersion == Volatile.Read(ref _metadataVersion))
+                _cache.Set(MetadataCacheKey, metadata, MetadataCacheDuration);
+            return metadata;
+        }
+        finally
+        {
+            MetadataLock.Release();
+        }
+    }
+
+    private Task<List<int>> GetRetailSizesAsync(CancellationToken cancellationToken) =>
+        _context.ProductRetailPrices
+            .AsNoTracking()
+            .Where(price =>
+                price.IsActive && price.SizeMl > 0 && price.Price > 0 &&
+                price.Product.IsRetailEnabled && price.Product.StockUnit == "Ml" &&
+                price.Product.VolumeMl.HasValue &&
+                price.SizeMl < price.Product.VolumeMl.Value &&
+                price.Product.Stockquantity >= price.SizeMl)
+            .Select(price => price.SizeMl)
+            .Distinct()
+            .OrderBy(size => size)
+            .ToListAsync(cancellationToken);
 
     private static IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sort)
     {
@@ -176,4 +215,8 @@ public sealed class ProductCatalogService
             .Replace("%", "\\%", StringComparison.Ordinal)
             .Replace("_", "\\_", StringComparison.Ordinal);
     }
+
+    private sealed record CatalogMetadata(
+        IReadOnlyList<Category> Categories,
+        IReadOnlyList<string> Brands);
 }

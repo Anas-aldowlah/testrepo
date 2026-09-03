@@ -105,14 +105,30 @@ public sealed class BestSellerService : IBestSellerService
                 // 4. تحديث جدول المنتجات داخل Transaction آمن
                 using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-                var products = await _context.Products.ToListAsync(cancellationToken);
+                var productIdsWithSales = mergedSales.Keys.ToArray();
+                var currentTotals = await _context.Products
+                    .AsNoTracking()
+                    .Where(product => product.TotalSold != 0 || productIdsWithSales.Contains(product.Id))
+                    .Select(product => new { product.Id, product.TotalSold })
+                    .ToListAsync(cancellationToken);
+                var changedProductIds = currentTotals
+                    .Where(product => product.TotalSold != mergedSales.GetValueOrDefault(product.Id, 0))
+                    .Select(product => product.Id)
+                    .ToArray();
+
+                var products = changedProductIds.Length == 0
+                    ? []
+                    : await _context.Products
+                        .Where(product => changedProductIds.Contains(product.Id))
+                        .ToListAsync(cancellationToken);
                 foreach (var product in products)
                 {
                     product.TotalSold = mergedSales.GetValueOrDefault(product.Id, 0);
                     product.SalesLastUpdatedAt = refreshTimestamp;
                 }
 
-                await _context.SaveChangesAsync(cancellationToken);
+                if (products.Count > 0)
+                    await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
                 stopwatch.Stop();
