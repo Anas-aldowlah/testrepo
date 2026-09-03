@@ -6,8 +6,6 @@
     var isSearchMode = !string.IsNullOrWhiteSpace(request.Search);
     var isBrandMode = request.Brand.Length > 0;
     var activeFilterCount = 0;
-    if (selectedCategory != null) activeFilterCount++;
-    if (isSearchMode) activeFilterCount++;
     activeFilterCount += request.Brand.Length;
     if (request.MinPrice.HasValue) activeFilterCount++;
     if (request.MaxPrice.HasValue) activeFilterCount++;
@@ -86,7 +84,7 @@
             Func<dynamic, IHtmlContent>? clearAction = null;
             if (hasActiveFilter)
             {
-                clearAction = @<a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> إزالة الفلاتر</a>;
+                clearAction = @<a asp-action="Index" asp-route-categoryId="@request.CategoryId" asp-route-search="@request.Search" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> إزالة الفلاتر</a>;
             }
 
             var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
