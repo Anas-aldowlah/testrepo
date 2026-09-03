@@ -89,7 +89,9 @@
 }
 
 .theme-dark .yq-admin-shell,
-.dark-mode .yq-admin-shell {
+.dark-mode .yq-admin-shell,
+html[data-theme="dark"] .yq-admin-shell,
+[data-theme="dark"] .yq-admin-shell {
     --yq-admin-bg: #0a0908;
     --yq-admin-surface: rgba(18, 18, 18, 0.86);
     --yq-admin-surface-solid: #12110f;
@@ -1571,6 +1573,13 @@ html[data-theme="dark"] .form-select,
 .dark-mode .form-control::placeholder,
 body.dark-mode .form-control::placeholder,
 html[data-theme="dark"] .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .form-text,
+body.dark-mode .form-text,
+html[data-theme="dark"] .form-text,
+.theme-dark .form-text {
     color: #94a3b8 !important;
 }
 
