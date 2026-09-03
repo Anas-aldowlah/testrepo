@@ -210,7 +210,8 @@
                 title: conflict.dataset.yqConflictTitle,
                 message: conflict.dataset.yqConflictMessage,
                 lines: (conflict.dataset.yqConflictLines || "").split("||"),
-                whatsAppUrl: conflict.dataset.yqWhatsappUrl
+                whatsAppUrl: conflict.dataset.yqWhatsappUrl,
+                confirmStyle: "secondary"
             });
         }
         const link = event.target.closest(".yq-admin-pager a:not(.is-disabled), .yq-orders-clear-filter");

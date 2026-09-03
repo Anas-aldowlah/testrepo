@@ -389,6 +389,14 @@
     background: color-mix(in srgb, var(--yq-admin-gold, #b8942e) 6%, transparent);
 }
 
+.yq-orders-table tbody tr.yq-orders-row--conflict {
+    background: color-mix(in srgb, #b42318 8%, transparent);
+}
+
+.yq-orders-table tbody tr.yq-orders-row--conflict:hover {
+    background: color-mix(in srgb, #b42318 12%, transparent);
+}
+
 .yq-orders-table tbody tr:last-child td {
     border-bottom: 0;
 }
