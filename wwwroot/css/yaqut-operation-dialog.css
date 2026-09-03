@@ -45,32 +45,9 @@
 }
 
 .yq-operation-dialog__button--primary {
-    border-color: var(--yq-btn-gold);
-    color: #17130a;
-    background: var(--yq-btn-gold);
-}
-
-.yq-operation-dialog__button--primary:hover { color: var(--yq-gold-dark, #96751f); }
-
-.yq-operation-dialog__button.yq-operation-dialog__button--primary::before {
-    background: color-mix(
-        in srgb,
-        #fff 90%,
-        var(--yq-bg-elevated, #fff)
-    );
-}
-
-.theme-dark
-    .yq-operation-dialog__button.yq-operation-dialog__button--primary::before,
-.dark-mode
-    .yq-operation-dialog__button.yq-operation-dialog__button--primary::before,
-[data-theme="dark"]
-    .yq-operation-dialog__button.yq-operation-dialog__button--primary::before {
-    background: color-mix(
-        in srgb,
-        var(--yq-bg-elevated, #181318) 82%,
-        #fff
-    );
+    border-color: transparent;
+    color: #111 !important;
+    background: var(--yq-btn-gold-grad);
 }
 
 .yq-operation-dialog__button--secondary {
