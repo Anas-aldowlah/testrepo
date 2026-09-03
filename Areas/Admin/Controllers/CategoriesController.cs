@@ -19,12 +19,18 @@ public class CategoriesController : Controller
     private readonly NeondbContext _context;
     private readonly CategoryServer _categoryService;
     private readonly Image _ImageServes;
+    private readonly ProductCatalogService _catalogService;
 
-    public CategoriesController(NeondbContext context, CategoryServer categoryService, Image imageServes)
+    public CategoriesController(
+        NeondbContext context,
+        CategoryServer categoryService,
+        Image imageServes,
+        ProductCatalogService catalogService)
     {
         _context = context;
         _categoryService = categoryService;
         _ImageServes = imageServes;
+        _catalogService = catalogService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
@@ -74,6 +80,7 @@ public class CategoriesController : Controller
 
         await _context.Categories.AddAsync(model);
         await _context.SaveChangesAsync();
+        _catalogService.InvalidateMetadataCache();
         TempData["Success"] = "تمت إضافة التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
     }
@@ -124,6 +131,7 @@ public class CategoriesController : Controller
 
         _context.Update(category);
         await _context.SaveChangesAsync();
+        _catalogService.InvalidateMetadataCache();
         TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
 
@@ -168,6 +176,7 @@ public class CategoriesController : Controller
             }
             _context.Categories.Remove(category);
             _context.SaveChanges();
+            _catalogService.InvalidateMetadataCache();
             TempData["Success"] = "تم حذف التصنيف بنجاح.";
 
         }

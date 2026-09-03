@@ -25,11 +25,11 @@ public class CartBadgeViewComponent : ViewComponent
         try
         {
             var userIdValue = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var cart = int.TryParse(userIdValue, out var userId)
-                ? await _cartService.GetCartAsync(userId)
-                : await _guestCartService.GetCartAsync();
+            var quantity = int.TryParse(userIdValue, out var userId)
+                ? await _cartService.GetCartQuantityAsync(userId)
+                : await _guestCartService.GetCartQuantityAsync();
 
-            return View(CartQuantity.Total(cart.Cartitems.Where(item => item.Product != null)));
+            return View(quantity);
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
         {

@@ -68,6 +68,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("pg_trgm");
+
         modelBuilder.Entity<Cart>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("carts_pkey");
@@ -315,6 +317,9 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 t.HasCheckConstraint("ck_orderitems_unavailable_quantity_range", "unavailable_quantity IS NULL OR (unavailable_quantity >= 0 AND unavailable_quantity <= quantity)");
             });
 
+            entity.HasIndex(e => e.Orderid, "IX_orderitems_orderid");
+            entity.HasIndex(e => e.Productid, "IX_orderitems_productid");
+
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Orderid).HasColumnName("orderid");
             entity.Property(e => e.Productid).HasColumnName("productid");
@@ -426,6 +431,19 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("sales_last_updated_at");
 
             entity.HasIndex(e => e.TotalSold, "ix_products_total_sold");
+            entity.HasIndex(e => e.Createdat, "ix_products_createdat")
+                .IsDescending();
+            entity.HasIndex(e => new { e.Categoryid, e.Createdat }, "ix_products_categoryid_createdat")
+                .IsDescending(false, true);
+            entity.HasIndex(e => e.Name, "ix_products_name_trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+            entity.HasIndex(e => e.Description, "ix_products_description_trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+            entity.HasIndex(e => e.Brand, "ix_products_brand_trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.Categoryid)
@@ -443,6 +461,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             });
 
             entity.HasIndex(e => new { e.ProductId, e.SizeMl }, "ux_product_retail_prices_product_size").IsUnique();
+            entity.HasIndex(e => e.SizeMl, "ix_product_retail_prices_active_size")
+                .HasFilter("is_active AND size_ml > 0 AND price > 0");
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");

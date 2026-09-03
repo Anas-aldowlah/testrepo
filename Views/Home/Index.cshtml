@@ -4,22 +4,9 @@
     ViewData["IsHomePage"] = true;
 
     var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
-    var products = Model.Products?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
+    var newArrivals = Model.NewArrivals?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
+    var heroSlides = Model.HeroSlides?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
     var bestSellingProducts = Model.BestSellingProducts?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
-
-    var newArrivals = products
-        .OrderByDescending(product => product.Createdat ?? DateTime.MinValue)
-        .Take(8)
-        .ToList();
-
-    var allProductsWithImages = products
-        .Where(product => !string.IsNullOrWhiteSpace(product.Imageurl))
-        .DistinctBy(product => product.Id)
-        .ToList();
-
-    var heroSlides = allProductsWithImages.Any()
-        ? allProductsWithImages.Take(12).ToList()
-        : products.Take(6).ToList();
 
     var storeSettings = Model.StoreSettings ?? new YAGOT_2._0.Models.StoreSettings();
     var heroTitle = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingText)
@@ -33,10 +20,7 @@
         ? categories.FirstOrDefault(category => category.Id == storeSettings.FeaturedCategoryId.Value)
         : null;
     var featuredCategory = configuredFeaturedCategory ?? categories.FirstOrDefault();
-    var brandNames = products
-        .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
-        .Select(product => product.Brand!.Trim())
-        .Where(brand => brand != "-")
+    var brandNames = Model.Brands
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(brand => brand)
         .ToList();

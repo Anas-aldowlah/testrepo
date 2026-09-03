@@ -22,6 +22,7 @@ public class ProductsController : Controller
     private readonly Image _imageService;
     private readonly IInventoryService _inventoryService;
     private readonly IBestSellerService _bestSellerService;
+    private readonly ProductCatalogService _catalogService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -31,6 +32,7 @@ public class ProductsController : Controller
         Image imageService,
         IInventoryService inventoryService,
         IBestSellerService bestSellerService,
+        ProductCatalogService catalogService,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
@@ -38,6 +40,7 @@ public class ProductsController : Controller
         _imageService = imageService;
         _inventoryService = inventoryService;
         _bestSellerService = bestSellerService;
+        _catalogService = catalogService;
         _logger = logger;
     }
 
@@ -59,6 +62,28 @@ public class ProductsController : Controller
                 (p.Category != null && p.Category.Name.Contains(search)));
         }
 
+        var inventorySummary = await _context.Products
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Active = group.Count(p => !(p.Stockquantity == 0 &&
+                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy))),
+                Archived = group.Count(p => p.Stockquantity == 0 &&
+                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
+                LowStock = group.Count(p =>
+                    !(p.Stockquantity == 0 &&
+                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
+                    p.Stockquantity > 0 &&
+                    ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
+                     (p.StockUnit != "Ml" && p.Stockquantity < 5))),
+                OutOfStock = group.Count(p =>
+                    !(p.Stockquantity == 0 &&
+                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
+                    p.Stockquantity <= 0)
+            })
+            .SingleOrDefaultAsync();
+
         var model = new AdminProductsIndexViewModel
         {
             Products = await PagedResult<Product>.CreateAsync(
@@ -69,15 +94,10 @@ public class ProductsController : Controller
                 page,
                 pageSize),
             Categories = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(),
-            TotalActiveProducts = await activeQuery.CountAsync(),
-            TotalArchivedProducts = await _context.Products.CountAsync(p =>
-                p.Stockquantity == 0 &&
-                (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
-            LowStockCount = await activeQuery.CountAsync(p =>
-                p.Stockquantity > 0 &&
-                ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
-                 (p.StockUnit != "Ml" && p.Stockquantity < 5))),
-            OutOfStockCount = await activeQuery.CountAsync(p => p.Stockquantity <= 0),
+            TotalActiveProducts = inventorySummary?.Active ?? 0,
+            TotalArchivedProducts = inventorySummary?.Archived ?? 0,
+            LowStockCount = inventorySummary?.LowStock ?? 0,
+            OutOfStockCount = inventorySummary?.OutOfStock ?? 0,
             Search = search ?? string.Empty,
             BestSellersLastUpdated = await _bestSellerService.GetLastRefreshTimeAsync()
         };
@@ -217,6 +237,7 @@ public class ProductsController : Controller
 
             _context.Products.Add(newProduct);
             await _context.SaveChangesAsync();
+            _catalogService.InvalidateMetadataCache();
             TempData["Success"] = "تمت إضافة المنتج بنجاح.";
             return RedirectToAction(nameof(Index));
         }
@@ -298,6 +319,7 @@ public class ProductsController : Controller
 
             await SyncRetailPricesAsync(product, productVW);
             await _context.SaveChangesAsync();
+            _catalogService.InvalidateMetadataCache();
             TempData["Success"] = "تم حفظ تعديلات المنتج بنجاح.";
             return RedirectToAction(nameof(Edit), new { id = product.Id });
         }
@@ -367,6 +389,7 @@ public class ProductsController : Controller
         product.Imageurl = DeletedProductImagePath;
         product.Stockquantity = 0;
         await _context.SaveChangesAsync();
+        _catalogService.InvalidateMetadataCache();
         TempData["Success"] = "تم حذف المنتج بنجاح.";
         return RedirectToAction(nameof(Index));
     }

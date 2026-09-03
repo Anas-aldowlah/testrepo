@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services
@@ -30,8 +31,12 @@ namespace YAGOT_2._0.Services
     {
         private readonly NeondbContext _context;
         private readonly ILogger<StoreSettingsService> _logger;
-        private StoreSettings? _cachedSettings;
-        private FooterSettings? _cachedFooterSettings;
+        private readonly IMemoryCache _cache;
+        private static readonly SemaphoreSlim SettingsLock = new(1, 1);
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+        private const string SettingsCacheKey = "storefront:store-settings:v1";
+        private const string FooterCacheKey = "storefront:footer-settings:v1";
+        private static long _cacheVersion;
 
         private static readonly PaymentMethodDefinition[] PaymentMethodDefinitions =
         [
@@ -41,31 +46,31 @@ namespace YAGOT_2._0.Services
             new("other", "أخرى", "Other")
         ];
 
-        public StoreSettingsService(NeondbContext context, ILogger<StoreSettingsService> logger)
+        public StoreSettingsService(
+            NeondbContext context,
+            ILogger<StoreSettingsService> logger,
+            IMemoryCache cache)
         {
             _context = context;
             _logger = logger;
+            _cache = cache;
         }
 
         public async Task<FooterSettings> GetFooterSettingsAsync()
         {
-            if (_cachedFooterSettings != null)
-            {
-                return _cachedFooterSettings;
-            }
+            if (_cache.TryGetValue(FooterCacheKey, out FooterSettings? cachedFooter) && cachedFooter != null)
+                return cachedFooter;
 
-            if (_cachedSettings != null)
+            if (_cache.TryGetValue(SettingsCacheKey, out StoreSettings? cachedSettings) && cachedSettings != null)
             {
-                _cachedFooterSettings = new FooterSettings(
-                    _cachedSettings.WhatsAppNumber,
-                    _cachedSettings.InstagramLink,
-                    _cachedSettings.TwitterLink,
-                    _cachedSettings.TikTokLink);
-                return _cachedFooterSettings;
+                var footer = ToFooterSettings(cachedSettings);
+                _cache.Set(FooterCacheKey, footer, CacheDuration);
+                return footer;
             }
 
             try
             {
+                var loadVersion = Volatile.Read(ref _cacheVersion);
                 var strategy = _context.Database.CreateExecutionStrategy();
                 var footerData = await strategy.ExecuteAsync(async () =>
                     await _context.Storesettings
@@ -78,8 +83,10 @@ namespace YAGOT_2._0.Services
                             s.Tiktoklink))
                         .FirstOrDefaultAsync());
 
-                _cachedFooterSettings = footerData ?? new FooterSettings(string.Empty, string.Empty, string.Empty, string.Empty);
-                return _cachedFooterSettings;
+                var footer = footerData ?? new FooterSettings(string.Empty, string.Empty, string.Empty, string.Empty);
+                if (loadVersion == Volatile.Read(ref _cacheVersion))
+                    _cache.Set(FooterCacheKey, footer, CacheDuration);
+                return footer;
             }
             catch (Exception ex)
             {
@@ -90,13 +97,16 @@ namespace YAGOT_2._0.Services
 
         public async Task<StoreSettings> GetSettingsAsync()
         {
-            if (_cachedSettings != null)
-            {
-                return _cachedSettings;
-            }
+            if (_cache.TryGetValue(SettingsCacheKey, out StoreSettings? cachedSettings) && cachedSettings != null)
+                return CloneSettings(cachedSettings);
 
+            await SettingsLock.WaitAsync();
             try
             {
+                if (_cache.TryGetValue(SettingsCacheKey, out cachedSettings) && cachedSettings != null)
+                    return CloneSettings(cachedSettings);
+
+                var loadVersion = Volatile.Read(ref _cacheVersion);
                 var settings = await GetExistingSettingsAsync();
                 if (settings == null)
                 {
@@ -113,19 +123,22 @@ namespace YAGOT_2._0.Services
                     .ToListAsync();
                 ApplyPaymentMethods(settings, paymentMethods);
 
-                _cachedSettings = settings;
-                _cachedFooterSettings = new FooterSettings(
-                    settings.WhatsAppNumber,
-                    settings.InstagramLink,
-                    settings.TwitterLink,
-                    settings.TikTokLink);
-
-                return settings;
+                var cachedCopy = CloneSettings(settings);
+                if (loadVersion == Volatile.Read(ref _cacheVersion))
+                {
+                    _cache.Set(SettingsCacheKey, cachedCopy, CacheDuration);
+                    _cache.Set(FooterCacheKey, ToFooterSettings(cachedCopy), CacheDuration);
+                }
+                return CloneSettings(cachedCopy);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error reading store settings from database.");
                 return new StoreSettings();
+            }
+            finally
+            {
+                SettingsLock.Release();
             }
         }
 
@@ -138,8 +151,7 @@ namespace YAGOT_2._0.Services
         {
             try
             {
-                _cachedSettings = null;
-                _cachedFooterSettings = null;
+                InvalidateCache();
                 NormalizeSettings(settings);
 
                 var settingsRows = await _context.Storesettings
@@ -174,6 +186,7 @@ namespace YAGOT_2._0.Services
                 await SyncAdditionalPaymentMethodsAsync(officialSettings.Id, settings.AdditionalPaymentMethods);
 
                 await _context.SaveChangesAsync();
+                InvalidateCache();
             }
             catch (Exception ex)
             {
@@ -358,11 +371,61 @@ namespace YAGOT_2._0.Services
             };
         }
 
+        private void InvalidateCache()
+        {
+            Interlocked.Increment(ref _cacheVersion);
+            _cache.Remove(SettingsCacheKey);
+            _cache.Remove(FooterCacheKey);
+        }
+
+        private static FooterSettings ToFooterSettings(StoreSettings settings) => new(
+            settings.WhatsAppNumber,
+            settings.InstagramLink,
+            settings.TwitterLink,
+            settings.TikTokLink);
+
+        private static StoreSettings CloneSettings(StoreSettings settings) => new()
+        {
+            Id = settings.Id,
+            WhatsAppNumber = settings.WhatsAppNumber,
+            ContactEmail = settings.ContactEmail,
+            InstagramLink = settings.InstagramLink,
+            TwitterLink = settings.TwitterLink,
+            TikTokLink = settings.TikTokLink,
+            BrandsMarquee = settings.BrandsMarquee,
+            FeaturedCategoryId = settings.FeaturedCategoryId,
+            HeroMarketingText = settings.HeroMarketingText,
+            HeroMarketingDesc = settings.HeroMarketingDesc,
+            OmqiPaymentName = settings.OmqiPaymentName,
+            OmqiAccountName = settings.OmqiAccountName,
+            OmqiAccountNumber = settings.OmqiAccountNumber,
+            BusairiPaymentName = settings.BusairiPaymentName,
+            BusairiAccountName = settings.BusairiAccountName,
+            BusairiAccountNumber = settings.BusairiAccountNumber,
+            BinDowalPaymentName = settings.BinDowalPaymentName,
+            BinDowalAccountName = settings.BinDowalAccountName,
+            BinDowalAccountNumber = settings.BinDowalAccountNumber,
+            OtherPaymentName = settings.OtherPaymentName,
+            OtherPaymentInstructions = settings.OtherPaymentInstructions,
+            AdditionalPaymentMethods = settings.AdditionalPaymentMethods.Select(method => new PaymentMethodSetting
+            {
+                Id = method.Id,
+                Type = method.Type,
+                Name = method.Name,
+                AccountHolderName = method.AccountHolderName,
+                AccountNumber = method.AccountNumber,
+                Instructions = method.Instructions,
+                IsActive = method.IsActive,
+                Delete = method.Delete
+            }).ToList()
+        };
+
         private async Task<StoreSettings?> GetExistingSettingsAsync()
         {
             var strategy = _context.Database.CreateExecutionStrategy();
             var settings = await strategy.ExecuteAsync(async () =>
                 await _context.Storesettings
+                    .AsNoTracking()
                     .OrderBy(settings => settings.Id)
                     .FirstOrDefaultAsync());
             return settings == null ? null : ToModel(settings);
