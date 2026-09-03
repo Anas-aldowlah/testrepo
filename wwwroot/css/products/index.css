@@ -671,7 +671,7 @@ html[data-theme="dark"] .yq-control-input:checked ~ .yq-control-label {
     text-align: center;
     font-size: 0.84rem;
     font-weight: 700;
-    color: var(--yq-gold);
+    color: var(--yq-text-soft);
     margin-top: 0.6rem;
     letter-spacing: 0.02em;
 }
