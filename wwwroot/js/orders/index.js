@@ -19,6 +19,7 @@
                 title: "طلب يحتاج مراجعتك",
                 message: "يوجد طلب يحتاج إلى مراجعتك قبل استكمال المعالجة.",
                 confirmText: "مراجعة الطلب",
+                cancelText: "إغلاق",
                 confirmStyle: "primary"
             }).then(function (result) {
                 if (result) {
@@ -31,6 +32,7 @@
                 title: "طلبات تحتاج مراجعتك",
                 message: "لديك " + count + " طلبات تحتاج إلى مراجعتك لاتخاذ الإجراء المناسب.",
                 confirmText: "عرض الطلبات",
+                cancelText: "إغلاق",
                 confirmStyle: "primary"
             }).then(function (result) {
                 // Confirmation simply closes the dialog and stays on the Orders list.
