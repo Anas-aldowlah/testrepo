@@ -168,6 +168,7 @@ public class OrdersController : Controller
     {
         var userIds = orders.Select(o => o.Userid).Distinct().ToList();
         var users = await _dbUser.Users
+            .AsNoTracking()
             .Where(u => userIds.Contains(u.Id))
             .ToListAsync();
 

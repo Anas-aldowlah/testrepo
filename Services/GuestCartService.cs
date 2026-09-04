@@ -20,6 +20,7 @@ public class GuestCartService
     private readonly ILogger<GuestCartService> _logger;
     private readonly IDataProtector _cookieProtector;
     private List<GuestCartItem>? _currentItems;
+    private Cart? _readCart;
 
     public string? Message { get; private set; }
     public string? WarningCode { get; private set; }
@@ -44,6 +45,12 @@ public class GuestCartService
     public async Task<Cart> GetCartAsync()
     {
         var guestItems = ReadItems();
+        if (guestItems.Count == 0)
+        {
+            _readCart = new Cart { Id = 0, Userid = 0, Cartitems = [] };
+            return _readCart;
+        }
+
         var productIds = guestItems.Select(i => i.ProductId).Distinct().ToList();
         var retailPriceIds = guestItems.Where(i => i.RetailPriceId.HasValue)
             .Select(i => i.RetailPriceId!.Value)
@@ -83,12 +90,13 @@ public class GuestCartService
             .Cast<Cartitem>()
             .ToList();
 
-        return new Cart
+        _readCart = new Cart
         {
             Id = 0,
             Userid = 0,
             Cartitems = cartItems
         };
+        return _readCart;
     }
 
     public async Task<CartStateSummary> GetCartStateSummaryAsync(
@@ -145,6 +153,7 @@ public class GuestCartService
 
     public async Task AddToCartAsync(int productId, int quantity, int? retailPriceId = null)
     {
+        _readCart = null;
         Message = null;
         WarningCode = null;
         AvailableQuantity = null;
@@ -202,8 +211,30 @@ public class GuestCartService
         WriteItems(items);
     }
 
+    public async Task<int> GetCartQuantityAsync()
+    {
+        if (_readCart != null)
+            return CartQuantity.Total(_readCart.Cartitems.Where(item => item.Product != null));
+
+        var items = ReadItems();
+        if (items.Count == 0)
+            return 0;
+
+        var productIds = items.Select(item => item.ProductId).Distinct().ToArray();
+        var validProductIds = await _context.Products
+            .AsNoTracking()
+            .Where(product => productIds.Contains(product.Id))
+            .Select(product => product.Id)
+            .ToHashSetAsync();
+
+        return items
+            .Where(item => validProductIds.Contains(item.ProductId))
+            .Sum(item => item.Quantity);
+    }
+
     public async Task UpdateQuantityAsync(int productId, int quantity, int? retailPriceId = null)
     {
+        _readCart = null;
         Message = null;
         WarningCode = null;
         AvailableQuantity = null;
@@ -252,6 +283,7 @@ public class GuestCartService
 
     public Task RemoveFromCartAsync(int productId, int? retailPriceId = null)
     {
+        _readCart = null;
         Message = null;
         var items = ReadItems();
         var existingItem = items.FirstOrDefault(i =>
@@ -271,6 +303,7 @@ public class GuestCartService
 
     public async Task MergeIntoUserCartAsync(int userId)
     {
+        _readCart = null;
         var guestItems = ReadItems()
             .GroupBy(item => new { item.ProductId, item.RetailPriceId })
             .Select(group => new GuestCartItem

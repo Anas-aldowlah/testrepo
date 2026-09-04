@@ -11,6 +11,8 @@ public class CartService
     private readonly ILogger<CartService> _logger;
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
+    private Cart? _readCart;
+    private int? _readCartUserId;
 
     public string? MESSAGE = null;
     public string? WARNING_CODE = null;
@@ -41,7 +43,9 @@ public class CartService
                     .ThenInclude(ci => ci.RetailPrice)
                 .SingleOrDefaultAsync(c => c.Userid == userId);
 
-            return cart ?? new Cart { Userid = userId };
+            _readCart = cart ?? new Cart { Userid = userId };
+            _readCartUserId = userId;
+            return _readCart;
         }
         catch (Exception exception)
         {
@@ -153,6 +157,17 @@ public class CartService
         });
     }
 
+    public async Task<int> GetCartQuantityAsync(int userId)
+    {
+        if (_readCartUserId == userId && _readCart != null)
+            return CartQuantity.Total(_readCart.Cartitems.Where(item => item.Product != null));
+
+        return await _context.Cartitems
+            .AsNoTracking()
+            .Where(item => item.Cart.Userid == userId)
+            .SumAsync(item => (int?)item.Quantity) ?? 0;
+    }
+
     public async Task UpdateQuantityAsync(
         int userId,
         int cartItemId,
@@ -262,6 +277,8 @@ public class CartService
         string operationName,
         Func<Task> operation)
     {
+        _readCart = null;
+        _readCartUserId = null;
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {

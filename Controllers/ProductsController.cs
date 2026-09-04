@@ -36,12 +36,10 @@ public class ProductsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         // تعرض تفاصيل المنتج محدد
-        var product = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var product = (await _context.Products
+            .Where(p => p.Id == id)
+            .ToProductCardsAsync(HttpContext.RequestAborted))
+            .SingleOrDefault();
         if (product == null) return NotFound();
         product.RetailPrices = ProductRetailAvailability.GetCustomerUsablePrices(product).ToList();
         return View(product);
@@ -58,12 +56,8 @@ public class ProductsController : Controller
             return PartialView("_RecentlyViewedCard", new List<Product>());
 
         var products = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.RetailPrices.Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0))
             .Where(p => validIds.Contains(p.Id))
-            .ToListAsync();
+            .ToProductCardsAsync(HttpContext.RequestAborted);
 
         var orderedProducts = new List<Product>();
         foreach (var id in validIds)
