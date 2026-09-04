@@ -13,6 +13,48 @@
         }
     }
 
+    function initSectionOrder() {
+        var page = document.querySelector('.yq-home-page');
+        if (!page) return;
+
+        var heroEl = page.querySelector('[data-yq-hero-section]');
+        var brandsEl = page.querySelector('.yq-home-brands');
+        var newArrivalsEl = page.querySelector('[aria-labelledby="newArrivalsTitle"]');
+        var bestSellersEl = page.querySelector('[aria-labelledby="bestSellersTitle"]');
+        var categoriesEl = page.querySelector('[aria-labelledby="categoriesTitle"]');
+
+        // Snapshot the original desktop DOM order
+        var desktopOrder = Array.prototype.slice.call(page.children);
+
+        // Mobile: Hero → Brands → Categories → New Arrivals → Best Sellers
+        var mobileOrder = [heroEl, brandsEl, categoriesEl, newArrivalsEl, bestSellersEl];
+
+        var mql = window.matchMedia('(max-width: 991.98px)');
+        var appliedMobile = null;
+
+        function applyOrder(isMobile) {
+            if (isMobile === appliedMobile) return;
+            appliedMobile = isMobile;
+
+            var order = isMobile ? mobileOrder : desktopOrder;
+            for (var i = 0; i < order.length; i++) {
+                if (order[i]) page.appendChild(order[i]);
+            }
+        }
+
+        applyOrder(mql.matches);
+
+        if (mql.addEventListener) {
+            mql.addEventListener('change', function (e) {
+                applyOrder(e.matches);
+            });
+        } else if (mql.addListener) {
+            mql.addListener(function (e) {
+                applyOrder(e.matches);
+            });
+        }
+    }
+
     function initHeroFader() {
         var hero = document.querySelector('.yq-home-hero');
         var bgContainer = document.getElementById('yqHeroBgFader');
@@ -181,6 +223,7 @@
 
     function init() {
         initAuthStorageCleanup();
+        initSectionOrder();
         initHeroFader();
     }
 

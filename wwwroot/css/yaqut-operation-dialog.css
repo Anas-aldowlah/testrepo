@@ -91,28 +91,6 @@
     color: #fff;
 }
 
-/* Visually demote Primary button to Secondary in Success dialogs */
-.yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button--primary {
-    background: var(--yq-bg-elevated, #fff);
-    color: var(--yq-text, #2b1720);
-    border-color: color-mix(in srgb, #168a52 20%, var(--yq-border, rgb(130 26 70 / 22%)));
-}
-
-.yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button--primary:hover {
-    color: var(--yq-text, #2b1720);
-}
-
-.yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button.yq-operation-dialog__button--primary::before {
-    background: color-mix(in srgb, var(--yq-text) 4%, var(--yq-bg-elevated));
-}
-
-.theme-dark .yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button.yq-operation-dialog__button--primary::before,
-.dark-mode .yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button.yq-operation-dialog__button--primary::before,
-[data-theme="dark"] .yq-operation-dialog[data-kind="success"] .yq-operation-dialog__button.yq-operation-dialog__button--primary::before {
-    background: color-mix(in srgb, var(--yq-text) 8%, var(--yq-bg-elevated));
-}
-
-
 .yq-operation-dialog__input-wrap {
     display: flex;
     flex-direction: column;

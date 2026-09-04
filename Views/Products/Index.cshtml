@@ -6,8 +6,6 @@
     var isSearchMode = !string.IsNullOrWhiteSpace(request.Search);
     var isBrandMode = request.Brand.Length > 0;
     var activeFilterCount = 0;
-    if (selectedCategory != null) activeFilterCount++;
-    if (isSearchMode) activeFilterCount++;
     activeFilterCount += request.Brand.Length;
     if (request.MinPrice.HasValue) activeFilterCount++;
     if (request.MaxPrice.HasValue) activeFilterCount++;
@@ -64,7 +62,7 @@
                 <span>@(isBrandMode && !isSearchMode ? "الشركة المنتجة" : "نتائج البحث")</span>
             </text>;
             
-            Func<dynamic, IHtmlContent> actionTemplate = @<a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")</a>;
+            Func<dynamic, IHtmlContent> actionTemplate = @<a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-circle" aria-hidden="true"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")</a>;
             
             var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
                 Variant = "Utility",
@@ -86,7 +84,7 @@
             Func<dynamic, IHtmlContent>? clearAction = null;
             if (hasActiveFilter)
             {
-                clearAction = @<a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle" aria-hidden="true"></i> إزالة الفلاتر</a>;
+                clearAction = @<a asp-action="Index" asp-route-categoryId="@request.CategoryId" asp-route-search="@request.Search" class="btn-yaqut-outline"><i class="bi bi-x-circle" aria-hidden="true"></i> إزالة الفلاتر</a>;
             }
 
             var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
@@ -365,7 +363,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="yq-price-currency mt-2 text-end text-muted small">ريال سعودي</div>
+                        <div class="yq-price-currency mt-2 text-end small">ريال سعودي</div>
                         <div id="yqPriceError" class="text-danger mt-2 small @(priceIsInvalid ? "" : "d-none")">يجب أن يكون الحد الأعلى للسعر أكبر من أو يساوي الحد الأدنى.</div>
                     </div>
                 </div>

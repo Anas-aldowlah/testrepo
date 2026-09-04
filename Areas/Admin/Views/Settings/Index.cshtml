@@ -2,8 +2,6 @@
 
 @{
     ViewData["Title"] = "إعدادات المتجر";
-    var successMessage = TempData["Success"]?.ToString();
-    var errorMessage = TempData["Error"]?.ToString();
 }
 
 @section Styles {
@@ -24,27 +22,11 @@
         </div>
 
         <div class="yq-settings-hero__meta" aria-label="معلومات الإعدادات">
-            <span>تكوين المتجر</span>
             <strong>قابل للحفظ</strong>
         </div>
     </header>
 
-    @if (!string.IsNullOrWhiteSpace(successMessage) || !string.IsNullOrWhiteSpace(errorMessage))
-    {
-        var isSuccess = !string.IsNullOrWhiteSpace(successMessage);
-        var feedbackMessage = isSuccess ? successMessage : errorMessage;
-        <div class="yq-settings-feedback @(isSuccess ? "yq-settings-feedback--success" : "yq-settings-feedback--error")"
-             role="@(isSuccess ? "status" : "alert")"
-             aria-live="@(isSuccess ? "polite" : "assertive")"
-             tabindex="-1"
-             data-yq-settings-feedback>
-            <i class="bi @(isSuccess ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill")" aria-hidden="true"></i>
-            <div>
-                <strong>@(isSuccess ? "تم تحديث الإعدادات" : "تعذر حفظ الإعدادات")</strong>
-                <span>@feedbackMessage</span>
-            </div>
-        </div>
-    }
+
 
     <form asp-action="Index" method="post" asp-antiforgery="true" class="yq-settings-form" data-yq-settings-form>
         <input type="hidden" asp-for="Id" />
@@ -368,4 +350,5 @@
 
     </script>
     <script src="~/js/admin/settings/form-action-state.js" asp-append-version="true"></script>
+    <partial name="_YaqutOperationDialog" />
 }

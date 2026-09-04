@@ -81,6 +81,11 @@
     padding: 0.35rem 0.75rem;
 }
 
+.yq-cart-item__qty-select option {
+    background-color: var(--yq-bg-elevated, #fff);
+    color: var(--yq-text);
+}
+
 .yq-cart-item__qty-select {
     cursor: pointer;
     width: 76px;

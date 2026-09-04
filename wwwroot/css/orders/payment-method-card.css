@@ -95,11 +95,13 @@
     font: inherit;
     font-size: .75rem;
     font-weight: 800;
+    transition: color .22s ease, background .22s ease, border-color .22s ease;
 }
 
 .yq-payment-card__copy:hover {
-    color: #17130a;
-    background: var(--yq-gold, #d4af37);
+    color: #111 !important;
+    background: var(--yq-gold-grad, var(--yq-gold, #d4af37));
+    border-color: transparent;
 }
 
 .yq-payment-card__copy:focus-visible {
