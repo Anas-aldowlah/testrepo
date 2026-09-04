@@ -596,6 +596,11 @@
     }
 
     function openDrawer(trigger, origin) {
+        if (typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new window.CustomEvent('yq:nav-close', {
+                detail: { restoreFocus: false, transferringToCart: true }
+            }));
+        }
         var transitionVersion = ++drawerTransitionVersion;
         var shouldAutoClose = origin === 'add-to-cart';
         restoreFocusEl = trigger || document.activeElement;
@@ -1199,6 +1204,9 @@
             if (event.detail && event.detail.authoritativeState) {
                 reconcileCart(event.detail.authoritativeState, event.detail.options || {});
             }
+        });
+        window.addEventListener('yq:cart-close', function () {
+            if (isDrawerOpen()) closeDrawer();
         });
         refreshCart({ silent: false });
     }
