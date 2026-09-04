@@ -91,11 +91,11 @@ public class HomeController : Controller
     }
 
     [AllowAnonymous]
-    [HttpGet("/loaderio-03aae8d3-af62-4d5c-9e36-16d1795c99cf.txt")]
+    [HttpGet("/loaderio-30f76365-7ae0-496b-a192-ccfe32fa6ef1.txt")]
     public IActionResult LoaderIoVerification()
     {
         return Content(
-            "loaderio-03aae8d3-af62-4d5c-9e36-16d1795c99cf",
+            "loaderio-30f76365-7ae0-496b-a192-ccfe32fa6ef1",
             "text/plain"
         );
     }
