@@ -692,58 +692,6 @@
         transform: none !important;
     }
 
-.yq-checkout-auth-modal__content {
-    border: 1px solid var(--yq-glass-border);
-    border-radius: var(--yq-radius);
-    background: var(--yq-bg-elevated);
-    color: var(--yq-text);
-    box-shadow: var(--yq-shadow);
-}
-
-.yq-checkout-auth-modal__header,
-.yq-checkout-auth-modal__actions {
-    border-color: var(--yq-border-sub);
-}
-
-.yq-checkout-auth-modal__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.35rem;
-    color: var(--yq-gold);
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
-.yq-checkout-auth-modal__title {
-    color: var(--yq-text);
-    font-family: var(--yq-font-display);
-    font-size: 1.35rem;
-    font-weight: 700;
-}
-
-.yq-checkout-auth-modal__body {
-    color: var(--yq-text-soft);
-    font-size: 0.95rem;
-    line-height: 1.8;
-}
-
-.yq-checkout-auth-modal__body p {
-    margin: 0;
-}
-
-.yq-checkout-auth-modal__actions {
-    gap: 0.75rem;
-}
-
-.yq-checkout-auth-modal__action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    min-width: 130px;
-}
-
 .yq-checkout-summary__secure {
     display: flex;
     align-items: center;

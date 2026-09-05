@@ -574,7 +574,7 @@
         return drawer.getAttribute('aria-hidden') === 'false';
     }
 
-    function closeDrawer() {
+    function closeDrawer(immediate) {
         var transitionVersion = ++drawerTransitionVersion;
         cartRefreshVersion += 1;
         clearPeekAutoCloseTimer();
@@ -592,6 +592,11 @@
         }
         drawer.inert = true;
         drawer.setAttribute('aria-hidden', 'true');
+
+        if (immediate) {
+            drawer.hidden = true;
+            return;
+        }
 
         window.setTimeout(function () {
             if (transitionVersion !== drawerTransitionVersion) return;
@@ -1020,7 +1025,9 @@
         var checkout = event.target.closest('[data-yq-cart-checkout]');
         if (checkout && checkout.getAttribute('data-yq-auth-required') === 'true') {
             event.preventDefault();
-            showAuthModal(checkout.getAttribute('data-yq-auth-modal'));
+            var modalId = checkout.getAttribute('data-yq-auth-modal');
+            closeDrawer(true);
+            showAuthModal(modalId);
             announce('سجّل دخولك أو أنشئ حساباً جديداً لإتمام الطلب.');
             return;
         }
@@ -1101,7 +1108,7 @@
     }
 
     function onKeydown(event) {
-        if (drawer.hidden) return;
+        if (drawer.hidden || drawer.inert || !isDrawerOpen()) return;
         if (drawer.contains(event.target)) clearPeekAutoCloseTimer();
         if (event.key === 'Escape') {
             event.preventDefault();
