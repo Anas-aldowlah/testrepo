@@ -490,14 +490,28 @@
 
     /* ═══ UTILITIES (تأكيد الحذف والفلاتر) ═══ */
     function initImageFallbacks() {
+        function applyFallback(img) {
+            var fallback = img.getAttribute('data-yaqut-fallback');
+            if (!fallback) {
+                return;
+            }
+
+            var current = img.getAttribute('src') || '';
+            if (current === fallback) {
+                return;
+            }
+
+            img.setAttribute('src', fallback);
+        }
+
         document.querySelectorAll('[data-yaqut-fallback]').forEach(function (img) {
             img.addEventListener('error', function () {
-                var fb = img.getAttribute('data-yaqut-fallback');
-                if (fb && img.src.indexOf(fb) === -1) {
-                    img.onerror = null;
-                    img.src = fb;
-                }
+                applyFallback(img);
             });
+
+            if (img.complete && img.naturalWidth === 0) {
+                applyFallback(img);
+            }
         });
     }
 

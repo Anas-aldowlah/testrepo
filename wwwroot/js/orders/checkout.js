@@ -77,35 +77,21 @@
 
     function initPlaceOrderGuard() {
         var form = document.getElementById('yqCheckoutForm');
-        var buttons = [
-            document.getElementById('confirmOrderBottom'),
-            document.getElementById('yqPlaceOrderBtn')
-        ].filter(Boolean);
-        if (!form || !buttons.length) return;
+        var submitButton = document.getElementById('yqPlaceOrderBtn');
+        if (!form || !submitButton) return;
 
         var isSubmitting = false;
         var confirmationAccepted = false;
 
-        buttons.forEach(function (button) {
-            button.dataset.yqOriginalHtml = button.innerHTML;
-        });
+        submitButton.dataset.yqOriginalHtml = submitButton.innerHTML;
 
         function setSubmitting(submitting) {
             isSubmitting = submitting;
-            buttons.forEach(function (button) {
-                button.classList.toggle('is-submitting', submitting);
-                button.innerHTML = submitting
-                    ? '<i class="bi bi-arrow-repeat yq-spin" aria-hidden="true"></i> جارٍ تأكيد الطلب...'
-                    : button.dataset.yqOriginalHtml;
-            });
-            syncButtonState();
-        }
-
-        function syncButtonState() {
-            var canSubmit = !isSubmitting && validateForm(form, false);
-            buttons.forEach(function (button) {
-                button.disabled = !canSubmit;
-            });
+            submitButton.classList.toggle('is-submitting', submitting);
+            submitButton.innerHTML = submitting
+                ? '<i class="bi bi-arrow-repeat yq-spin" aria-hidden="true"></i> جارٍ تأكيد الطلب...'
+                : submitButton.dataset.yqOriginalHtml;
+            submitButton.disabled = submitting;
         }
 
         form.querySelectorAll('input[type="tel"]').forEach(function (input) {
@@ -115,7 +101,7 @@
         });
 
         form.addEventListener('invalid', function () {
-            isSubmitting = false;
+            setSubmitting(false);
         }, true);
 
         form.addEventListener('submit', async function (event) {
@@ -137,24 +123,18 @@
                 return;
             }
 
-            var authRequired = form.getAttribute('data-yq-auth-required') === 'true';
-            if (authRequired) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                setSubmitting(false);
-                showAuthModal(form.getAttribute('data-yq-auth-modal'));
-                return;
-            }
-
             event.preventDefault();
             event.stopImmediatePropagation();
-            if (!window.YaqutOperationDialog) return;
-            var confirmed = await window.YaqutOperationDialog.confirm({
-                title: 'تأكيد الطلب',
-                message: 'هل تريد إرسال الطلب بهذه البيانات؟',
-                confirmText: 'تأكيد الطلب',
-                cancelText: 'مراجعة البيانات'
-            });
+
+            var confirmed = true;
+            if (window.YaqutOperationDialog) {
+                confirmed = await window.YaqutOperationDialog.confirm({
+                    title: 'تأكيد الطلب',
+                    message: 'هل تريد إرسال الطلب بهذه البيانات؟',
+                    confirmText: 'تأكيد الطلب',
+                    cancelText: 'مراجعة البيانات'
+                });
+            }
             if (!confirmed) {
                 setSubmitting(false);
                 return;
@@ -162,7 +142,7 @@
 
             confirmationAccepted = true;
             if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit(event.submitter || buttons[0]);
+                form.requestSubmit(submitButton);
             } else {
                 setSubmitting(true);
                 form.submit();
@@ -175,11 +155,9 @@
         });
 
         window.addEventListener('pageshow', function () {
+            confirmationAccepted = false;
             setSubmitting(false);
         });
-
-        form.addEventListener('input', syncButtonState);
-        form.addEventListener('change', syncButtonState);
 
         // Reset state if a jQuery-based AJAX submitter is introduced or enabled.
         if (window.jQuery) {
@@ -192,7 +170,6 @@
                 }
             });
         }
-        syncButtonState();
     }
 
     function validateForm(form, showFeedback) {
@@ -308,10 +285,140 @@
         }
     }
 
+    function initReceiptUploadFeedback() {
+        var input = document.getElementById('yqReceiptInput');
+        var feedback = document.getElementById('yqReceiptSelectedFeedback');
+        var fileNameElem = document.getElementById('yqReceiptFileName');
+        var fileSizeElem = document.getElementById('yqReceiptFileSize');
+        var clearBtn = document.getElementById('yqReceiptClearBtn');
+        var errorElem = document.getElementById('yqReceiptError');
+        if (!input || !feedback || !fileNameElem || !fileSizeElem || !clearBtn) return;
+
+        var box = input.closest('.yq-receipt-box');
+        var MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+        var ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' بايت';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' كيلوبايت';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' ميجابايت';
+        }
+
+        function isExtensionAllowed(fileName) {
+            var lower = String(fileName || '').toLowerCase();
+            return ALLOWED_EXTENSIONS.some(function (ext) {
+                return lower.endsWith(ext);
+            });
+        }
+
+        function clearFile(clearErrorMessage) {
+            input.value = '';
+            feedback.hidden = true;
+            if (box) box.classList.remove('has-file');
+            fileNameElem.textContent = '';
+            fileSizeElem.textContent = '';
+            if (clearErrorMessage && errorElem) {
+                errorElem.textContent = '';
+            }
+        }
+
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file) {
+                clearFile(false);
+                return;
+            }
+
+            if (!isExtensionAllowed(file.name)) {
+                clearFile(false);
+                if (errorElem) {
+                    errorElem.textContent = 'صيغة الملف غير مدعومة. يرجى اختيار صورة بصيغة JPG أو PNG أو WEBP.';
+                }
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE) {
+                clearFile(false);
+                if (errorElem) {
+                    errorElem.textContent = 'حجم صورة الإيصال يجب ألا يتجاوز 5 ميجابايت.';
+                }
+                return;
+            }
+
+            if (errorElem) {
+                errorElem.textContent = '';
+            }
+
+            fileNameElem.textContent = file.name;
+            fileSizeElem.textContent = formatFileSize(file.size);
+            feedback.hidden = false;
+            if (box) box.classList.add('has-file');
+        });
+
+        clearBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            clearFile(true);
+            input.focus();
+        });
+    }
+
+    function initSummaryCollapse() {
+        var summary = document.getElementById('yqCheckoutSummary');
+        var toggle = document.getElementById('yqCheckoutSummaryToggle');
+        var body = document.getElementById('yqCheckoutSummaryBody');
+        if (!summary || !toggle || !body) return;
+
+        var toggleText = toggle.querySelector('.yq-checkout-summary__toggle-text');
+        var isMobileOrTablet = function () {
+            return window.matchMedia ? window.matchMedia('(max-width: 991.98px)').matches : window.innerWidth < 992;
+        };
+
+        function setExpanded(expanded) {
+            toggle.setAttribute('aria-expanded', String(expanded));
+            body.hidden = !expanded;
+            summary.classList.toggle('is-expanded', expanded);
+            if (toggleText) {
+                toggleText.textContent = expanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل';
+            }
+            toggle.setAttribute('aria-label', expanded ? 'إخفاء تفاصيل ملخص الطلب' : 'عرض تفاصيل ملخص الطلب');
+        }
+
+        // Default state: collapsed on mobile/tablet (<992px), open on desktop (>=992px)
+        if (isMobileOrTablet()) {
+            setExpanded(false);
+        } else {
+            setExpanded(true);
+        }
+
+        toggle.addEventListener('click', function (event) {
+            if (!isMobileOrTablet()) return;
+            event.preventDefault();
+            var currentlyExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            setExpanded(!currentlyExpanded);
+        });
+
+        var mql = window.matchMedia ? window.matchMedia('(max-width: 991.98px)') : null;
+        if (mql && typeof mql.addEventListener === 'function') {
+            mql.addEventListener('change', function (e) {
+                if (!e.matches) {
+                    setExpanded(true);
+                }
+            });
+        } else {
+            window.addEventListener('resize', function () {
+                if (!isMobileOrTablet()) {
+                    setExpanded(true);
+                }
+            });
+        }
+    }
+
     function init() {
+        initSummaryCollapse();
         initInputFilters();
         initPaymentSelection();
         initPaymentPagination();
+        initReceiptUploadFeedback();
         initPlaceOrderGuard();
         initAuthModalAutoShow();
         focusFirstInvalidField(document.getElementById('yqCheckoutForm') || document, false);

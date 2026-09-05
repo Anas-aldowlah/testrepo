@@ -530,13 +530,21 @@
         if (shipping) shipping.hidden = true;
     }
 
-    function isCartPage() {
-        var path = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
-        return path === '/cart' || path.endsWith('/cart');
+    function isDrawerSuppressedPage() {
+        var path = (window.location.pathname || '/')
+            .toLowerCase()
+            .replace(/\/+$/, '');
+
+        if (!path) {
+            path = '/';
+        }
+
+        return path === '/cart' ||
+               path === '/orders/checkout';
     }
 
     function openDrawer(trigger, origin) {
-        if (isCartPage()) return;
+        if (isDrawerSuppressedPage()) return;
         if (typeof window.dispatchEvent === 'function') {
             window.dispatchEvent(new window.CustomEvent('yq:nav-close', {
                 detail: { restoreFocus: false, transferringToCart: true }
@@ -1042,7 +1050,7 @@
 
         var opener = event.target.closest('[data-yq-cart-open]');
         if (opener && typeof window.fetch === 'function' && !event.metaKey && !event.ctrlKey && !event.shiftKey && event.button !== 1) {
-            if (isCartPage()) {
+            if (isDrawerSuppressedPage()) {
                 return;
             }
             event.preventDefault();

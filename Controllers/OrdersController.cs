@@ -61,7 +61,6 @@ public class OrdersController : Controller
         return View(model);
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> Checkout()
     {
@@ -82,7 +81,6 @@ public class OrdersController : Controller
         return View(await BuildCheckoutViewModelAsync(cart));
     }
 
-    [AllowAnonymous]
     [HttpPost]
     [ActionName("Checkout")]
     [ValidateAntiForgeryToken]
@@ -106,12 +104,7 @@ public class OrdersController : Controller
             return View("Checkout", model);
         }
 
-        if (!TryResolveUserId(out var userId))
-        {
-            ViewData["ShowAuthModal"] = true;
-            await PopulateCheckoutPaymentMethodsAsync(model);
-            return View("Checkout", model);
-        }
+        var userId = await ResolveUserIdAsync();
 
         StagedReceipt? stagedReceipt = null;
         try
