@@ -2,25 +2,6 @@
 @import url('components/quantity-control.css');
 /* ═══ Shared Storefront Shell — Header, Navigation, Footer ═══ */
 
-/* ── Accessibility ── */
-.yq-skip-link {
-    position: absolute;
-    top: -3rem;
-    right: 1rem;
-    z-index: 2000;
-    background: var(--yq-gold-grad);
-    color: #111;
-    padding: 0.6rem 1.25rem;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    transition: top 0.25s ease;
-}
-
-    .yq-skip-link:focus {
-        top: 1rem;
-    }
-
 html {
     scroll-padding-top: 110px;
     overflow-x: clip; /* clip does NOT break position:sticky unlike hidden */
