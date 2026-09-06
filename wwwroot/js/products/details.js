@@ -154,6 +154,27 @@
         saveRecentList(list.slice(0, MAX_RECENT));
     }
 
+    function bindImageFallbacks(root) {
+        if (!root) return;
+        root.querySelectorAll('[data-yaqut-fallback]').forEach(function (img) {
+            if (img.dataset.yqFallbackBound === 'true') return;
+            img.dataset.yqFallbackBound = 'true';
+
+            function applyFallback() {
+                var fallback = img.getAttribute('data-yaqut-fallback');
+                if (fallback && img.getAttribute('src') !== fallback) {
+                    img.setAttribute('src', fallback);
+                }
+            }
+
+            img.addEventListener('error', applyFallback, { once: true });
+
+            if (img.complete && img.naturalWidth === 0) {
+                applyFallback();
+            }
+        });
+    }
+
     function renderRecentlyViewed(root) {
         var section = root.querySelector('#yqRecentlyViewed');
         var grid = root.querySelector('#yqRecentlyViewedGrid');
@@ -180,6 +201,7 @@
                     cards.forEach(function(card) {
                         grid.appendChild(card.cloneNode(true));
                     });
+                    bindImageFallbacks(grid);
                     section.hidden = false;
                 } else {
                     section.hidden = true;

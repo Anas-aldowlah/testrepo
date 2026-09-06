@@ -156,7 +156,7 @@
                         </button>
                     </div>
 
-                    <div class="yq-pdp-stock">
+                    <div class="yq-pdp-stock" role="status" aria-atomic="true">
                         @if (inStock)
                         {
                             <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in" data-yq-stock-badge>
@@ -205,7 +205,7 @@
                                                data-unit-few="عبوات"
                                                data-unit-many="عبوة" />
                                         <span class="yq-pdp-retail-option__body">
-                                            <span>عبوة كاملة @Model.VolumeMl مل</span>
+                                            <span>@(Model.VolumeMl.HasValue ? $"عبوة كاملة {Model.VolumeMl} مل" : "عبوة كاملة")</span>
                                             <strong>@(Model.Price.ToYaqutPrice())</strong>
                                         </span>
                                     </label>
