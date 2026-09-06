@@ -138,6 +138,7 @@
                 event.preventDefault();
                 document.documentElement.dataset.yqCartBusy = 'true';
                 item.classList.add('is-removing');
+                calculateAndUpdateTotals();
                 
                 var payload = new window.FormData(form);
                 window.fetch(form.action, {
@@ -187,6 +188,7 @@
                     }
                 }).catch(function (error) {
                     item.classList.remove('is-removing');
+                    calculateAndUpdateTotals();
                     var message = error && error.userMessage
                         ? error.userMessage
                         : 'تعذّر حذف المنتج من السلة حالياً. يرجى المحاولة مرة أخرى.';
@@ -316,7 +318,9 @@
         // Update summary
         var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
         if (summaryTotalEl) {
-            summaryTotalEl.textContent = subtotal.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            summaryTotalEl.textContent = window.Yaqut && typeof window.Yaqut.formatPrice === 'function'
+                ? window.Yaqut.formatPrice(subtotal)
+                : subtotal.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ر.س';
         }
         
         updateHeaderBadge();
@@ -330,14 +334,24 @@
         }
 
         var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
-        if (summaryTotalEl && Number.isFinite(Number(state.subtotal))) {
-            summaryTotalEl.textContent = Number(state.subtotal).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        if (summaryTotalEl) {
+            if (typeof state.subtotalText === 'string' && state.subtotalText.trim() !== '') {
+                summaryTotalEl.textContent = state.subtotalText;
+            } else if (Number.isFinite(Number(state.subtotal))) {
+                summaryTotalEl.textContent = window.Yaqut && typeof window.Yaqut.formatPrice === 'function'
+                    ? window.Yaqut.formatPrice(state.subtotal)
+                    : Number(state.subtotal).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ر.س';
+            }
         }
 
         var item = form.closest('[data-yq-cart-item]');
         var lineTotalEl = item ? item.querySelector('.yq-cart-item__line-total') : null;
-        if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
-            lineTotalEl.innerHTML = window.Yaqut.formatPrice(state.item.lineTotal);
+        if (lineTotalEl && state.item) {
+            if (typeof state.item.lineTotalText === 'string' && state.item.lineTotalText.trim() !== '') {
+                lineTotalEl.textContent = state.item.lineTotalText;
+            } else if (Number.isFinite(Number(state.item.lineTotal))) {
+                lineTotalEl.innerHTML = window.Yaqut.formatPrice(state.item.lineTotal);
+            }
         }
 
         if (state.warningCode === 'InsufficientStock' && Number.isFinite(Number(state.availableQuantity))) {
