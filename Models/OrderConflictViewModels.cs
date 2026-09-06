@@ -20,6 +20,9 @@ public sealed class CustomerInventoryConflictProductViewModel
 {
     public int OrderitemId { get; init; }
     public string ProductName { get; init; } = string.Empty;
+    public string? VariantSize { get; init; }
+    public decimal UnitPrice { get; init; }
+    public string? ImageUrl { get; init; }
     public int RequestedQuantity { get; init; }
     public int AvailableQuantity { get; init; }
     public bool IsConflict { get; init; }
@@ -29,6 +32,9 @@ public sealed class CustomerInventoryConflictLineViewModel
 {
     public int OrderitemId { get; init; }
     public string ProductName { get; init; } = string.Empty;
+    public string? VariantSize { get; init; }
+    public decimal UnitPrice { get; init; }
+    public string? ImageUrl { get; init; }
     public int RequestedQuantity { get; init; }
     public int AvailableQuantity { get; init; }
     public bool CanContinue => AvailableQuantity > 0;

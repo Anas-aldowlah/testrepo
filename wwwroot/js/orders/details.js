@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     'use strict';
 
     function copyWithSelection(text) {
@@ -20,8 +20,12 @@
     }
 
     function init() {
+        var root = document.querySelector('[data-yq-order-details]');
+        if (!root) return;
+
         var copyBtn = document.getElementById('yqDetailsCopyTrackingBtn');
         var trackingEl = document.getElementById('yqDetailsTrackingNumber');
+        var statusEl = document.getElementById('yqDetailsCopyStatus');
         if (!copyBtn || !trackingEl) return;
 
         copyBtn.addEventListener('click', function () {
@@ -32,9 +36,18 @@
                 var icon = copyBtn.querySelector('i');
                 copyBtn.classList.add('is-copied');
                 if (icon) icon.className = 'bi bi-check-lg';
+                if (statusEl) statusEl.textContent = 'تم نسخ رقم التتبع بنجاح';
                 setTimeout(function () {
                     copyBtn.classList.remove('is-copied');
                     if (icon) icon.className = 'bi bi-clipboard';
+                    if (statusEl) statusEl.textContent = '';
+                }, 1800);
+            };
+
+            var markFailed = function () {
+                if (statusEl) statusEl.textContent = 'تعذر نسخ رقم التتبع';
+                setTimeout(function () {
+                    if (statusEl) statusEl.textContent = '';
                 }, 1800);
             };
 
@@ -43,8 +56,13 @@
                     return navigator.clipboard.writeText(text);
                 }).then(markCopied).catch(function () {
                     if (copyWithSelection(text)) markCopied();
+                    else markFailed();
                 });
-            } else if (copyWithSelection(text)) markCopied();
+            } else if (copyWithSelection(text)) {
+                markCopied();
+            } else {
+                markFailed();
+            }
         });
     }
 

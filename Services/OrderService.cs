@@ -431,6 +431,9 @@ public class OrderService
             {
                 OrderitemId = item.Id,
                 ProductName = item.Product?.Name ?? "المنتج",
+                VariantSize = (item.RetailSizeMl ?? item.RetailPrice?.SizeMl) is int ml && ml > 0 ? $"{ml} مل" : null,
+                UnitPrice = item.Unitprice,
+                ImageUrl = item.Product?.Imageurl,
                 RequestedQuantity = item.Quantity,
                 AvailableQuantity = availableByItem.TryGetValue(item.Id, out var available)
                     ? available
@@ -441,6 +444,9 @@ public class OrderService
             {
                 OrderitemId = item.Id,
                 ProductName = item.Product?.Name ?? "المنتج",
+                VariantSize = (item.RetailSizeMl ?? item.RetailPrice?.SizeMl) is int ml && ml > 0 ? $"{ml} مل" : null,
+                UnitPrice = item.Unitprice,
+                ImageUrl = item.Product?.Imageurl,
                 RequestedQuantity = item.Quantity,
                 AvailableQuantity = availableByItem[item.Id],
                 CanRemove = fixedAcceptedQuantity + availableByItem
@@ -923,6 +929,7 @@ public class OrderService
     public Task<Order?> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken = default) =>
         _context.Orders
             .AsNoTracking()
+            .Include(order => order.Deliveryorder)
             .Include(order => order.Orderitems)
                 .ThenInclude(item => item.Product)
             .Include(order => order.Orderitems)

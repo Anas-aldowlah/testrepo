@@ -1,21 +1,15 @@
 (() => {
     "use strict";
 
-    const dialog = document.querySelector("[data-yq-conflict-dialog]");
-    const form = dialog?.querySelector("[data-yq-conflict-resolution]");
-    if (!dialog || !form) return;
+    const form = document.querySelector("[data-yq-conflict-resolution]");
+    if (!form) return;
 
     const unexpectedMessage = "تعذر تنفيذ العملية. حاول مرة أخرى.";
     const validResultKeys = new Set(["Continued", "Removed", "RemovedMultiple", "Mixed", "Cancelled"]);
     const feedback = form.querySelector("[data-yq-conflict-feedback]");
     const saveButton = form.querySelector('[data-yq-resolution-submit="continue"]');
     const decisionFields = [...form.querySelectorAll("[data-yq-conflict-decision]")];
-    const openButton = document.querySelector("[data-yq-conflict-open]");
-    const closeButton = dialog.querySelector("[data-yq-conflict-close]");
-
-    const openDialog = () => {
-        if (!dialog.open) window.YaqutDialog.showModal(dialog);
-    };
+    const cancelInput = form.querySelector("[data-yq-cancel-entire]");
 
     const hasCompleteDecision = () => decisionFields.length > 0 &&
         decisionFields.every(fieldset => fieldset.querySelector("input[type='radio']:checked"));
@@ -38,16 +32,6 @@
         if (!busy) syncSaveState();
     };
 
-    openButton?.addEventListener("click", openDialog);
-    closeButton?.addEventListener("click", () => dialog.close());
-    dialog.addEventListener("cancel", event => {
-        event.preventDefault();
-        dialog.close();
-    });
-    dialog.addEventListener("click", event => {
-        if (event.target === dialog) dialog.close();
-    });
-
     form.addEventListener("change", event => {
         if (!event.target.matches("input[type='radio']")) return;
         showFeedback("", "info");
@@ -69,22 +53,26 @@
         }
 
         if (isCancel) {
-            dialog.close();
-            const confirmed = await window.YaqutOperationDialog.confirm({
-                title: "إلغاء الطلب بالكامل",
-                message: "هل تريد إلغاء الطلب بالكامل؟\nبعد الإلغاء لن يمكن إعادة فتحه.",
-                confirmText: "إلغاء الطلب بالكامل",
-                cancelText: "تراجع",
-                kind: "destructive"
-            });
+            let confirmed = false;
+            if (window.YaqutOperationDialog && typeof window.YaqutOperationDialog.confirm === "function") {
+                confirmed = await window.YaqutOperationDialog.confirm({
+                    title: "إلغاء الطلب بالكامل",
+                    message: "هل تريد إلغاء الطلب بالكامل؟\nبعد الإلغاء لن يمكن إعادة فتحه.",
+                    confirmText: "إلغاء الطلب بالكامل",
+                    cancelText: "تراجع",
+                    kind: "destructive"
+                });
+            } else {
+                confirmed = window.confirm("هل تريد إلغاء الطلب بالكامل؟\nبعد الإلغاء لن يمكن إعادة فتحه.");
+            }
             if (!confirmed) {
-                openDialog();
                 return;
             }
         }
 
-        const cancelInput = form.querySelector("[data-yq-cancel-entire]");
-        cancelInput.value = isCancel ? "true" : "false";
+        if (cancelInput) {
+            cancelInput.value = isCancel ? "true" : "false";
+        }
         showFeedback(isCancel ? "جارٍ إلغاء الطلب..." : "جارٍ حفظ قرارك...", "info");
         setBusy(true);
 
@@ -108,27 +96,25 @@
             }
             if (!validResultKeys.has(payload.resultKey)) throw new Error("Unknown conflict result.");
 
-            if (dialog.open) dialog.close();
             showFeedback("", "info");
-            await window.YaqutOperationDialog.show({
-                title: payload.title,
-                message: payload.message,
-                whatsAppUrl: form.dataset.yqConflictWhatsappUrl,
-                whatsAppText: "إشعار الإدارة عبر واتساب",
-                whatsAppNote: "يمكنك فتح رسالة جاهزة لإشعار الإدارة بتحديث الطلب.",
-                confirmText: "حسنًا",
-                confirmStyle: "secondary",
-                kind: "success"
-            });
+            if (window.YaqutOperationDialog && typeof window.YaqutOperationDialog.show === "function") {
+                await window.YaqutOperationDialog.show({
+                    title: payload.title,
+                    message: payload.message,
+                    whatsAppUrl: form.dataset.yqConflictWhatsappUrl,
+                    whatsAppText: "إشعار الإدارة عبر واتساب",
+                    whatsAppNote: "يمكنك فتح رسالة جاهزة لإشعار الإدارة بتحديث الطلب.",
+                    confirmText: "حسنًا",
+                    confirmStyle: "secondary",
+                    kind: "success"
+                });
+            }
             window.location.assign(payload.redirectUrl || window.location.href);
         } catch (error) {
-            cancelInput.value = "false";
+            if (cancelInput) cancelInput.value = "false";
             setBusy(false);
-            if (!dialog.open) openDialog();
             showFeedback(error?.userSafe && error.message ? error.message : unexpectedMessage, "error");
             if (error?.reload) window.setTimeout(() => window.location.reload(), 1100);
         }
     });
-
-    openDialog();
 })();

@@ -352,34 +352,37 @@ public class OrdersController : Controller
         var continuedCount = decisions.Count(decision =>
             string.Equals(decision.Decision, InventoryConflictDecisions.Continue, StringComparison.Ordinal));
 
+        const string successTitle = "تم تحديث الطلب وتأكيد الدفع بنجاح";
+        const string successMessage = "تم تحديث الطلب وتأكيد الدفع بنجاح.";
+
         if (removedCount > 0 && continuedCount > 0)
         {
             return (
                 "Mixed",
-                "تم تحديث طلبك",
-                "تم حفظ الكميات الجديدة وحذف المنتجات غير المتوفرة، وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         if (removedCount > 1)
         {
             return (
                 "RemovedMultiple",
-                "تم تحديث طلبك",
-                "تم حذف المنتجات غير المتوفرة من الطلب وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         if (removedCount == 1)
         {
             return (
                 "Removed",
-                "تم تحديث طلبك",
-                "تم حذف المنتج غير المتوفر من الطلب وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         return (
             "Continued",
-            "تم تحديث طلبك",
-            "تم حفظ الكمية الجديدة وسيتم مراجعة الطلب من الإدارة.");
+            successTitle,
+            successMessage);
     }
 
     [AllowAnonymous]

@@ -10,109 +10,126 @@
     var canSave = Model.Lines.Count > 0 && Model.Lines.All(line => line.CanContinue || line.CanRemove);
 }
 
-<section class="yq-od-card yq-glass yq-conflict-notice" aria-labelledby="inventoryDecisionTitle">
-    <div>
-        <h2 id="inventoryDecisionTitle" class="yq-od-card__title"><i class="bi bi-exclamation-triangle"></i> طلبك يحتاج إلى تحديث</h2>
-        @if (!conflictHasPaymentReview)
-        {
-            <p role="status">المتجر يراجع الدفع الآن. ستظهر خيارات الكميات بعد اكتمال المراجعة.</p>
-        }
-        else
-        {
-            <p>بعض الكميات المطلوبة لم تعد متوفرة. اختر ما يناسبك لإكمال الطلب.</p>
-        }
-    </div>
+<section class="yq-od-card yq-glass yq-conflict-card yq-reveal" aria-labelledby="yqConflictTitle" aria-describedby="yqConflictDesc">
+    <header class="yq-conflict-card__header">
+        <span class="yq-conflict-card__icon" aria-hidden="true">
+            <i class="bi bi-exclamation-triangle"></i>
+        </span>
+        <div>
+            <h2 id="yqConflictTitle" class="yq-conflict-card__title">طلبك يحتاج إلى تحديث للكميات</h2>
+            @if (!conflictHasPaymentReview)
+            {
+                <p id="yqConflictDesc" class="yq-conflict-card__desc" role="status">المتجر يراجع الدفع الآن. ستظهر خيارات الكميات بعد اكتمال المراجعة.</p>
+            }
+            else
+            {
+                <p id="yqConflictDesc" class="yq-conflict-card__desc">تمت مراجعة الدفع، ولكن بعض الكميات المطلوبة لم تعد متوفرة. يرجى اختيار ما يناسبك للمتابعة واعتماد الطلب.</p>
+            }
+        </div>
+    </header>
+
     @if (conflictHasPaymentReview)
     {
-        <button type="button" class="btn-yaqut-outline" data-yq-conflict-open>
-            <span>مراجعة المنتجات</span>
-        </button>
+        <form asp-action="ResolveInventoryConflict"
+              method="post"
+              class="yq-conflict-resolution"
+              data-yq-conflict-resolution
+              data-yq-conflict-whatsapp-url="@whatsAppUrl">
+            <input type="hidden" name="Id" value="@orderId" />
+            <input type="hidden" name="CancelEntireOrder" value="false" data-yq-cancel-entire />
+
+            <div class="yq-conflict-products">
+                @foreach (var product in Model.Products)
+                {
+                    var isConflict = conflictLines.TryGetValue(product.OrderitemId, out var conflictEntry);
+                    <article class="yq-conflict-product @(isConflict ? "yq-conflict-product--affected" : "yq-conflict-product--neutral")">
+                        <div class="yq-conflict-product__body">
+                            <div class="yq-conflict-product__media">
+                                <img src="@(product.ImageUrl ?? "/images/placeholder-product.svg")"
+                                     alt="@product.ProductName"
+                                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                            </div>
+                            <div class="yq-conflict-product__info">
+                                <div class="yq-conflict-product__heading">
+                                    <strong class="yq-conflict-product__name">@product.ProductName</strong>
+                                    @if (!string.IsNullOrWhiteSpace(product.VariantSize))
+                                    {
+                                        <span class="yq-od-variant-badge">@product.VariantSize</span>
+                                    }
+                                    @if (isConflict)
+                                    {
+                                        <span class="yq-conflict-badge yq-conflict-badge--danger">يحتاج إلى قرار</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-conflict-badge yq-conflict-badge--success">متوفر بالكامل</span>
+                                    }
+                                </div>
+                                <div class="yq-conflict-product__meta-line">
+                                    <span class="yq-conflict-product__price">سعر الوحدة: <bdi>@(product.UnitPrice.ToYaqutPrice())</bdi></span>
+                                </div>
+                                <dl class="yq-conflict-resolution__quantities">
+                                    <div>
+                                        <dt>الكمية المطلوبة:</dt>
+                                        <dd><bdi>@product.RequestedQuantity</bdi></dd>
+                                    </div>
+                                    <div>
+                                        <dt>الكمية المتوفرة:</dt>
+                                        <dd><bdi>@product.AvailableQuantity</bdi></dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+
+                        @if (isConflict && conflictEntry != null)
+                        {
+                            var line = conflictEntry.line;
+                            var index = conflictEntry.index;
+                            <fieldset class="yq-conflict-resolution__line" data-yq-conflict-decision>
+                                <legend class="visually-hidden">قرار المنتج @line.ProductName</legend>
+                                <input type="hidden" name="Decisions[@index].OrderitemId" value="@line.OrderitemId" />
+                                @if (line.CanContinue)
+                                {
+                                    <label class="yq-conflict-option">
+                                        <input type="radio" name="Decisions[@index].Decision" value="@InventoryConflictDecisions.Continue" />
+                                        <span>المتابعة بالكمية المتوفرة (@line.AvailableQuantity)</span>
+                                    </label>
+                                }
+                                @if (line.CanRemove)
+                                {
+                                    <label class="yq-conflict-option">
+                                        <input type="radio" name="Decisions[@index].Decision" value="@InventoryConflictDecisions.Remove" />
+                                        <span>إزالة المنتج من الطلب</span>
+                                    </label>
+                                }
+                            </fieldset>
+                        }
+                    </article>
+                }
+            </div>
+
+            <p class="yq-conflict-note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>سيتم تحديث إجمالي الطلب بعد حفظ قرارك وإعادة التحقق من الكميات المتاحة.</span>
+            </p>
+
+            <p class="yq-conflict-resolution__feedback" data-yq-conflict-feedback role="status" aria-live="polite" hidden></p>
+            <footer class="yq-conflict-resolution__actions">
+                @if (canSave)
+                {
+                    <button type="submit"
+                            class="yq-conflict-resolution__button yq-conflict-resolution__button--save yq-paired-action yq-paired-action--primary"
+                            data-yq-resolution-submit="continue"
+                            disabled>
+                        <span>حفظ القرار ومتابعة الطلب</span>
+                    </button>
+                }
+                <button type="submit"
+                        class="yq-conflict-resolution__button yq-conflict-resolution__button--cancel yq-paired-action yq-paired-action--destructive"
+                        data-yq-resolution-submit="cancel">
+                    <span>إلغاء الطلب بالكامل</span>
+                </button>
+            </footer>
+        </form>
     }
 </section>
-
-@if (conflictHasPaymentReview)
-{
-    <dialog class="yq-conflict-dialog"
-            data-yq-conflict-dialog
-            aria-labelledby="yqConflictDialogTitle"
-            aria-describedby="yqConflictDialogDescription">
-        <div class="yq-conflict-dialog__panel" dir="rtl">
-            <header class="yq-conflict-dialog__header">
-                <span class="yq-conflict-dialog__icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></span>
-                <div>
-                    <h2 id="yqConflictDialogTitle">طلبك يحتاج إلى تحديث</h2>
-                    <p id="yqConflictDialogDescription">بعض الكميات المطلوبة لم تعد متوفرة. اختر ما يناسبك لإكمال الطلب.</p>
-                </div>
-                <button type="button" class="yq-conflict-dialog__close" data-yq-conflict-close aria-label="إغلاق">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                </button>
-            </header>
-
-            <form asp-action="ResolveInventoryConflict"
-                  method="post"
-                  class="yq-conflict-resolution"
-                  data-yq-conflict-resolution
-                  data-yq-conflict-whatsapp-url="@whatsAppUrl">
-                <input type="hidden" name="Id" value="@orderId" />
-                <input type="hidden" name="CancelEntireOrder" value="false" data-yq-cancel-entire />
-
-                <div class="yq-conflict-dialog__products">
-                    @foreach (var product in Model.Products)
-                    {
-                        var isConflict = conflictLines.TryGetValue(product.OrderitemId, out var conflictEntry);
-                        <article class="yq-conflict-product @(isConflict ? "yq-conflict-product--affected" : "yq-conflict-product--neutral")">
-                            <div class="yq-conflict-product__heading">
-                                <strong>@product.ProductName</strong>
-                                @if (isConflict)
-                                {
-                                    <span>يحتاج إلى قرار</span>
-                                }
-                                else
-                                {
-                                    <span>متوفر</span>
-                                }
-                            </div>
-                            <dl class="yq-conflict-resolution__quantities">
-                                <div><dt>الكمية المطلوبة</dt><dd>@product.RequestedQuantity</dd></div>
-                                <div><dt>الكمية المتوفرة</dt><dd>@product.AvailableQuantity</dd></div>
-                            </dl>
-
-                            @if (isConflict && conflictEntry != null)
-                            {
-                                var line = conflictEntry.line;
-                                var index = conflictEntry.index;
-                                <fieldset class="yq-conflict-resolution__line" data-yq-conflict-decision>
-                                    <legend class="visually-hidden">قرار المنتج @line.ProductName</legend>
-                                    <input type="hidden" name="Decisions[@index].OrderitemId" value="@line.OrderitemId" />
-                                    @if (line.CanContinue)
-                                    {
-                                        <label>
-                                            <input type="radio" name="Decisions[@index].Decision" value="@InventoryConflictDecisions.Continue" />
-                                            المتابعة بالكمية المتوفرة (@line.AvailableQuantity)
-                                        </label>
-                                    }
-                                    @if (line.CanRemove)
-                                    {
-                                        <label>
-                                            <input type="radio" name="Decisions[@index].Decision" value="@InventoryConflictDecisions.Remove" />
-                                            إزالة المنتج
-                                        </label>
-                                    }
-                                </fieldset>
-                            }
-                        </article>
-                    }
-                </div>
-
-                <p class="yq-conflict-resolution__feedback" data-yq-conflict-feedback role="status" aria-live="polite" hidden></p>
-                <footer class="yq-conflict-resolution__actions">
-                    @if (canSave)
-                    {
-                        <button type="submit" class="yq-conflict-resolution__button yq-conflict-resolution__button--save yq-paired-action yq-paired-action--primary" data-yq-resolution-submit="continue" disabled><span>حفظ القرار</span></button>
-                    }
-                    <button type="submit" class="yq-conflict-resolution__button yq-conflict-resolution__button--cancel yq-paired-action yq-paired-action--destructive" data-yq-resolution-submit="cancel"><span>إلغاء الطلب بالكامل</span></button>
-                </footer>
-            </form>
-        </div>
-    </dialog>
-}
