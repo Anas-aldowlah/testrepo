@@ -934,8 +934,14 @@
     margin-bottom: 1.25rem;
 }
 
-.yq-checkout-summary__toggle {
+.yq-checkout-summary__header-static {
     display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.yq-checkout-summary__toggle {
+    display: none !important;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
@@ -1185,7 +1191,12 @@
         border-bottom: 1px solid var(--yq-border-sub);
     }
 
+    .yq-checkout-summary__header-static {
+        display: none !important;
+    }
+
     .yq-checkout-summary__toggle {
+        display: flex !important;
         cursor: pointer;
         padding: 0.25rem 0;
         border-radius: var(--yq-radius-sm);

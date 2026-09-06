@@ -130,16 +130,6 @@
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@UnitPrice(items[snapshotIndex])" />
         }
 
-        <style nonce="@Context.Items["csp-nonce"]">
-            .yq-readonly {
-                background-color: var(--yq-bg-input);
-                opacity: 0.7;
-                cursor: not-allowed;
-                pointer-events: none;
-                color: var(--yq-text-soft);
-            }
-        </style>
-
         @if (hasModelErrors)
         {
             <div asp-validation-summary="ModelOnly" class="yaqut-alert yaqut-alert--danger yq-reveal" role="alert"></div>
@@ -427,6 +417,16 @@
         <!-- RIGHT: ORDER SUMMARY -->
         <aside class="yq-checkout-summary yq-glass yq-reveal" id="yqCheckoutSummary">
             <div class="yq-checkout-summary__head">
+                <div class="yq-checkout-summary__header-static">
+                    <span class="yq-checkout-summary__head-icon" aria-hidden="true"><i class="bi bi-bag-check"></i></span>
+                    <div class="yq-checkout-summary__head-text">
+                        <div class="yq-checkout-summary__title-wrap">
+                            <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+                            <span class="yq-checkout-summary__count">(@itemsCountText)</span>
+                        </div>
+                        <p class="yq-checkout-summary__subtitle">تأكد من المنتجات قبل إرسال الطلب</p>
+                    </div>
+                </div>
                 <button type="button"
                         class="yq-checkout-summary__toggle"
                         id="yqCheckoutSummaryToggle"
