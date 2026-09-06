@@ -63,6 +63,10 @@ body.has-nav-open .yaqut-header {
     z-index: 1200;
 }
 
+.yaqut-nav__backdrop {
+    display: none;
+}
+
 /* Header is always sticky — visible at all scroll positions */
 
 .yaqut-header__inner {
@@ -1816,7 +1820,29 @@ html[data-theme="dark"] .yq-checkout-auth-modal .btn-close:hover {
         overscroll-behavior: none;
     }
 
+    .yaqut-nav__backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1090;
+        background: color-mix(in srgb, var(--yq-bg-canvas, #000) 48%, transparent);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        cursor: pointer;
+        transition: opacity 220ms ease;
+    }
+
+    .yaqut-header.has-nav-open .yaqut-nav__backdrop,
+    body.has-nav-open .yaqut-nav__backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
     .yaqut-header__inner {
+        position: relative;
+        z-index: 1100;
         gap: 0.72rem;
     }
 
@@ -2468,6 +2494,7 @@ html[data-theme="dark"] .yq-checkout-auth-modal .btn-close:hover {
     .yaqut-footer-links a,
     .yaqut-footer__dev-link,
     .yaqut-search__btn,
+    .yaqut-nav__backdrop,
     .yq-cart-drawer__backdrop,
     .yq-cart-drawer__panel,
     .yq-cart-drawer__progress span,

@@ -141,6 +141,7 @@
     </div>
 
     <div class="yq-shop-layout">
+        <div class="yq-filter-backdrop" id="yqFilterBackdrop" data-yq-filter-close tabindex="-1" aria-hidden="true"></div>
         <aside id="yaqutFilters" class="yq-shop-filters yq-glass" aria-labelledby="yqFilterMainTitle">
             <div class="yq-filter-header">
                 <div class="yq-filter-header__top">
@@ -251,7 +252,7 @@
                                 {
                                     var cat = Model.Categories[i];
                                     var isCatChecked = request.CategoryId == cat.Id;
-                                    <label class="yq-filter-item @(isCatChecked ? "is-selected" : "") @(i >= 6 ? "is-extra-item d-none" : "")">
+                                    <label class="yq-filter-item @(isCatChecked ? "is-selected" : "") @(i >= 6 && !isCatChecked ? "is-extra-item d-none" : "")">
                                         <input type="radio" name="filterCategoryRadio" value="@cat.Id" class="yq-control-input" checked="@isCatChecked" data-yq-category-radio />
                                         <span class="yq-control-box" aria-hidden="true"></span>
                                         <span class="yq-control-label" title="@cat.Name">@cat.Name</span>
@@ -287,7 +288,7 @@
                                 {
                                     var br = Model.Brands[i];
                                     var isBrandChecked = request.Brand.Contains(br, StringComparer.OrdinalIgnoreCase);
-                                    <label class="yq-filter-item @(isBrandChecked ? "is-selected" : "") @(i >= 6 ? "is-extra-item d-none" : "")">
+                                    <label class="yq-filter-item @(isBrandChecked ? "is-selected" : "") @(i >= 6 && !isBrandChecked ? "is-extra-item d-none" : "")">
                                         <input type="checkbox" name="brand" value="@br" class="yq-control-input" checked="@isBrandChecked" />
                                         <span class="yq-control-box" aria-hidden="true"></span>
                                         <span class="yq-control-label" title="@br">@br</span>
@@ -418,7 +419,7 @@
 
             @if (Model.Products.Count > 0)
             {
-                <div id="yaqutProductsGrid" class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 yq-shop-grid">
+                <div id="yaqutProductsGrid" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 yq-shop-grid">
                     @foreach (var item in Model.Products)
                     {
                         <div class="col yq-col-item" data-product-id="@item.Id">

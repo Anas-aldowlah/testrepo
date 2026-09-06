@@ -92,6 +92,7 @@
         var btn = document.querySelector('[data-yq-nav-toggle]');
         var nav = document.getElementById('yaqutNav');
         var header = document.getElementById('yaqutHeader');
+        var backdrop = header ? header.querySelector('[data-yq-nav-close]') : document.querySelector('[data-yq-nav-close]');
         if (!btn || !nav) return;
 
         function closeNav(restoreFocus) {
@@ -113,6 +114,9 @@
             if (cartWasOpen && typeof window.dispatchEvent === 'function') {
                 window.dispatchEvent(new window.CustomEvent('yq:cart-close'));
             }
+            if (typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new window.CustomEvent('yq:filters-close'));
+            }
             syncNavState(nav, btn, true);
             header && header.classList.add('has-nav-open');
             if (!cartWasOpen) {
@@ -126,15 +130,22 @@
             nav.classList.contains('is-open') ? closeNav(false) : openNav();
         });
 
+        if (backdrop) {
+            backdrop.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeNav(false);
+            });
+        }
+
         // Close when a nav link is clicked (normal navigation)
         nav.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', function () { closeNav(false); });
         });
 
-        // Close on outside click
+        // Close on outside click (fallback)
         document.addEventListener('click', function (e) {
             if (!nav.classList.contains('is-open')) return;
-            if (nav.contains(e.target) || btn.contains(e.target)) return;
+            if (nav.contains(e.target) || btn.contains(e.target) || (backdrop && backdrop.contains(e.target))) return;
             closeNav(false);
         });
 
