@@ -539,8 +539,11 @@
             path = '/';
         }
 
-        return path === '/cart' ||
-               path === '/orders/checkout';
+        var normalizedPath = path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/|$)/, '') || '/';
+
+        return normalizedPath === '/cart' ||
+               normalizedPath === '/orders/checkout' ||
+               /^\/orders\/confirmation(?:\/\d+)?$/.test(normalizedPath);
     }
 
     function openDrawer(trigger, origin) {

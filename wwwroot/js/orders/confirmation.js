@@ -59,25 +59,9 @@
         window.YaqutCheckoutDraft.remove(draftId);
     }
 
-    function initArrivalDialog() {
-        var dialog = document.querySelector('[data-yq-confirm-arrival]');
-        if (!dialog || typeof dialog.showModal !== 'function') return;
-
-        var close = function () {
-            if (dialog.open) dialog.close();
-        };
-        var closeButton = dialog.querySelector('[data-yq-confirm-arrival-close]');
-        if (closeButton) closeButton.addEventListener('click', close);
-        dialog.addEventListener('click', function (event) {
-            if (event.target === dialog) close();
-        });
-        window.YaqutDialog.showModal(dialog);
-    }
-
     function init() {
         clearSuccessfulCheckoutDraft();
         initCopyTracking();
-        initArrivalDialog();
     }
 
     if (document.readyState === 'loading') {
