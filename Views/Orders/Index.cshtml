@@ -25,15 +25,6 @@
         _ => "yq-orders-badge--cancelled"
     };
 
-    int StatusProgress(string status) => status switch
-    {
-        "Pending" => 25,
-        "Paid" => 40,
-        "Processed" => 60,
-        "Shipped" => 80,
-        "Delivered" => 100,
-        _ => 0
-    };
 
     var statusFilters = new (string Key, string Label)[]
     {
@@ -46,8 +37,12 @@
         ("Cancelled", "ملغي")
     };
 
+    var currentStatus = statusFilters.FirstOrDefault(f => f.Key == Model.Status);
+    var currentStatusLabel = !string.IsNullOrEmpty(currentStatus.Label) ? currentStatus.Label : "الكل";
+    var currentStatusCount = Model.Status == "all" ? Model.AllCount : Model.StatusCounts.GetValueOrDefault(Model.Status);
+
     string OrdersUrl(string status, int page = 1, string? search = null) =>
-        Url.Action("Index", "Orders", new { status, search = search ?? Model.Search, page }) ?? "/Orders";
+        Url.Action("Index", "Orders", new { status, search = search ?? Model.Search, page, pageSize = Model.PageSize }) ?? "/Orders";
 }
 
 @section Styles {
@@ -73,6 +68,41 @@
     }
     <partial name="_PageHeader" model="ordersHeaderVM" />
 
+    @if (Model.ReviewRequiredCount > 0)
+    {
+        <section class="yq-orders-conflict-banner yq-glass yq-reveal" role="alert" aria-live="polite">
+            <div class="yq-orders-conflict-banner__content">
+                <span class="yq-orders-conflict-banner__icon" aria-hidden="true">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </span>
+                <div class="yq-orders-conflict-banner__text">
+                    <strong class="yq-orders-conflict-banner__title">طلبات تحتاج قرارك</strong>
+                    @if (Model.ReviewRequiredCount == 1)
+                    {
+                        <p class="yq-orders-conflict-banner__desc">لديك طلب يحتاج إلى مراجعتك بسبب تغير توفر بعض المنتجات.</p>
+                    }
+                    else
+                    {
+                        <p class="yq-orders-conflict-banner__desc">لديك @Model.ReviewRequiredCount طلبات تحتاج إلى مراجعتك بسبب تغير توفر بعض المنتجات.</p>
+                    }
+                </div>
+            </div>
+            @if (Model.ReviewRequiredCount == 1 && Model.FirstReviewRequiredOrderId.HasValue)
+            {
+                <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.FirstReviewRequiredOrderId.Value"
+                   class="btn-yaqut-warning yq-orders-conflict-banner__cta">
+                    <i class="bi bi-arrow-left-circle" aria-hidden="true"></i> مراجعة الطلب
+                </a>
+            }
+            else
+            {
+                <span class="yq-orders-conflict-banner__hint">
+                    يرجى مراجعة كل طلب مميز أدناه لاتخاذ قرارك.
+                </span>
+            }
+        </section>
+    }
+
     @if (Model.AllCount == 0)
     {
         <!-- EMPTY STATE -->
@@ -87,33 +117,57 @@
     }
     else
     {
-        <!-- TOOLBAR: FILTERS + SEARCH -->
+        <!-- TOOLBAR: STATUS DROPDOWN + SEARCH -->
         <div class="yq-orders-toolbar yq-reveal">
-            <div class="yq-orders-filters" role="tablist" aria-label="تصفية حسب الحالة">
-                @foreach (var (key, label) in statusFilters)
-                {
-                    var count = key == "all" ? Model.AllCount : Model.StatusCounts.GetValueOrDefault(key);
-                    <a href="@OrdersUrl(key)"
-                            class="yq-orders-filter @(key == Model.Status ? "is-active" : "")"
-                            data-yq-order-filter="@key"
-                            role="tab"
-                            aria-selected="@(key == Model.Status ? "true" : "false")">
-                        @label
-                        @if (count > 0)
+            <div class="dropdown yq-orders-filter-dropdown">
+                <button class="btn yq-orders-filter-btn dropdown-toggle" type="button"
+                        id="yqOrdersFilterDropdown"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        aria-label="تصفية الطلبات حسب الحالة. الحالة الحالية: @currentStatusLabel">
+                    <span class="yq-orders-filter-btn__content">
+                        <span class="yq-orders-filter-btn__label">الحالة:</span>
+                        <strong class="yq-orders-filter-btn__current">@currentStatusLabel</strong>
+                        @if (currentStatusCount > 0)
                         {
-                            <span class="yq-orders-filter__count">@count</span>
+                            <span class="yq-orders-filter__count">@currentStatusCount</span>
                         }
-                    </a>
-                }
+                    </span>
+                    <i class="bi bi-chevron-down yq-orders-filter-btn__chevron" aria-hidden="true"></i>
+                </button>
+                <ul class="dropdown-menu yq-orders-filter-menu" aria-labelledby="yqOrdersFilterDropdown">
+                    @foreach (var (key, label) in statusFilters)
+                    {
+                        var count = key == "all" ? Model.AllCount : Model.StatusCounts.GetValueOrDefault(key);
+                        var isSelected = key == Model.Status;
+                        <li>
+                            <a href="@OrdersUrl(key)"
+                               class="dropdown-item yq-orders-filter-menu__item @(isSelected ? "is-selected active" : "")"
+                               data-yq-order-filter="@key"
+                               aria-current="@(isSelected ? "true" : null)">
+                                <span class="yq-orders-filter-menu__item-label">@label</span>
+                                @if (count > 0)
+                                {
+                                    <span class="yq-orders-filter__count">@count</span>
+                                }
+                                @if (isSelected)
+                                {
+                                    <i class="bi bi-check2 yq-orders-filter-menu__check" aria-hidden="true"></i>
+                                }
+                            </a>
+                        </li>
+                    }
+                </ul>
             </div>
 
             <form class="yq-orders-search" method="get" action="@Url.Action("Index", "Orders")" data-yq-orders-search>
                 <button type="submit" class="yq-orders-search__submit" aria-label="تطبيق البحث"><i class="bi bi-search" aria-hidden="true"></i></button>
                 <input type="hidden" name="status" value="@Model.Status" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="search" id="yqOrdersSearchInput" class="yq-orders-search__input"
                        name="search" value="@Model.Search"
-                       placeholder="ابحث برقم التتبع أو اسم المنتج..." autocomplete="off"
-                       aria-label="بحث في الطلبات" />
+                       placeholder="ابحث في طلباتك..." autocomplete="off"
+                       aria-label="البحث برقم الطلب أو رقم التتبع أو اسم المنتج" />
             </form>
         </div>
 
@@ -126,17 +180,41 @@
                 var items = order.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
                 var itemCount = items.Sum(i => i.Quantity);
                 var isCancelled = order.Status is "Cancelled" or "Refunded";
-                var searchBlob = ($"{order.Trackingnumber} " + string.Join(" ", items.Select(i => i.Product?.Name))).ToLower();
+                var isConflict = order.Workflowstate == YAGOT_2._0.Services.OrderWorkflowStates.ConflictAwaitingDecision;
                 var thumbs = items.Take(4).ToList();
                 var extraCount = items.Count - thumbs.Count;
+                var firstItem = items.FirstOrDefault();
+                var hasFulfilledAdjustment = !isCancelled && order.Finalfulfilledamount.HasValue && order.Finalfulfilledamount.Value != order.Totalamount;
 
                 <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id"
-                   class="yq-order-card yq-glass yq-reveal @(order.Workflowstate == YAGOT_2._0.Services.OrderWorkflowStates.ConflictAwaitingDecision ? "yq-order-card--attention" : "")"
+                   class="yq-order-card yq-glass yq-reveal @(isConflict ? "yq-order-card--attention" : "")"
                    data-yq-order-card
-                   data-status="@order.Status"
-                   data-search="@searchBlob">
+                   aria-label="طلب رقم @order.Id - @StatusLabel(order.Status)">
 
-                    <div class="yq-order-card__top">
+                    <div class="yq-order-card__header">
+                        <h3 class="yq-order-card__id"><bdi>طلب #@order.Id</bdi></h3>
+                        <div class="yq-order-card__badges">
+                            <span class="yq-orders-badge @StatusBadgeClass(order.Status)">
+                                @StatusLabel(order.Status)
+                            </span>
+                            @if (isConflict)
+                            {
+                                <span class="yq-order-card__conflict-tag">
+                                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> بانتظار قرارك
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (isConflict)
+                    {
+                        <div class="yq-order-card__conflict-alert" role="note">
+                            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                            <span>بعض المنتجات تحتاج مراجعتك بسبب تغير الكمية المتوفرة.</span>
+                        </div>
+                    }
+
+                    <div class="yq-order-card__preview">
                         <div class="yq-order-card__thumbs">
                             @if (thumbs.Any())
                             {
@@ -144,7 +222,7 @@
                                 {
                                     <span class="yq-order-card__thumb">
                                         <img src="@(item.Product?.Imageurl ?? "/images/placeholder-product.svg")"
-                                             alt="@item.Product?.Name"
+                                             alt="@(item.Product?.Name ?? "منتج")"
                                              data-yaqut-fallback="/images/placeholder-product.svg"
                                              loading="lazy" />
                                     </span>
@@ -157,37 +235,35 @@
                             else
                             {
                                 <span class="yq-order-card__thumb yq-order-card__thumb--empty">
-                                    <i class="bi bi-bag"></i>
+                                    <i class="bi bi-bag" aria-hidden="true"></i>
                                 </span>
                             }
                         </div>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="yq-orders-badge @StatusBadgeClass(order.Status)">
-                                @StatusLabel(order.Status)
-                            </span>
-                            @if (order.Workflowstate == YAGOT_2._0.Services.OrderWorkflowStates.ConflictAwaitingDecision)
+                        <div class="yq-order-card__preview-text">
+                            <strong class="yq-order-card__product-name">@(firstItem?.Product?.Name ?? "منتجات ياقوت")</strong>
+                            @if (items.Count > 1)
                             {
-                                <span class="yaqut-badge yaqut-badge--danger" title="الطلب متوقف بانتظار قرارك بشأن الكميات غير المتوفرة">
-                                    يحتاج مراجعتك <i class="bi bi-exclamation-triangle-fill"></i>
-                                </span>
+                                <span class="yq-order-card__items-extra">+@(items.Count - 1) @(items.Count - 1 == 1 ? "منتج آخر" : "منتجات أخرى")</span>
                             }
                         </div>
                     </div>
 
                     <div class="yq-order-card__body">
                         <div class="yq-order-card__row">
-                            <span class="yq-order-card__label">رقم التتبع</span>
-                            <span class="yq-order-card__tracking">@order.Trackingnumber</span>
-                        </div>
-                        <div class="yq-order-card__row">
                             <span class="yq-order-card__label">التاريخ</span>
-                            <span>@(order.Orderdate.HasValue? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</span>
+                            <span class="yq-order-card__value"><bdi>@(order.Orderdate.HasValue? order.Orderdate.Value.ToString("dd/MM/yyyy") : "-")</bdi></span>
                         </div>
                         <div class="yq-order-card__row">
                             <span class="yq-order-card__label">عدد القطع</span>
-                            <span>@itemCount @(itemCount == 1 ? "قطعة" : "قطع")</span>
+                            <span class="yq-order-card__value">@itemCount @(itemCount == 1 ? "قطعة" : "قطع")</span>
                         </div>
+                        @if (!string.IsNullOrWhiteSpace(order.Trackingnumber))
+                        {
+                            <div class="yq-order-card__row">
+                                <span class="yq-order-card__label">رقم التتبع</span>
+                                <span class="yq-order-card__tracking"><bdi>@order.Trackingnumber</bdi></span>
+                            </div>
+                        }
                         @if (!string.IsNullOrWhiteSpace(order.AdminNote))
                         {
                             <div class="yq-order-card__row yq-order-card__row--admin-note">
@@ -197,22 +273,27 @@
                         }
                     </div>
 
-                    @if (!isCancelled)
-                    {
-                        <div class="yq-order-card__progress" aria-hidden="true">
-                            <style nonce="@Context.Items["csp-nonce"]">.yq-progress-@order.Id { width: @(StatusProgress(order.Status))%; }</style>
-                            <div class="yq-order-card__progress-bar yq-progress-@order.Id"></div>
-                        </div>
-                    }
-
                     <div class="yq-order-card__footer">
-                        <div>
+                        <div class="yq-order-card__total-block">
                             <span class="yq-order-card__label">الإجمالي</span>
-                            <strong class="yq-order-card__total">@(order.Totalamount.ToYaqutPrice())</strong>
+                            <strong class="yq-order-card__total"><bdi>@(order.Totalamount.ToYaqutPrice())</bdi></strong>
+                            @if (hasFulfilledAdjustment)
+                            {
+                                <span class="yq-order-card__fulfilled-note">المعتمد للتنفيذ: <bdi>@(order.Finalfulfilledamount.ToYaqutPrice())</bdi></span>
+                            }
                         </div>
-                        <span class="yq-order-card__link">
-                            عرض التفاصيل <i class="bi bi-arrow-left"></i>
-                        </span>
+                        @if (isConflict)
+                        {
+                            <span class="yq-order-card__cta yq-order-card__cta--conflict">
+                                مراجعة الطلب <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="yq-order-card__cta yq-order-card__cta--normal">
+                                عرض التفاصيل <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                            </span>
+                        }
                     </div>
                 </a>
             }

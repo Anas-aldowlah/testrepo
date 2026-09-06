@@ -49,7 +49,11 @@ public class OrdersController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string status = "all", string? search = null, int page = 1)
+    public async Task<IActionResult> Index(
+        string status = "all",
+        string? search = null,
+        int page = 1,
+        int? pageSize = null)
     {
         var userId = await ResolveUserIdAsync();
         var model = await _orderService.GetUserOrdersPageAsync(
@@ -57,6 +61,7 @@ public class OrdersController : Controller
             status,
             search,
             page,
+            pageSize,
             HttpContext.RequestAborted);
         return View(model);
     }
