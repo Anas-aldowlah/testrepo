@@ -25,42 +25,115 @@
     function initCopyTracking() {
         var btn = document.getElementById('yqCopyTrackingBtn');
         var value = document.getElementById('yqTrackingNumber');
+        var status = document.getElementById('yqTrackingCopyStatus');
         if (!btn || !value) return;
+
+        var copyAttempt = 0;
+        var visualTimer = null;
+        var statusTimer = null;
+        var announcementFrame = null;
+
+        function announce(message, attemptId) {
+            if (!status) return;
+
+            if (statusTimer) {
+                clearTimeout(statusTimer);
+                statusTimer = null;
+            }
+            if (announcementFrame) {
+                if (typeof window.cancelAnimationFrame === 'function') {
+                    window.cancelAnimationFrame(announcementFrame);
+                } else {
+                    clearTimeout(announcementFrame);
+                }
+                announcementFrame = null;
+            }
+
+            status.textContent = '';
+
+            var schedule = typeof window.requestAnimationFrame === 'function'
+                ? window.requestAnimationFrame
+                : function (cb) { return setTimeout(cb, 16); };
+
+            announcementFrame = schedule(function () {
+                if (attemptId !== copyAttempt) {
+                    announcementFrame = null;
+                    return;
+                }
+
+                status.textContent = message;
+                announcementFrame = null;
+                statusTimer = setTimeout(function () {
+                    if (attemptId !== copyAttempt) {
+                        statusTimer = null;
+                        return;
+                    }
+                    status.textContent = '';
+                    statusTimer = null;
+                }, 1800);
+            });
+        }
 
         btn.addEventListener('click', function () {
             var text = value.textContent.trim();
             if (!text) return;
 
+            var attemptId = ++copyAttempt;
             var icon = btn.querySelector('i');
 
             function showCopied() {
+                if (attemptId !== copyAttempt) return;
+
+                if (visualTimer) {
+                    clearTimeout(visualTimer);
+                    visualTimer = null;
+                }
                 btn.classList.add('is-copied');
                 if (icon) icon.className = 'bi bi-check-lg';
-                setTimeout(function () {
+                visualTimer = setTimeout(function () {
                     btn.classList.remove('is-copied');
                     if (icon) icon.className = 'bi bi-clipboard';
+                    visualTimer = null;
                 }, 1800);
+
+                announce('تم نسخ رقم التتبع.', attemptId);
+            }
+
+            function showFailed() {
+                if (attemptId !== copyAttempt) return;
+
+                if (visualTimer) {
+                    clearTimeout(visualTimer);
+                    visualTimer = null;
+                }
+                btn.classList.remove('is-copied');
+                if (icon) icon.className = 'bi bi-clipboard';
+
+                announce('تعذر نسخ رقم التتبع.', attemptId);
             }
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 Promise.resolve().then(function () {
                     return navigator.clipboard.writeText(text);
-                }).then(showCopied).catch(function () {
-                    if (copyWithSelection(text)) showCopied();
+                }).then(function () {
+                    showCopied();
+                }).catch(function () {
+                    if (attemptId !== copyAttempt) return;
+                    if (copyWithSelection(text)) {
+                        showCopied();
+                    } else {
+                        showFailed();
+                    }
                 });
-            } else if (copyWithSelection(text)) showCopied();
+            } else if (copyWithSelection(text)) {
+                showCopied();
+            } else {
+                showFailed();
+            }
         });
     }
 
-    function clearSuccessfulCheckoutDraft() {
-        var page = document.querySelector('[data-yq-confirmation-page]');
-        var draftId = page && page.getAttribute('data-yq-clear-checkout-draft-id');
-        if (!draftId || !window.YaqutCheckoutDraft) return;
-        window.YaqutCheckoutDraft.remove(draftId);
-    }
-
     function init() {
-        clearSuccessfulCheckoutDraft();
         initCopyTracking();
     }
 
