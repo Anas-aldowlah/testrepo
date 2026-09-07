@@ -122,6 +122,26 @@ public sealed class SiteStateContractTests
             index.GetDatabaseName() == "ix_site_state_event_receipts_site_revision" &&
             index.Properties.Select(property => property.Name)
                 .SequenceEqual(new[] { nameof(SiteStateEventReceipt.SiteId), nameof(SiteStateEventReceipt.Revision) }));
+
+        var checkpoint = context.Model.FindEntityType(
+            typeof(SiteStateSyncCheckpoint))!;
+        Assert.Equal("site_state_sync_checkpoints", checkpoint.GetTableName());
+        Assert.Equal(
+            "timestamp with time zone",
+            checkpoint.FindProperty(
+                nameof(SiteStateSyncCheckpoint.LastAttemptAtUtc))!.GetColumnType());
+        Assert.Equal(
+            "timestamp with time zone",
+            checkpoint.FindProperty(
+                nameof(SiteStateSyncCheckpoint.LastSuccessAtUtc))!.GetColumnType());
+        Assert.Equal(
+            "bigint",
+            checkpoint.FindProperty(
+                nameof(SiteStateSyncCheckpoint.LastObservedRemoteRevision))!.GetColumnType());
+        Assert.Equal(
+            64,
+            checkpoint.FindProperty(
+                nameof(SiteStateSyncCheckpoint.LastFailureCode))!.GetMaxLength());
     }
 
     internal static SiteStateSnapshotV1 ValidSnapshot(

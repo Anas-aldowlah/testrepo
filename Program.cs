@@ -296,6 +296,7 @@ builder.Services.AddScoped<Image>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ISiteStateApplyService, SiteStateApplyService>();
 builder.Services.AddScoped<ILocalSiteStateReader, LocalSiteStateReader>();
+builder.Services.AddSiteStateReconciliation(builder.Configuration);
 builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);

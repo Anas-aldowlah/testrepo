@@ -60,6 +60,8 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
     public virtual DbSet<SiteStateEventReceipt> SiteStateEventReceipts { get; set; }
 
+    public virtual DbSet<SiteStateSyncCheckpoint> SiteStateSyncCheckpoints { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -926,6 +928,44 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.RecordedAtUtc)
                 .HasColumnType("timestamp with time zone")
                 .HasColumnName("recordedatutc");
+        });
+
+        modelBuilder.Entity<SiteStateSyncCheckpoint>(entity =>
+        {
+            entity.HasKey(e => e.SiteId).HasName("site_state_sync_checkpoints_pkey");
+
+            entity.ToTable("site_state_sync_checkpoints", table =>
+            {
+                table.HasCheckConstraint(
+                    "ck_site_state_sync_checkpoints_site_id",
+                    "siteid = 1");
+                table.HasCheckConstraint(
+                    "ck_site_state_sync_checkpoints_remote_revision",
+                    "lastobservedremoterevision IS NULL OR lastobservedremoterevision >= 1");
+                table.HasCheckConstraint(
+                    "ck_site_state_sync_checkpoints_failures",
+                    "consecutivefailures >= 0");
+            });
+
+            entity.Property(e => e.SiteId)
+                .ValueGeneratedNever()
+                .HasColumnName("siteid");
+            entity.Property(e => e.LastAttemptAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("lastattemptatutc");
+            entity.Property(e => e.LastSuccessAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("lastsuccessatutc");
+            entity.Property(e => e.LastObservedRemoteRevision)
+                .HasColumnName("lastobservedremoterevision");
+            entity.Property(e => e.ConsecutiveFailures)
+                .HasColumnName("consecutivefailures");
+            entity.Property(e => e.LastFailureCode)
+                .HasMaxLength(64)
+                .HasColumnName("lastfailurecode");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("updatedatutc");
         });
 
         OnModelCreatingPartial(modelBuilder);

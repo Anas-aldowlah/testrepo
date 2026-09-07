@@ -223,6 +223,52 @@ public sealed class SiteStateApplyServiceTests
     }
 
     [Fact]
+    public async Task ConcurrentWebhookAndReconciliation_SerializeThroughSoleApplyService()
+    {
+        await using var database = await PostgreSqlTestDatabase.CreateAsync();
+        var delivery = Delivery(18);
+        var advisoryLocks = new CountAdvisoryLocksInterceptor();
+        var release = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var webhook = WithServiceAsync(database, async service =>
+        {
+            await release.Task;
+            return await service.ApplyAsync(
+                SiteStateContractTests.ValidSnapshot(
+                    revision: 8,
+                    siteName: "Webhook lower"),
+                delivery);
+        }, advisoryLocks);
+        var reconciliation = WithServiceAsync(database, async service =>
+        {
+            await release.Task;
+            return await service.ApplyAsync(
+                SiteStateContractTests.ValidSnapshot(
+                    revision: 9,
+                    siteName: "Reconciliation higher"),
+                delivery: null);
+        }, advisoryLocks);
+
+        release.TrySetResult();
+        var results = await Task.WhenAll(webhook, reconciliation);
+
+        Assert.Contains(
+            results[0].Outcome,
+            new[] { SiteStateApplyOutcome.Applied, SiteStateApplyOutcome.Stale });
+        Assert.Equal(SiteStateApplyOutcome.Applied, results[1].Outcome);
+        await using var verification = database.CreateContext();
+        var stored = await verification.LocalSiteStateSnapshots.SingleAsync();
+        Assert.Equal(9, stored.Revision);
+        Assert.Equal("Reconciliation higher", stored.SiteName);
+        var receipt = await verification.SiteStateEventReceipts.SingleAsync();
+        Assert.Equal(delivery.DeliveryId, receipt.DeliveryId);
+        Assert.Equal(8, receipt.Revision);
+        Assert.Contains(receipt.Decision, new[] { "Applied", "Stale" });
+        Assert.Equal(2, advisoryLocks.Count);
+    }
+
+    [Fact]
     public async Task TransientFailureBeforeDurableWrite_RetriesWithOneSnapshotAndReceipt()
     {
         await using var database = await PostgreSqlTestDatabase.CreateAsync();
@@ -432,6 +478,50 @@ public sealed class SiteStateApplyServiceTests
             if (Interlocked.Increment(ref _advisoryLockAttempts) == 1)
             {
                 throw TransientFailure();
+            }
+        }
+    }
+
+    private sealed class CountAdvisoryLocksInterceptor : DbCommandInterceptor
+    {
+        private int _count;
+        public int Count => Volatile.Read(ref _count);
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            CountIfAdvisoryLock(command);
+            return base.NonQueryExecutingAsync(
+                command,
+                eventData,
+                result,
+                cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            CountIfAdvisoryLock(command);
+            return base.ReaderExecutingAsync(
+                command,
+                eventData,
+                result,
+                cancellationToken);
+        }
+
+        private void CountIfAdvisoryLock(DbCommand command)
+        {
+            if (command.CommandText.Contains(
+                    "pg_advisory_xact_lock",
+                    StringComparison.Ordinal))
+            {
+                Interlocked.Increment(ref _count);
             }
         }
     }

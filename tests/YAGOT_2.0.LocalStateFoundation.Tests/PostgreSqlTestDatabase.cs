@@ -11,6 +11,8 @@ internal sealed class PostgreSqlTestDatabase : IAsyncDisposable
 {
     public const string ConnectionVariable = "YAGOT01_TEST_DB";
     private const string FoundationMigrationSuffix = "_YAGOT01LocalStateFoundation";
+    private const string ReconciliationMigrationSuffix =
+        "_YAGOT03SiteStateSyncCheckpoint";
 
     private readonly string _adminConnectionString;
     private readonly string _schemaName;
@@ -225,6 +227,20 @@ internal sealed class PostgreSqlTestDatabase : IAsyncDisposable
 
             CREATE INDEX ix_site_state_event_receipts_site_revision
                 ON site_state_event_receipts (siteid, revision);
+
+            CREATE TABLE site_state_sync_checkpoints (
+                siteid integer NOT NULL,
+                lastattemptatutc timestamp with time zone NOT NULL,
+                lastsuccessatutc timestamp with time zone NULL,
+                lastobservedremoterevision bigint NULL,
+                consecutivefailures integer NOT NULL,
+                lastfailurecode character varying(64) NULL,
+                updatedatutc timestamp with time zone NOT NULL,
+                CONSTRAINT site_state_sync_checkpoints_pkey PRIMARY KEY (siteid),
+                CONSTRAINT ck_site_state_sync_checkpoints_failures CHECK (consecutivefailures >= 0),
+                CONSTRAINT ck_site_state_sync_checkpoints_remote_revision CHECK (lastobservedremoterevision IS NULL OR lastobservedremoterevision >= 1),
+                CONSTRAINT ck_site_state_sync_checkpoints_site_id CHECK (siteid = 1)
+            );
             """;
         await command.ExecuteNonQueryAsync();
     }
@@ -236,10 +252,18 @@ internal sealed class PostgreSqlTestDatabase : IAsyncDisposable
             migration => migration.EndsWith(
                 FoundationMigrationSuffix,
                 StringComparison.Ordinal));
-        if (foundationMigration is null || foundationMigration != migrations[^1])
+        var reconciliationMigration = migrations.SingleOrDefault(
+            migration => migration.EndsWith(
+                ReconciliationMigrationSuffix,
+                StringComparison.Ordinal));
+        if (foundationMigration is null ||
+            reconciliationMigration is null ||
+            reconciliationMigration != migrations[^1] ||
+            Array.IndexOf(migrations, foundationMigration) >=
+            Array.IndexOf(migrations, reconciliationMigration))
         {
             throw new InvalidOperationException(
-                "The YAGOT-01 migration must exist and be the latest migration.");
+                "The YAGOT-01 migration must precede the latest YAGOT-03 migration.");
         }
 
         await using var connection = new NpgsqlConnection(ConnectionString);
@@ -259,7 +283,11 @@ internal sealed class PostgreSqlTestDatabase : IAsyncDisposable
             await createHistory.ExecuteNonQueryAsync();
         }
 
-        foreach (var migration in migrations.Take(migrations.Length - 1))
+        foreach (var migration in migrations.TakeWhile(migration =>
+                     !string.Equals(
+                         migration,
+                         foundationMigration,
+                         StringComparison.Ordinal)))
         {
             await using var insertHistory = connection.CreateCommand();
             insertHistory.Transaction = transaction;

@@ -7,7 +7,7 @@ namespace YAGOT_2._0.LocalStateFoundation.Tests;
 public sealed class SiteStateMigrationTests
 {
     [Fact]
-    public async Task Migration_AppliesExactFoundationWithoutSeedOrPublicChanges()
+    public async Task Migrations_ApplyFoundationAndCheckpointWithoutSeedOrPublicChanges()
     {
         var connectionString = Environment.GetEnvironmentVariable(
             PostgreSqlTestDatabase.ConnectionVariable);
@@ -25,11 +25,13 @@ public sealed class SiteStateMigrationTests
             var tables = await database.ReadTableNamesAsync();
             Assert.Contains("local_site_state_snapshots", tables);
             Assert.Contains("site_state_event_receipts", tables);
+            Assert.Contains("site_state_sync_checkpoints", tables);
             Assert.Contains("__EFMigrationsHistory", tables);
 
             await using var context = database.CreateContext();
             Assert.Empty(await context.LocalSiteStateSnapshots.ToListAsync());
             Assert.Empty(await context.SiteStateEventReceipts.ToListAsync());
+            Assert.Empty(await context.SiteStateSyncCheckpoints.ToListAsync());
 
             await AssertExactColumnsAsync(database.ConnectionString, database.SchemaName);
             await AssertExactConstraintsAndIndexAsync(
@@ -54,7 +56,10 @@ public sealed class SiteStateMigrationTests
                    COALESCE(character_maximum_length, -1), is_nullable, column_default
             FROM information_schema.columns
             WHERE table_schema = @schema
-              AND table_name IN ('local_site_state_snapshots', 'site_state_event_receipts')
+              AND table_name IN (
+                  'local_site_state_snapshots',
+                  'site_state_event_receipts',
+                  'site_state_sync_checkpoints')
             ORDER BY table_name, ordinal_position;
             """;
         command.Parameters.AddWithValue("schema", schemaName);
@@ -88,7 +93,14 @@ public sealed class SiteStateMigrationTests
             "site_state_event_receipts|revision|bigint|-1|NO|NULL",
             "site_state_event_receipts|payloadsha256|bytea|-1|NO|NULL",
             "site_state_event_receipts|decision|character varying|20|NO|NULL",
-            "site_state_event_receipts|recordedatutc|timestamp with time zone|-1|NO|NULL"
+            "site_state_event_receipts|recordedatutc|timestamp with time zone|-1|NO|NULL",
+            "site_state_sync_checkpoints|siteid|integer|-1|NO|NULL",
+            "site_state_sync_checkpoints|lastattemptatutc|timestamp with time zone|-1|NO|NULL",
+            "site_state_sync_checkpoints|lastsuccessatutc|timestamp with time zone|-1|YES|NULL",
+            "site_state_sync_checkpoints|lastobservedremoterevision|bigint|-1|YES|NULL",
+            "site_state_sync_checkpoints|consecutivefailures|integer|-1|NO|NULL",
+            "site_state_sync_checkpoints|lastfailurecode|character varying|64|YES|NULL",
+            "site_state_sync_checkpoints|updatedatutc|timestamp with time zone|-1|NO|NULL"
         ], columns);
     }
 
@@ -108,7 +120,8 @@ public sealed class SiteStateMigrationTests
               AND c.contype IN ('p', 'c')
               AND conrelid IN (
                   (@schema || '.local_site_state_snapshots')::regclass,
-                  (@schema || '.site_state_event_receipts')::regclass)
+                  (@schema || '.site_state_event_receipts')::regclass,
+                  (@schema || '.site_state_sync_checkpoints')::regclass)
             ORDER BY conname;
             """;
         constraintCommand.Parameters.AddWithValue("schema", schemaName);
@@ -130,8 +143,12 @@ public sealed class SiteStateMigrationTests
             "ck_site_state_event_receipts_hash_length",
             "ck_site_state_event_receipts_revision",
             "ck_site_state_event_receipts_site_id",
+            "ck_site_state_sync_checkpoints_failures",
+            "ck_site_state_sync_checkpoints_remote_revision",
+            "ck_site_state_sync_checkpoints_site_id",
             "local_site_state_snapshots_pkey",
-            "site_state_event_receipts_pkey"
+            "site_state_event_receipts_pkey",
+            "site_state_sync_checkpoints_pkey"
         ], constraints);
 
         await constraintReader.DisposeAsync();
