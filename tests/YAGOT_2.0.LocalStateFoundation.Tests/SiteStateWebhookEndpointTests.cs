@@ -474,6 +474,7 @@ internal sealed class WebhookTestHost : IAsyncDisposable
     }
 
     public HttpClient Client { get; }
+    public IServiceProvider Services => _application.Services;
     public int LegacyStatusCallCount => _legacyStatus.CallCount;
 
     public static async Task<WebhookTestHost> CreateAsync(
@@ -497,7 +498,7 @@ internal sealed class WebhookTestHost : IAsyncDisposable
                         5,
                         TimeSpan.FromMilliseconds(200),
                         null)));
-            services.AddScoped<ISiteStateApplyService, SiteStateApplyService>();
+            services.AddLocalSiteRuntimeState();
         });
 
     private static async Task<WebhookTestHost> CreateCoreAsync(

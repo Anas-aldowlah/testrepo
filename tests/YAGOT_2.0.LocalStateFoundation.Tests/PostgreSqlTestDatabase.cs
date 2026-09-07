@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using YAGOT_2._0.Integration.SiteState;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services.Integration;
 
@@ -119,7 +120,7 @@ internal sealed class PostgreSqlTestDatabase : IAsyncDisposable
                 options.AddInterceptors(interceptors);
             }
         });
-        services.AddScoped<ISiteStateApplyService, SiteStateApplyService>();
+        services.AddLocalSiteRuntimeState();
 
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
