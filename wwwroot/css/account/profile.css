@@ -188,6 +188,22 @@
     border-color: var(--yq-border-sub);
 }
 
+.theme-dark .yq-profile .yaqut-form-input[readonly] {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* field hint / helper text */
+.yq-profile #ProfileEmailHelp,
+.yq-profile .yq-field-hint,
+.yq-profile .text-muted {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--yq-text-soft) !important;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
 /* readonly phone field */
 .yaqut-input-wrap--disabled {
     cursor: default;
