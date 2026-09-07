@@ -56,6 +56,10 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
     public virtual DbSet<SalePayment> SalePayments { get; set; }
 
+    public virtual DbSet<LocalSiteStateSnapshot> LocalSiteStateSnapshots { get; set; }
+
+    public virtual DbSet<SiteStateEventReceipt> SiteStateEventReceipts { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -843,6 +847,85 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasForeignKey(d => d.PaymentMethodId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_sale_payments_payment_method");
+        });
+
+        modelBuilder.Entity<LocalSiteStateSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.SiteId).HasName("local_site_state_snapshots_pkey");
+
+            entity.ToTable("local_site_state_snapshots", table =>
+            {
+                table.HasCheckConstraint("ck_local_site_state_site_id", "siteid = 1");
+                table.HasCheckConstraint("ck_local_site_state_contract_version", "contractversion = 1");
+                table.HasCheckConstraint(
+                    "ck_local_site_state_mode",
+                    "mode IN ('Online', 'Development', 'Offline')");
+                table.HasCheckConstraint("ck_local_site_state_revision", "revision >= 1");
+                table.HasCheckConstraint(
+                    "ck_local_site_state_duration",
+                    "originaldurationdays > 0");
+            });
+
+            entity.Property(e => e.SiteId)
+                .ValueGeneratedNever()
+                .HasColumnName("siteid");
+            entity.Property(e => e.ContractVersion).HasColumnName("contractversion");
+            entity.Property(e => e.Mode)
+                .HasMaxLength(20)
+                .HasColumnName("mode");
+            entity.Property(e => e.Revision).HasColumnName("revision");
+            entity.Property(e => e.EffectiveAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("effectiveatutc");
+            entity.Property(e => e.ExpiresAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("expiresatutc");
+            entity.Property(e => e.SiteName)
+                .HasMaxLength(200)
+                .HasColumnName("sitename");
+            entity.Property(e => e.SiteUrl)
+                .HasColumnType("text")
+                .HasColumnName("siteurl");
+            entity.Property(e => e.StartDate)
+                .HasColumnType("date")
+                .HasColumnName("startdate");
+            entity.Property(e => e.OriginalDurationDays)
+                .HasColumnName("originaldurationdays");
+        });
+
+        modelBuilder.Entity<SiteStateEventReceipt>(entity =>
+        {
+            entity.HasKey(e => e.DeliveryId).HasName("site_state_event_receipts_pkey");
+
+            entity.ToTable("site_state_event_receipts", table =>
+            {
+                table.HasCheckConstraint("ck_site_state_event_receipts_site_id", "siteid = 1");
+                table.HasCheckConstraint("ck_site_state_event_receipts_revision", "revision >= 1");
+                table.HasCheckConstraint(
+                    "ck_site_state_event_receipts_hash_length",
+                    "octet_length(payloadsha256) = 32");
+                table.HasCheckConstraint(
+                    "ck_site_state_event_receipts_decision",
+                    "decision IN ('Applied', 'Equal', 'EqualConflict', 'Stale')");
+            });
+
+            entity.HasIndex(e => new { e.SiteId, e.Revision },
+                "ix_site_state_event_receipts_site_revision");
+
+            entity.Property(e => e.DeliveryId)
+                .ValueGeneratedNever()
+                .HasColumnName("deliveryid");
+            entity.Property(e => e.SiteId).HasColumnName("siteid");
+            entity.Property(e => e.Revision).HasColumnName("revision");
+            entity.Property(e => e.PayloadSha256)
+                .HasColumnType("bytea")
+                .HasColumnName("payloadsha256");
+            entity.Property(e => e.Decision)
+                .HasMaxLength(20)
+                .HasColumnName("decision");
+            entity.Property(e => e.RecordedAtUtc)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("recordedatutc");
         });
 
         OnModelCreatingPartial(modelBuilder);

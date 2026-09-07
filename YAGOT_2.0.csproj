@@ -12,6 +12,8 @@
     <Compile Remove="tests\catalog\**\*.cs" />
     <Compile Remove="tests\admin-product-edit\**\*.cs" />
     <Compile Remove="tests\dh03\**\*.cs" />
+    <Compile Remove="tests\YAGOT_2.0.LocalStateFoundation.Tests\**\*.cs" />
+    <Content Remove="tests\YAGOT_2.0.LocalStateFoundation.Tests\**\*" />
   </ItemGroup>
 
   <ItemGroup>

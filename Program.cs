@@ -15,6 +15,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Integration;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -290,6 +291,9 @@ builder.Services.AddScoped<IBestSellerService, BestSellerService>();
 builder.Services.AddHostedService<BestSellerBackgroundService>();
 builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<ISiteStateApplyService, SiteStateApplyService>();
+builder.Services.AddScoped<ILocalSiteStateReader, LocalSiteStateReader>();
 builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);
