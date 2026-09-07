@@ -14,15 +14,18 @@
 
 .yq-cart-item__qty-feedback {
     margin: 0;
+    margin-top: 0.25rem;
     color: var(--yq-danger-text, #8f1710);
     font-size: 11.5px;
     font-weight: 700;
     line-height: 1.45;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .yq-cart-item__qty-feedback[hidden] {
-    display: block;
-    visibility: hidden;
+    display: none !important;
 }
 
 .theme-dark .yq-cart-item__qty-feedback,

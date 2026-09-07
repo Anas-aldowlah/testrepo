@@ -18,7 +18,7 @@
                 <img src="~/images/yaqut-logo.png" alt="" />
             </div>
             <div class="yq-login-visual__content">
-                <span class="yaqut-auth-card__eyebrow">Yaqut Luxury Access</span>
+                <span class="yaqut-auth-card__eyebrow">بوابة ياقوت الفاخرة</span>
                 <h2>عالم أنيق لعطور أكثر تميزاً وخصوصية</h2>
                 <p>تتبع طلباتك، احفظ تفضيلاتك العطرية، واستمتع بتجربة تسوق سريعة ومحمية.</p>
             </div>
@@ -37,7 +37,6 @@
             </div>
 
             <header class="yaqut-auth-heading">
-                <span class="yq-login-kicker">حساب العملاء في LogiCore <img src="~/images/jkjhاطار_-removebg-preview2.svg" class="yq-login-kicker-icon" /></span>
                 <h1 id="authPageTitle" class="yaqut-auth-title">مرحباً بك في ياقوت</h1>
                 <p class="yaqut-auth-subtitle">سجّل الدخول بحسابك أو أنشئ حساباً جديداً بخطوات بسيطة وآمنة.</p>
             </header>
@@ -133,10 +132,11 @@
                         <label class="yaqut-form-label" for="loginPhone">رقم الجوال</label>
                         <div class="yaqut-input-wrap">
                             <i class="bi bi-phone" aria-hidden="true"></i>
-                            <input id="loginPhone" name="Phone" type="tel" class="yaqut-form-input"
+                            <input id="loginPhone" name="Phone" type="tel" class="yaqut-form-input yaqut-form-input--bidi-ltr"
                                    placeholder="ادخل رقم الجوال (9 أرقام)"
+                                   value="@(ViewData.ModelState.TryGetValue("Phone", out var phoneEntry) ? phoneEntry.AttemptedValue : "")"
                                    required
-                                   autocomplete="tel"
+                                   autocomplete="username"
                                    inputmode="numeric"
                                    pattern="[0-9]{9}"
                                    minlength="9"
@@ -293,6 +293,7 @@
                                 <input id="regFullName" type="text" class="yaqut-form-input"
                                        placeholder="اسمك الكامل"
                                        value="@(regState.FullName ?? regState.GoogleName)"
+                                       autocomplete="name"
                                        required minlength="2" />
                             </div>
                             <div class="yq-field-error" id="regFullNameError"></div>
@@ -302,7 +303,7 @@
                             <label class="yaqut-form-label" for="regGoogleEmail">البريد الإلكتروني (مؤكد عبر Google)</label>
                             <div class="yaqut-input-wrap is-readonly">
                                 <i class="bi bi-envelope-check text-success" aria-hidden="true"></i>
-                                <input id="regGoogleEmail" type="email" class="yaqut-form-input"
+                                <input id="regGoogleEmail" type="email" class="yaqut-form-input yaqut-form-input--bidi-ltr"
                                        value="@regState.GoogleEmail" readonly />
                             </div>
                             <p class="yq-field-hint text-success"><i class="bi bi-shield-check"></i> تم جلب البريد وتأكيده تلقائياً من Google.</p>
@@ -312,9 +313,10 @@
                             <label class="yaqut-form-label" for="regPhone">رقم الجوال <span class="yq-required-mark">مطلوب</span></label>
                             <div class="yaqut-input-wrap">
                                 <i class="bi bi-phone" aria-hidden="true"></i>
-                                <input id="regPhone" type="tel" class="yaqut-form-input"
+                                <input id="regPhone" type="tel" class="yaqut-form-input yaqut-form-input--bidi-ltr"
                                        placeholder="5xxxxxxxx (9 أرقام)"
                                        value="@regState.PhoneNumber"
+                                       autocomplete="tel"
                                        required pattern="[0-9]{9}" minlength="9" maxlength="9" inputmode="numeric" />
                             </div>
                             <p class="yq-field-hint">أدخل رقم الجوال المكون من 9 أرقام (بدون مفتاح الدولة أو صفر بالبداية).</p>
@@ -385,8 +387,8 @@
                         <div class="yq-summary-box p-3 rounded-3 mb-4">
                             <h5 class="fw-bold mb-2 fs-6"><i class="bi bi-card-checklist yq-text-gold"></i> ملخص بيانات التسجيل</h5>
                             <div class="small">
-                                <div><strong>البريد الإلكتروني:</strong> <span id="summaryEmail">@regState.GoogleEmail</span></div>
-                                <div><strong>رقم الجوال:</strong> <span id="summaryPhone">@regState.PhoneNumber</span></div>
+                                <div><strong>البريد الإلكتروني:</strong> <span id="summaryEmail" class="yq-val-ltr">@regState.GoogleEmail</span></div>
+                                <div><strong>رقم الجوال:</strong> <span id="summaryPhone" class="yq-val-ltr">@regState.PhoneNumber</span></div>
                             </div>
                         </div>
 
@@ -412,7 +414,7 @@
 
             <p class="yaqut-auth-footnote">
                 <i class="bi bi-shield-lock" aria-hidden="true"></i>
-                جلستك محمية وتخضع لسياسات الأمان والتشفير الخاصة بـ LogiCore.
+                جلستك محمية وتخضع لسياسات الأمان والتشفير الخاصة بـ ياقوت.
             </p>
         </div>
     </article>

@@ -82,7 +82,7 @@ public static class OrderWhatsAppLinkBuilder
 
         return order.Status switch
         {
-            OrderStatuses.Paid => $"مرحباً، تم التحقق من دفع الطلب {reference} وحجز كمياته، وسيبدأ التجهيز.",
+            OrderStatuses.Paid => $"مرحباً، تم التحقق من دفع الطلب {reference} واعتماد منتجاته، وسيبدأ التجهيز.",
             OrderStatuses.Processed => $"مرحباً، طلبك {reference} قيد التجهيز الآن.",
             OrderStatuses.Shipped => $"مرحباً، تم شحن طلبك {reference} وهو في طريقه إليك.",
             OrderStatuses.Delivered => $"مرحباً، تم تسجيل تسليم الطلب {reference}. نشكرك لاختيار ياقوت.",

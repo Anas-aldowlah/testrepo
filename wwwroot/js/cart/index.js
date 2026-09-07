@@ -138,6 +138,7 @@
                 event.preventDefault();
                 document.documentElement.dataset.yqCartBusy = 'true';
                 item.classList.add('is-removing');
+                calculateAndUpdateTotals();
                 
                 var payload = new window.FormData(form);
                 window.fetch(form.action, {
@@ -187,6 +188,7 @@
                     }
                 }).catch(function (error) {
                     item.classList.remove('is-removing');
+                    calculateAndUpdateTotals();
                     var message = error && error.userMessage
                         ? error.userMessage
                         : 'تعذّر حذف المنتج من السلة حالياً. يرجى المحاولة مرة أخرى.';
@@ -316,7 +318,9 @@
         // Update summary
         var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
         if (summaryTotalEl) {
-            summaryTotalEl.textContent = subtotal.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            summaryTotalEl.textContent = window.Yaqut && typeof window.Yaqut.formatPrice === 'function'
+                ? window.Yaqut.formatPrice(subtotal)
+                : subtotal.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ر.س';
         }
         
         updateHeaderBadge();
@@ -330,14 +334,24 @@
         }
 
         var summaryTotalEl = document.querySelector('[data-yq-summary-total]');
-        if (summaryTotalEl && Number.isFinite(Number(state.subtotal))) {
-            summaryTotalEl.textContent = Number(state.subtotal).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        if (summaryTotalEl) {
+            if (typeof state.subtotalText === 'string' && state.subtotalText.trim() !== '') {
+                summaryTotalEl.textContent = state.subtotalText;
+            } else if (Number.isFinite(Number(state.subtotal))) {
+                summaryTotalEl.textContent = window.Yaqut && typeof window.Yaqut.formatPrice === 'function'
+                    ? window.Yaqut.formatPrice(state.subtotal)
+                    : Number(state.subtotal).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ر.س';
+            }
         }
 
         var item = form.closest('[data-yq-cart-item]');
         var lineTotalEl = item ? item.querySelector('.yq-cart-item__line-total') : null;
-        if (lineTotalEl && state.item && Number.isFinite(Number(state.item.lineTotal))) {
-            lineTotalEl.innerHTML = window.Yaqut.formatPrice(state.item.lineTotal);
+        if (lineTotalEl && state.item) {
+            if (typeof state.item.lineTotalText === 'string' && state.item.lineTotalText.trim() !== '') {
+                lineTotalEl.textContent = state.item.lineTotalText;
+            } else if (Number.isFinite(Number(state.item.lineTotal))) {
+                lineTotalEl.innerHTML = window.Yaqut.formatPrice(state.item.lineTotal);
+            }
         }
 
         if (state.warningCode === 'InsufficientStock' && Number.isFinite(Number(state.availableQuantity))) {
@@ -558,6 +572,73 @@
         });
     }
 
+    var summaryObserver = null;
+
+    function cleanupScrollHint() {
+        if (summaryObserver) {
+            summaryObserver.disconnect();
+            summaryObserver = null;
+        }
+    }
+
+    function initScrollHint(root) {
+        cleanupScrollHint();
+
+        var hint = root.querySelector('[data-yq-cart-scroll-hint]');
+        var summary = root.querySelector('.yq-cart-summary');
+        if (!hint || !summary) return;
+
+        hint.removeAttribute('hidden');
+
+        function updateVisibility(entries) {
+            var entry = entries && entries[0];
+            if (!entry) {
+                var rect = summary.getBoundingClientRect();
+                var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                if (rect.top > viewportHeight) {
+                    hint.classList.add('is-active');
+                } else {
+                    hint.classList.remove('is-active');
+                }
+                return;
+            }
+
+            if (entry.isIntersecting) {
+                hint.classList.remove('is-active');
+            } else {
+                var vh = window.innerHeight || document.documentElement.clientHeight;
+                if (entry.boundingClientRect.top > vh) {
+                    hint.classList.add('is-active');
+                } else {
+                    hint.classList.remove('is-active');
+                }
+            }
+        }
+
+        if (typeof window.IntersectionObserver === 'function') {
+            summaryObserver = new window.IntersectionObserver(updateVisibility, {
+                threshold: 0
+            });
+            summaryObserver.observe(summary);
+        } else {
+            updateVisibility();
+        }
+
+        if (!hint.dataset.yqScrollBound) {
+            hint.dataset.yqScrollBound = '1';
+            hint.addEventListener('click', function () {
+                var currentSummary = document.querySelector('.yq-cart-summary');
+                if (!currentSummary) return;
+                var reduceMotion = typeof window.matchMedia === 'function'
+                    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                currentSummary.scrollIntoView({
+                    behavior: reduceMotion ? 'auto' : 'smooth',
+                    block: 'start'
+                });
+            });
+        }
+    }
+
     function initCartPage() {
         var root = document.querySelector('[data-yq-cart-page]');
         if (!root) return;
@@ -565,6 +646,7 @@
         initRemoveTransition(root);
         initQuantityControls(root);
         initCheckoutGuard(root);
+        initScrollHint(root);
         updateHeaderBadge();
         
         // Add staggered animation delay

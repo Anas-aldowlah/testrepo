@@ -49,7 +49,11 @@ public class OrdersController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string status = "all", string? search = null, int page = 1)
+    public async Task<IActionResult> Index(
+        string status = "all",
+        string? search = null,
+        int page = 1,
+        int? pageSize = null)
     {
         var userId = await ResolveUserIdAsync();
         var model = await _orderService.GetUserOrdersPageAsync(
@@ -57,11 +61,11 @@ public class OrdersController : Controller
             status,
             search,
             page,
+            pageSize,
             HttpContext.RequestAborted);
         return View(model);
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> Checkout()
     {
@@ -82,7 +86,6 @@ public class OrdersController : Controller
         return View(await BuildCheckoutViewModelAsync(cart));
     }
 
-    [AllowAnonymous]
     [HttpPost]
     [ActionName("Checkout")]
     [ValidateAntiForgeryToken]
@@ -106,12 +109,7 @@ public class OrdersController : Controller
             return View("Checkout", model);
         }
 
-        if (!TryResolveUserId(out var userId))
-        {
-            ViewData["ShowAuthModal"] = true;
-            await PopulateCheckoutPaymentMethodsAsync(model);
-            return View("Checkout", model);
-        }
+        var userId = await ResolveUserIdAsync();
 
         StagedReceipt? stagedReceipt = null;
         try
@@ -359,34 +357,37 @@ public class OrdersController : Controller
         var continuedCount = decisions.Count(decision =>
             string.Equals(decision.Decision, InventoryConflictDecisions.Continue, StringComparison.Ordinal));
 
+        const string successTitle = "تم تحديث الطلب وتأكيد الدفع بنجاح";
+        const string successMessage = "تم تحديث الطلب وتأكيد الدفع بنجاح.";
+
         if (removedCount > 0 && continuedCount > 0)
         {
             return (
                 "Mixed",
-                "تم تحديث طلبك",
-                "تم حفظ الكميات الجديدة وحذف المنتجات غير المتوفرة، وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         if (removedCount > 1)
         {
             return (
                 "RemovedMultiple",
-                "تم تحديث طلبك",
-                "تم حذف المنتجات غير المتوفرة من الطلب وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         if (removedCount == 1)
         {
             return (
                 "Removed",
-                "تم تحديث طلبك",
-                "تم حذف المنتج غير المتوفر من الطلب وسيتم مراجعة الطلب من الإدارة.");
+                successTitle,
+                successMessage);
         }
 
         return (
             "Continued",
-            "تم تحديث طلبك",
-            "تم حفظ الكمية الجديدة وسيتم مراجعة الطلب من الإدارة.");
+            successTitle,
+            successMessage);
     }
 
     [AllowAnonymous]

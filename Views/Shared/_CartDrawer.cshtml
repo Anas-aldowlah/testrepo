@@ -10,6 +10,7 @@
        data-yq-cart-drawer
        data-yq-commerce-cart
        data-cart-url="@(Url.Action("Index", "Cart") ?? "/Cart")"
+       data-products-url="@(Url.Action("Index", "Products") ?? "/Products")"
        data-free-shipping-threshold="@ShippingPolicy.FreeShippingThreshold"
        role="dialog"
        aria-modal="true"
@@ -45,19 +46,13 @@
         </div>
 
         <footer class="yq-cart-drawer__footer" data-yq-cart-drawer-footer>
-            <div class="yq-cart-drawer__shipping" data-yq-cart-drawer-shipping hidden>
-                <div class="yq-cart-drawer__progress" aria-hidden="true">
-                    <span data-yq-cart-shipping-progress></span>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="yq-cart-drawer__shipping-row" data-yq-cart-drawer-shipping>
                 <span>الشحن</span>
                 @await Html.PartialAsync("_FreeShipping")
             </div>
             <div class="yq-cart-drawer__total">
                 <span>الإجمالي</span>
-                <strong data-yq-cart-drawer-total>Ù Ù«Ù Ù  Ø±.Ø³</strong>
+                <strong data-yq-cart-drawer-total>0.00 ر.س</strong>
             </div>
 
             <div class="yq-cart-drawer__actions">

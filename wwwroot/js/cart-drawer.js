@@ -34,8 +34,6 @@
     var peekOpenedAt = 0;
     var isSettingInitialFocus = false;
     var flightLayer = null;
-    var toastEl = null;
-    var toastAutoHideTimer = null;
     var PEEK_AUTO_CLOSE_DELAY = 4000;
 
     function requestFrame(callback) {
@@ -123,74 +121,6 @@
         flightLayer.setAttribute('aria-hidden', 'true');
         document.body.appendChild(flightLayer);
         return flightLayer;
-    }
-
-    function ensureToastEl() {
-        if (toastEl) return toastEl;
-        toastEl = document.createElement('div');
-        toastEl.className = 'yq-cart-toast';
-        toastEl.setAttribute('role', 'status');
-        toastEl.setAttribute('aria-live', 'polite');
-        document.body.appendChild(toastEl);
-        return toastEl;
-    }
-
-    function hideCartToast() {
-        if (toastAutoHideTimer) {
-            window.clearTimeout(toastAutoHideTimer);
-            toastAutoHideTimer = null;
-        }
-        if (!toastEl) return;
-        toastEl.classList.add('is-hiding');
-        toastEl.classList.remove('is-visible');
-        window.setTimeout(function () {
-            if (toastEl) toastEl.classList.remove('is-hiding');
-        }, 350);
-    }
-
-    function showCartToast(snapshot, totalText) {
-        var el = ensureToastEl();
-        var autoHideDuration = 3500;
-        var imgSrc = escapeAttr(snapshot.imageSrc || '/images/placeholder-product.svg');
-        var name = escapeHtml(snapshot.name || 'منتج');
-        var total = escapeHtml(totalText || '');
-
-        el.innerHTML = [
-            '<img class="yq-cart-toast__img" src="' + imgSrc + '" alt="" data-yaqut-fallback="/images/placeholder-product.svg" decoding="async" />',
-            '<div class="yq-cart-toast__body">',
-            '  <p class="yq-cart-toast__title">',
-            '    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>',
-            '    <span class="yq-cart-toast__name">' + name + '</span>',
-            '  </p>',
-            '  <div class="yq-cart-toast__meta">',
-            '    <span>أُضيف إلى السلة</span>',
-            total ? '    <span class="yq-cart-toast__total">الإجمالي: ' + total + '</span>' : '',
-            '  </div>',
-            '</div>',
-            '<button type="button" class="yq-cart-toast__close" aria-label="إغلاق"><i class="bi bi-x" aria-hidden="true"></i></button>',
-            '<span class="yq-cart-toast__progress"></span>'
-        ].join('');
-        bindImageFallbacks(el);
-        var progressEl = el.querySelector('.yq-cart-toast__progress');
-        if (progressEl) progressEl.style.transitionDuration = autoHideDuration + 'ms';
-
-        // close button
-        var closeBtn = el.querySelector('.yq-cart-toast__close');
-        if (closeBtn) {
-            closeBtn.onclick = function () { hideCartToast(); };
-        }
-
-        // reset and show
-        el.classList.remove('is-hiding', 'is-visible');
-        requestFrame(function () {
-            el.classList.add('is-visible');
-        });
-
-        // auto hide
-        if (toastAutoHideTimer) window.clearTimeout(toastAutoHideTimer);
-        toastAutoHideTimer = window.setTimeout(function () {
-            hideCartToast();
-        }, autoHideDuration);
     }
 
     function clearPeekAutoCloseTimer() {
@@ -358,12 +288,15 @@
             var qtyInput = qtyForm ? qtyForm.querySelector('[data-yq-cart-qty-value]') : null;
             var customQtyInput = qtyForm ? qtyForm.querySelector('[data-yq-cart-qty-custom]') : null;
             var productIdInput = qtyForm ? qtyForm.querySelector('input[name="productId"]') : null;
+            var retailPriceIdInput = (qtyForm ? qtyForm.querySelector('input[name="retailPriceId"]') : null) ||
+                (removeForm ? removeForm.querySelector('input[name="retailPriceId"]') : null);
             var lineTotal = item.querySelector('.yq-cart-item__line-total');
             var unitPrice = item.querySelector('.yq-cart-item__unit-price');
             var quantity = qtyInput ? parseInt(normalizeDigits(qtyInput.value), 10) : 1;
 
             return {
                 productId: productIdInput ? productIdInput.value : '',
+                retailPriceId: retailPriceIdInput ? retailPriceIdInput.value : '',
                 name: nameLink ? nameLink.textContent.trim() : 'منتج من ياقوت',
                 href: nameLink ? nameLink.href : (media ? media.href : '#'),
                 category: category ? category.textContent.trim() : '',
@@ -382,15 +315,17 @@
     }
 
     function renderEmpty() {
+        var productsUrl = drawer ? (drawer.getAttribute('data-products-url') || '/Products') : '/Products';
         setPeekTitle('سلة التسوق', 'السلة فارغة حالياً');
         body.innerHTML = [
             '<div class="yq-cart-drawer__empty" role="status">',
             '<span class="yq-cart-drawer__empty-icon"><i class="bi bi-bag-heart" aria-hidden="true"></i></span>',
             '<h3>سلتك فارغة</h3>',
             '<p>ابدأ باختيار عطرك المفضل، وسنبقي السلة قريبة منك أثناء التسوق.</p>',
+            '<a href="' + productsUrl + '" class="btn-yaqut-gold yq-cart-drawer__empty-cta">تصفح المنتجات</a>',
             '</div>'
         ].join('');
-        if (footer) footer.hidden = false;
+        if (footer) footer.hidden = true;
         setCheckoutAvailable(false);
         if (totalEl) totalEl.textContent = window.Yaqut.formatPrice(0);
         if (shipping) shipping.hidden = true;
@@ -595,7 +530,29 @@
         if (shipping) shipping.hidden = true;
     }
 
+    function isDrawerSuppressedPage() {
+        var path = (window.location.pathname || '/')
+            .toLowerCase()
+            .replace(/\/+$/, '');
+
+        if (!path) {
+            path = '/';
+        }
+
+        var normalizedPath = path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/|$)/, '') || '/';
+
+        return normalizedPath === '/cart' ||
+               normalizedPath === '/orders/checkout' ||
+               /^\/orders\/confirmation(?:\/\d+)?$/.test(normalizedPath);
+    }
+
     function openDrawer(trigger, origin) {
+        if (isDrawerSuppressedPage()) return;
+        if (typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new window.CustomEvent('yq:nav-close', {
+                detail: { restoreFocus: false, transferringToCart: true }
+            }));
+        }
         var transitionVersion = ++drawerTransitionVersion;
         var shouldAutoClose = origin === 'add-to-cart';
         restoreFocusEl = trigger || document.activeElement;
@@ -628,7 +585,7 @@
         return drawer.getAttribute('aria-hidden') === 'false';
     }
 
-    function closeDrawer() {
+    function closeDrawer(immediate) {
         var transitionVersion = ++drawerTransitionVersion;
         cartRefreshVersion += 1;
         clearPeekAutoCloseTimer();
@@ -646,6 +603,11 @@
         }
         drawer.inert = true;
         drawer.setAttribute('aria-hidden', 'true');
+
+        if (immediate) {
+            drawer.hidden = true;
+            return;
+        }
 
         window.setTimeout(function () {
             if (transitionVersion !== drawerTransitionVersion) return;
@@ -784,7 +746,6 @@
                 var isWarning = state.warningCode === 'InsufficientStock';
                 if (isErrorMessage(state.message) && !isWarning) {
                     setAddButtonState(form, 'error', state.message);
-                    hideCartToast();
                     announce(state.message);
                     return;
                 }
@@ -801,7 +762,6 @@
                 animateProductFlight(snapshot);
                 animateBadgeNudge();
                 setAddButtonState(form, 'success', state.message && !isWarning ? 'تم تحديث السلة' : 'تمت الإضافة');
-                showCartToast(authoritativeItem, result.totalText, isWarning ? state.message : null);
                 if (isWarning && window.YaqutOperationDialog) {
                     window.YaqutOperationDialog.show({ title: 'الكمية غير متوفرة', message: state.message });
                 }
@@ -809,7 +769,6 @@
             })
             .catch(function (error) {
                 setAddButtonState(form, 'error', (error.state && (error.state.message || error.state.detail)) || 'تعذّرت الإضافة. حاول مرة أخرى.');
-                hideCartToast();
                 announce('تعذّرت الإضافة. حاول مرة أخرى.');
             })
             .finally(function () {
@@ -1077,7 +1036,9 @@
         var checkout = event.target.closest('[data-yq-cart-checkout]');
         if (checkout && checkout.getAttribute('data-yq-auth-required') === 'true') {
             event.preventDefault();
-            showAuthModal(checkout.getAttribute('data-yq-auth-modal'));
+            var modalId = checkout.getAttribute('data-yq-auth-modal');
+            closeDrawer(true);
+            showAuthModal(modalId);
             announce('سجّل دخولك أو أنشئ حساباً جديداً لإتمام الطلب.');
             return;
         }
@@ -1092,6 +1053,9 @@
 
         var opener = event.target.closest('[data-yq-cart-open]');
         if (opener && typeof window.fetch === 'function' && !event.metaKey && !event.ctrlKey && !event.shiftKey && event.button !== 1) {
+            if (isDrawerSuppressedPage()) {
+                return;
+            }
             event.preventDefault();
             if (isDrawerOpen()) closeDrawer();
             else openDrawer(opener);
@@ -1155,7 +1119,7 @@
     }
 
     function onKeydown(event) {
-        if (drawer.hidden) return;
+        if (drawer.hidden || drawer.inert || !isDrawerOpen()) return;
         if (drawer.contains(event.target)) clearPeekAutoCloseTimer();
         if (event.key === 'Escape') {
             event.preventDefault();
@@ -1199,6 +1163,9 @@
             if (event.detail && event.detail.authoritativeState) {
                 reconcileCart(event.detail.authoritativeState, event.detail.options || {});
             }
+        });
+        window.addEventListener('yq:cart-close', function () {
+            if (isDrawerOpen()) closeDrawer();
         });
         refreshCart({ silent: false });
     }

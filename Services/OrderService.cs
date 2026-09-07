@@ -431,6 +431,9 @@ public class OrderService
             {
                 OrderitemId = item.Id,
                 ProductName = item.Product?.Name ?? "المنتج",
+                VariantSize = (item.RetailSizeMl ?? item.RetailPrice?.SizeMl) is int ml && ml > 0 ? $"{ml} مل" : null,
+                UnitPrice = item.Unitprice,
+                ImageUrl = item.Product?.Imageurl,
                 RequestedQuantity = item.Quantity,
                 AvailableQuantity = availableByItem.TryGetValue(item.Id, out var available)
                     ? available
@@ -441,6 +444,9 @@ public class OrderService
             {
                 OrderitemId = item.Id,
                 ProductName = item.Product?.Name ?? "المنتج",
+                VariantSize = (item.RetailSizeMl ?? item.RetailPrice?.SizeMl) is int ml && ml > 0 ? $"{ml} مل" : null,
+                UnitPrice = item.Unitprice,
+                ImageUrl = item.Product?.Imageurl,
                 RequestedQuantity = item.Quantity,
                 AvailableQuantity = availableByItem[item.Id],
                 CanRemove = fixedAcceptedQuantity + availableByItem
@@ -835,9 +841,12 @@ public class OrderService
         string? status,
         string? search,
         int page,
+        int? pageSize,
         CancellationToken cancellationToken = default)
     {
-        const int pageSize = 9;
+        var normalizedPageSize = pageSize is 6 or 9
+            ? pageSize.Value
+            : 9;
         var allowedStatuses = new HashSet<string>(StringComparer.Ordinal)
         {
             OrderStatuses.Pending,
@@ -871,19 +880,29 @@ public class OrderService
 
         if (normalizedSearch.Length > 0)
         {
-            filtered = filtered.Where(order =>
-                (order.Trackingnumber != null && order.Trackingnumber.Contains(normalizedSearch)) ||
-                order.Orderitems.Any(item => item.Product != null && item.Product.Name.Contains(normalizedSearch)));
+            if (int.TryParse(normalizedSearch.TrimStart('#'), out var searchOrderId) && searchOrderId > 0)
+            {
+                filtered = filtered.Where(order =>
+                    order.Id == searchOrderId ||
+                    (order.Trackingnumber != null && order.Trackingnumber.Contains(normalizedSearch)) ||
+                    order.Orderitems.Any(item => item.Product != null && item.Product.Name.Contains(normalizedSearch)));
+            }
+            else
+            {
+                filtered = filtered.Where(order =>
+                    (order.Trackingnumber != null && order.Trackingnumber.Contains(normalizedSearch)) ||
+                    order.Orderitems.Any(item => item.Product != null && item.Product.Name.Contains(normalizedSearch)));
+            }
         }
 
         var totalCount = await filtered.CountAsync(cancellationToken);
-        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)normalizedPageSize));
         var currentPage = Math.Clamp(page, 1, totalPages);
         var orders = await filtered
             .OrderByDescending(order => order.Orderdate)
             .ThenByDescending(order => order.Id)
-            .Skip((currentPage - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((currentPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
             .Include(order => order.Orderitems)
                 .ThenInclude(item => item.Product)
             .Include(order => order.Orderitems)
@@ -912,7 +931,7 @@ public class OrderService
             Status = normalizedStatus,
             Search = normalizedSearch,
             CurrentPage = currentPage,
-            PageSize = pageSize,
+            PageSize = normalizedPageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
             ReviewRequiredCount = reviewRequiredCount,
@@ -923,6 +942,7 @@ public class OrderService
     public Task<Order?> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken = default) =>
         _context.Orders
             .AsNoTracking()
+            .Include(order => order.Deliveryorder)
             .Include(order => order.Orderitems)
                 .ThenInclude(item => item.Product)
             .Include(order => order.Orderitems)

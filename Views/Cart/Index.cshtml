@@ -126,31 +126,48 @@
                                     <input type="hidden" name="retailPriceId" value="@item.RetailPriceId" />
                                     <input type="hidden" name="quantity" value="@item.Quantity" data-yq-cart-qty-value />
                                     <input type="hidden" name="expectedQuantity" value="@item.Quantity" data-yq-cart-qty-expected />
-                                    <span class="yq-cart-item__qty-label">الكمية</span>
-                                    <div class="yq-cart-item__qty-control">
+                                    <div class="yq-cart-item__qty-header">
+                                        <span class="yq-cart-item__qty-label">الكمية</span>
+                                        @if (maxUnits <= 0)
+                                        {
+                                            <span class="yq-cart-item__stock-badge yq-cart-item__stock-badge--out" role="status">
+                                                <i class="bi bi-x-circle" aria-hidden="true"></i> نفد من المخزون
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="yq-cart-item__qty-control @(maxUnits <= 0 ? "is-out-of-stock" : null)">
                                         <select class="yq-cart-item__qty-select"
                                                 data-yq-cart-qty-select
-                                                aria-label="كمية @item.Product?.Name">
-                                            @for (var quantityOption = 1; quantityOption <= Math.Min(maxUnits, 10); quantityOption++)
+                                                aria-label="كمية @item.Product?.Name"
+                                                disabled="@(maxUnits <= 0 ? "disabled" : null)">
+                                            @if (maxUnits <= 0)
                                             {
-                                                <option value="@quantityOption"
-                                                        selected="@(item.Quantity == quantityOption)">
-                                                    @quantityOption
-                                                </option>
+                                                <option value="@item.Quantity" selected="selected">@item.Quantity</option>
                                             }
-                                            @if (maxUnits > 10)
+                                            else
                                             {
-                                                <option value="custom" selected="@(item.Quantity > 10)">أكثر من 10 (10+)</option>
+                                                @for (var quantityOption = 1; quantityOption <= Math.Min(maxUnits, 10); quantityOption++)
+                                                {
+                                                    <option value="@quantityOption"
+                                                            selected="@(item.Quantity == quantityOption)">
+                                                        @quantityOption
+                                                    </option>
+                                                }
+                                                @if (maxUnits > 10)
+                                                {
+                                                    <option value="custom" selected="@(item.Quantity > 10)">أكثر من 10 (10+)</option>
+                                                }
                                             }
                                         </select>
                                         <input type="number"
                                                value="@item.Quantity"
                                                min="1"
                                                max="@maxUnits"
-                                               class="yq-cart-item__qty-input @(item.Quantity <= 10 ? "d-none" : null)"
+                                               class="yq-cart-item__qty-input @(item.Quantity <= 10 || maxUnits <= 0 ? "d-none" : null)"
                                                data-yq-cart-qty-custom
                                                inputmode="numeric"
-                                               aria-label="كمية @item.Product?.Name" />
+                                               aria-label="كمية @item.Product?.Name"
+                                               disabled="@(maxUnits <= 0 ? "disabled" : null)" />
                                         <span class="yq-cart-item__qty-spinner spinner-border spinner-border-sm"
                                               data-yq-cart-qty-spinner hidden
                                               role="status"
@@ -210,6 +227,15 @@
 
             </aside>
         </div>
+
+        <button type="button"
+                class="yq-cart-scroll-hint"
+                data-yq-cart-scroll-hint
+                aria-label="الانتقال إلى الإجمالي والدفع"
+                hidden>
+            <i class="bi bi-arrow-down-short" aria-hidden="true"></i>
+            <span>الإجمالي والدفع</span>
+        </button>
     }
     else
     {

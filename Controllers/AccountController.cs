@@ -591,10 +591,7 @@ public class AccountController : Controller
         var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return NotFound();
 
-        var role = await _db.UserSites
-            .Where(s => s.UserId == user.Id)
-            .Select(f => f.Role)
-            .FirstOrDefaultAsync() ?? "Customer";
+        var role = await GetUserDisplayRoleAsync(user.Id);
 
         var model = new ProfileVM
         {
@@ -604,18 +601,6 @@ public class AccountController : Controller
             Role = role,
             CreatedAt = user.Createdat
         };
-        if (model.Role == "Admin")
-        {
-            model.Role = "مدير";
-        }
-        else if (model.Role == "Developer")
-        {
-            model.Role = "مطور";
-        }
-        else
-        {
-            model.Role = "زبون";
-        }
 
         return View(model);
     }
@@ -646,6 +631,9 @@ public class AccountController : Controller
 
         if (!ModelState.IsValid)
         {
+            model.Role = await GetUserDisplayRoleAsync(currentUser.Id);
+            ModelState.Remove(nameof(ProfileVM.Email));
+            model.Email = currentUser.Email;
             model.CreatedAt = currentUser.Createdat;
             return View(model);
         }
@@ -661,6 +649,18 @@ public class AccountController : Controller
 
         TempData["ProfileSuccess"] = true;
         return RedirectToAction(nameof(Profile));
+    }
+
+    private async Task<string> GetUserDisplayRoleAsync(int userId)
+    {
+        var role = await _db.UserSites
+            .Where(s => s.UserId == userId)
+            .Select(f => f.Role)
+            .FirstOrDefaultAsync() ?? "Customer";
+
+        if (role == "Admin") return "مدير";
+        if (role == "Developer") return "مطور";
+        return "زبون";
     }
 
     [HttpGet]

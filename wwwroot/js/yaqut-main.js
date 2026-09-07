@@ -490,14 +490,28 @@
 
     /* ═══ UTILITIES (تأكيد الحذف والفلاتر) ═══ */
     function initImageFallbacks() {
+        function applyFallback(img) {
+            var fallback = img.getAttribute('data-yaqut-fallback');
+            if (!fallback) {
+                return;
+            }
+
+            var current = img.getAttribute('src') || '';
+            if (current === fallback) {
+                return;
+            }
+
+            img.setAttribute('src', fallback);
+        }
+
         document.querySelectorAll('[data-yaqut-fallback]').forEach(function (img) {
             img.addEventListener('error', function () {
-                var fb = img.getAttribute('data-yaqut-fallback');
-                if (fb && img.src.indexOf(fb) === -1) {
-                    img.onerror = null;
-                    img.src = fb;
-                }
+                applyFallback(img);
             });
+
+            if (img.complete && img.naturalWidth === 0) {
+                applyFallback(img);
+            }
         });
     }
 
@@ -529,17 +543,27 @@
         var toggle = document.getElementById('yaqutFilterToggle');
         var filters = document.getElementById('yaqutFilters');
         var closeBtn = document.getElementById('yqFiltersClose');
+        var backdrop = document.getElementById('yqFilterBackdrop') || document.querySelector('[data-yq-filter-close]');
         if (!toggle || !filters) return;
 
         function openFilters() {
+            // Close other storefront panels (mutual exclusivity)
+            if (typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new window.CustomEvent('yq:cart-close'));
+                window.dispatchEvent(new window.CustomEvent('yq:nav-close', { detail: { source: 'filters' } }));
+            }
+
             filters.classList.add('is-open');
+            if (backdrop) backdrop.classList.add('is-open');
             document.documentElement.setAttribute('data-yq-drawer-open', '');
             // Push fake history entry so Back closes the sidebar first
             window.history.pushState({ yqPanel: true }, '');
         }
 
         function closeFilters(restoreFocus) {
+            if (!filters.classList.contains('is-open')) return;
             filters.classList.remove('is-open');
+            if (backdrop) backdrop.classList.remove('is-open');
             document.documentElement.removeAttribute('data-yq-drawer-open');
             if (restoreFocus) toggle.focus();
         }
@@ -554,7 +578,14 @@
             });
         }
 
-        // Close on outside click
+        if (backdrop) {
+            backdrop.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeFilters(false);
+            });
+        }
+
+        // Close on outside click (fallback)
         document.addEventListener('click', function (e) {
             if (!filters.classList.contains('is-open')) return;
             if (filters.contains(e.target) || toggle.contains(e.target)) return;
@@ -573,6 +604,28 @@
                 // Do NOT re-push — consumed fake entry gone, next Back navigates normally
             }
         });
+
+        // Mutual exclusivity: close filters if another storefront panel opens
+        window.addEventListener('yq:filters-close', function () {
+            closeFilters(false);
+        });
+        window.addEventListener('yq:nav-close', function (e) {
+            if (e && e.detail && e.detail.source === 'filters') return;
+            closeFilters(false);
+        });
+
+        // Close on viewport resize to desktop
+        var mobileQuery = window.matchMedia('(max-width: 991.98px)');
+        var onBreakpointChange = function (e) {
+            if (!e.matches && filters.classList.contains('is-open')) {
+                closeFilters(false);
+            }
+        };
+        if (mobileQuery.addEventListener) {
+            mobileQuery.addEventListener('change', onBreakpointChange);
+        } else if (mobileQuery.addListener) {
+            mobileQuery.addListener(onBreakpointChange);
+        }
     }
 
     function initConfirmForms() {

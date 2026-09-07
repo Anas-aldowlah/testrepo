@@ -156,7 +156,7 @@
                         </button>
                     </div>
 
-                    <div class="yq-pdp-stock">
+                    <div class="yq-pdp-stock" role="status" aria-atomic="true">
                         @if (inStock)
                         {
                             <span class="yq-pdp-stock__badge yq-pdp-stock__badge--in" data-yq-stock-badge>
@@ -205,7 +205,7 @@
                                                data-unit-few="عبوات"
                                                data-unit-many="عبوة" />
                                         <span class="yq-pdp-retail-option__body">
-                                            <span>عبوة كاملة @Model.VolumeMl مل</span>
+                                            <span>@(Model.VolumeMl.HasValue ? $"عبوة كاملة {Model.VolumeMl} مل" : "عبوة كاملة")</span>
                                             <strong>@(Model.Price.ToYaqutPrice())</strong>
                                         </span>
                                     </label>
@@ -230,42 +230,45 @@
                                 </fieldset>
                             }
 
-                            <div class="yq-pdp-qty">
-                                <p class="yq-pdp-qty__availability"
-                                   data-yq-low-stock-message
-                                   hidden="@(!lowStock)">
-                                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
-                                    <span>@lowStockMessage</span>
-                                </p>
-                                <span class="yq-cart-item__qty-label">الكمية</span>
-                                <div class="yq-cart-item__qty-control">
-                                    <select class="yq-cart-item__qty-select"
-                                            id="yqQtySelect"
-                                            aria-label="الكمية المطلوبة"
-                                            disabled="@(initialAvailableUnits == 0)">
-                                        @for (var quantityOption = 1; quantityOption <= Math.Min(initialAvailableUnits, 10); quantityOption++)
-                                        {
-                                            <option value="@quantityOption">@quantityOption</option>
-                                        }
-                                        @if (initialAvailableUnits > 10)
-                                        {
-                                            <option value="custom">أكثر من 10 (10+)</option>
-                                        }
-                                    </select>
-                                    <input type="number" name="quantity" id="yqQtyInput" value="1"
-                                           min="1" max="@initialAvailableUnits"
-                                           data-yq-unit-one="@unitOne"
-                                           disabled="@(initialAvailableUnits == 0)"
-                                           class="yq-cart-item__qty-input d-none" 
-                                           aria-label="الكمية المطلوبة" />
-                                </div>
-                            </div>
+                            <p class="yq-pdp-qty__availability"
+                               data-yq-low-stock-message
+                               hidden="@(!lowStock)">
+                                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                <span>@lowStockMessage</span>
+                            </p>
 
-                            <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn" data-yq-add-button
-                                    disabled="@(initialAvailableUnits == 0)" aria-disabled="@(initialAvailableUnits == 0 ? "true" : "false")">
-                                <i class="bi bi-bag-plus" aria-hidden="true"></i>
-                                <span data-yq-add-label>إضافة للسلة</span>
-                            </button>
+                            <div class="yq-pdp-action-row">
+                                <div class="yq-pdp-qty">
+                                    <span class="yq-cart-item__qty-label">الكمية</span>
+                                    <div class="yq-cart-item__qty-control">
+                                        <select class="yq-cart-item__qty-select"
+                                                id="yqQtySelect"
+                                                aria-label="الكمية المطلوبة"
+                                                disabled="@(initialAvailableUnits == 0)">
+                                            @for (var quantityOption = 1; quantityOption <= Math.Min(initialAvailableUnits, 10); quantityOption++)
+                                            {
+                                                <option value="@quantityOption">@quantityOption</option>
+                                            }
+                                            @if (initialAvailableUnits > 10)
+                                            {
+                                                <option value="custom">أكثر من 10 (10+)</option>
+                                            }
+                                        </select>
+                                        <input type="number" name="quantity" id="yqQtyInput" value="1"
+                                               min="1" max="@initialAvailableUnits"
+                                               data-yq-unit-one="@unitOne"
+                                               disabled="@(initialAvailableUnits == 0)"
+                                               class="yq-cart-item__qty-input d-none"
+                                               aria-label="الكمية المطلوبة" />
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-yaqut-gold yq-pdp-add-btn" data-yq-add-button
+                                        disabled="@(initialAvailableUnits == 0)" aria-disabled="@(initialAvailableUnits == 0 ? "true" : "false")">
+                                    <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                                    <span data-yq-add-label>إضافة للسلة</span>
+                                </button>
+                            </div>
                         </form>
                     }
                     else
@@ -400,6 +403,30 @@
             </header>
             <div class="yq-pdp-recent__grid" id="yqRecentlyViewedGrid"></div>
         </section>
+
+        @if (inStock)
+        {
+            <!-- STICKY ADD TO CART (MOBILE ONLY) -->
+            <div class="yq-pdp-sticky-bar"
+                 data-yq-pdp-sticky-bar
+                 aria-hidden="true">
+                <div class="yq-pdp-sticky-bar__inner">
+                    <div class="yq-pdp-sticky-bar__price" data-yq-sticky-price>
+                        @(initialPrice.ToYaqutPrice())
+                    </div>
+                    <button type="button"
+                            class="btn-yaqut-gold yq-pdp-sticky-bar__btn"
+                            data-yq-sticky-add-btn
+                            tabindex="-1"
+                            aria-label="إضافة المنتج للسلة بالسعر المحدد"
+                            disabled="@(initialAvailableUnits == 0)"
+                            aria-disabled="@(initialAvailableUnits == 0 ? "true" : "false")">
+                        <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                        <span>إضافة للسلة</span>
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 }
 else

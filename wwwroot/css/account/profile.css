@@ -4,6 +4,7 @@
 ═══════════════════════════════════════════════ */
 
 .yq-profile {
+    --yq-text-muted: var(--yq-text-soft);
     display: flex;
     flex-direction: column;
     gap: 2rem;
@@ -96,6 +97,12 @@
     background-clip: text;
 }
 
+.theme-light .yq-profile-hero__name {
+    background: none;
+    -webkit-text-fill-color: var(--yq-text);
+    color: var(--yq-text);
+}
+
 .yq-profile-hero__sub {
     font-size: 0.88rem;
     color: var(--yq-text-muted, #94a3b8);
@@ -174,11 +181,17 @@
 
 .yq-profile-form__title i { color: var(--yq-gold, #c9a24b); }
 
+/* readonly email field */
+.yq-profile .yaqut-form-input[readonly] {
+    cursor: default;
+    background: var(--yq-bg-input);
+    border-color: var(--yq-border-sub);
+}
+
 /* readonly phone field */
 .yaqut-input-wrap--disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    user-select: none;
+    cursor: default;
+    user-select: text;
 }
 
 .yaqut-input-wrap--disabled .yq-checkout-info-value {
@@ -187,6 +200,7 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--yq-text-muted, #94a3b8);
+    user-select: text;
 }
 
 .yq-profile-submit-btn {
@@ -371,3 +385,12 @@ button.yq-profile-nav-link {
 .yq-min-w-0 { min-width: 0; }
 .yq-profile-email-text { font-size: 0.8rem; overflow-wrap: anywhere; }
 .yq-profile-chevron { margin-right: auto; font-size: 0.7rem; opacity: 0.4; }
+
+@media (prefers-reduced-motion: reduce) {
+    .yq-profile .yq-reveal,
+    .yq-profile .yq-reveal.is-visible {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

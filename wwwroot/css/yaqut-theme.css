@@ -965,7 +965,6 @@ a.yq-pcard__action-add:focus-visible {
     position: relative;
     z-index: 5;
     display: flex;
-    align-items: center;
     justify-content: center;
     min-height: calc(100vh - 100px);
     padding: 2rem 1.5rem;
@@ -974,6 +973,7 @@ a.yq-pcard__action-add:focus-visible {
 .yaqut-auth-page {
     width: 100%;
     max-width: 1060px;
+    margin-block: auto;
     animation: yqFadeInUp 1s var(--yq-ease);
 }
 
@@ -1255,6 +1255,40 @@ a.yq-pcard__action-add:focus-visible {
     outline: none;
     border-color: var(--yq-gold);
     box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+.yaqut-form-input--bidi-ltr {
+    direction: ltr;
+    text-align: right;
+    unicode-bidi: plaintext;
+}
+
+.yq-val-ltr {
+    direction: ltr;
+    display: inline-block;
+    unicode-bidi: plaintext;
+}
+
+/* ── Browser Autofill Scoped Styling ── */
+.yaqut-form-input:-webkit-autofill,
+.yaqut-form-input:-webkit-autofill:hover,
+.yaqut-form-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--yq-bg-elevated) inset !important;
+    -webkit-text-fill-color: var(--yq-text) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.theme-dark .yaqut-form-input:-webkit-autofill,
+.theme-dark .yaqut-form-input:-webkit-autofill:hover,
+.theme-dark .yaqut-form-input:-webkit-autofill:focus,
+.dark-mode .yaqut-form-input:-webkit-autofill,
+.dark-mode .yaqut-form-input:-webkit-autofill:hover,
+.dark-mode .yaqut-form-input:-webkit-autofill:focus,
+html[data-theme="dark"] .yaqut-form-input:-webkit-autofill,
+html[data-theme="dark"] .yaqut-form-input:-webkit-autofill:hover,
+html[data-theme="dark"] .yaqut-form-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #181818 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 .yaqut-auth-submit { text-decoration: none;
@@ -1825,7 +1859,7 @@ a.yq-pcard__action-add:focus-visible {
     color: #8be6ad;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .yq-login-view {
         max-width: 680px;
     }
@@ -2389,7 +2423,31 @@ a.yq-pcard__action-add:focus-visible {
 }
 
 /* ── Responsive Media Queries ── */
-@media (max-width: 992px) {
+@media (min-width: 992px) {
+    .yaqut-auth-card__body .yaqut-auth-logo,
+    .yq-login-view .yaqut-auth-logo {
+        display: none !important;
+    }
+
+    .yaqut-auth-perks,
+    .yq-login-view .yaqut-auth-perks {
+        flex-wrap: nowrap;
+        gap: 0.35rem;
+    }
+
+    .yaqut-auth-perks span,
+    .yq-login-view .yaqut-auth-perks span {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0.35rem 0.45rem;
+        font-size: 0.72rem;
+        gap: 0.3rem;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 991.98px) {
     .yaqut-auth-page {
         max-width: 640px;
     }
@@ -2399,9 +2457,9 @@ a.yq-pcard__action-add:focus-visible {
         min-height: 0;
     }
 
-    .yaqut-auth-card__visual {
-        min-height: 260px;
-        justify-content: flex-end;
+    .yaqut-auth-card__body .yaqut-auth-logo,
+    .yq-login-view .yaqut-auth-logo {
+        display: block !important;
     }
 
     .yaqut-shop-layout {
@@ -2433,6 +2491,116 @@ a.yq-pcard__action-add:focus-visible {
     .yq-features {
         grid-template-columns: 1fr;
         gap: 1.25rem;
+    }
+}
+
+/* Tablet Range (768px – 991.98px): Substantially condensed visual panel */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .yq-login-view:not(.is-register-active) .yaqut-auth-card__body {
+        padding: 2rem;
+    }
+
+    .yq-login-view:not(.is-register-active) .yaqut-auth-logo,
+    .yq-login-view:not(.is-register-active) .yaqut-auth-subtitle,
+    .yq-login-view:not(.is-register-active) .yaqut-auth-tabs {
+        margin-bottom: 1rem;
+    }
+
+    .yaqut-auth-google-login-wrap .google-btn-rect {
+        min-height: 52px;
+        padding-block: 0.1875rem !important;
+    }
+
+    .yaqut-auth-card__visual,
+    .yq-login-visual {
+        min-height: 0 !important;
+        padding: 1.25rem 1.75rem;
+        gap: 0.65rem;
+        background-size: cover, 25% auto, cover;
+    }
+
+    .yaqut-auth-card__visual h2,
+    .yq-login-view .yaqut-auth-card__visual h2 {
+        font-size: 1.3rem;
+        line-height: 1.25;
+        max-width: 100%;
+    }
+
+    .yaqut-auth-card__visual p,
+    .yq-login-view .yaqut-auth-card__visual p {
+        display: none !important;
+    }
+
+    .yaqut-auth-perks,
+    .yq-login-view .yaqut-auth-perks {
+        gap: 0.4rem;
+    }
+
+    .yaqut-auth-perks span,
+    .yq-login-view .yaqut-auth-perks span {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.72rem;
+        min-height: 0;
+    }
+}
+
+/* Mobile Range (<= 767.98px): Compact YAGOT visual context banner */
+@media (max-width: 767.98px) {
+    .yaqut-auth-card__visual,
+    .yq-login-visual,
+    .yq-login-view .yaqut-auth-card__visual {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0 !important;
+        padding: 0.85rem 1.25rem !important;
+        gap: 0.2rem;
+        background: linear-gradient(135deg, rgba(18, 18, 18, 0.95) 0%, rgba(35, 27, 14, 0.95) 100%), url('/images/placeholder-product.svg') left 1rem center/20% no-repeat !important;
+        border-bottom: 1px solid var(--yq-glass-border);
+    }
+
+    .yaqut-auth-card__visual .yq-login-visual__brand,
+    .yq-login-visual .yq-login-visual__brand {
+        display: none !important;
+    }
+
+    .yaqut-auth-card__visual .yaqut-auth-card__eyebrow {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.15rem;
+    }
+
+    .yaqut-auth-card__visual h2,
+    .yq-login-view .yaqut-auth-card__visual h2 {
+        font-size: 1.05rem !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        color: #fff !important;
+    }
+
+    .yaqut-auth-card__visual p,
+    .yq-login-view .yaqut-auth-card__visual p {
+        display: none !important;
+    }
+
+    .yaqut-auth-perks,
+    .yq-login-view .yaqut-auth-perks {
+        display: none !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .yaqut-auth-card__visual,
+    .yq-login-visual,
+    .yq-login-view .yaqut-auth-card__visual {
+        padding: 0.75rem 0.85rem !important;
+    }
+
+    .yaqut-auth-card__visual h2,
+    .yq-login-view .yaqut-auth-card__visual h2 {
+        font-size: 0.95rem !important;
     }
 }
 
@@ -2965,6 +3133,149 @@ html[data-theme="dark"] .yq-google-unlinked-alert {
     }
     .yq-stepper-progress {
         top: 16px;
+    }
+}
+
+@media (max-width: 400px) {
+    .yq-stepper-container {
+        padding-inline: 0;
+        margin-bottom: 1.5rem;
+    }
+
+    .yq-step-label {
+        font-size: 0.65rem;
+        line-height: 1.2;
+    }
+
+    .yq-step-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+
+    .yq-stepper-progress {
+        top: 14px;
+    }
+}
+
+@media (max-width: 360px) {
+    .yaqut-auth-card__body,
+    .yq-login-view .yaqut-auth-card__body {
+        padding: 1.25rem 0.85rem !important;
+    }
+}
+
+/* Small-phone Auth proportions only; keep the 576px+ composition unchanged. */
+@media (min-width: 320px) and (max-width: 430px) {
+    .yaqut-auth-shell__main {
+        padding: 0.75rem 0.625rem 1.5rem;
+    }
+
+    .yq-login-view .yaqut-auth-card {
+        border-radius: 16px;
+    }
+
+    .yaqut-auth-card__visual,
+    .yq-login-visual,
+    .yq-login-view .yaqut-auth-card__visual {
+        padding: 0.625rem 0.75rem !important;
+        gap: 0.125rem;
+    }
+
+    .yaqut-auth-card__visual .yaqut-auth-card__eyebrow {
+        margin-bottom: 0.1rem;
+    }
+
+    .yaqut-auth-card__visual h2,
+    .yq-login-view .yaqut-auth-card__visual h2 {
+        font-size: 0.95rem !important;
+        line-height: 1.25 !important;
+    }
+
+    .yaqut-auth-card__body,
+    .yq-login-view .yaqut-auth-card__body,
+    .yq-login-view.is-register-active .yaqut-auth-card__body {
+        padding: 1.125rem 0.75rem !important;
+    }
+
+    .yq-login-view .yaqut-auth-logo {
+        margin-bottom: 0.5rem;
+    }
+
+    .yq-login-view .yaqut-logo-wrap--auth {
+        padding: 0.25rem 1rem;
+    }
+
+    .yq-login-view .yaqut-logo-wrap--auth .yaqut-logo {
+        height: 36px;
+    }
+
+    .yq-login-view .yaqut-auth-title {
+        margin-bottom: 0.25rem;
+        font-size: 1.45rem;
+        line-height: 1.2;
+    }
+
+    .yq-login-view .yaqut-auth-subtitle,
+    .yq-login-view.is-register-active .yaqut-auth-subtitle {
+        margin-bottom: 0.75rem;
+        font-size: 0.86rem;
+        line-height: 1.45;
+    }
+
+    .yq-login-view .yaqut-auth-tabs,
+    .yq-login-view.is-register-active .yaqut-auth-tabs {
+        gap: 0.25rem;
+        padding: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .yq-login-view .yaqut-auth-tab {
+        min-height: 44px;
+        padding-inline: 0.25rem;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+    }
+
+    .yaqut-auth-google-login-wrap {
+        margin-bottom: 0.625rem !important;
+    }
+
+    .yaqut-auth-google-login-wrap .google-btn-rect,
+    .yq-google-connect-card .google-btn-rect {
+        padding-block: 0 !important;
+    }
+
+    .yaqut-auth-google-login-wrap .google-btn-text,
+    .yq-google-connect-card .google-btn-text {
+        font-size: 0.9rem !important;
+        white-space: nowrap;
+    }
+
+    .yq-auth-divider {
+        margin-block: 0.75rem !important;
+    }
+
+    .yq-stepper-container {
+        margin-bottom: 1rem;
+    }
+
+    .yq-step-intro {
+        gap: 0.75rem;
+        padding: 0.75rem;
+        margin-bottom: 0.875rem;
+    }
+
+    .yq-step-intro h2 {
+        font-size: 1rem;
+    }
+
+    .yq-google-connect-card {
+        padding: 0.875rem !important;
+    }
+
+    .yq-google-connect-card .yq-step-desc {
+        margin-bottom: 0.75rem !important;
     }
 }
 

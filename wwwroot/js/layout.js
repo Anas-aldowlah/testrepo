@@ -7,6 +7,7 @@
     var COLLAPSED_NAV_QUERY = typeof window.matchMedia === 'function'
         ? window.matchMedia('(max-width: 991.98px)')
         : { matches: false };
+    var isTransferringPanel = false;
 
     function requestFrame(callback) {
         if (typeof window.requestAnimationFrame === 'function') {
@@ -84,18 +85,22 @@
         nav.classList.toggle('is-open', isOpen);
         nav.setAttribute('aria-hidden', isOpen || !COLLAPSED_NAV_QUERY.matches ? 'false' : 'true');
         btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        document.body.classList.toggle('has-nav-open', isOpen);
     }
 
     function initMenuToggleAria() {
         var btn = document.querySelector('[data-yq-nav-toggle]');
         var nav = document.getElementById('yaqutNav');
         var header = document.getElementById('yaqutHeader');
+        var backdrop = header ? header.querySelector('[data-yq-nav-close]') : document.querySelector('[data-yq-nav-close]');
         if (!btn || !nav) return;
 
         function closeNav(restoreFocus) {
             if (!nav.classList.contains('is-open') && COLLAPSED_NAV_QUERY.matches) {
                 nav.setAttribute('aria-hidden', 'true');
                 btn.setAttribute('aria-expanded', 'false');
+                document.body.classList.remove('has-nav-open');
+                header && header.classList.remove('has-nav-open');
                 return;
             }
             syncNavState(nav, btn, false);
@@ -104,9 +109,19 @@
         }
 
         function openNav() {
+            var drawer = document.querySelector('[data-yq-cart-drawer]');
+            var cartWasOpen = drawer && drawer.classList.contains('is-open');
+            if (cartWasOpen && typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new window.CustomEvent('yq:cart-close'));
+            }
+            if (typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new window.CustomEvent('yq:filters-close'));
+            }
             syncNavState(nav, btn, true);
             header && header.classList.add('has-nav-open');
-            pushPanelState(); // fake history entry so Back closes nav first
+            if (!cartWasOpen) {
+                pushPanelState(); // fake history entry so Back closes nav first
+            }
             var firstLink = nav.querySelector('a');
             if (firstLink) firstLink.focus();
         }
@@ -115,21 +130,60 @@
             nav.classList.contains('is-open') ? closeNav(false) : openNav();
         });
 
+        if (backdrop) {
+            backdrop.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeNav(false);
+            });
+        }
+
         // Close when a nav link is clicked (normal navigation)
         nav.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', function () { closeNav(false); });
         });
 
-        // Close on outside click
+        // Close on outside click (fallback)
         document.addEventListener('click', function (e) {
             if (!nav.classList.contains('is-open')) return;
-            if (nav.contains(e.target) || btn.contains(e.target)) return;
+            if (nav.contains(e.target) || btn.contains(e.target) || (backdrop && backdrop.contains(e.target))) return;
             closeNav(false);
         });
 
-        // Close on Escape
+        // Keyboard: Guarded Escape to close + Focus containment while open
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeNav(true);
+            if (!nav.classList.contains('is-open') || !COLLAPSED_NAV_QUERY.matches) return;
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeNav(true);
+                return;
+            }
+
+            if (e.key === 'Tab') {
+                var candidates = Array.prototype.slice.call(nav.querySelectorAll(
+                    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                ));
+                var focusable = candidates.filter(function (el) {
+                    if (el.disabled || el.closest('[hidden]')) return false;
+                    var style = window.getComputedStyle(el);
+                    return style.display !== 'none' && style.visibility !== 'hidden';
+                });
+                if (!focusable.length) {
+                    e.preventDefault();
+                    return;
+                }
+
+                var first = focusable[0];
+                var last = focusable[focusable.length - 1];
+
+                if (e.shiftKey && (document.activeElement === first || !nav.contains(document.activeElement))) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && (document.activeElement === last || !nav.contains(document.activeElement))) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
         });
 
         // Handle viewport resize
@@ -148,6 +202,19 @@
         }
 
         nav.setAttribute('aria-hidden', COLLAPSED_NAV_QUERY.matches ? 'true' : 'false');
+        document.body.classList.remove('has-nav-open');
+
+        // Mutual exclusivity: close Sidebar when Cart Drawer requests it
+        window.addEventListener('yq:nav-close', function (e) {
+            if (nav.classList.contains('is-open') && COLLAPSED_NAV_QUERY.matches) {
+                if (e && e.detail && e.detail.transferringToCart) {
+                    isTransferringPanel = true;
+                    window.setTimeout(function () { isTransferringPanel = false; }, 400);
+                }
+                var restoreFocus = !!(e && e.detail && e.detail.restoreFocus);
+                closeNav(restoreFocus);
+            }
+        });
 
         // Back button: close nav instead of navigating away.
         // Do NOT re-push after closing — the consumed fake entry is gone,
@@ -175,7 +242,11 @@
             var observer = new window.MutationObserver(function () {
                 var isNowOpen = drawer.classList.contains('is-open');
                 if (isNowOpen && !wasOpen) {
-                    pushPanelState();
+                    if (isTransferringPanel) {
+                        isTransferringPanel = false;
+                    } else {
+                        pushPanelState();
+                    }
                 }
                 wasOpen = isNowOpen;
             });

@@ -10,6 +10,14 @@
         ? $"{item.RetailPrice.SizeMl} ml"
         : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
+    var itemsCount = items.Sum(i => i.Quantity);
+    var itemsCountText = itemsCount switch
+    {
+        1 => "منتج واحد",
+        2 => "منتجان",
+        >= 3 and <= 10 => $"{itemsCount} منتجات",
+        _ => $"{itemsCount} منتج"
+    };
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
     var customerName = User.Identity?.Name;
@@ -93,13 +101,13 @@
     </nav>
 
     <header class="yq-checkout-header yq-reveal">
-        <div>
-            <span class="yq-checkout-kicker"><i class="bi bi-gem"></i> خطوة أخيرة قبل تجهيز الطلب</span>
-            <h1><i class="bi bi-credit-card"></i> إتمام الطلب</h1>
-            <p>راجع بياناتك واختر طريقة الدفع المناسبة، وسيتم التواصل معك لتأكيد التفاصيل قبل التجهيز.</p>
+        <div class="yq-checkout-header__content">
+            <span class="yq-checkout-kicker"><i class="bi bi-gem" aria-hidden="true"></i> خطوة أخيرة قبل تجهيز الطلب</span>
+            <h1><i class="bi bi-credit-card" aria-hidden="true"></i> إتمام الطلب</h1>
+            <p class="yq-checkout-header__desc">تبقّت الخطوة الأخيرة لتأكيد طلبك. أكمل بيانات التوصيل، اختر طريقة الدفع، ثم أكد الطلب.</p>
         </div>
         <a asp-controller="Cart" asp-action="Index" class="yq-checkout-back-link">
-            <i class="bi bi-arrow-right"></i> العودة للسلة
+            <i class="bi bi-arrow-right" aria-hidden="true"></i> العودة للسلة
         </a>
     </header>
 
@@ -108,8 +116,6 @@
           method="post"
           enctype="multipart/form-data"
           id="yqCheckoutForm"
-          data-yq-auth-required="@((!isAuthenticated).ToString().ToLowerInvariant())"
-          data-yq-auth-modal="yqCheckoutAuthModal"
           data-yq-checkout-user="@(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty)"
           novalidate>
         @Html.AntiForgeryToken()
@@ -123,16 +129,6 @@
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].Quantity" value="@items[snapshotIndex].Quantity" />
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].UnitPrice" value="@UnitPrice(items[snapshotIndex])" />
         }
-
-        <style nonce="@Context.Items["csp-nonce"]">
-            .yq-readonly {
-                background-color: var(--yq-bg-input);
-                opacity: 0.7;
-                cursor: not-allowed;
-                pointer-events: none;
-                color: var(--yq-text-soft);
-            }
-        </style>
 
         @if (hasModelErrors)
         {
@@ -156,15 +152,39 @@
         <div class="yq-checkout-details yq-reveal">
 
             <!-- CUSTOMER INFO -->
-            <section class="yq-checkout-card yq-glass">
+            <section class="yq-checkout-card yq-checkout-card--customer yq-glass">
                 <div class="yq-checkout-card__head">
-                    <span class="yq-checkout-card__step">01</span>
-                    <div>
-                        <h2 class="yq-checkout-card__title"><i class="bi bi-person"></i> معلومات العميل</h2>
-                        <p class="yq-checkout-card__desc">بيانات التواصل الأساسية لمتابعة الطلب.</p>
+                    <div class="yq-checkout-card__title-row">
+                        <span class="yq-checkout-card__step">01</span>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-person" aria-hidden="true"></i> معلومات العميل</h2>
                     </div>
+                    <p class="yq-checkout-card__desc">بيانات التواصل الأساسية لمتابعة الطلب.</p>
                 </div>
-                <div class="yq-checkout-field-grid">
+
+                <!-- Mobile compact customer summary (read-only presentation) -->
+                <div class="yq-checkout-customer-summary" aria-label="بيانات العميل">
+                    <span class="yq-checkout-customer-pill">
+                        <i class="bi bi-person" aria-hidden="true"></i>
+                        <span>@customerName</span>
+                    </span>
+                    @if (!string.IsNullOrWhiteSpace(customerPhone))
+                    {
+                        <span class="yq-checkout-customer-pill">
+                            <i class="bi bi-telephone" aria-hidden="true"></i>
+                            <span dir="ltr">@customerPhone</span>
+                        </span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model?.CustomerEmail))
+                    {
+                        <span class="yq-checkout-customer-pill">
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
+                            <span dir="ltr">@Model.CustomerEmail</span>
+                        </span>
+                    }
+                </div>
+
+                <!-- Desktop/Tablet canonical inputs (participate in form submission) -->
+                <div class="yq-checkout-field-grid yq-checkout-customer-fields">
                     <label class="yq-checkout-field">
                         <span>الاسم الكامل</span>
                         <input asp-for="CustomerName" form="yqCheckoutForm" type="text" value="@customerName" readonly="readonly" class="yq-readonly" />
@@ -173,12 +193,12 @@
                     <label class="yq-checkout-field">
                         <span>رقم الجوال</span>
                         <input asp-for="CustomerPhone" form="yqCheckoutForm" type="tel" value="@customerPhone"
-                               readonly="readonly" class="yq-readonly" />
+                               readonly="readonly" class="yq-readonly" dir="ltr" />
                         <span asp-validation-for="CustomerPhone" class="yq-checkout-field__error"></span>
                     </label>
                     <label class="yq-checkout-field yq-checkout-field--wide">
                         <span>البريد الإلكتروني</span>
-                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" value="@Model.CustomerEmail" readonly="readonly" class="yq-readonly" />
+                        <input asp-for="CustomerEmail" form="yqCheckoutForm" type="email" value="@Model?.CustomerEmail" readonly="readonly" class="yq-readonly" />
                         <span asp-validation-for="CustomerEmail" class="yq-checkout-field__error"></span>
                     </label>
                 </div>
@@ -187,11 +207,11 @@
             <!-- DELIVERY INFO -->
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
-                    <span class="yq-checkout-card__step">02</span>
-                    <div>
-                        <h2 class="yq-checkout-card__title"><i class="bi bi-truck"></i> معلومات التوصيل</h2>
-                        <p class="yq-checkout-card__desc">العنوان الذي سيتم اعتماده عند تأكيد الطلب.</p>
+                    <div class="yq-checkout-card__title-row">
+                        <span class="yq-checkout-card__step">02</span>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-truck" aria-hidden="true"></i> معلومات التوصيل</h2>
                     </div>
+                    <p class="yq-checkout-card__desc">العنوان الذي سيتم اعتماده عند تأكيد الطلب.</p>
                 </div>
                 <div class="yq-checkout-field-grid">
                     <label class="yq-checkout-field">
@@ -239,7 +259,8 @@
                                inputmode="numeric" autocomplete="tel"
                                required
                                pattern="7[01378][0-9]{7}"
-
+                               dir="ltr"
+                               placeholder="7xxxxxxxx"
                                title="أدخل 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78" />
                         <span asp-validation-for="Street" class="yq-checkout-field__error"></span>
                     </label>
@@ -258,173 +279,263 @@
             <!-- PAYMENT METHOD -->
             <section class="yq-checkout-card yq-glass">
                 <div class="yq-checkout-card__head">
-                    <span class="yq-checkout-card__step">03</span>
-                    <div>
-                        <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2"></i> طريقة الدفع</h2>
-                        <p class="yq-checkout-card__desc">اختر البطاقة المناسبة؛ الخيار المحدد سيظهر بإطار ذهبي واضح.</p>
+                    <div class="yq-checkout-card__title-row">
+                        <span class="yq-checkout-card__step">03</span>
+                        <h2 class="yq-checkout-card__title"><i class="bi bi-wallet2" aria-hidden="true"></i> طريقة الدفع</h2>
                     </div>
+                    <p class="yq-checkout-card__desc">اختر طريقة الدفع المناسبة؛ الخيار المحدد سيظهر بإطار ذهبي واضح.</p>
                 </div>
-                @if (hasPaymentPages)
-                {
-                    <div class="yq-checkout-payment-nav" data-yq-payment-nav>
-                        <span data-yq-payment-status></span>
-                        <div>
-                            <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-prev aria-label="طرق الدفع السابقة">
-                                <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-next aria-label="طرق الدفع التالية">
-                                <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                }
-                <div class="yq-checkout-payment" data-yq-payment-list data-yq-payment-page="@initialPaymentPage">
-                    @for (var methodIndex = 0; methodIndex < checkoutPaymentMethods.Count; methodIndex++)
+                <fieldset class="yq-checkout-payment-fieldset" aria-describedby="paymentMethodError">
+                    <legend class="visually-hidden">اختر طريقة الدفع</legend>
+                    @if (hasPaymentPages)
                     {
-                        var method = checkoutPaymentMethods[methodIndex];
-                        var isSelected = string.Equals(selectedPaymentMethod, method.Type, StringComparison.OrdinalIgnoreCase);
-                        var inputId = $"PaymentMethod-{method.Type}";
-                        var isInitialVisible = !hasPaymentPages || (methodIndex >= initialPaymentStart && methodIndex < initialPaymentEnd);
-                        <label class="yq-checkout-payment__option @(isSelected ? "is-selected" : "") @(isInitialVisible ? "" : "is-page-hidden")"
-                               data-yq-payment-option
-                               data-yq-payment-index="@methodIndex">
-                            <input asp-for="PaymentMethod" id="@inputId" form="yqCheckoutForm" type="radio" value="@method.Type" checked="@isSelected" />
-                            <span class="yq-checkout-payment__icon"><i class="bi @PaymentIcon(method.Type)"></i></span>
-                            <span class="yq-checkout-payment__text">
-                                <strong>@method.Name</strong>
-                                <small>@(method.Type == "other" ? "سيتم الاتفاق على الطريقة المناسبة قبل التجهيز" : "اختره وسيتم تأكيد الدفع مع الطلب")</small>
-                                <span class="yq-checkout-payment__details">
+                        <div class="yq-checkout-payment-nav" data-yq-payment-nav>
+                            <span data-yq-payment-status></span>
+                            <div>
+                                <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-prev aria-label="طرق الدفع السابقة">
+                                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="yq-checkout-payment-nav__btn" data-yq-payment-next aria-label="طرق الدفع التالية">
+                                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    <div class="yq-checkout-payment" data-yq-payment-list data-yq-payment-page="@initialPaymentPage">
+                        @for (var methodIndex = 0; methodIndex < checkoutPaymentMethods.Count; methodIndex++)
+                        {
+                            var method = checkoutPaymentMethods[methodIndex];
+                            var isSelected = string.Equals(selectedPaymentMethod, method.Type, StringComparison.OrdinalIgnoreCase);
+                            var inputId = $"PaymentMethod-{method.Type}";
+                            var isInitialVisible = !hasPaymentPages || (methodIndex >= initialPaymentStart && methodIndex < initialPaymentEnd);
+                            <label for="@inputId"
+                                   class="yq-checkout-payment__option @(isSelected ? "is-selected" : "") @(isInitialVisible ? "" : "is-page-hidden")"
+                                   data-yq-payment-option
+                                   data-yq-payment-index="@methodIndex">
+                                <input asp-for="PaymentMethod" id="@inputId" form="yqCheckoutForm" type="radio" value="@method.Type" checked="@isSelected" />
+                                <div class="yq-checkout-payment__main">
+                                    <span class="yq-checkout-payment__icon"><i class="bi @PaymentIcon(method.Type)" aria-hidden="true"></i></span>
+                                    <div class="yq-checkout-payment__text">
+                                        <div class="yq-checkout-payment__title-wrap">
+                                            <strong>@method.Name</strong>
+                                            <span class="yq-checkout-payment__badge" aria-hidden="true">محدد</span>
+                                        </div>
+                                        <small>@(method.Type == "other" ? "سيتم الاتفاق على الطريقة المناسبة قبل التجهيز" : "اختره وسيتم تأكيد الدفع مع الطلب")</small>
+                                    </div>
+                                    <i class="bi bi-check-circle-fill yq-checkout-payment__check" aria-hidden="true"></i>
+                                </div>
+                                <div class="yq-checkout-payment__details">
                                     @if (method.Type == "other")
                                     {
-                                        <span>@(string.IsNullOrWhiteSpace(method.Instructions) ? "لم تتم إضافة تعليمات لهذه الطريقة بعد." : method.Instructions)</span>
+                                        <p class="yq-checkout-payment__instructions">@(string.IsNullOrWhiteSpace(method.Instructions) ? "لم تتم إضافة تعليمات لهذه الطريقة بعد." : method.Instructions)</p>
                                     }
                                     else
                                     {
-                                        <span>اسم الحساب: @(string.IsNullOrWhiteSpace(method.Accountholdername) ? "غير محدد" : method.Accountholdername)</span>
-                                        <span>رقم الحساب: <b dir="ltr">@(string.IsNullOrWhiteSpace(method.Accountnumber) ? "غير محدد" : method.Accountnumber)</b></span>
+                                        <div class="yq-checkout-payment__detail-row">
+                                            <span class="yq-checkout-payment__detail-label">اسم الحساب:</span>
+                                            <span class="yq-checkout-payment__detail-value">@(string.IsNullOrWhiteSpace(method.Accountholdername) ? "غير محدد" : method.Accountholdername)</span>
+                                        </div>
+                                        <div class="yq-checkout-payment__detail-row">
+                                            <span class="yq-checkout-payment__detail-label">رقم الحساب:</span>
+                                            <span class="yq-checkout-payment__detail-value"><b dir="ltr">@(string.IsNullOrWhiteSpace(method.Accountnumber) ? "غير محدد" : method.Accountnumber)</b></span>
+                                        </div>
                                         @if (!string.IsNullOrWhiteSpace(method.Instructions))
                                         {
-                                            <span>@method.Instructions</span>
+                                            <p class="yq-checkout-payment__instructions">@method.Instructions</p>
                                         }
                                     }
-                                </span>
-                            </span>
-                            <i class="bi bi-check-circle-fill yq-checkout-payment__check"></i>
-                        </label>
-                    }
-                </div>
-                <span asp-validation-for="PaymentMethod" class="yq-checkout-field__error yq-checkout-field__error--payment"></span>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+                <span asp-validation-for="PaymentMethod" id="paymentMethodError" class="yq-checkout-field__error yq-checkout-field__error--payment" role="alert"></span>
 
                 <div id="receiptUploadSection" class="yq-receipt-upload-section">
-                    <label class="yq-checkout-field">
-                        <span>صورة إيصال الدفع (اختياري)</span>
-                        <input asp-for="ReceiptImage" form="yqCheckoutForm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="form-control yq-receipt-upload-input" />
-                            <span asp-validation-for="ReceiptImage" class="yq-checkout-field__error"></span>
-                        <small class="yq-receipt-upload-note">سيتم إرفاق هذه الصورة في رسالة الواتساب لتأكيد الطلب بسرعة.</small>
-                    </label>
+                    <div class="yq-receipt-box">
+                        <div class="yq-receipt-box__header">
+                            <span class="yq-receipt-box__icon" aria-hidden="true"><i class="bi bi-cloud-arrow-up"></i></span>
+                            <div class="yq-receipt-box__title-wrap">
+                                <label for="yqReceiptInput" class="yq-receipt-box__title">
+                                    <span>صورة إيصال التحويل</span>
+                                    <span class="yq-receipt-box__optional">(اختياري)</span>
+                                </label>
+                                <p class="yq-receipt-box__subtitle">أرفق صورة الإيصال لتأكيد وتجهيز طلبك فوراً.</p>
+                            </div>
+                        </div>
+
+                        <div class="yq-receipt-upload-container">
+                            <input asp-for="ReceiptImage"
+                                   id="yqReceiptInput"
+                                   form="yqCheckoutForm"
+                                   type="file"
+                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                   class="form-control yq-receipt-upload-input"
+                                   aria-describedby="yqReceiptLimits yqReceiptHelp yqReceiptRedisplay yqReceiptError" />
+                            <div id="yqReceiptSelectedFeedback" class="yq-receipt-selected-feedback" hidden>
+                                <div class="yq-receipt-selected-info">
+                                    <span class="yq-receipt-selected-icon" aria-hidden="true"><i class="bi bi-file-earmark-check"></i></span>
+                                    <div class="yq-receipt-selected-meta">
+                                        <span id="yqReceiptFileName" class="yq-receipt-filename"></span>
+                                        <span id="yqReceiptFileSize" class="yq-receipt-filesize"></span>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        id="yqReceiptClearBtn"
+                                        class="yq-receipt-clear-btn"
+                                        aria-label="إلغاء اختيار صورة الإيصال">
+                                    <i class="bi bi-x-circle" aria-hidden="true"></i>
+                                    <span class="yq-receipt-clear-text">إزالة</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <span asp-validation-for="ReceiptImage"
+                              id="yqReceiptError"
+                              class="yq-checkout-field__error"
+                              role="alert"
+                              aria-live="polite"></span>
+
+                        <div class="yq-receipt-helpers">
+                            <div class="yq-receipt-limit-text" id="yqReceiptLimits">
+                                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                <span>الصيغ المدعومة: JPG، PNG، WEBP — الحد الأقصى 5 ميجابايت</span>
+                            </div>
+                            <small class="yq-receipt-upload-note" id="yqReceiptHelp">
+                                سيتم حفظ صورة الإيصال مع طلبك لمراجعته واعتماده.
+                            </small>
+                            <small class="yq-receipt-redisplay-note" id="yqReceiptRedisplay">
+                                في حال ظهرت أخطاء في الحقول وتطلّب الأمر تصحيحها، ستحتاج لإعادة اختيار الإيصال قبل التأكيد.
+                            </small>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="yq-checkout-confirm-bottom" id="confirmBottomSection">
-                    <button type="submit" class="btn-yaqut-gold yq-checkout-submit-btn" id="confirmOrderBottom" disabled
-                            aria-describedby="confirmOrderBottomHelp">
-                        <i class="bi bi-check-circle" aria-hidden="true"></i>
-                        تأكيد الطلب
-                    </button>
-                    <p id="confirmOrderBottomHelp" class="yq-checkout-submit-hint">
-                        <i class="bi bi-shield-check" aria-hidden="true"></i>
-                        بالضغط على تأكيد الطلب، أنت توافق على سياسة المتجر
-                    </p>
-                </div>
             </section>
         </div>
 
         <!-- RIGHT: ORDER SUMMARY -->
-        <aside class="yq-checkout-summary yq-glass yq-reveal">
+        <aside class="yq-checkout-summary yq-glass yq-reveal" id="yqCheckoutSummary">
             <div class="yq-checkout-summary__head">
-                <span><i class="bi bi-bag-check"></i></span>
-                <div>
-                    <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
-                    <p>تأكد من المنتجات قبل إرسال الطلب</p>
+                <div class="yq-checkout-summary__header-static">
+                    <span class="yq-checkout-summary__head-icon" aria-hidden="true"><i class="bi bi-bag-check"></i></span>
+                    <div class="yq-checkout-summary__head-text">
+                        <div class="yq-checkout-summary__title-wrap">
+                            <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+                            <span class="yq-checkout-summary__count">(@itemsCountText)</span>
+                        </div>
+                        <p class="yq-checkout-summary__subtitle">تأكد من المنتجات قبل إرسال الطلب</p>
+                    </div>
+                </div>
+                <button type="button"
+                        class="yq-checkout-summary__toggle"
+                        id="yqCheckoutSummaryToggle"
+                        aria-expanded="false"
+                        aria-controls="yqCheckoutSummaryBody"
+                        aria-label="عرض تفاصيل ملخص الطلب">
+                    <div class="yq-checkout-summary__toggle-main">
+                        <span class="yq-checkout-summary__head-icon" aria-hidden="true"><i class="bi bi-bag-check"></i></span>
+                        <div class="yq-checkout-summary__head-text">
+                            <div class="yq-checkout-summary__title-wrap">
+                                <h2 class="yq-checkout-summary__title">ملخص الطلب</h2>
+                                <span class="yq-checkout-summary__count">(@itemsCountText)</span>
+                            </div>
+                            <p class="yq-checkout-summary__subtitle">تأكد من المنتجات قبل إرسال الطلب</p>
+                        </div>
+                    </div>
+                    <div class="yq-checkout-summary__toggle-side">
+                        <span class="yq-checkout-summary__collapsed-total" data-yq-summary-collapsed-total>
+                            @(subtotal.ToYaqutPrice())
+                        </span>
+                        <span class="yq-checkout-summary__toggle-action">
+                            <span class="yq-checkout-summary__toggle-text">عرض التفاصيل</span>
+                            <i class="bi bi-chevron-down yq-checkout-summary__chevron" aria-hidden="true"></i>
+                        </span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="yq-checkout-summary__body" id="yqCheckoutSummaryBody" hidden>
+                <div class="yq-checkout-summary__items">
+                    @foreach (var item in items)
+                    {
+                        var lineTotal = item.Quantity * UnitPrice(item);
+                        var productImageUrl = Url.Content("~/images/placeholder-product.svg");
+                        if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
+                        {
+                            var candidateImageUrl = item.Product.Imageurl.Trim();
+                            if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
+                            {
+                                if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
+                                {
+                                    productImageUrl = candidateImageUrl;
+                                }
+                            }
+                            else
+                            {
+                                var localImageUrl = candidateImageUrl.TrimStart('/');
+                                while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
+                                {
+                                    localImageUrl = localImageUrl[2..];
+                                }
+
+                                var pathEnd = localImageUrl.IndexOfAny(new[] { '?', '#' });
+                                var localImagePath = pathEnd >= 0 ? localImageUrl[..pathEnd] : localImageUrl;
+                                var decodedLocalPath = Uri.UnescapeDataString(localImagePath).Replace('\\', '/');
+                                var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
+                                if (!string.IsNullOrWhiteSpace(localImagePath) &&
+                                    !localImagePath.Contains(':') &&
+                                    !localImagePath.Contains('\\') &&
+                                    !hasParentSegment)
+                                {
+                                    productImageUrl = Url.Content("~/" + localImageUrl);
+                                }
+                            }
+                        }
+                        <div class="yq-checkout-summary__item">
+                            <div class="yq-checkout-summary__item-media">
+                                <img src="@productImageUrl"
+                                     alt="@item.Product?.Name"
+                                     width="52"
+                                     height="52"
+                                     decoding="async"
+                                     data-yaqut-fallback="/images/placeholder-product.svg" />
+                                <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
+                            </div>
+                            <span class="yq-checkout-summary__item-name">@item.Product?.Name @(string.IsNullOrWhiteSpace(UnitLabel(item)) ? "" : $" - {UnitLabel(item)}")</span>
+                            <span class="yq-checkout-summary__item-price">@(lineTotal.ToYaqutPrice())</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="yq-checkout-summary__divider"></div>
+
+                <div class="yq-checkout-summary__row">
+                    <span>قيمة المنتجات</span>
+                    <span>@(subtotal.ToYaqutPrice())</span>
+                </div>
+                <div class="yq-checkout-summary__row">
+                    <span>الشحن</span>
+                    @await Html.PartialAsync("_FreeShipping")
+                </div>
+
+                <div class="yq-checkout-summary__divider"></div>
+
+                <div class="yq-checkout-summary__row yq-checkout-summary__row--total">
+                    <span>الإجمالي</span>
+                    <span>@(subtotal.ToYaqutPrice())</span>
                 </div>
             </div>
 
-            <div class="yq-checkout-summary__items">
-                @foreach (var item in items)
-                {
-                    var lineTotal = item.Quantity * UnitPrice(item);
-                    var productImageUrl = Url.Content("~/images/placeholder-product.svg");
-                    if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
-                    {
-                        var candidateImageUrl = item.Product.Imageurl.Trim();
-                        if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
-                        {
-                            if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
-                            {
-                                productImageUrl = candidateImageUrl;
-                            }
-                        }
-                        else
-                        {
-                            var localImageUrl = candidateImageUrl.TrimStart('/');
-                            while (localImageUrl.StartsWith("./", StringComparison.Ordinal))
-                            {
-                                localImageUrl = localImageUrl[2..];
-                            }
+            <div class="yq-checkout-summary__actions">
+                <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i> تأكيد الطلب
+                </button>
 
-                            var pathEnd = localImageUrl.IndexOfAny(new[] { '?', '#' });
-                            var localImagePath = pathEnd >= 0 ? localImageUrl[..pathEnd] : localImageUrl;
-                            var decodedLocalPath = Uri.UnescapeDataString(localImagePath).Replace('\\', '/');
-                            var hasParentSegment = decodedLocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains("..");
-                            if (!string.IsNullOrWhiteSpace(localImagePath) &&
-                                !localImagePath.Contains(':') &&
-                                !localImagePath.Contains('\\') &&
-                                !hasParentSegment)
-                            {
-                                productImageUrl = Url.Content("~/" + localImageUrl);
-                            }
-                        }
-                    }
-                    <div class="yq-checkout-summary__item">
-                        <div class="yq-checkout-summary__item-media">
-                            <img src="@productImageUrl"
-                                 alt="@item.Product?.Name"
-                                 width="52"
-                                 height="52"
-                                 decoding="async"
-                                 data-yaqut-fallback="/images/placeholder-product.svg" />
-                            <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
-                        </div>
-                        <span class="yq-checkout-summary__item-name">@item.Product?.Name @(string.IsNullOrWhiteSpace(UnitLabel(item)) ? "" : $" - {UnitLabel(item)}")</span>
-                        <span class="yq-checkout-summary__item-price">@(lineTotal.ToYaqutPrice())</span>
-                    </div>
-                }
+                <p class="yq-checkout-summary__secure">
+                    <i class="bi bi-lock" aria-hidden="true"></i> معاملتك محمية وآمنة بالكامل
+                </p>
             </div>
-
-            <div class="yq-checkout-summary__divider"></div>
-
-            <div class="yq-checkout-summary__row">
-                <span>قيمة المنتجات</span>
-                <span>@(subtotal.ToYaqutPrice())</span>
-            </div>
-            <div class="yq-checkout-summary__row">
-                <span>الشحن</span>
-                @await Html.PartialAsync("_FreeShipping")
-            </div>
-
-            <div class="yq-checkout-summary__divider"></div>
-
-            <div class="yq-checkout-summary__row yq-checkout-summary__row--total">
-                <span>الإجمالي</span>
-                <span>@(subtotal.ToYaqutPrice())</span>
-            </div>
-
-            <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn" disabled>
-                <i class="bi bi-shield-check"></i> تأكيد الطلب
-            </button>
-
-            <p class="yq-checkout-summary__secure">
-                <i class="bi bi-lock"></i> معاملتك محمية وآمنة بالكامل
-            </p>
         </aside>
         </div>
     </form>
