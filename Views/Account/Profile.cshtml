@@ -7,6 +7,7 @@
     var isSuccess = TempData["ProfileSuccess"] != null;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
     string customerPhone = DealingApiService.DecryptPhone(encryptedPhone);
+    var displayPhone = string.IsNullOrWhiteSpace(customerPhone) ? "-" : customerPhone.Trim();
     var roleLabel = Model.Role;
     var joinDate = Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "-";
 }
@@ -70,7 +71,7 @@
                     <label asp-for="Name" class="yaqut-form-label">الاسم الكامل</label>
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-person"></i>
-                        <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" aria-describedby="ProfileNameValidation" />
+                        <input asp-for="Name" class="yaqut-form-input" placeholder="اسمك الكامل" required minlength="2" autocomplete="name" aria-describedby="ProfileNameValidation" />
                     </div>
                     <span asp-validation-for="Name" id="ProfileNameValidation" class="text-danger small"></span>
                 </div>
@@ -79,17 +80,17 @@
                     <label asp-for="Email" class="yaqut-form-label">البريد الإلكتروني</label>
                     <div class="yaqut-input-wrap">
                         <i class="bi bi-envelope"></i>
-                        <input asp-for="Email" type="email" class="yaqut-form-input" readonly aria-describedby="ProfileEmailValidation ProfileEmailHelp" />
+                        <input asp-for="Email" type="email" class="yaqut-form-input" readonly dir="ltr" aria-describedby="ProfileEmailValidation ProfileEmailHelp" />
                     </div>
                     <span asp-validation-for="Email" id="ProfileEmailValidation" class="text-danger small"></span>
                     <small id="ProfileEmailHelp" class="text-muted">تم توثيق البريد عبر Google ولا يمكن تغييره من الملف الشخصي.</small>
                 </div>
 
                 <div class="yaqut-form-group">
-                    <label class="yaqut-form-label">رقم الجوال</label>
+                    <span class="yaqut-form-label">رقم الجوال</span>
                     <div class="yaqut-input-wrap yaqut-input-wrap--disabled">
                         <i class="bi bi-phone"></i>
-                        <span class="yq-checkout-info-value">@(customerPhone ?? "-")</span>
+                        <span class="yq-checkout-info-value"><bdi dir="ltr">@displayPhone</bdi></span>
                     </div>
                 </div>
 
@@ -131,7 +132,7 @@
                     </div>
                     <div>
                         <div class="yq-profile-stat-label">رقم الجوال</div>
-                        <div class="yq-profile-stat-value">@(customerPhone ?? "-")</div>
+                        <div class="yq-profile-stat-value"><bdi dir="ltr">@displayPhone</bdi></div>
                     </div>
                 </div>
 
@@ -143,7 +144,7 @@
                         </div>
                         <div class="yq-min-w-0">
                             <div class="yq-profile-stat-label">البريد الإلكتروني</div>
-                            <div class="yq-profile-stat-value yq-profile-email-text">@Model.Email</div>
+                            <div class="yq-profile-stat-value yq-profile-email-text"><bdi dir="ltr">@Model.Email</bdi></div>
                         </div>
                     </div>
                 }
