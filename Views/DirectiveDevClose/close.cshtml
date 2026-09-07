@@ -1,4 +1,5 @@
-﻿@{
+@model YAGOT_2._0.Models.SiteMaintenanceViewModel
+@{
     Layout = null;
 }
 <!DOCTYPE html>
@@ -459,25 +460,32 @@
                     <div class="info-list">
                         <div class="info-item">
                             <span class="info-label">اسم الموقع</span>
-                            <span class="info-value">@ViewBag.SiteName</span>
+                            <span class="info-value">@Model.SiteName</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">رابط الموقع</span>
                             <span class="info-value">
-                                <a href="@ViewBag.Url">@ViewBag.Url <i class="bi bi-link-45deg ms-1 small"></i></a>
+                                @if (Model.ClickableSiteUrl is not null)
+                                {
+                                    <a href="@Model.ClickableSiteUrl.AbsoluteUri">@Model.SiteUrlText <i class="bi bi-link-45deg ms-1 small"></i></a>
+                                }
+                                else
+                                {
+                                    @Model.SiteUrlText
+                                }
                             </span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">تاريخ بدء الاشتراك</span>
-                            <span class="info-value">@ViewBag.StartDate</span>
+                            <span class="info-value">@Model.StartDate</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">تاريخ انتهاء الاشتراك</span>
-                            <span class="info-value">@ViewBag.EndDate</span>
+                            <span class="info-value">@Model.EndDate</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">إجمالي مدة الاشتراك السابق</span>
-                            <span class="info-value text-primary">@ViewBag.OriginalDuration</span>
+                            <span class="info-value text-primary">@Model.OriginalDurationDays</span>
                         </div>
                     </div>
                 </div>
@@ -499,7 +507,7 @@
                     </div>
 
                     <div class="d-grid gap-3">
-                        <a href="https://wa.me/775458250?text=أهلاً،%20أريد%20تجديد%20اشتراك%20موقعي%20ٍ@ViewBag.SiteName" target="_blank" class="btn-whatsapp d-flex align-items-center justify-content-center gap-2">
+                        <a href="https://wa.me/775458250?text=أهلاً،%20أريد%20تجديد%20اشتراك%20موقعي%20ٍ@Uri.EscapeDataString(Model.SiteName)" target="_blank" rel="noopener noreferrer" class="btn-whatsapp d-flex align-items-center justify-content-center gap-2">
                             <i class="bi bi-whatsapp fs-5"></i> تواصل معنا عبر الواتساب
                         </a>
 

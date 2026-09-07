@@ -1,21 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Integration.SiteState;
+using YAGOT_2._0.Services.Integration;
 
-namespace Directing.Controllers
+namespace Directing.Controllers;
+
+public sealed class DirectiveDevCloseController(
+    ISiteAccessDecisionService decisionService) : Controller
 {
-    public class DirectiveDevCloseController : Controller
+    public IActionResult Developer() => View();
+
+    public async Task<IActionResult> Close(CancellationToken cancellationToken)
     {
-        public IActionResult Developer()
+        var decision = await decisionService.DecideAsync(
+            SiteAccessSurface.Storefront,
+            User,
+            cancellationToken);
+
+        if (decision.EffectiveMode == SiteStateContractV1.Offline &&
+            decision.Maintenance is not null)
         {
-            return View();
+            Response.Headers.CacheControl = "no-store";
+            return View("close", decision.Maintenance);
         }
-        public IActionResult close(string Url,DateOnly StartDate,DateOnly EndDate,int OriginalDuration,string SiteName)
+
+        if (decision.EffectiveMode == SiteStateContractV1.Development)
         {
-            ViewBag.Url = Url;
-            ViewBag.StartDate = StartDate;
-            ViewBag.EndDate = EndDate;
-            ViewBag.OriginalDuration = OriginalDuration;
-            ViewBag.SiteName = SiteName;
-            return View();
+            return RedirectToAction(nameof(Developer));
         }
+
+        if (decision.IsAllowed)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        Response.Headers.CacheControl = "no-store";
+        return View("Unavailable");
     }
 }

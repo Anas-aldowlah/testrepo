@@ -295,10 +295,11 @@ builder.Services.AddScoped<CategoryServer>();
 builder.Services.AddScoped<Image>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddLocalSiteRuntimeState();
+builder.Services.AddScoped<ISiteAccessDecisionService, SiteAccessDecisionService>();
 builder.Services.AddSiteStateReconciliation(builder.Configuration);
-builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
+builder.Services.AddScoped<SiteStatusFilter>();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);
+builder.Services.AddScoped<SiteStatusFilterAdmin>();
 
 var app = builder.Build();
 
@@ -430,7 +431,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseLegacySiteStatusWithWebhookBypass();
 app.UseAuthorization();
 
 app.MapStaticAssets();
