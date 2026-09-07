@@ -16,6 +16,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Integration;
+using YAGOT_2._0.Integration.SiteState;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -106,6 +107,7 @@ builder.Services.AddOptions<PublicUrlOptions>()
                              || builder.Environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp),
         "PublicUrl:BaseUrl must be an absolute HTTPS URL (HTTP is allowed only in Development).")
     .ValidateOnStart();
+builder.Services.AddSiteStateWebhook(builder.Configuration);
 builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
 
 static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
@@ -367,6 +369,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseRouting();
+app.UseSiteStateWebhookProtocol();
 app.UseRateLimiter();
 app.UseCors("AllowAll");
 app.UseSession();
@@ -427,35 +430,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer")
-        || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close")
-        || context.Request.Path.StartsWithSegments("/Account/Auth")
-        || context.Request.Path.StartsWithSegments("/Account/Google"))
-    {
-        await next();
-        return;
-    }
-
-    // Performance: Cache site status for 5 minutes to avoid external API call on every request
-    const string cacheKey = "YQ_SiteStatus";
-    var cache = context.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-
-    if (!cache.TryGetValue(cacheKey, out object? cachedStatus) || cachedStatus == null)
-    {
-        var dealingApi = context.RequestServices.GetRequiredService<DealingAPI>();
-        var status = await dealingApi.checkDeveloperMode(1);
-        cache.Set(cacheKey, status, TimeSpan.FromMinutes(5));
-        context.Items["SiteStatus"] = status;
-    }
-    else
-    {
-        context.Items["SiteStatus"] = cachedStatus;
-    }
-
-    await next();
-});
+app.UseLegacySiteStatusWithWebhookBypass();
 app.UseAuthorization();
 
 app.MapStaticAssets();
