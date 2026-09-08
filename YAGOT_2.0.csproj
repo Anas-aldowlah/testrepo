@@ -12,6 +12,13 @@
     <Compile Remove="tests\catalog\**\*.cs" />
     <Compile Remove="tests\admin-product-edit\**\*.cs" />
     <Compile Remove="tests\dh03\**\*.cs" />
+    <Compile Remove="tests\image-storage\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="App_Data\images\**\*"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
