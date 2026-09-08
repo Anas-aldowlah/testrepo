@@ -59,6 +59,9 @@ public sealed class SiteStateReconciliationHostTests
 
         Assert.True(host.Services.GetRequiredService<IHostApplicationLifetime>()
             .ApplicationStarted.IsCancellationRequested);
+        Assert.NotNull(host.Services.GetRequiredService<IHttpClientFactory>());
+        Assert.IsType<ControlPanelSnapshotClient>(
+            host.Services.GetRequiredService<IControlPanelSnapshotClient>());
         await host.StopAsync().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.DoesNotContain(TestApiKey, logs.Output, StringComparison.Ordinal);
     }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YAGOT_2._0.Filters;
@@ -46,7 +47,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(0, host.ActionCount);
         Assert.Equal(1, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
         if (json)
         {
             Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
@@ -77,7 +78,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(1, host.ActionCount);
         Assert.Equal(1, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Theory]
@@ -103,7 +104,7 @@ public sealed class Yagot05RuntimePipelineTests
             StringComparison.Ordinal);
         Assert.Equal(0, host.ActionCount);
         Assert.Equal(1, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
@@ -122,7 +123,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(1, host.ActionCount);
         Assert.Equal(1, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Theory]
@@ -144,7 +145,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(expectedProviderReads, host.ProviderReadCount);
         Assert.Equal(expectedActions, host.ActionCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
         if (expectedCode is not null)
         {
             Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
@@ -173,7 +174,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(1, host.ApplyCallCount);
         Assert.Equal(0, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
@@ -187,7 +188,7 @@ public sealed class Yagot05RuntimePipelineTests
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         Assert.Equal("POST", response.Content.Headers.Allow.Single());
         Assert.Equal(0, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
@@ -239,7 +240,19 @@ public sealed class Yagot05RuntimePipelineTests
             await unavailable.Content.ReadAsStringAsync(),
             StringComparison.Ordinal);
         Assert.Equal(1, host.ProviderReadCount);
-        Assert.Equal(0, host.LegacyCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
+    }
+
+    [Fact]
+    public async Task OutboundObserver_PositiveControlDetectsAttemptedControlPanelRequest()
+    {
+        await using var host = await Yagot05RuntimeHost.CreateAsync(
+            Yagot05RuntimeState.Online);
+
+        await Assert.ThrowsAsync<HttpRequestException>(
+            host.SendObservedControlPanelRequestAsync);
+
+        Assert.Equal(1, host.OutboundCallCount);
     }
 
     private static HttpRequestMessage Request(
@@ -306,20 +319,20 @@ internal sealed class Yagot05RuntimeHost : IAsyncDisposable
     private readonly WebApplication _application;
     private readonly Yagot05RuntimeProvider _provider;
     private readonly Yagot05ActionRecorder _recorder;
-    private readonly Yagot05FailingLegacyHandler _legacy;
+    private readonly TestOutboundHttpObserver _outbound;
     private readonly CapturingApplyService _apply;
 
     private Yagot05RuntimeHost(
         WebApplication application,
         Yagot05RuntimeProvider provider,
         Yagot05ActionRecorder recorder,
-        Yagot05FailingLegacyHandler legacy,
+        TestOutboundHttpObserver outbound,
         CapturingApplyService apply)
     {
         _application = application;
         _provider = provider;
         _recorder = recorder;
-        _legacy = legacy;
+        _outbound = outbound;
         _apply = apply;
         Client = application.GetTestClient();
         Client.BaseAddress = new Uri("https://localhost");
@@ -328,8 +341,15 @@ internal sealed class Yagot05RuntimeHost : IAsyncDisposable
     public HttpClient Client { get; }
     public int ProviderReadCount => _provider.ReadCount;
     public int ActionCount => _recorder.Count;
-    public int LegacyCallCount => _legacy.CallCount;
+    public int OutboundCallCount => _outbound.CallCount;
     public int ApplyCallCount => _apply.CallCount;
+
+    public async Task SendObservedControlPanelRequestAsync()
+    {
+        var factory = _application.Services.GetRequiredService<IHttpClientFactory>();
+        using var client = factory.CreateClient();
+        await client.GetAsync("https://control-panel.test/api/v1/sites/1/snapshot");
+    }
 
     public void SetState(Yagot05RuntimeState state)
     {
@@ -377,7 +397,7 @@ internal sealed class Yagot05RuntimeHost : IAsyncDisposable
 
         var provider = new Yagot05RuntimeProvider(state);
         var recorder = new Yagot05ActionRecorder();
-        var legacy = new Yagot05FailingLegacyHandler();
+        var outbound = new TestOutboundHttpObserver();
         var apply = new CapturingApplyService();
         builder.Services.AddSingleton<ILocalSiteRuntimeStateProvider>(provider);
         builder.Services.AddSingleton<TimeProvider>(new Yagot05FixedTimeProvider());
@@ -385,11 +405,10 @@ internal sealed class Yagot05RuntimeHost : IAsyncDisposable
         builder.Services.AddScoped<SiteStatusFilter>();
         builder.Services.AddScoped<SiteStatusFilterAdmin>();
         builder.Services.AddSingleton(recorder);
-        builder.Services.AddSingleton(legacy);
-        builder.Services.AddHttpClient<DealingAPI>(client =>
-            client.BaseAddress = new Uri("https://legacy-control-panel.test/"))
-            .ConfigurePrimaryHttpMessageHandler(services =>
-                services.GetRequiredService<Yagot05FailingLegacyHandler>());
+        builder.Services.AddSingleton(outbound);
+        builder.Services.AddSingleton<IHttpMessageHandlerBuilderFilter,
+            TestOutboundHttpMessageHandlerBuilderFilter>();
+        builder.Services.AddHttpClient();
         builder.Services.AddSiteStateWebhook(builder.Configuration);
         builder.Services.AddSingleton<ISiteStateApplyService>(apply);
 
@@ -412,7 +431,7 @@ internal sealed class Yagot05RuntimeHost : IAsyncDisposable
             "{controller=Home}/{action=Index}/{id?}");
         await app.StartAsync();
 
-        return new Yagot05RuntimeHost(app, provider, recorder, legacy, apply);
+        return new Yagot05RuntimeHost(app, provider, recorder, outbound, apply);
     }
 
     public async ValueTask DisposeAsync()
@@ -524,18 +543,35 @@ public sealed class Yagot05ActionRecorder
     public void Reset() => Interlocked.Exchange(ref _count, 0);
 }
 
-internal sealed class Yagot05FailingLegacyHandler : HttpMessageHandler
+internal sealed class TestOutboundHttpObserver
 {
     private int _callCount;
     public int CallCount => Volatile.Read(ref _callCount);
 
-    protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken)
+    public void Record() => Interlocked.Increment(ref _callCount);
+}
+
+internal sealed class TestOutboundHttpMessageHandlerBuilderFilter(
+    TestOutboundHttpObserver observer) : IHttpMessageHandlerBuilderFilter
+{
+    public Action<HttpMessageHandlerBuilder> Configure(
+        Action<HttpMessageHandlerBuilder> next) => builder =>
     {
-        Interlocked.Increment(ref _callCount);
-        throw new InvalidOperationException(
-            "Legacy Control Panel status HTTP was called during YAGOT-05 enforcement.");
+        next(builder);
+        builder.AdditionalHandlers.Insert(0, new BlockingOutboundHandler(observer));
+    };
+
+    private sealed class BlockingOutboundHandler(
+        TestOutboundHttpObserver observer) : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            observer.Record();
+            throw new HttpRequestException(
+                $"Observed unexpected outbound HTTP request to {request.RequestUri?.Host}.");
+        }
     }
 }
 

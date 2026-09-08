@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Integration.SiteState;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Integration;
 using Xunit;
 
@@ -90,6 +91,9 @@ public sealed class LocalSiteEnforcementPipelineTests
             StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddScoped<SiteStatusFilter>();", source, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddScoped<SiteStatusFilterAdmin>();", source, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddTransient<DealingAPI>();", source, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddScoped<IVisitService, VisitService>();", source, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddSiteStateReconciliation(builder.Configuration);", source, StringComparison.Ordinal);
 
         var staticFiles = Position(source, "app.UseStaticFiles(");
         var webhook = Position(source, "app.UseSiteStateWebhookProtocol();");
@@ -121,6 +125,46 @@ public sealed class LocalSiteEnforcementPipelineTests
                 typeof(Microsoft.Extensions.Logging.ILogger<SiteAccessDecisionService>)
             },
             constructor.GetParameters().Select(parameter => parameter.ParameterType));
+    }
+
+    [Fact]
+    public void LegacyStatusExecutablePath_IsAbsentFromProductionSourceAndConfiguration()
+    {
+        var root = FindRepositoryRoot();
+        var source = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(path => IsProductionSource(root, path))
+            .Append(Path.Combine(root, "appsettings.json"))
+            .Select(File.ReadAllText)
+            .ToArray();
+        var forbidden = new[]
+        {
+            "checkDeveloperMode",
+            "SiteAPI/GetSites",
+            "SiteAPI/GetSitesAdmin",
+            "SiteDto",
+            "SiteDtoAdmin",
+            "StatueSite",
+            "YQ_SiteStatus",
+            "Items[\"SiteStatus\"]",
+            "UseLegacySiteStatusWithWebhookBypass",
+            "AddHttpClient<DealingAPI>",
+            "ExternalApi:BaseUrl"
+        };
+
+        foreach (var marker in forbidden)
+        {
+            Assert.DoesNotContain(
+                source,
+                content => content.Contains(marker, StringComparison.Ordinal));
+        }
+
+        Assert.False(File.Exists(Path.Combine(root, "Models", "SiteDto.cs")));
+        Assert.False(File.Exists(Path.Combine(root, "Models", "SiteDtoAdmin.cs")));
+        Assert.Equal(
+            [nameof(DealingAPI.DecryptPhone)],
+            typeof(DealingAPI).GetMethods(
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Select(method => method.Name));
     }
 
     [Fact]
@@ -224,18 +268,32 @@ public sealed class LocalSiteEnforcementPipelineTests
 
     private static string ReadProgramSource()
     {
+        return File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Program.cs"));
+    }
+
+    private static string FindRepositoryRoot()
+    {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
              directory is not null;
              directory = directory.Parent)
         {
-            var path = Path.Combine(directory.FullName, "Program.cs");
-            if (File.Exists(path))
+            if (File.Exists(Path.Combine(directory.FullName, "YAGOT_2.0.csproj")))
             {
-                return File.ReadAllText(path);
+                return directory.FullName;
             }
         }
 
-        throw new FileNotFoundException("Could not locate the production Program.cs.");
+        throw new DirectoryNotFoundException("Could not locate the repository root.");
+    }
+
+    private static bool IsProductionSource(string root, string path)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        return !relative.StartsWith(
+                   "tests" + Path.DirectorySeparatorChar,
+                   StringComparison.OrdinalIgnoreCase)
+               && !relative.Split(Path.DirectorySeparatorChar).Any(segment =>
+                   segment is "bin" or "obj" or ".git");
     }
 
     private sealed class StubDecisionService(SiteAccessDecision decision)

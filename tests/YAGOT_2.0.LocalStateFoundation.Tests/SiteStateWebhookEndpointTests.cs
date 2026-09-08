@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YAGOT_2._0.Controllers.Api;
 using YAGOT_2._0.Integration.SiteState;
-using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Integration;
 using Xunit;
 
@@ -36,7 +36,7 @@ public sealed class SiteStateWebhookEndpointTests
         Assert.Equal(SiteStateWebhookAuthenticationTests.DeliveryId,
             apply.Delivery!.DeliveryId);
         Assert.Equal(SHA256.HashData(body), apply.Delivery.PayloadSha256);
-        Assert.Equal(0, host.LegacyStatusCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class SiteStateWebhookEndpointTests
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
         Assert.Contains("method_not_allowed", content, StringComparison.Ordinal);
         Assert.Null(response.Headers.Location);
-        Assert.Equal(0, host.LegacyStatusCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
@@ -380,13 +380,14 @@ public sealed class SiteStateWebhookEndpointTests
     [Trait("Suite", "YAGOT02Endpoint")]
     public async Task AdjacentAndNormalPaths_DoNotGainWebhookBypass(string path)
     {
-        await using var host = await WebhookTestHost.CreateAsync(
-            new CapturingApplyService());
+        var apply = new CapturingApplyService();
+        await using var host = await WebhookTestHost.CreateAsync(apply);
 
         using var response = await host.Client.GetAsync(path);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal(1, host.LegacyStatusCallCount);
+        Assert.Equal(0, apply.CallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     internal static byte[] ValidBody(
@@ -461,21 +462,21 @@ public sealed class SiteStateWebhookEndpointTests
 internal sealed class WebhookTestHost : IAsyncDisposable
 {
     private readonly WebApplication _application;
-    private readonly CountingLegacyStatusHandler _legacyStatus;
+    private readonly TestOutboundHttpObserver _outbound;
 
     private WebhookTestHost(
         WebApplication application,
-        CountingLegacyStatusHandler legacyStatus)
+        TestOutboundHttpObserver outbound)
     {
         _application = application;
-        _legacyStatus = legacyStatus;
+        _outbound = outbound;
         Client = application.GetTestClient();
         Client.BaseAddress = new Uri("https://localhost");
     }
 
     public HttpClient Client { get; }
     public IServiceProvider Services => _application.Services;
-    public int LegacyStatusCallCount => _legacyStatus.CallCount;
+    public int OutboundCallCount => _outbound.CallCount;
 
     public static async Task<WebhookTestHost> CreateAsync(
         ISiteStateApplyService applyService,
@@ -524,16 +525,11 @@ internal sealed class WebhookTestHost : IAsyncDisposable
         builder.Services.AddControllers().AddApplicationPart(
             typeof(SiteStateIntegrationController).Assembly);
         builder.Services.AddMemoryCache();
-        var legacyStatus = new CountingLegacyStatusHandler();
-        builder.Services.AddSingleton(legacyStatus);
-        builder.Services.AddSingleton(_ => new HttpClient(legacyStatus)
-        {
-            BaseAddress = new Uri("https://legacy-control-panel.test/")
-        });
-        builder.Services.AddSingleton<DealingAPI>(services => new DealingAPI(
-            services.GetRequiredService<HttpClient>(),
-            builder.Configuration,
-            services.GetRequiredService<ILogger<DealingAPI>>()));
+        var outbound = new TestOutboundHttpObserver();
+        builder.Services.AddSingleton(outbound);
+        builder.Services.AddSingleton<IHttpMessageHandlerBuilderFilter,
+            TestOutboundHttpMessageHandlerBuilderFilter>();
+        builder.Services.AddHttpClient();
         builder.Services.Configure<SiteStateWebhookOptions>(options =>
         {
             options.SiteId = 1;
@@ -552,10 +548,9 @@ internal sealed class WebhookTestHost : IAsyncDisposable
         app.UseRouting();
         app.UseSiteStateWebhookProtocol();
         app.UseCors("AllowAll");
-        app.UseLegacySiteStatusWithWebhookBypass();
         app.MapControllers();
         await app.StartAsync();
-        return new WebhookTestHost(app, legacyStatus);
+        return new WebhookTestHost(app, outbound);
     }
 
     public async Task<HttpResponseMessage> SendSignedAsync(
@@ -616,24 +611,6 @@ internal sealed class WebhookTestHost : IAsyncDisposable
         public override DateTimeOffset GetUtcNow() =>
             DateTimeOffset.FromUnixTimeSeconds(
                 SiteStateWebhookAuthenticationTests.NowUnixSeconds);
-    }
-}
-
-internal sealed class CountingLegacyStatusHandler : HttpMessageHandler
-{
-    private int _callCount;
-
-    public int CallCount => Volatile.Read(ref _callCount);
-
-    protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken)
-    {
-        Interlocked.Increment(ref _callCount);
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent("[]", Encoding.UTF8, "application/json")
-        });
     }
 }
 

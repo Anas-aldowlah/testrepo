@@ -52,7 +52,7 @@ builder.Services.AddResponseCompression(options =>
     options.Providers.Add<GzipCompressionProvider>();
 });
 
-// Performance: In-memory cache for SiteStatus
+// Shared application cache for catalog, settings, and OTP services
 builder.Services.AddMemoryCache();
 
 // Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
@@ -110,20 +110,7 @@ builder.Services.AddOptions<PublicUrlOptions>()
 builder.Services.AddSiteStateWebhook(builder.Configuration);
 builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
 
-static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
-{
-    var configuration = services.GetRequiredService<IConfiguration>();
-    var baseUrl = configuration["ExternalApi:BaseUrl"];
-
-    if (string.IsNullOrWhiteSpace(baseUrl))
-    {
-        throw new InvalidOperationException("ExternalApi:BaseUrl is not configured.");
-    }
-
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-}
-
-builder.Services.AddHttpClient<DealingAPI>(ConfigureExternalApiClient);
+builder.Services.AddTransient<DealingAPI>();
 builder.Services.AddScoped<IVisitService, VisitService>();
 builder.Services.AddScoped<StoreSettingsService>();
 

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.Memory;
 using YAGOT_2._0.Integration.SiteState;
-using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Integration;
 using Xunit;
 
@@ -10,19 +9,21 @@ namespace YAGOT_2._0.LocalStateFoundation.Tests;
 public sealed class LocalSiteRuntimeStateRegistrationTests
 {
     [Fact]
-    public async Task LegacyCache_IsIsolatedFromLocalReadsAndInvalidation()
+    public async Task UnrelatedApplicationCache_IsIsolatedFromLocalReadsAndInvalidation()
     {
         var services = new ServiceCollection();
         services.AddMemoryCache();
         services.AddScoped<ILocalSiteStateReader>(_ => new MissingReader());
         services.AddLocalSiteRuntimeState();
         await using var provider = services.BuildServiceProvider();
-        var legacy = provider.GetRequiredService<IMemoryCache>();
-        legacy.Set("YQ_SiteStatus", DealingAPI.StatueSite.Developer);
+        var applicationCache = provider.GetRequiredService<IMemoryCache>();
+        const string unrelatedKey = "test:unrelated-cache-entry";
+        var unrelatedValue = new object();
+        applicationCache.Set(unrelatedKey, unrelatedValue);
         var runtime = provider.GetRequiredService<ILocalSiteRuntimeStateProvider>();
         Assert.Equal(LocalSiteStateReadStatus.Missing, (await runtime.ReadAsync()).Status);
         provider.GetRequiredService<ILocalSiteRuntimeStateInvalidator>().InvalidateForCommittedDelivery();
-        Assert.Equal(DealingAPI.StatueSite.Developer, legacy.Get<DealingAPI.StatueSite>("YQ_SiteStatus"));
+        Assert.Same(unrelatedValue, applicationCache.Get<object>(unrelatedKey));
         Assert.Equal(LocalSiteStateReadStatus.Missing, (await runtime.ReadAsync()).Status);
     }
 

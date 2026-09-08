@@ -17,7 +17,7 @@ namespace YAGOT_2._0.LocalStateFoundation.Tests;
 public sealed class LocalSiteRuntimeStatePostgreSqlTests
 {
     [Fact]
-    public async Task SignedWebhook_InvalidatesMissingAndOlderState_WithoutLegacyCalls()
+    public async Task SignedWebhook_InvalidatesMissingAndOlderState_WithoutOutboundCalls()
     {
         await using var database = await PostgreSqlTestDatabase.CreateAsync();
         await using var host = await WebhookTestHost.CreateWithDatabaseAsync(database);
@@ -29,7 +29,7 @@ public sealed class LocalSiteRuntimeStatePostgreSqlTests
         using var second = await host.SendSignedAsync(SiteStateWebhookEndpointTests.ValidBody(revision: 2), Guid.NewGuid());
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         Assert.Equal(2, (await runtime.ReadAsync()).Snapshot!.Revision);
-        Assert.Equal(0, host.LegacyStatusCallCount);
+        Assert.Equal(0, host.OutboundCallCount);
     }
 
     [Fact]
