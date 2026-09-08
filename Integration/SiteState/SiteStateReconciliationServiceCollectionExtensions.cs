@@ -1,3 +1,6 @@
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using YAGOT_2._0.Services.Integration;
 
@@ -26,11 +29,38 @@ public static class SiteStateReconciliationServiceCollectionExtensions
                 client.BaseAddress = new Uri(options.ControlPanelBaseUrl!);
                 client.Timeout = Timeout.InfiniteTimeSpan;
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            .ConfigurePrimaryHttpMessageHandler(provider =>
             {
-                AllowAutoRedirect = false,
-                UseCookies = false,
-                AutomaticDecompression = System.Net.DecompressionMethods.None
+                var env = provider.GetService<IHostEnvironment>();
+                var handler = new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    UseCookies = false,
+                    AutomaticDecompression = System.Net.DecompressionMethods.None
+                };
+
+                if (env?.IsDevelopment() == true)
+                {
+                    handler.SslOptions.RemoteCertificateValidationCallback =
+                        (sender, certificate, chain, errors) =>
+                        {
+                            if (errors == SslPolicyErrors.None)
+                            {
+                                return true;
+                            }
+
+                            if (certificate is X509Certificate2 cert &&
+                                (string.Equals(cert.GetNameInfo(X509NameType.DnsName, false), "localhost", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(cert.Subject, "CN=localhost", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        };
+                }
+
+                return handler;
             });
 
         services.AddSingleton<ISiteStateReconciliationPolicy,

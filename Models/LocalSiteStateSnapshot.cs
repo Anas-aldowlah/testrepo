@@ -20,8 +20,8 @@ public sealed class LocalSiteStateSnapshot
         SiteId,
         Mode,
         Revision,
-        EffectiveAtUtc,
-        ExpiresAtUtc,
+        EffectiveAtUtc.ToUniversalTime(),
+        ExpiresAtUtc.ToUniversalTime(),
         SiteName,
         SiteUrl,
         StartDate,
@@ -33,8 +33,8 @@ public sealed class LocalSiteStateSnapshot
         ContractVersion = snapshot.ContractVersion;
         Mode = snapshot.Mode;
         Revision = snapshot.Revision;
-        EffectiveAtUtc = snapshot.EffectiveAtUtc;
-        ExpiresAtUtc = snapshot.ExpiresAtUtc;
+        EffectiveAtUtc = snapshot.EffectiveAtUtc.ToUniversalTime();
+        ExpiresAtUtc = snapshot.ExpiresAtUtc.ToUniversalTime();
         SiteName = snapshot.SiteName;
         SiteUrl = snapshot.SiteUrl;
         StartDate = snapshot.StartDate;
