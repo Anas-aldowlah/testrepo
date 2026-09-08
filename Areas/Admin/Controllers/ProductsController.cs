@@ -28,7 +28,6 @@ public class ProductsController : Controller
     public ProductsController(
         ProductService productService,
         NeondbContext context,
-        IWebHostEnvironment webHostEnvironment,
         Image imageService,
         IInventoryService inventoryService,
         IBestSellerService bestSellerService,
@@ -286,12 +285,20 @@ public class ProductsController : Controller
         if (!ModelState.IsValid)
             return await EditValidationViewAsync(productVW, product);
 
+        string? uploadedImageUrl = null;
+        var previousImageUrl = product.Imageurl;
+        var imageReferenceSaved = false;
         try
         {
             string? fileName = productVW.Existingimage;
             if (productVW.Imagefile != null && productVW.Imagefile.Length > 0)
             {
-                fileName = await _imageService.UpdateImage(productVW.Imagefile, "products", fileName ?? string.Empty);
+                uploadedImageUrl = await _imageService.UpdateImage(
+                    productVW.Imagefile,
+                    "products",
+                    fileName ?? string.Empty);
+                if (uploadedImageUrl != null)
+                    fileName = uploadedImageUrl;
             }
 
             var stockUnit = NormalizeStockUnit(productVW.StockUnit);
@@ -319,6 +326,15 @@ public class ProductsController : Controller
 
             await SyncRetailPricesAsync(product, productVW);
             await _context.SaveChangesAsync();
+            imageReferenceSaved = true;
+
+            if (uploadedImageUrl != null &&
+                !string.Equals(previousImageUrl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(previousImageUrl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
+            {
+                _imageService.DeleteImage("products", previousImageUrl);
+            }
+
             _catalogService.InvalidateMetadataCache();
             TempData["Success"] = "تم حفظ تعديلات المنتج بنجاح.";
             return RedirectToAction(nameof(Edit), new { id = product.Id });
@@ -334,6 +350,11 @@ public class ProductsController : Controller
             _logger.LogWarning(exception, "Rejected update for product {ProductId} because retail pricing conflicted with persisted constraints.", productVW.Id);
             ModelState.AddModelError(string.Empty, "تعذر حفظ أسعار التجزئة. تحقق من الأحجام والأسعار ثم أعد المحاولة.");
             return await EditValidationViewAsync(productVW, product);
+        }
+        finally
+        {
+            if (!imageReferenceSaved && uploadedImageUrl != null)
+                _imageService.DeleteImage("products", uploadedImageUrl);
         }
     }
 
@@ -377,18 +398,16 @@ public class ProductsController : Controller
         var product = await _productService.GetProductByIdAsync(id);
         if (product == null) return NotFound();
 
-        if (!string.IsNullOrEmpty(product.Imageurl) &&
-            !string.Equals(product.Imageurl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(product.Imageurl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
-        {
-            var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products", Path.GetFileName(product.Imageurl));
-            if (System.IO.File.Exists(imagePath))
-                System.IO.File.Delete(imagePath);
-        }
-
+        var previousImageUrl = product.Imageurl;
         product.Imageurl = DeletedProductImagePath;
         product.Stockquantity = 0;
         await _context.SaveChangesAsync();
+
+        if (!string.Equals(previousImageUrl, DeletedProductImagePath, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(previousImageUrl, DeletedProductImagePathLegacy, StringComparison.OrdinalIgnoreCase))
+        {
+            _imageService.DeleteImage("products", previousImageUrl);
+        }
         _catalogService.InvalidateMetadataCache();
         TempData["Success"] = "تم حذف المنتج بنجاح.";
         return RedirectToAction(nameof(Index));

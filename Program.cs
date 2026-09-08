@@ -425,7 +425,8 @@ app.Use(async (context, next) =>
 
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer")
+    if (context.Request.Path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase)
+        || context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer")
         || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close")
         || context.Request.Path.StartsWithSegments("/Account/Auth")
         || context.Request.Path.StartsWithSegments("/Account/Google"))

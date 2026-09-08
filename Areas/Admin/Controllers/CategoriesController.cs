@@ -113,27 +113,45 @@ public class CategoriesController : Controller
 
         var category = await _categoryService.GetCategoryByID(categoryVW.Id);
         if (category==null) return NotFound();
-        category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
-        if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
+        var previousImageUrl = category.Imageurl;
+        string? uploadedImageUrl = null;
+        var imageReferenceSaved = false;
+        try
         {
-            var updatedImageUrl = await _ImageServes.UpdateImage(
-                categoryVW.ImageFile,
-                "categories",
-                categoryVW.Existingimage ?? string.Empty);
-
-            if (updatedImageUrl != null)
+            category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
+            if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
             {
-                category.Imageurl = updatedImageUrl;
-            }
-        }
-        category.Name = categoryVW.Name;
-        category.Description = categoryVW.Description;
+                uploadedImageUrl = await _ImageServes.UpdateImage(
+                    categoryVW.ImageFile,
+                    "categories",
+                    categoryVW.Existingimage ?? string.Empty);
 
-        _context.Update(category);
-        await _context.SaveChangesAsync();
-        _catalogService.InvalidateMetadataCache();
-        TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
-        return RedirectToAction(nameof(Index));
+                if (uploadedImageUrl != null)
+                    category.Imageurl = uploadedImageUrl;
+            }
+            category.Name = categoryVW.Name;
+            category.Description = categoryVW.Description;
+
+            _context.Update(category);
+            await _context.SaveChangesAsync();
+            imageReferenceSaved = true;
+
+            if (uploadedImageUrl != null &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                _ImageServes.DeleteImage("categories", previousImageUrl);
+            }
+
+            _catalogService.InvalidateMetadataCache();
+            TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
+            return RedirectToAction(nameof(Index));
+        }
+        finally
+        {
+            if (!imageReferenceSaved && uploadedImageUrl != null)
+                _ImageServes.DeleteImage("categories", uploadedImageUrl);
+        }
 
     }
 
@@ -149,7 +167,7 @@ public class CategoriesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
         var category = _context.Categories.FirstOrDefault(c => c.Id == id);
         if (category != null)
@@ -161,21 +179,15 @@ public class CategoriesController : Controller
                 TempData["Error"] = "لا يمكن حذف التصنيف لأنه يحتوي على منتجات";
                 return RedirectToAction(nameof(Index));
             }
-            if (!string.IsNullOrEmpty(category.Imageurl))
-            {
-                if (!string.Equals(category.Imageurl, "/images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(category.Imageurl, "images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase))
-                {
-                    var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
-             "images", "categories", Path.GetFileName(category.Imageurl));
-                    if (System.IO.File.Exists(imagePath))
-                    {
-                        System.IO.File.Delete(imagePath);
-                    }
-                }
-            }
+            var previousImageUrl = category.Imageurl;
             _context.Categories.Remove(category);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            if (!string.Equals(previousImageUrl, DefaultCategoryImageUrl, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                _ImageServes.DeleteImage("categories", previousImageUrl);
+            }
             _catalogService.InvalidateMetadataCache();
             TempData["Success"] = "تم حذف التصنيف بنجاح.";
 
