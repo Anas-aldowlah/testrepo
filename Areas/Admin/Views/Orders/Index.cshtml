@@ -81,76 +81,108 @@
         </article>
     </section>
 
-    <section class="yq-orders-filter-panel" aria-labelledby="ordersFilterTitle">
-        <div class="yq-orders-filter-panel__header">
-            <div>
-                <span class="yq-orders-eyebrow">البحث والتصفية</span>
-                <h3 id="ordersFilterTitle">تصفية الطلبات</h3>
-            </div>
-            @if (hasActiveFilters)
-            {
-                <a asp-action="Index" class="yq-orders-clear-filter">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                    <span>مسح الفلاتر</span>
-                </a>
-            }
-        </div>
-
+    <section class="yq-orders-filter-section" aria-label="تصفية وبحث الطلبات">
         <form method="get" class="yq-orders-filter-form" data-yq-orders-search-form>
             <input type="hidden" name="pageSize" value="@Model.Orders.PageSize" />
-            <div class="yq-orders-search">
-                <label for="ordersSearch">البحث</label>
-                <div class="yq-orders-search__control">
-                    <i class="bi bi-search" aria-hidden="true"></i>
+            <div class="yq-orders-filter-bar">
+                <div class="yq-filter-search">
+                    <label for="ordersSearch" class="visually-hidden">البحث</label>
+                    <i class="bi bi-search yq-filter-search__icon" aria-hidden="true"></i>
                     <input id="ordersSearch"
                            type="search"
                            name="search"
                            value="@search"
-                           placeholder="اسم العميل أو رقم التتبع" />
+                           placeholder="اسم العميل أو رقم التتبع"
+                           autocomplete="off" />
+                </div>
+
+                <div class="yq-filter-dropdown" data-yq-filter-dropdown>
+                    <button type="button"
+                            class="yq-filter-dropdown__trigger"
+                            id="statusDropdownTrigger"
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                            aria-controls="statusDropdownMenu">
+                        @{
+                            var filterStatuses = selectedStatus
+                                .Where(s => !string.Equals(s, "Refunded", StringComparison.OrdinalIgnoreCase))
+                                .ToArray();
+                            var hasVisibleActiveFilters = !string.IsNullOrWhiteSpace(search) || filterStatuses.Length > 0;
+                        }
+                        <span class="yq-filter-dropdown__trigger-content">
+                            <i class="bi bi-funnel yq-filter-dropdown__icon" aria-hidden="true"></i>
+                            <span class="yq-filter-dropdown__title">حالة الطلب</span>
+                            <span class="yq-filter-dropdown__count @(filterStatuses.Length > 0 ? "" : "d-none")" data-yq-selected-count>
+                                @(filterStatuses.Length > 0 ? $"{filterStatuses.Length} محددة" : "")
+                            </span>
+                        </span>
+                        <i class="bi bi-chevron-down yq-filter-dropdown__chevron" aria-hidden="true"></i>
+                    </button>
+
+                    <div class="yq-filter-dropdown__menu"
+                         id="statusDropdownMenu"
+                         role="region"
+                         aria-labelledby="statusDropdownTrigger">
+                        @{
+                            var allStatuses = new (string Code, string Label)[]
+                            {
+                                ("Pending", "قيد الانتظار"),
+                                ("Paid", "تم الدفع"),
+                                ("Processed", "قيد التجهيز"),
+                                ("Shipped", "تم الشحن"),
+                                ("Delivered", "تم التوصيل"),
+                                ("Cancelled", "ملغي")
+                            };
+                        }
+                        @foreach (var (code, label) in allStatuses)
+                        {
+                            var isChecked = filterStatuses.Contains(code, StringComparer.OrdinalIgnoreCase);
+                            <label class="yq-filter-dropdown__item" for="status-@code">
+                                <input type="checkbox"
+                                       id="status-@code"
+                                       name="status"
+                                       value="@code"
+                                       checked="@isChecked"
+                                       class="yq-status-checkbox" />
+                                <span class="yq-status-dot yq-status-dot--@code.ToLowerInvariant()" aria-hidden="true"></span>
+                                <span class="yq-status-label">@label</span>
+                            </label>
+                        }
+                    </div>
                 </div>
             </div>
 
-            <fieldset class="yq-orders-status-filter">
-                <legend>حالة الطلب</legend>
-                <label>
-                    <input type="checkbox" name="status" value="Pending" checked="@selectedStatus.Contains("Pending")" />
-                    <span>قيد الانتظار</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Paid" checked="@selectedStatus.Contains("Paid")" />
-                    <span>تم الدفع</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Processed" checked="@selectedStatus.Contains("Processed")" />
-                    <span>قيد التجهيز</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Shipped" checked="@selectedStatus.Contains("Shipped")" />
-                    <span>تم الشحن</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Delivered" checked="@selectedStatus.Contains("Delivered")" />
-                    <span>تم التوصيل</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Cancelled" checked="@selectedStatus.Contains("Cancelled")" />
-                    <span>ملغي</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="status" value="Refunded" checked="@selectedStatus.Contains("Refunded")" />
-                    <span>مرتجع</span>
-                </label>
-            </fieldset>
-
-            <div class="yq-orders-filter-actions">
-                <button type="submit" class="btn-yaqut-gold yq-workflow-fill">
-                    <i class="bi bi-funnel" aria-hidden="true"></i>
-                    <span>تطبيق</span>
-                </button>
-                <a asp-action="Index" class="btn-yaqut-outline">
-                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                    <span>مسح الفلاتر</span>
-                </a>
+            <div class="yq-active-chips @(hasVisibleActiveFilters ? "" : "d-none")" data-yq-active-chips aria-label="الفلاتر النشطة">
+                @if (!string.IsNullOrWhiteSpace(search))
+                {
+                    <span class="yq-filter-chip yq-filter-chip--search" data-chip-search>
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <span class="yq-filter-chip__label">البحث: @search</span>
+                        <button type="button" class="yq-filter-chip__remove" data-remove-search aria-label="إزالة تصفية البحث: @search">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                        </button>
+                    </span>
+                }
+                @foreach (var st in filterStatuses)
+                {
+                    var chipLabel = st switch
+                    {
+                        "Pending" => "قيد الانتظار",
+                        "Paid" => "تم الدفع",
+                        "Processed" => "قيد التجهيز",
+                        "Shipped" => "تم الشحن",
+                        "Delivered" => "تم التوصيل",
+                        "Cancelled" => "ملغي",
+                        _ => st
+                    };
+                    <span class="yq-filter-chip yq-filter-chip--status" data-chip-status="@st">
+                        <span class="yq-status-dot yq-status-dot--@st.ToLowerInvariant()" aria-hidden="true"></span>
+                        <span class="yq-filter-chip__label">@chipLabel</span>
+                        <button type="button" class="yq-filter-chip__remove" data-remove-status="@st" aria-label="إزالة تصفية: @chipLabel">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                        </button>
+                    </span>
+                }
             </div>
         </form>
     </section>

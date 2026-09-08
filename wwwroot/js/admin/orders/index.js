@@ -6,8 +6,27 @@
     let controller;
     let popovers = [];
     const unexpectedMessage = "تعذر تنفيذ العملية. حاول مرة أخرى.";
-    const labels = { Pending: "قيد الانتظار", Paid: "تم الدفع", Processed: "قيد التجهيز", Shipped: "تم الشحن", Delivered: "تم التوصيل", Cancelled: "ملغي", Refunded: "مرتجع" };
-    const classes = { Pending: "yq-orders-badge--pending", Paid: "yq-orders-badge--processed", Processed: "yq-orders-badge--processed", Shipped: "yq-orders-badge--shipped", Delivered: "yq-orders-badge--delivered", Cancelled: "yq-orders-badge--cancelled", Refunded: "yq-orders-badge--cancelled" };
+    const labels = {
+        Pending: "قيد الانتظار",
+        Paid: "تم الدفع",
+        Processed: "قيد التجهيز",
+        Shipped: "تم الشحن",
+        Delivered: "تم التوصيل",
+        Cancelled: "ملغي",
+        Refunded: "مرتجع"
+    };
+    const classes = {
+        Pending: "yq-orders-badge--pending",
+        Paid: "yq-orders-badge--processed",
+        Processed: "yq-orders-badge--processed",
+        Shipped: "yq-orders-badge--shipped",
+        Delivered: "yq-orders-badge--delivered",
+        Cancelled: "yq-orders-badge--cancelled",
+        Refunded: "yq-orders-badge--cancelled"
+    };
+
+    const FILTER_DEBOUNCE_MS = 400;
+    let filterDebounceTimer = null;
 
     function userSafeError(message) {
         const error = new Error(message);
@@ -17,6 +36,13 @@
 
     function displayError(error, fallback = unexpectedMessage) {
         return error?.userSafe && error.message ? error.message : fallback;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     async function json(response) {
@@ -45,11 +71,155 @@
         });
     }
 
+    function buildFilterUrl() {
+        const form = root.querySelector("[data-yq-orders-search-form]");
+        if (!form) return location.href;
+        const url = new URL(form.action || location.href, location.href);
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        const pageSize = formData.get("pageSize");
+        if (pageSize) {
+            params.set("pageSize", pageSize.toString());
+        }
+
+        const searchVal = (formData.get("search") || "").toString().trim();
+        if (searchVal) {
+            params.set("search", searchVal);
+        }
+
+        const statuses = formData.getAll("status");
+        for (const st of statuses) {
+            const trimmed = (st || "").toString().trim();
+            if (trimmed && trimmed.toLowerCase() !== "refunded") {
+                params.append("status", trimmed);
+            }
+        }
+
+        url.search = params.toString();
+        return url.href;
+    }
+
+    function executeFilterLoad() {
+        clearTimeout(filterDebounceTimer);
+        const url = buildFilterUrl();
+        load(url, true);
+    }
+
+    function scheduleFilterLoad() {
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(() => {
+            executeFilterLoad();
+        }, FILTER_DEBOUNCE_MS);
+    }
+
+    function updateSelectedCount() {
+        const dropdown = root.querySelector("[data-yq-filter-dropdown]");
+        if (!dropdown) return;
+        const checkedBoxes = dropdown.querySelectorAll('.yq-status-checkbox:checked');
+        const countBadge = dropdown.querySelector("[data-yq-selected-count]");
+        if (countBadge) {
+            const count = checkedBoxes.length;
+            if (count > 0) {
+                countBadge.textContent = `${count} محددة`;
+                countBadge.classList.remove("d-none");
+            } else {
+                countBadge.textContent = "";
+                countBadge.classList.add("d-none");
+            }
+        }
+    }
+
+    function syncChipsFromForm() {
+        const chipsContainer = root.querySelector("[data-yq-active-chips]");
+        if (!chipsContainer) return;
+        const searchInput = root.querySelector("#ordersSearch");
+        const searchValue = searchInput ? searchInput.value.trim() : "";
+        const checkedBoxes = Array.from(root.querySelectorAll('.yq-status-checkbox:checked'));
+
+        const hasFilters = searchValue.length > 0 || checkedBoxes.length > 0;
+        if (!hasFilters) {
+            chipsContainer.innerHTML = "";
+            chipsContainer.classList.add("d-none");
+            return;
+        }
+
+        chipsContainer.classList.remove("d-none");
+        chipsContainer.innerHTML = "";
+
+        if (searchValue) {
+            const searchChip = document.createElement("span");
+            searchChip.className = "yq-filter-chip yq-filter-chip--search";
+            searchChip.setAttribute("data-chip-search", "");
+            searchChip.innerHTML = `
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <span class="yq-filter-chip__label">البحث: ${escapeHtml(searchValue)}</span>
+                <button type="button" class="yq-filter-chip__remove" data-remove-search aria-label="إزالة تصفية البحث: ${escapeHtml(searchValue)}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            `;
+            chipsContainer.appendChild(searchChip);
+        }
+
+        for (const cb of checkedBoxes) {
+            const statusVal = cb.value;
+            if (statusVal.toLowerCase() === "refunded") continue;
+            const statusLabel = labels[statusVal] || statusVal;
+            const statusChip = document.createElement("span");
+            statusChip.className = "yq-filter-chip yq-filter-chip--status";
+            statusChip.setAttribute("data-chip-status", statusVal);
+            statusChip.innerHTML = `
+                <span class="yq-status-dot yq-status-dot--${statusVal.toLowerCase()}" aria-hidden="true"></span>
+                <span class="yq-filter-chip__label">${escapeHtml(statusLabel)}</span>
+                <button type="button" class="yq-filter-chip__remove" data-remove-status="${escapeHtml(statusVal)}" aria-label="إزالة تصفية: ${escapeHtml(statusLabel)}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            `;
+            chipsContainer.appendChild(statusChip);
+        }
+    }
+
+    function toggleStatusDropdown(force) {
+        const dropdown = root.querySelector("[data-yq-filter-dropdown]");
+        const trigger = root.querySelector("#statusDropdownTrigger");
+        if (!dropdown || !trigger) return;
+        const isOpen = typeof force === "boolean" ? force : !dropdown.classList.contains("is-open");
+        dropdown.classList.toggle("is-open", isOpen);
+        trigger.setAttribute("aria-expanded", String(isOpen));
+    }
+
+    function closeStatusDropdown(focusTrigger = false) {
+        toggleStatusDropdown(false);
+        if (focusTrigger) {
+            root.querySelector("#statusDropdownTrigger")?.focus();
+        }
+    }
+
+    document.addEventListener("click", event => {
+        const dropdown = root.querySelector("[data-yq-filter-dropdown]");
+        if (dropdown && dropdown.classList.contains("is-open")) {
+            if (!dropdown.contains(event.target)) {
+                closeStatusDropdown(false);
+            }
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            const dropdown = root.querySelector("[data-yq-filter-dropdown]");
+            if (dropdown && dropdown.classList.contains("is-open")) {
+                closeStatusDropdown(true);
+            }
+        }
+    });
+
     async function load(url, push = true) {
         controller?.abort();
         controller = new AbortController();
         const request = ++latest;
         root.setAttribute("aria-busy", "true");
+        const wasDropdownOpen = Boolean(root.querySelector("[data-yq-filter-dropdown].is-open"));
+
         try {
             const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" }, signal: controller.signal });
             if (!response.ok) throw userSafeError("تعذر تحميل الطلبات.");
@@ -62,6 +232,9 @@
             root.dataset.yqVerifyPaymentUrl = next.dataset.yqVerifyPaymentUrl;
             if (push) {
                 history.pushState({}, "", url);
+            }
+            if (wasDropdownOpen) {
+                toggleStatusDropdown(true);
             }
             root.querySelectorAll(".yq-ajax-status-form").forEach(syncStatusForm);
             initPopovers();
@@ -91,9 +264,8 @@
         const search = event.target.closest("[data-yq-orders-search-form]");
         if (search) {
             event.preventDefault();
-            const url = new URL(search.action || location.href, location.href);
-            url.search = new URLSearchParams(new FormData(search)).toString();
-            await load(url.href);
+            clearTimeout(filterDebounceTimer);
+            executeFilterLoad();
             return;
         }
 
@@ -198,12 +370,61 @@
         }
     });
 
+    root.addEventListener("input", event => {
+        const searchInput = event.target.closest("#ordersSearch");
+        if (searchInput) {
+            syncChipsFromForm();
+            scheduleFilterLoad();
+        }
+    });
+
     root.addEventListener("change", event => {
+        const statusCheckbox = event.target.closest(".yq-status-checkbox");
+        if (statusCheckbox) {
+            updateSelectedCount();
+            syncChipsFromForm();
+            scheduleFilterLoad();
+            return;
+        }
+
         const select = event.target.closest(".yq-ajax-status-form select");
         if (select) syncStatusForm(select.closest("form"));
     });
 
     root.addEventListener("click", event => {
+        const trigger = event.target.closest("#statusDropdownTrigger");
+        if (trigger) {
+            event.preventDefault();
+            toggleStatusDropdown();
+            return;
+        }
+
+        const removeStatus = event.target.closest("[data-remove-status]");
+        if (removeStatus) {
+            event.preventDefault();
+            const statusVal = removeStatus.dataset.removeStatus;
+            const cb = root.querySelector(`.yq-status-checkbox[value="${statusVal}"]`);
+            if (cb) {
+                cb.checked = false;
+            }
+            updateSelectedCount();
+            syncChipsFromForm();
+            scheduleFilterLoad();
+            return;
+        }
+
+        const removeSearch = event.target.closest("[data-remove-search]");
+        if (removeSearch) {
+            event.preventDefault();
+            const searchInput = root.querySelector("#ordersSearch");
+            if (searchInput) {
+                searchInput.value = "";
+            }
+            syncChipsFromForm();
+            scheduleFilterLoad();
+            return;
+        }
+
         const conflict = event.target.closest("[data-yq-conflict-info]");
         if (conflict) {
             YaqutOperationDialog.show({
@@ -218,6 +439,9 @@
         if (link) { event.preventDefault(); load(link.href); }
     });
 
-    addEventListener("popstate", () => load(location.href, false));
+    addEventListener("popstate", () => {
+        clearTimeout(filterDebounceTimer);
+        load(location.href, false);
+    });
     initPopovers();
 })();
