@@ -588,7 +588,7 @@ public class AccountController : Controller
         if (string.IsNullOrEmpty(userIdVal) || !int.TryParse(userIdVal, out var userId))
             return Challenge();
 
-        var user = await _dbUser.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _dbUser.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return NotFound();
 
         var role = await GetUserDisplayRoleAsync(user.Id);
@@ -654,6 +654,7 @@ public class AccountController : Controller
     private async Task<string> GetUserDisplayRoleAsync(int userId)
     {
         var role = await _db.UserSites
+            .AsNoTracking()
             .Where(s => s.UserId == userId)
             .Select(f => f.Role)
             .FirstOrDefaultAsync() ?? "Customer";
@@ -682,7 +683,7 @@ public class AccountController : Controller
         }
 
         var normalizedEmail = email.ToLower();
-        var accountUser = await _dbUser.Users.FirstOrDefaultAsync(
+        var accountUser = await _dbUser.Users.AsNoTracking().FirstOrDefaultAsync(
             u => u.Email != null && u.Email.ToLower() == normalizedEmail);
 
         if (accountUser != null)

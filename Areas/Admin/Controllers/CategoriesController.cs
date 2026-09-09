@@ -6,6 +6,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
@@ -20,17 +21,20 @@ public class CategoriesController : Controller
     private readonly CategoryServer _categoryService;
     private readonly Image _ImageServes;
     private readonly ProductCatalogService _catalogService;
+    private readonly ICacheInvalidationService _invalidationService;
 
     public CategoriesController(
         NeondbContext context,
         CategoryServer categoryService,
         Image imageServes,
-        ProductCatalogService catalogService)
+        ProductCatalogService catalogService,
+        ICacheInvalidationService invalidationService)
     {
         _context = context;
         _categoryService = categoryService;
         _ImageServes = imageServes;
         _catalogService = catalogService;
+        _invalidationService = invalidationService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
@@ -44,10 +48,11 @@ public class CategoriesController : Controller
                 ProductCount = _context.Products.Count(p => p.Categoryid == c.Id)
             });
 
+        var pagedCategories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize);
         var model = new AdminCategoriesIndexViewModel
         {
-            Categories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize),
-            TotalCategories = await _context.Categories.CountAsync(),
+            Categories = pagedCategories,
+            TotalCategories = pagedCategories.TotalItems,
             TotalProducts = await _context.Products.CountAsync()
         };
         
@@ -77,17 +82,18 @@ public class CategoriesController : Controller
             Imageurl = imageUrl != null ? GetCategoryImageUrl(imageUrl) : DefaultCategoryImageUrl,
         };
 
-
         await _context.Categories.AddAsync(model);
         await _context.SaveChangesAsync();
-        _catalogService.InvalidateMetadataCache();
+        _invalidationService.InvalidateCatalogMetadata();
+        _invalidationService.InvalidateCategoriesList();
+        _invalidationService.InvalidateHomeShowcase();
         TempData["Success"] = "تمت إضافة التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
     }
     
-    public IActionResult Edit(int id)
+    public async Task<IActionResult> Edit(int id)
     {
-        var category = _context.Categories.FirstOrDefault(c => c.Id == id);
+        var category = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             return NotFound();
@@ -143,7 +149,9 @@ public class CategoriesController : Controller
                 _ImageServes.DeleteImage("categories", previousImageUrl);
             }
 
-            _catalogService.InvalidateMetadataCache();
+            _invalidationService.InvalidateCatalogMetadata();
+            _invalidationService.InvalidateCategoriesList();
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
             return RedirectToAction(nameof(Index));
         }
@@ -188,7 +196,9 @@ public class CategoriesController : Controller
             {
                 _ImageServes.DeleteImage("categories", previousImageUrl);
             }
-            _catalogService.InvalidateMetadataCache();
+            _invalidationService.InvalidateCatalogMetadata();
+            _invalidationService.InvalidateCategoriesList();
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = "تم حذف التصنيف بنجاح.";
 
         }

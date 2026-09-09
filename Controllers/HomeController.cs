@@ -5,6 +5,7 @@ using System.Diagnostics;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 using static YAGOT_2._0.Services.DealingAPI;
 
 namespace Yagot.Controllers;
@@ -16,59 +17,33 @@ public class HomeController : Controller
     private readonly IVisitService _visitService;
     private readonly StoreSettingsService _storeSettingsService;
     private readonly ProductCatalogService _catalogService;
+    private readonly IStorefrontCacheService _storefrontCacheService;
 
     public HomeController(
         NeondbContext context,
         IVisitService visitService,
         StoreSettingsService storeSettingsService,
-        ProductCatalogService catalogService)
+        ProductCatalogService catalogService,
+        IStorefrontCacheService storefrontCacheService)
     {
         _context = context;
         _visitService = visitService;
         _storeSettingsService = storeSettingsService;
         _catalogService = catalogService;
+        _storefrontCacheService = storefrontCacheService;
     }
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var newArrivals = await _context.Products
-            .OrderByDescending(p => p.Createdat)
-            .Take(8)
-            .ToProductCardsAsync(HttpContext.RequestAborted);
-
-        var heroSlides = await _context.Products
-            .Where(product => product.Imageurl != null && product.Imageurl.Trim() != string.Empty)
-            .OrderByDescending(product => product.Createdat)
-            .Take(12)
-            .ToHeroProductsAsync(HttpContext.RequestAborted);
-
-        if (heroSlides.Count == 0)
-            heroSlides = newArrivals.Take(6).ToList();
-
-        const int bestSellersLimit = 8;
-        const int minBestSellersCount = 3;
-
-        var bestSellingProducts = await _context.Products
-            .WhereSellable(true)
-            .Where(p => p.TotalSold > 0)
-            .OrderByDescending(p => p.TotalSold)
-            .ThenByDescending(p => p.Createdat)
-            .ThenByDescending(p => p.Id)
-            .Take(bestSellersLimit)
-            .ToProductCardsAsync(HttpContext.RequestAborted);
-
-        if (bestSellingProducts.Count < minBestSellersCount)
-        {
-            bestSellingProducts.Clear();
-        }
-
+        var showcase = await _storefrontCacheService.GetHomeShowcaseAsync(HttpContext.RequestAborted);
         var categoriesFromDb = (await _catalogService.GetCategoriesAsync(HttpContext.RequestAborted)).ToList();
         var brands = (await _catalogService.GetBrandsAsync(HttpContext.RequestAborted)).ToList();
+
         var model = new ViewModels
         {
-            NewArrivals = newArrivals,
-            HeroSlides = heroSlides,
-            BestSellingProducts = bestSellingProducts,
+            NewArrivals = showcase.GetNewArrivalProducts(),
+            HeroSlides = showcase.GetHeroSlideProducts(),
+            BestSellingProducts = showcase.GetBestSellingProducts(),
             Brands = brands,
             Categories = categoriesFromDb,
             StoreSettings = await _storeSettingsService.GetSettingsAsync()

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using ImageStorage = YAGOT_2._0.Services.Image;
 
 namespace YAGOT_2._0.Controllers;
@@ -14,15 +15,26 @@ public sealed class ImagesController : ControllerBase
     }
 
     [HttpGet("/images/{imageType}/{fileName}")]
-    [ResponseCache(Duration = 604800, Location = ResponseCacheLocation.Any)]
     public IActionResult Get(string imageType, string fileName)
     {
-        if (!_imageStorage.TryOpenImage(imageType, fileName, out var stream, out var contentType) ||
+        if (!_imageStorage.TryOpenImage(
+                imageType,
+                fileName,
+                out var stream,
+                out var contentType,
+                out var lastModifiedUtc,
+                out var fileLength) ||
             stream == null)
         {
             return NotFound();
         }
 
-        return File(stream, contentType, enableRangeProcessing: true);
+        if (HttpContext != null)
+        {
+            Response.Headers.CacheControl = "public, max-age=2592000, stale-while-revalidate=86400";
+        }
+
+        var entityTag = new EntityTagHeaderValue($"\"{lastModifiedUtc.Ticks:x}-{fileLength:x}\"");
+        return File(stream, contentType, lastModifiedUtc, entityTag, enableRangeProcessing: true);
     }
 }

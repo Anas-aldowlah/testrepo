@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
+using SkiaSharp;
 using System.Text.Json;
 using YAGOT_2._0.Controllers;
 using YAGOT_2._0.Services;
@@ -80,9 +81,19 @@ finally
 
 static FormFile FormFile(string name)
 {
-    byte[] bytes = Path.GetExtension(name).Equals(".png", StringComparison.OrdinalIgnoreCase)
-        ? [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]
-        : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    var ext = Path.GetExtension(name).ToLowerInvariant();
+    using var surface = SKSurface.Create(new SKImageInfo(16, 16, SKColorType.Rgba8888, SKAlphaType.Premul));
+    using var canvas = surface.Canvas;
+    canvas.Clear(SKColors.CornflowerBlue);
+    using var image = surface.Snapshot();
+    var format = ext switch
+    {
+        ".png" => SKEncodedImageFormat.Png,
+        ".webp" => SKEncodedImageFormat.Webp,
+        _ => SKEncodedImageFormat.Jpeg
+    };
+    using var data = image.Encode(format, 80);
+    var bytes = data.ToArray();
     var stream = new MemoryStream(bytes);
     return new FormFile(stream, 0, bytes.Length, "file", name);
 }

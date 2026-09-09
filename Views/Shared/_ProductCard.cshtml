@@ -2,6 +2,7 @@
 @using YAGOT_2._0.Services
 @{
     var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
+    var isEager = ViewData["IsEager"] as bool? ?? false;
     var categoryName = Model.Category?.Name ?? string.Empty;
     var isAvailable = ProductRetailAvailability.IsSellable(Model);
     var isBaseOptionAvailable = ProductRetailAvailability.IsBaseOptionSellable(Model);
@@ -31,7 +32,7 @@
     <div class="yq-pcard__media">
         <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
            class="yq-pcard__img-wrap" aria-label="عرض @Model.Name">
-            <img src="@imageUrl" alt="@Model.Name" class="yq-pcard__img" loading="lazy" decoding="async"
+            <img src="@imageUrl" alt="@Model.Name" class="yq-pcard__img" loading="@(isEager ? "eager" : "lazy")" decoding="async"
                  data-yaqut-fallback="/images/placeholder-product.svg" />
         </a>
 

@@ -147,15 +147,21 @@ public class OrderService
         IEnumerable<int> productIds,
         CancellationToken cancellationToken)
     {
-        var products = new Dictionary<int, Product>();
-        foreach (var productId in productIds.Distinct().OrderBy(id => id))
-        {
-            var product = await _context.Products
-                .FromSqlInterpolated($"SELECT * FROM products WHERE id = {productId} FOR UPDATE")
-                .SingleOrDefaultAsync(cancellationToken)
-                ?? throw new InvalidOperationException("تغيرت محتويات السلة. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.");
+        var sortedIds = productIds.Distinct().OrderBy(id => id).ToArray();
+        if (sortedIds.Length == 0)
+            return new Dictionary<int, Product>();
 
-            products.Add(productId, product);
+        var lockedProducts = await _context.Products
+            .FromSqlInterpolated($"SELECT * FROM products WHERE id = ANY({sortedIds}) ORDER BY id FOR UPDATE")
+            .ToListAsync(cancellationToken);
+
+        if (lockedProducts.Count != sortedIds.Length)
+            throw new InvalidOperationException("تغيرت محتويات السلة. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.");
+
+        var products = new Dictionary<int, Product>(lockedProducts.Count);
+        foreach (var product in lockedProducts)
+        {
+            products.Add(product.Id, product);
         }
 
         return products;
@@ -609,15 +615,25 @@ public class OrderService
         IEnumerable<Orderitem> orderItems,
         CancellationToken cancellationToken)
     {
-        var products = new Dictionary<int, Product>();
-        foreach (var productId in orderItems.Select(item => item.Productid).Distinct().OrderBy(id => id))
-        {
-            var product = await _context.Products
-                .FromSqlInterpolated($"SELECT * FROM products WHERE id = {productId} FOR UPDATE")
-                .SingleOrDefaultAsync(cancellationToken)
-                ?? throw new InvalidOperationException($"Product {productId} no longer exists.");
+        var sortedIds = orderItems.Select(item => item.Productid).Distinct().OrderBy(id => id).ToArray();
+        if (sortedIds.Length == 0)
+            return new Dictionary<int, Product>();
 
-            products.Add(productId, product);
+        var lockedProducts = await _context.Products
+            .FromSqlInterpolated($"SELECT * FROM products WHERE id = ANY({sortedIds}) ORDER BY id FOR UPDATE")
+            .ToListAsync(cancellationToken);
+
+        if (lockedProducts.Count != sortedIds.Length)
+        {
+            var foundIds = lockedProducts.Select(p => p.Id).ToHashSet();
+            var missingId = sortedIds.First(id => !foundIds.Contains(id));
+            throw new InvalidOperationException($"Product {missingId} no longer exists.");
+        }
+
+        var products = new Dictionary<int, Product>(lockedProducts.Count);
+        foreach (var product in lockedProducts)
+        {
+            products.Add(product.Id, product);
         }
 
         return products;

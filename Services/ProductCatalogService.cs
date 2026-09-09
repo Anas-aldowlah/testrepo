@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Services;
 
@@ -10,15 +12,22 @@ public sealed class ProductCatalogService
 
     private readonly NeondbContext _context;
     private readonly IMemoryCache _cache;
+    private readonly ICacheInvalidationService _invalidationService;
+    private readonly BackendCacheOptions _cacheOptions;
     private static readonly SemaphoreSlim MetadataLock = new(1, 1);
-    private static readonly TimeSpan MetadataCacheDuration = TimeSpan.FromMinutes(5);
-    private const string MetadataCacheKey = "storefront:catalog-metadata:v1";
+    private static readonly string MetadataCacheKey = StorefrontCacheKeys.CatalogMetadata;
     private static long _metadataVersion;
 
-    public ProductCatalogService(NeondbContext context, IMemoryCache cache)
+    public ProductCatalogService(
+        NeondbContext context,
+        IMemoryCache cache,
+        ICacheInvalidationService invalidationService,
+        IOptions<BackendCacheOptions> cacheOptions)
     {
         _context = context;
         _cache = cache;
+        _invalidationService = invalidationService;
+        _cacheOptions = cacheOptions.Value;
     }
 
     public async Task<ProductsCatalogViewModel> GetCatalogAsync(
@@ -128,6 +137,7 @@ public sealed class ProductCatalogService
     {
         Interlocked.Increment(ref _metadataVersion);
         _cache.Remove(MetadataCacheKey);
+        _invalidationService.InvalidateCatalogMetadata();
     }
 
     public async Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken = default) =>
@@ -161,13 +171,29 @@ public sealed class ProductCatalogService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
+            var retailSizes = await _context.ProductRetailPrices
+                .AsNoTracking()
+                .Where(price =>
+                    price.IsActive && price.SizeMl > 0 && price.Price > 0 &&
+                    price.Product.IsRetailEnabled && price.Product.StockUnit == "Ml" &&
+                    price.Product.VolumeMl.HasValue &&
+                    price.SizeMl < price.Product.VolumeMl.Value &&
+                    price.Product.Stockquantity >= price.SizeMl)
+                .Select(price => price.SizeMl)
+                .Distinct()
+                .OrderBy(size => size)
+                .ToListAsync(cancellationToken);
+
             var metadata = new CatalogMetadata(
                 categories,
                 brands.Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(brand => brand, StringComparer.OrdinalIgnoreCase)
-                    .ToList());
+                    .ToList(),
+                retailSizes);
+
             if (loadVersion == Volatile.Read(ref _metadataVersion))
-                _cache.Set(MetadataCacheKey, metadata, MetadataCacheDuration);
+                _cache.Set(MetadataCacheKey, metadata, _cacheOptions.CatalogDuration);
+
             return metadata;
         }
         finally
@@ -176,19 +202,8 @@ public sealed class ProductCatalogService
         }
     }
 
-    private Task<List<int>> GetRetailSizesAsync(CancellationToken cancellationToken) =>
-        _context.ProductRetailPrices
-            .AsNoTracking()
-            .Where(price =>
-                price.IsActive && price.SizeMl > 0 && price.Price > 0 &&
-                price.Product.IsRetailEnabled && price.Product.StockUnit == "Ml" &&
-                price.Product.VolumeMl.HasValue &&
-                price.SizeMl < price.Product.VolumeMl.Value &&
-                price.Product.Stockquantity >= price.SizeMl)
-            .Select(price => price.SizeMl)
-            .Distinct()
-            .OrderBy(size => size)
-            .ToListAsync(cancellationToken);
+    private async Task<IReadOnlyList<int>> GetRetailSizesAsync(CancellationToken cancellationToken) =>
+        (await GetMetadataAsync(cancellationToken)).RetailSizes;
 
     private static IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sort)
     {
@@ -218,5 +233,6 @@ public sealed class ProductCatalogService
 
     private sealed record CatalogMetadata(
         IReadOnlyList<Category> Categories,
-        IReadOnlyList<string> Brands);
+        IReadOnlyList<string> Brands,
+        IReadOnlyList<int> RetailSizes);
 }
