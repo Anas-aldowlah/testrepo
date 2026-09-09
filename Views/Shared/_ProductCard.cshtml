@@ -71,7 +71,20 @@
     @if (showQuickAdd)
     {
         <div class="yq-pcard__actions" aria-label="إجراءات @Model.Name">
-            @if (isBaseOptionAvailable)
+            @if (!isAvailable)
+            {
+                <button type="button" class="yq-pcard__action-add" disabled aria-disabled="true">
+                    <i class="bi bi-bag-x" aria-hidden="true"></i><span>غير متوفر</span>
+                </button>
+            }
+            else if (isRetailAvailable)
+            {
+                <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
+                   class="yq-pcard__action-add" aria-label="اختر حجم @Model.Name">
+                    <i class="bi bi-sliders" aria-hidden="true"></i><span>اختر الحجم</span>
+                </a>
+            }
+            else if (isBaseOptionAvailable)
             {
                 <form asp-controller="Cart" asp-action="Add" method="post"
                       class="yaqut-quick-add-form yq-pcard__add-form"
@@ -84,13 +97,6 @@
                         <span data-yq-add-label>أضف للسلة</span>
                     </button>
                 </form>
-            }
-            else if (isAvailable)
-            {
-                <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id"
-                   class="yq-pcard__action-add" aria-label="اختر حجم @Model.Name">
-                    <i class="bi bi-sliders" aria-hidden="true"></i><span>اختر الحجم</span>
-                </a>
             }
             else
             {
