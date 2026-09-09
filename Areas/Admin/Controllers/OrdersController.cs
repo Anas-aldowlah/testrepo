@@ -159,8 +159,9 @@ public class OrdersController : Controller
             return NotFound();
         }
 
-        Response.Headers.CacheControl = "no-store, private";
+        Response.Headers.CacheControl = "no-store, no-cache, max-age=0, must-revalidate";
         Response.Headers.Pragma = "no-cache";
+        Response.Headers.Expires = "0";
         return File(stream, contentType, enableRangeProcessing: true);
     }
 

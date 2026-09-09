@@ -6,6 +6,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 
 namespace Yagot.Areas.Admin.Controllers;
 
@@ -23,6 +24,7 @@ public class ProductsController : Controller
     private readonly IInventoryService _inventoryService;
     private readonly IBestSellerService _bestSellerService;
     private readonly ProductCatalogService _catalogService;
+    private readonly ICacheInvalidationService _invalidationService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -32,6 +34,7 @@ public class ProductsController : Controller
         IInventoryService inventoryService,
         IBestSellerService bestSellerService,
         ProductCatalogService catalogService,
+        ICacheInvalidationService invalidationService,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
@@ -40,6 +43,7 @@ public class ProductsController : Controller
         _inventoryService = inventoryService;
         _bestSellerService = bestSellerService;
         _catalogService = catalogService;
+        _invalidationService = invalidationService;
         _logger = logger;
     }
 
@@ -115,6 +119,7 @@ public class ProductsController : Controller
 
         if (result.Success)
         {
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = $"تم تحديث قائمة الأكثر مبيعاً بنجاح ({result.TotalUnitsSold} وحدة مباعة خلال آخر {BestSellerConstants.BestSellerPeriodDays} يوماً).";
         }
         else
@@ -140,14 +145,16 @@ public class ProductsController : Controller
             .Where(p => p.Stockquantity == 0 &&
                 (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy));
 
+        var pagedProducts = await PagedResult<Product>.CreateAsync(
+            archivedQuery.Include(p => p.Category).OrderByDescending(p => p.Createdat).ThenBy(p => p.Name),
+            page,
+            pageSize);
+
         var model = new AdminProductTrashViewModel
         {
-            Products = await PagedResult<Product>.CreateAsync(
-                archivedQuery.Include(p => p.Category).OrderByDescending(p => p.Createdat).ThenBy(p => p.Name),
-                page,
-                pageSize),
+            Products = pagedProducts,
             Categories = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(),
-            TotalArchivedProducts = await archivedQuery.CountAsync()
+            TotalArchivedProducts = pagedProducts.TotalItems
         };
 
         return View(model);
@@ -237,6 +244,7 @@ public class ProductsController : Controller
             _context.Products.Add(newProduct);
             await _context.SaveChangesAsync();
             _catalogService.InvalidateMetadataCache();
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = "تمت إضافة المنتج بنجاح.";
             return RedirectToAction(nameof(Index));
         }
@@ -281,6 +289,16 @@ public class ProductsController : Controller
         }
 
         ValidateRetailPrices(productVW, product, nameof(AdminProductEditViewModel.Product));
+
+        var imageError = Image.GetValidationError(productVW.Imagefile);
+        if (imageError != null)
+            ModelState.AddModelError($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Imagefile)}", imageError);
+
+        if (ModelState.IsValid &&
+            !await _context.Categories.AsNoTracking().AnyAsync(category => category.Id == productVW.Categoryid))
+        {
+            ModelState.AddModelError($"{nameof(AdminProductEditViewModel.Product)}.{nameof(ProductVW.Categoryid)}", "التصنيف المحدد غير صالح.");
+        }
 
         if (!ModelState.IsValid)
             return await EditValidationViewAsync(productVW, product);
@@ -336,6 +354,7 @@ public class ProductsController : Controller
             }
 
             _catalogService.InvalidateMetadataCache();
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = "تم حفظ تعديلات المنتج بنجاح.";
             return RedirectToAction(nameof(Edit), new { id = product.Id });
         }
@@ -385,6 +404,8 @@ public class ProductsController : Controller
             return await StockValidationViewAsync(input);
         }
 
+        _invalidationService.InvalidateHomeShowcase();
+        _catalogService.InvalidateMetadataCache();
         TempData["Success"] = input.Operation == StockAdjustmentOperation.Subtract
             ? "تم خصم الكمية من المخزون بنجاح."
             : "تمت إضافة الكمية إلى المخزون بنجاح.";
@@ -409,6 +430,7 @@ public class ProductsController : Controller
             _imageService.DeleteImage("products", previousImageUrl);
         }
         _catalogService.InvalidateMetadataCache();
+        _invalidationService.InvalidateHomeShowcase();
         TempData["Success"] = "تم حذف المنتج بنجاح.";
         return RedirectToAction(nameof(Index));
     }

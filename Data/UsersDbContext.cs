@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models.UsersDatabase;
@@ -30,6 +30,8 @@ public partial class UsersDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("pg_trgm");
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
@@ -38,6 +40,9 @@ public partial class UsersDbContext : DbContext
 
             entity.HasIndex(e => e.Email, "ux_users_email").IsUnique();
             entity.HasIndex(e => e.Phone, "ux_users_phone").IsUnique();
+            entity.HasIndex(e => e.Name, "ix_users_name_trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
 
             entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
             entity.Property(e => e.Createdat)

@@ -57,14 +57,19 @@ public class QuickSalesController : Controller
                 .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
                 .ToListAsync();
 
-            todayCompletedCount = await _context.Sales
-                .AsNoTracking()
-                .CountAsync(s => s.SalesDayId == openDay.Id && s.Status == "Completed");
-
-            todayCompletedTotal = await _context.Sales
+            var todaySummary = await _context.Sales
                 .AsNoTracking()
                 .Where(s => s.SalesDayId == openDay.Id && s.Status == "Completed")
-                .SumAsync(s => (decimal?)s.FinalAmount) ?? 0m;
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Count = g.Count(),
+                    Total = g.Sum(s => (decimal?)s.FinalAmount) ?? 0m
+                })
+                .FirstOrDefaultAsync();
+
+            todayCompletedCount = todaySummary?.Count ?? 0;
+            todayCompletedTotal = todaySummary?.Total ?? 0m;
         }
 
         var viewModel = new QuickSalesIndexViewModel
@@ -1466,10 +1471,21 @@ public class QuickSalesController : Controller
             .AsNoTracking()
             .Where(s => s.Status == "Completed" && s.SalesDay.Date >= start && s.SalesDay.Date <= end);
 
-        var totalOperations = await completedSalesQuery.CountAsync();
-        var grossSales = await completedSalesQuery.SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
-        var totalDiscounts = await completedSalesQuery.SumAsync(s => (decimal?)s.DiscountTotal) ?? 0m;
-        var netSales = await completedSalesQuery.SumAsync(s => (decimal?)s.FinalAmount) ?? 0m;
+        var salesSummary = await completedSalesQuery
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalOperations = g.Count(),
+                GrossSales = g.Sum(s => (decimal?)s.TotalAmount) ?? 0m,
+                TotalDiscounts = g.Sum(s => (decimal?)s.DiscountTotal) ?? 0m,
+                NetSales = g.Sum(s => (decimal?)s.FinalAmount) ?? 0m
+            })
+            .FirstOrDefaultAsync();
+
+        var totalOperations = salesSummary?.TotalOperations ?? 0;
+        var grossSales = salesSummary?.GrossSales ?? 0m;
+        var totalDiscounts = salesSummary?.TotalDiscounts ?? 0m;
+        var netSales = salesSummary?.NetSales ?? 0m;
 
         var paymentTotals = await _context.SalePayments
             .AsNoTracking()

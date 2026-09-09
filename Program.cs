@@ -15,6 +15,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -289,10 +290,24 @@ builder.Services.AddScoped<ProductCatalogService>();
 builder.Services.AddScoped<IBestSellerService, BestSellerService>();
 builder.Services.AddHostedService<BestSellerBackgroundService>();
 builder.Services.AddScoped<CategoryServer>();
+builder.Services.Configure<ImageProcessingOptions>(
+    builder.Configuration.GetSection(ImageProcessingOptions.SectionName));
 builder.Services.AddScoped<Image>();
 builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);
+
+// Phase 6: Backend Caching & Non-blocking Visit Queue
+builder.Services.Configure<BackendCacheOptions>(
+    builder.Configuration.GetSection(BackendCacheOptions.SectionName));
+builder.Services.AddSingleton<ICacheInvalidationService, CacheInvalidationService>();
+builder.Services.AddScoped<IStorefrontCacheService, StorefrontCacheService>();
+builder.Services.AddSingleton<IVisitBackgroundQueue, VisitBackgroundQueue>();
+builder.Services.AddHostedService<VisitQueueBackgroundService>();
+builder.Services.AddHttpClient("IpWhoIs", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(3);
+});
 
 var app = builder.Build();
 
@@ -363,28 +378,42 @@ app.UseStaticFiles(new StaticFileOptions
             return;
         }
 
-        // 2. Web Fonts
+        // 2. Web Fonts - Byte content is immutable
         if (extension is ".woff" or ".woff2" or ".ttf" or ".otf" or ".eot")
         {
             headers.CacheControl = "public,max-age=31536000,immutable";
             return;
         }
 
-        // 3. Static Images - 30 days cache with stale-while-revalidate
-        if (extension is ".webp" or ".avif" or ".png" or ".jpg" or ".jpeg" or ".svg" or ".ico" or ".jfif" or ".gif")
+        // 3. Web Manifest - 1 day with must-revalidate for timely PWA update detection
+        if (extension is ".webmanifest")
+        {
+            headers.CacheControl = "public,max-age=86400,must-revalidate";
+            return;
+        }
+
+        // 4. Favicon (unversioned fallback)
+        if (extension is ".ico")
+        {
+            headers.CacheControl = "public,max-age=604800,stale-while-revalidate=86400";
+            return;
+        }
+
+        // 5. Static UI Images (unversioned fallback) - 30 days with stale-while-revalidate
+        if (extension is ".webp" or ".avif" or ".png" or ".jpg" or ".jpeg" or ".svg" or ".jfif" or ".gif")
         {
             headers.CacheControl = "public,max-age=2592000,stale-while-revalidate=86400";
             return;
         }
 
-        // 4. Stylesheets & Scripts (non-versioned fallback) - 1 day with stale-while-revalidate
+        // 6. Stylesheets & Scripts (unversioned fallback) - 1 day with stale-while-revalidate
         if (extension is ".css" or ".js")
         {
             headers.CacheControl = "public,max-age=86400,stale-while-revalidate=3600";
             return;
         }
 
-        // 5. General static files (webmanifest, text files, etc.)
+        // 7. General static files (text files, etc.)
         headers.CacheControl = "public,max-age=86400";
     }
 });

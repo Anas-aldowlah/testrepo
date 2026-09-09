@@ -60,6 +60,15 @@ public class DashboardController : Controller
                 .AsNoTracking()
                 .OrderByDescending(o => o.Orderdate)
                 .Take(6)
+                .Select(o => new Order
+                {
+                    Id = o.Id,
+                    Trackingnumber = o.Trackingnumber,
+                    Totalamount = o.Totalamount,
+                    Finalfulfilledamount = o.Finalfulfilledamount,
+                    Status = o.Status,
+                    Orderdate = o.Orderdate
+                })
                 .ToListAsync()
         };
 

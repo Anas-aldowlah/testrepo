@@ -1,41 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using YAGOT_2._0.Models;
-using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Controllers;
 
 public class CategoriesController : Controller
 {
-    private readonly NeondbContext _context;
+    private readonly IStorefrontCacheService _storefrontCacheService;
 
-    public CategoriesController(NeondbContext context)
+    public CategoriesController(IStorefrontCacheService storefrontCacheService)
     {
-        _context = context;
+        _storefrontCacheService = storefrontCacheService;
     }
 
     public async Task<IActionResult> Index()
     {
-        var sellableCounts = await _context.Products
-            .AsNoTracking()
-            .WhereSellable(available: true)
-            .GroupBy(product => product.Categoryid)
-            .Select(group => new { CategoryId = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(item => item.CategoryId, item => item.Count);
-
-        var categories = await _context.Categories
-            .AsNoTracking()
-            .OrderBy(c => c.Name)
-            .ToListAsync();
-
-        foreach (var category in categories)
-        {
-            category.Products = Enumerable.Range(0, sellableCounts.GetValueOrDefault(category.Id))
-                .Select(_ => new Product { Stockquantity = 1 })
-                .ToList();
-        }
-
-        return View(categories);
+        var categorySummaries = await _storefrontCacheService.GetCategoriesListAsync(HttpContext.RequestAborted);
+        return View(categorySummaries);
     }
 }
