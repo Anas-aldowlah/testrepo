@@ -286,25 +286,37 @@ builder.Services.AddScoped<ISiteAccessDecisionService, SiteAccessDecisionService
 builder.Services.AddSiteStateReconciliation(builder.Configuration);
 builder.Services.AddScoped<SiteStatusFilter>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<MigrationStateTracker>();
+builder.Services.AddScoped<DatabaseMigrationCoordinator>();
+builder.Services.AddHostedService<MigrationBackgroundService>();
 builder.Services.AddScoped<SiteStatusFilterAdmin>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// فحص الجاهزية للقراءة فقط أثناء إقلاع التطبيق (Read-Only Readiness Check)
+var (isDbReady, dbReadinessReason) = await DatabaseMigrationCoordinator.VerifyStartupReadinessAsync(app.Services, app.Logger);
+if (!isDbReady)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<NeondbContext>();
-    await dbContext.Database.MigrateAsync();
-
-    var userDbContext = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
-    await userDbContext.Database.MigrateAsync();
+    if (app.Environment.IsProduction())
+    {
+        app.Logger.LogCritical("تعذر بدء تشغيل التطبيق في بيئة الإنتاج نظراً لعدم جاهزية قواعد البيانات أو وجود ترقيات معلقة: {Reason}", dbReadinessReason);
+        throw new InvalidOperationException($"فشل إقلاع التطبيق (Fail-Closed): قواعد البيانات غير جاهزة أو توجد ترقيات معلقة ({dbReadinessReason}).");
+    }
+    else
+    {
+        app.Logger.LogWarning("تنبيه بيئة التطوير: قواعد البيانات بحاجة إلى ترقية أو فحص ({Reason}).", dbReadinessReason);
+    }
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders =
         ForwardedHeaders.XForwardedFor |
         ForwardedHeaders.XForwardedProto
-});
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseResponseCompression();
 
@@ -338,9 +350,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
