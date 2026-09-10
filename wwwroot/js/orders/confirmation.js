@@ -133,8 +133,52 @@
         });
     }
 
+    function initOrderSuccessModal() {
+        var modalElement = document.getElementById('yqOrderSuccessModal');
+        if (!modalElement || !window.bootstrap || !window.bootstrap.Modal) return;
+
+        var pageElement = document.querySelector('[data-yq-confirmation-page]');
+        var orderId = pageElement ? pageElement.getAttribute('data-yq-order-id') : null;
+        var orderStatus = pageElement ? pageElement.getAttribute('data-yq-order-status') : null;
+        var isJustConfirmed = pageElement && pageElement.getAttribute('data-yq-just-confirmed') === 'true';
+
+        // Suppress pop-up for non-initial states (e.g. Cancelled, Shipped, Delivered)
+        if (orderStatus && orderStatus !== 'Pending') {
+            return;
+        }
+
+        var storageKey = orderId ? ('yq_order_confirmed_popup_' + orderId) : null;
+        var alreadyShown = storageKey ? (window.sessionStorage.getItem(storageKey) === 'true') : false;
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var forceShow = urlParams.get('showSuccessModal') === 'true' || urlParams.get('justConfirmed') === 'true';
+
+        var shouldShow = forceShow || isJustConfirmed || !alreadyShown;
+
+        if (shouldShow && (!alreadyShown || forceShow || isJustConfirmed)) {
+            if (storageKey) {
+                try {
+                    window.sessionStorage.setItem(storageKey, 'true');
+                } catch (e) {
+                    // Ignore quota or disabled sessionStorage
+                }
+            }
+
+            // Smooth entrance delay after DOM paint
+            setTimeout(function () {
+                try {
+                    var modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modalInstance.show();
+                } catch (err) {
+                    // Fail gracefully if modal unmounted
+                }
+            }, 350);
+        }
+    }
+
     function init() {
         initCopyTracking();
+        initOrderSuccessModal();
     }
 
     if (document.readyState === 'loading') {
@@ -143,3 +187,4 @@
         init();
     }
 })(window, document);
+

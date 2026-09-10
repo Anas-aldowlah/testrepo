@@ -245,12 +245,25 @@ html[data-theme="dark"] .yq-admin-shell,
     width: 42px;
     height: 42px;
     flex: 0 0 auto;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    box-sizing: border-box;
     border: 1px solid var(--yq-admin-border);
     border-radius: 8px;
     background: var(--yq-admin-surface);
     color: var(--yq-admin-muted);
     cursor: pointer;
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.yq-admin-sidebar__collapse svg,
+.yq-admin-topbar__menu-btn svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    margin: auto;
+    flex-shrink: 0;
 }
 
 .yq-admin-sidebar__collapse {
@@ -544,6 +557,18 @@ html[data-theme="dark"] .yq-admin-shell,
     background: var(--yq-gold-grad, linear-gradient(135deg, #f5e6b8, #d4af37, #9a7b1a));
     color: #111;
     box-shadow: 0 10px 24px rgba(184, 148, 46, 0.18);
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.yq-admin-user__avatar svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+    margin: auto;
+    flex-shrink: 0;
 }
 
 .yq-admin-user__meta {
@@ -1125,12 +1150,18 @@ html[data-theme="dark"] .yq-admin-shell,
     .yq-admin-topbar__actions {
         margin-inline-start: auto;
         gap: 0.45rem;
+        display: flex;
+        align-items: center;
     }
 
     .yq-admin-user__trigger {
         max-width: none;
         min-width: 0;
-        padding-inline: 0.5rem;
+        padding: 3px;
+        min-height: 42px;
+        height: 42px;
+        width: 42px;
+        justify-content: center;
     }
 
     .yq-admin-user__caret {

@@ -90,7 +90,27 @@
                             }
                             <div class="yq-cat-luxury-tile__footer">
                                 <span class="yq-cat-luxury-tile__count">
-                                    <i class="bi bi-box-seam"></i> @productCount @(productCount == 1 ? "منتج" : "منتجات")
+                                    <i class="bi bi-box-seam"></i>
+                                    @if (productCount == 0)
+                                    {
+                                        <text>لا توجد منتجات</text>
+                                    }
+                                    else if (productCount == 1)
+                                    {
+                                        <text>منتج واحد</text>
+                                    }
+                                    else if (productCount == 2)
+                                    {
+                                        <text>منتجان</text>
+                                    }
+                                    else if (productCount >= 3 && productCount <= 10)
+                                    {
+                                        <text>@productCount منتجات</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@productCount منتج</text>
+                                    }
                                 </span>
                                 <div class="yq-cat-luxury-tile__action">
                                     <span class="yq-cat-luxury-tile__action-text">تصفح المنتجات</span> <i class="bi bi-arrow-left"></i>
