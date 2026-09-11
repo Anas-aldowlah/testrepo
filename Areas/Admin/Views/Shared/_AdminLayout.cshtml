@@ -1,4 +1,11 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
+@using YAGOT_2._0.Integration.SiteState
+@using YAGOT_2._0.Services.Integration
+@inject ISiteAccessDecisionService SiteDecisionService
+@{
+    var storefrontDecision = await SiteDecisionService.DecideAsync(SiteAccessSurface.Storefront, User);
+    var isStorefrontAllowed = storefrontDecision.IsAllowed;
+}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="yaqut-admin-root">
 <head>
@@ -145,10 +152,20 @@
             </nav>
 
             <div class="yq-admin-sidebar__foot">
-                <a asp-area="" asp-controller="Home" asp-action="Index" class="yq-admin-back-store" title="العودة للمتجر">
-                    <i class="bi bi-box-arrow-in-left"></i>
-                    <span>العودة للمتجر</span>
-                </a>
+                @if (isStorefrontAllowed)
+                {
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="yq-admin-back-store" title="العودة للمتجر">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                        <span>العودة للمتجر</span>
+                    </a>
+                }
+                else
+                {
+                    <a href="javascript:void(0)" class="yq-admin-back-store" data-bs-toggle="modal" data-bs-target="#storeDevModal" title="العودة للمتجر">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                        <span>العودة للمتجر</span>
+                    </a>
+                }
             </div>
         </aside>
 
@@ -208,9 +225,18 @@
                             <a asp-area="" asp-controller="Account" asp-action="Profile">
                                 <i class="bi bi-person-circle"></i> ملفي الشخصي
                             </a>
-                            <a asp-area="" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-shop"></i> عرض المتجر
-                            </a>
+                            @if (isStorefrontAllowed)
+                            {
+                                <a asp-area="" asp-controller="Home" asp-action="Index">
+                                    <i class="bi bi-shop"></i> عرض المتجر
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#storeDevModal">
+                                    <i class="bi bi-shop"></i> عرض المتجر
+                                </a>
+                            }
                             <hr />
                             <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="yq-admin-user__logout-form">
                                 <button type="submit" class="yq-admin-user__logout">
@@ -228,6 +254,32 @@
             </main>
         </div>
     </div>
+
+    @if (!isStorefrontAllowed)
+    {
+        <!-- Modal تنبيه وضع التطوير للأدمن -->
+        <div class="modal fade" id="storeDevModal" tabindex="-1" aria-labelledby="storeDevModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-center shadow-lg" style="border-radius: 16px;">
+                    <div class="modal-header border-0 pb-0 justify-content-end">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body py-3 text-center">
+                        <div class="mb-3">
+                            <span class="d-inline-flex p-3 rounded-circle bg-warning bg-opacity-10 text-warning fs-1">
+                                <i class="bi bi-tools"></i>
+                            </span>
+                        </div>
+                        <h5 class="fw-bold mb-2" id="storeDevModalLabel">المتجر في وضع التطوير</h5>
+                        <p class="text-secondary mb-0">الموقع حالياً في وضع التطوير، ولا يمكن تصفح واجهة المتجر.</p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">حسناً</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <script src="~/js/admin/ajax-response.js" asp-append-version="true"></script>
