@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using YAGOT_2._0.Data;
+using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.UsersDatabase;
 using YAGOT_2._0.Services;
@@ -169,6 +170,12 @@ public class AccountController : Controller
         await _guestCartService.MergeIntoUserCartAsync(userGloble.Id);
         TempData["UserName"] = userGloble.Name;
         await _visitService.SaveVisitAsync(HttpContext, userGloble.Name);
+
+        if (userSiteVB?.Role == "Admin" && (string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/Home/Index" || returnUrl == "/"))
+        {
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+
         return LocalRedirect(returnUrl);
     }
 
@@ -570,17 +577,32 @@ public class AccountController : Controller
 
     #endregion
 
-    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         ClearRegistrationState();
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpGet]
+    [ActionName("Logout")]
+    public async Task<IActionResult> LogoutGet()
+    {
+        ClearRegistrationState();
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
         return RedirectToAction("Index", "Home");
     }
 
     [Authorize]
+    [ServiceFilter(typeof(SiteStatusFilter))]
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
@@ -606,6 +628,7 @@ public class AccountController : Controller
     }
 
     [Authorize]
+    [ServiceFilter(typeof(SiteStatusFilter))]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileVM model)
@@ -772,7 +795,14 @@ public class AccountController : Controller
 
     private string GetRedirectUrl(string? returnUrl)
     {
-        return Url.IsLocalUrl(returnUrl) ? returnUrl! : "/Home/Index";
+        if (string.IsNullOrWhiteSpace(returnUrl) ||
+            !Url.IsLocalUrl(returnUrl) ||
+            returnUrl.StartsWith("/Account/Logout", StringComparison.OrdinalIgnoreCase))
+        {
+            return "/Home/Index";
+        }
+
+        return returnUrl;
     }
 
     private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)

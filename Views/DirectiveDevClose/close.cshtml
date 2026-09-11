@@ -538,12 +538,24 @@
                 </div>
             </div>
             <center>
-                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="logout-container">
-                    <button type="submit" class="logout-btn">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                        <span>الرجوع إلى القائمة السابقة</span>
-                    </button>
-                </form>
+                <div class="d-inline-flex flex-wrap justify-content-center gap-3 my-3">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="d-inline m-0 p-0">
+                        <button type="submit" class="logout-btn">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-area="" asp-controller="Account" asp-action="Auth" class="logout-btn text-decoration-none">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                        <span>تسجيل الدخول</span>
+                    </a>
+                }
+                </div>
             </center>
         </div>
     </div>

@@ -28,6 +28,8 @@ internal static class SiteAccessFilterResponse
 
         return decision.HtmlTarget switch
         {
+            SiteAccessHtmlTarget.AdminDashboard => new RedirectToActionResult(
+                "Index", "Dashboard", new { area = "Admin" }),
             SiteAccessHtmlTarget.Developer => new RedirectToActionResult(
                 "Developer", "DirectiveDevClose", new { area = "" }),
             SiteAccessHtmlTarget.Close => new RedirectToActionResult(

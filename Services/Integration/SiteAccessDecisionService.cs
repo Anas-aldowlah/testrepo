@@ -69,13 +69,31 @@ public sealed class SiteAccessDecisionService(
         var isAdmin = user.IsInRole("Admin");
         if (effectiveMode == SiteStateContractV1.Development)
         {
-            return isAdmin
-                ? Allow(effectiveMode, snapshot)
-                : Restrict(
+            if (surface == SiteAccessSurface.Admin)
+            {
+                return isAdmin
+                    ? Allow(effectiveMode, snapshot)
+                    : Restrict(
+                        SiteAccessDecisionKind.DevelopmentRestricted,
+                        SiteAccessHtmlTarget.Developer,
+                        effectiveMode,
+                        snapshot);
+            }
+
+            if (isAdmin)
+            {
+                return Restrict(
                     SiteAccessDecisionKind.DevelopmentRestricted,
-                    SiteAccessHtmlTarget.Developer,
+                    SiteAccessHtmlTarget.AdminDashboard,
                     effectiveMode,
                     snapshot);
+            }
+
+            return Restrict(
+                SiteAccessDecisionKind.DevelopmentRestricted,
+                SiteAccessHtmlTarget.Developer,
+                effectiveMode,
+                snapshot);
         }
 
         if (effectiveMode == SiteStateContractV1.Offline)

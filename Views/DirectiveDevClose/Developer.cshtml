@@ -1,7 +1,6 @@
-﻿@{
+@{
     Layout = null;
 }
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -11,7 +10,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/fonts/font-delivery.css" asp-append-version="true" />
     <style nonce="@Context.Items["csp-nonce"]">
-        .yq-dev-submit-btn { border: 3px Gold solid; background: transparent; width: 100%; cursor: pointer; }
+        .yq-container-max { max-width: 1140px; margin: 0 auto; }
         /* ===== RESET & BASE ===== */
         * {
             margin: 0;
@@ -31,348 +30,344 @@
 
         body {
             font-family: 'Tajawal', 'Segoe UI', sans-serif;
+            background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            color: #f1f5f9;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* خلفية عصرية بتدرج أزرق غامق إلى بنفسجي */
-            background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%);
-            padding: 1.5rem;
-            margin: 0;
+            padding-bottom: 3rem;
             position: relative;
-            overflow-x: hidden;
         }
 
-        /* ===== الحاوية الرئيسية ===== */
-        .main-wrapper {
+        /* خلفية نجوم متحركة متطابقة مع صفحة الإغلاق */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.3), transparent),
+                              radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.2), transparent),
+                              radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,0.25), transparent),
+                              radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.15), transparent),
+                              radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.2), transparent),
+                              radial-gradient(1.5px 1.5px at 15% 90%, rgba(255,255,255,0.15), transparent),
+                              radial-gradient(1px 1px at 65% 30%, rgba(255,255,255,0.2), transparent);
+            background-size: 100% 100%;
+            pointer-events: none;
+            z-index: 0;
+            animation: twinkle 4s ease-in-out infinite alternate;
+        }
+
+        @@keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.8; }
+        }
+
+        .container {
             position: relative;
             z-index: 1;
-            width: 100%;
-            max-width: 900px;
         }
 
-        /* ===== البطاقة الرئيسية (تصميم زجاجي عصري) ===== */
-        .main-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 48px;
-            padding: 3.5rem 3rem;
-            box-shadow:
-                0 30px 80px rgba(0, 0, 0, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        /* ===== شريط التنبيه العلوي الثابت ===== */
+        .sticky-alert-banner {
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: #ffffff;
+            font-weight: 600;
             text-align: center;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25);
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+        }
+
+        .sticky-alert-banner i {
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+            color: #fcd34d;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        /* ===== البطاقات الزجاجية الفاخرة ===== */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 2.2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             position: relative;
             overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
         }
 
-        /* تأثير خلفية متموجة بألوان نيون خفيفة */
-        .main-card::before {
-            content: '';
-            position: absolute;
-            top: -40%;
-            left: -30%;
-            width: 150%;
-            height: 150%;
-            background: radial-gradient(circle at 30% 40%, rgba(139, 92, 246, 0.15) 0%, transparent 60%),
-                        radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%);
-            animation: pulseBg 12s ease-in-out infinite alternate;
-            pointer-events: none;
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
-        @@keyframes pulseBg {
-            0% { transform: translate(-5%, -5%) scale(1) rotate(0deg); }
-            100% { transform: translate(5%, 5%) scale(1.1) rotate(3deg); }
-        }
-
-        @@media (max-width: 576px) {
-            .main-card {
-                padding: 2.5rem 1.5rem;
-                border-radius: 32px;
-            }
-        }
-
-        /* ===== أنميشن التروس (ألوان عصرية) ===== */
-        .development-animation {
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f8fafc;
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 1.5rem;
-            height: 80px;
+            gap: 10px;
         }
 
-        .gear-large {
-            font-size: 3.8rem;
-            color: #fbbf24; /* ذهبي عصري */
-            filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.3));
-            animation: rotateClockwise 5s linear infinite;
-        }
-
-        .gear-small {
-            font-size: 2rem;
-            color: #60a5fa; /* أزرق نيون */
-            margin-top: -18px;
-            margin-right: -12px;
-            filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.4));
-            animation: rotateCounterClockwise 3.5s linear infinite;
-        }
-
-        @@keyframes rotateClockwise {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @@keyframes rotateCounterClockwise {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
-        }
-
-        /* ===== العناوين ===== */
-        .title-wrapper {
-            margin-bottom: 2rem;
-        }
-
-        .title-small {
-            font-size: 0.9rem;
+        .badge-dev {
+            background: rgba(234, 179, 8, 0.15);
+            color: #fde047;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.85rem;
             font-weight: 600;
-            color: #c7d2fe; /* بنفسجي فاتح */
-            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            padding: 0.3rem 1.2rem;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .title-main {
-            font-size: 3.2rem;
-            font-weight: 800;
-            color: #f8fafc;
-            letter-spacing: -0.03em;
-            line-height: 1.2;
-            margin-top: 0.5rem;
-            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        @@media (max-width: 576px) {
-            .title-main {
-                font-size: 2.2rem;
-            }
-        }
-
-        /* ===== الرسالة ===== */
-        .message-box {
-            background: rgba(15, 23, 42, 0.40);
-            padding: 1.6rem 2rem;
-            border-radius: 28px;
-            margin-bottom: 2.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(4px);
-        }
-
-        .message {
-            font-size: 1.1rem;
-            line-height: 1.9;
-            color: #e2e8f0;
-            font-weight: 400;
-            margin: 0;
-        }
-
-        .message .highlight {
-            font-weight: 700;
-            color: #a78bfa; /* بنفسجي نيون */
-            text-shadow: 0 0 30px rgba(167, 139, 250, 0.2);
-        }
-
-        /* ===== بطاقات الميزات (تصميم عصري) ===== */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1.2rem;
-            margin-bottom: 2.5rem;
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 24px;
-            padding: 1.5rem 0.8rem;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(4px);
-        }
-
-        .feature-card:hover {
-            background: rgba(255, 255, 255, 0.10);
-            transform: translateY(-6px);
-            border-color: rgba(167, 139, 250, 0.3);
-            box-shadow: 0 15px 40px rgba(139, 92, 246, 0.15);
-        }
-
-        .feature-card .icon-circle {
-            width: 52px;
-            height: 52px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 0.8rem auto;
-            color: #c7d2fe;
-            font-size: 1.3rem;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        .feature-card:hover .icon-circle {
-            background: rgba(167, 139, 250, 0.20);
-            color: #a78bfa;
-            border-color: rgba(167, 139, 250, 0.2);
-            box-shadow: 0 0 30px rgba(167, 139, 250, 0.1);
-        }
-
-        .feature-card .feature-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #f1f5f9;
-            margin-bottom: 0.2rem;
-        }
-
-        .feature-card .feature-desc {
-            font-size: 0.8rem;
-            color: #94a3b8;
-            font-weight: 400;
-        }
-
-        /* ===== حالة المنصة (عصري) ===== */
-        .status-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 0.6rem 1.8rem;
-            background: rgba(15, 23, 42, 0.50);
-            border-radius: 60px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            width: fit-content;
-            margin: 0 auto;
-            backdrop-filter: blur(4px);
+            gap: 6px;
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
-            background: #34d399; /* أخضر نيون */
+            background: #22c55e;
             border-radius: 50%;
-            animation: pulseDot 2s ease-in-out infinite;
-            box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+            display: inline-block;
+            box-shadow: 0 0 10px #22c55e;
+            animation: blink 1.5s infinite;
         }
 
-        .status-label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #e2e8f0;
+        @@keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
         }
 
-        .status-label span {
-            font-weight: 400;
+        .info-list {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .info-label {
             color: #94a3b8;
+            font-weight: 500;
         }
 
-        @@keyframes pulseDot {
-            0%, 100% { opacity: 0.5; transform: scale(0.85); }
-            50% { opacity: 1; transform: scale(1.2); }
+        .info-value {
+            color: #f1f5f9;
+            font-weight: 600;
         }
 
-        @@media (max-width: 576px) {
-            .features-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.8rem;
-            }
+        .icon-wrapper {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #60a5fa;
         }
 
-        /* ===== دخول الصفحة ===== */
-        .main-wrapper {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .faq-section {
+            margin-top: 1.5rem;
         }
 
-        @@keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .faq-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 1.2rem;
+            height: 100%;
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+
+        .faq-answer {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* ===== أزرار التحكم (متطابقة تماماً مع close.cshtml) ===== */
+        .logout-btn {
+            border: 3px Gold solid;
+            color: white;
+            font-size: 1.15rem;
+            padding: 10px 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 8px;
+            background-color: #333;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .logout-btn:hover {
+            background-color: Gold;
+            color: black;
         }
     </style>
 </head>
 <body>
 
-    <div class="main-wrapper">
+    <!-- شريط التنبيه العلوي -->
+    <div class="sticky-alert-banner">
+        <i class="bi bi-tools"></i>
+        تنبيه: المنصة الإلكترونية في وضع التطوير حالياً. نقوم بإجراء تحسينات وتحديثات لخدمتكم بشكل أفضل.
+    </div>
 
-        <div class="main-card">
+    <div class="container mt-5 yq-container-max">
+        <div class="row g-4">
 
-            <!-- التروس المتحركة -->
-            <div class="development-animation">
-                <i class="bi bi-gear-fill gear-large"></i>
-                <i class="bi bi-gear-fill gear-small"></i>
+            <!-- العمود الأيمن: حالة الموقع والتحديثات -->
+            <div class="col-lg-7">
+                <div class="glass-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                        <h2 class="page-title m-0">
+                            <i class="bi bi-gear-wide-connected"></i> المنصة الإلكترونية
+                        </h2>
+                        <span class="badge-dev">
+                            <span class="status-dot"></span> وضع التطوير
+                        </span>
+                    </div>
+
+                    <p class="text-secondary mb-4" style="line-height: 1.8; color: #cbd5e1 !important;">
+                        نعمل حالياً على تطوير وتحديث خدمات المنصة الإلكترونية لتقديم تجربة تسوق أكثر سرعة وأماناً وكفاءة. نعتذر عن أي إزعاج ونشكركم على صبركم وتفهمكم.
+                    </p>
+
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">حالة النظام</span>
+                            <span class="info-value text-warning">
+                                <span class="status-dot me-1"></span> جاري تنفيذ التحديثات الآن
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">الأعمال الجارية</span>
+                            <span class="info-value">ترقية الأداء وتحديث قواعد البيانات</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">الأمان والموثوقية</span>
+                            <span class="info-value text-success">
+                                <i class="bi bi-shield-check me-1"></i> كافة البيانات والطلبات محفوظة بالكامل
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="title-wrapper">
-                <div class="title-small">
-                    <i class="bi bi-tools"></i> أعمال صيانة وتحديث
-                </div>
-                <h1 class="title-main">الموقع قيد التطوير</h1>
-            </div>
+            <!-- العمود الأيسر: بطاقة أهداف التطوير والتواصل -->
+            <div class="col-lg-5">
+                <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="icon-wrapper">
+                                <i class="bi bi-stars"></i>
+                            </div>
+                            <h3 class="h5 m-0 fw-bold">ما الجديد القادم؟</h3>
+                        </div>
+                        <p class="mb-4" style="color: #94a3b8; line-height: 1.7;">
+                            تتضمن هذه التحديثات تحسينات جوهرية في سرعة التصفح، تبسيط خطوات إتمام الطلب، وتوفير تجربة مستخدم عصرية وسلسة تلبي تطلعاتكم.
+                        </p>
+                    </div>
 
-            <div class="message-box">
-                <p class="message">
-                    <span class="highlight">نعمل حالياً</span> على تطوير وتحسين المنصة الإلكترونية لتقديم تجربة أكثر كفاءة واستقراراً، مع الالتزام بأعلى معايير الجودة والأمان.
-                </p>
-            </div>
-
-            <!-- بطاقات الميزات -->
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="icon-circle"><i class="bi bi-speedometer2"></i></div>
-                    <div class="feature-title">الأداء</div>
-                    <div class="feature-desc">تحسين سرعة النظام</div>
-                </div>
-                <div class="feature-card">
-                    <div class="icon-circle"><i class="bi bi-shield-check"></i></div>
-                    <div class="feature-title">الأمان</div>
-                    <div class="feature-desc">تعزيز حماية البيانات</div>
-                </div>
-                <div class="feature-card">
-                    <div class="icon-circle"><i class="bi bi-layers-fill"></i></div>
-                    <div class="feature-title">الخدمات</div>
-                    <div class="feature-desc">إضافة خدمات جديدة</div>
-                </div>
-                <div class="feature-card">
-                    <div class="icon-circle"><i class="bi bi-check2-all"></i></div>
-                    <div class="feature-title">الجودة</div>
-                    <div class="feature-desc">اختبارات دقيقة</div>
+                    <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-warning fw-bold small">
+                            <i class="bi bi-clock-history"></i> سنعود قريباً
+                        </div>
+                        <div class="small text-secondary">
+                            يرجى معاودة زيارة الموقع لاحقاً لمتابعة انطلاق المتجر بحلته الجديدة.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- حالة العمل -->
-            <div class="status-wrapper">
-                <span class="status-dot"></span>
-                <span class="status-label">حالة العمل <span>· جاري تنفيذ التحديثات الآن</span></span>
-                
+            <!-- الأسئلة الشائعة -->
+            <div class="col-12 mt-4">
+                <div class="glass-card faq-section">
+                    <h4 class="faq-title">
+                        <i class="bi bi-question-circle-fill"></i> الأسئلة الشائعة للعملاء
+                    </h4>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="faq-item">
+                                <div class="faq-question">متى ستنتهي أعمال التطوير ويعود المتجر للعمل؟</div>
+                                <div class="faq-answer">يعمل فريق التطوير بكامل طاقته لإتمام عمليات التحديث والاختبار، وسيعود المتجر للعمل بشكل طبيعي فور اكتمال الجاهزية.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="faq-item">
+                                <div class="faq-question">هل حسابي وطلباتي السابقة في أمان؟</div>
+                                <div class="faq-answer">نعم بكل تأكيد، جميع حسابات العملاء وسجلات الطلبات السابقة محفوظة ومحمية بأعلى معايير الأمان ولن تتأثر بأعمال التحديث.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <hr />
-            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true">
-                <button type="submit" class="title-small yq-dev-submit-btn">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    الرجوع إلى القائمة السابقة
-                </button>
-            </form>
+
+            <!-- أزرار الإجراءات المتطابقة مع close.cshtml -->
+            <center>
+                <div class="d-inline-flex flex-wrap justify-content-center gap-3 my-3">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" asp-antiforgery="true" class="d-inline m-0 p-0">
+                        <button type="submit" class="logout-btn">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-area="" asp-controller="Account" asp-action="Auth" class="logout-btn text-decoration-none">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                        <span>تسجيل الدخول</span>
+                    </a>
+                }
+                </div>
+            </center>
+
         </div>
-
     </div>
 
 </body>

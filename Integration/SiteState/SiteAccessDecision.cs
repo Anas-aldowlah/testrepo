@@ -27,7 +27,8 @@ public enum SiteAccessHtmlTarget
     None,
     Developer,
     Close,
-    Unavailable
+    Unavailable,
+    AdminDashboard
 }
 
 public sealed record SiteAccessDecision(
