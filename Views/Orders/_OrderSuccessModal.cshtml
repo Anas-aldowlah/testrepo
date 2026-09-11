@@ -1,0 +1,91 @@
+@model YAGOT_2._0.Models.Order
+@{
+    var whatsAppUrl = ViewData["CustomerOrderWhatsAppUrl"] as string;
+    var totalItemsCount = Model.Orderitems?.Sum(i => i.Quantity) ?? 0;
+}
+
+<div class="modal fade yq-order-success-modal"
+     id="yqOrderSuccessModal"
+     tabindex="-1"
+     aria-labelledby="yqOrderSuccessModalTitle"
+     aria-hidden="true"
+     role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content yq-order-success-modal__content">
+            <!-- Modal Header -->
+            <div class="modal-header yq-order-success-modal__header">
+                <div>
+                    <span class="yq-order-success-modal__eyebrow">
+                        <i class="bi bi-check-circle-fill" aria-hidden="true"></i> تأكيد استلام الطلب
+                    </span>
+                    <h2 class="modal-title yq-order-success-modal__title" id="yqOrderSuccessModalTitle">
+                        تم إرسال طلبك بنجاح!
+                    </h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body yq-order-success-modal__body">
+                <div class="yq-order-success-modal__meta">
+                    <span class="yq-order-success-modal__badge">
+                        <i class="bi bi-receipt" aria-hidden="true"></i> طلب رقم <bdi dir="ltr">#@Model.Id</bdi>
+                    </span>
+                    @if (totalItemsCount > 0)
+                    {
+                        <span class="yq-order-success-modal__items-count">
+                            <i class="bi bi-bag-check" aria-hidden="true"></i> @totalItemsCount @(totalItemsCount == 1 ? "منتج" : totalItemsCount == 2 ? "منتجان" : "منتجات")
+                        </span>
+                    }
+                </div>
+
+                <p class="yq-order-success-modal__message">
+                    شكراً لتسوقك من ياقوت للعطور. تم استلام بيانات طلبك بنجاح وتسجيلها في النظام.
+                </p>
+
+                <!-- Urgent WhatsApp Reservation Callout -->
+                <div class="yq-order-success-modal__callout" role="note">
+                    <div class="yq-order-success-modal__callout-icon" aria-hidden="true">
+                        <i class="bi bi-whatsapp"></i>
+                    </div>
+                    <div class="yq-order-success-modal__callout-content">
+                        <strong class="yq-order-success-modal__callout-title">حجز الكمية السريع</strong>
+                        <p class="yq-order-success-modal__callout-text">
+                            يمكنك التواصل مع الإدارة حتى يتم حجز كميتك بسرعة وتأكيد الشحن والتوصيل فوراً.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Actions / Footer -->
+            <div class="modal-footer yq-order-success-modal__actions">
+                @if (!string.IsNullOrWhiteSpace(whatsAppUrl))
+                {
+                    <a href="@whatsAppUrl"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="yq-order-success-modal__btn yq-order-success-modal__btn--whatsapp">
+                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                        <span>تواصل مع الإدارة عبر واتساب</span>
+                        <i class="bi bi-box-arrow-up-right yq-order-success-modal__ext" aria-hidden="true"></i>
+                    </a>
+                    <button type="button"
+                            class="btn-yaqut-outline yq-order-success-modal__btn"
+                            data-bs-dismiss="modal">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        <span>متابعة تفاصيل الطلب</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            class="btn-yaqut-gold yq-order-success-modal__btn"
+                            data-bs-dismiss="modal">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        <span>متابعة تفاصيل الطلب</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

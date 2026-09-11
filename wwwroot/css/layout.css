@@ -135,6 +135,9 @@ body.has-nav-open .yaqut-header {
     align-items: center;
     justify-content: center;
     padding: 0;
+    margin: 0;
+    line-height: 1;
+    box-sizing: border-box;
     border: 1px solid var(--yq-border);
     border-radius: 50%;
     background: var(--yq-bg-elevated);
@@ -146,8 +149,9 @@ body.has-nav-open .yaqut-header {
 
 .yaqut-menu-toggle svg {
     display: block;
-    width: 1em;
-    height: 1em;
+    width: 22px;
+    height: 22px;
+    margin: auto;
     flex-shrink: 0;
 }
 
@@ -359,31 +363,44 @@ html[data-theme="dark"] .yaqut-cart-link {
 
 .yaqut-cart-link__icon {
     font-size: 1.15rem;
-    width: 1em;
-    height: 1em;
+    width: 1.15rem;
+    height: 1.15rem;
     display: block;
+    margin: auto;
     flex-shrink: 0;
 }
 
 .yaqut-cart-link__count {
     position: absolute;
-    top: -8px;
-    inset-inline-start: -8px;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 0.35rem;
-    border-radius: 50%;
+    top: -4px;
+    inset-inline-start: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
     background: #e63946;
-    color: #fff;
+    color: #ffffff;
     border: 2px solid var(--yq-bg-elevated);
-    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.4);
-    font-size: 0.75rem;
-    font-weight: 900;
+    box-shadow: 0 3px 10px rgba(230, 57, 70, 0.45);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    box-sizing: border-box;
     z-index: 2;
+    pointer-events: none;
+}
+
+.yaqut-cart-link__count bdi {
+    display: block;
+    line-height: 1;
+    transform: translateY(-0.5px);
 }
 
 .yaqut-cart-link:has(.yaqut-cart-link__count.is-updated) .yaqut-cart-link__icon {
@@ -2002,11 +2019,26 @@ html[data-theme="dark"] .yq-checkout-auth-modal .btn-close:hover {
 
 @media (max-width: 767.98px) {
     .yaqut-cart-link {
-        padding-inline: 0;
+        padding: 0;
+        margin: 0;
+        gap: 0;
         width: 44px;
         height: 44px;
+        flex: 0 0 44px;
         border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
+        line-height: 1;
+        box-sizing: border-box;
+    }
+
+    .yaqut-cart-link__icon {
+        width: 20px;
+        height: 20px;
+        font-size: 20px;
+        display: block;
+        margin: auto;
     }
 
     .yaqut-header__actions .yaqut-theme-pill,
@@ -2139,11 +2171,30 @@ html[data-theme="dark"] .yq-checkout-auth-modal .btn-close:hover {
         width: 40px;
         height: 40px;
         flex: 0 0 40px;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        box-sizing: border-box;
     }
 
-    .yaqut-cart-link {
-        padding: 0;
-        border-radius: 50%;
+    .yaqut-menu-toggle svg {
+        width: 20px;
+        height: 20px;
+        display: block;
+        margin: auto;
+    }
+
+    .yaqut-cart-link__icon {
+        width: 19px;
+        height: 19px;
+        font-size: 19px;
+        display: block;
+        margin: auto;
     }
 
     .yaqut-cart-link span {
@@ -2152,12 +2203,11 @@ html[data-theme="dark"] .yq-checkout-auth-modal .btn-close:hover {
 
     .yaqut-cart-link .yaqut-cart-link__count:not([hidden]) {
         display: inline-flex;
-    }
-
-    .yaqut-menu-toggle {
-        align-items: center;
-        justify-content: center;
-        padding: 0;
+        top: -3px;
+        inset-inline-start: -3px;
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.65rem;
     }
 
     .yaqut-logo {

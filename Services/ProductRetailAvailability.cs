@@ -70,6 +70,9 @@ public static class ProductRetailAvailability
         if (product.Stockquantity <= 0)
             return false;
 
+        if (IsAvailable(product))
+            return false;
+
         if (product.StockUnit == "Ml")
             return product.VolumeMl is > 0 && product.Stockquantity >= product.VolumeMl.Value;
 

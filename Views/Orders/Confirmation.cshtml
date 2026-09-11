@@ -121,7 +121,10 @@
 
 <div class="yq-confirm-page"
      data-yq-confirmation-page
-     data-yq-clear-checkout-draft-id="@checkoutDraftIdToClear">
+     data-yq-order-id="@Model.Id"
+     data-yq-order-status="@currentStatus"
+     data-yq-clear-checkout-draft-id="@checkoutDraftIdToClear"
+     data-yq-just-confirmed="@(!string.IsNullOrWhiteSpace(checkoutDraftIdToClear) ? "true" : "false")">
 
     <!-- TWO-COLUMN RESPONSIVE LAYOUT -->
     <div class="yq-confirm-layout">
@@ -411,6 +414,8 @@
 
     </div>
 </div>
+
+@await Html.PartialAsync("_OrderSuccessModal", Model)
 
 @section Scripts {
     <script src="~/js/orders/confirmation.js" asp-append-version="true"></script>

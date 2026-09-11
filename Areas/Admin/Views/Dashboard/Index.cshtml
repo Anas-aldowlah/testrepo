@@ -27,8 +27,50 @@
                 <i class="bi bi-folder-plus" aria-hidden="true"></i>
                 <span>إضافة تصنيف</span>
             </a>
+            <form asp-area="Admin" asp-controller="Dashboard" asp-action="TriggerManualSync" method="post" style="display:inline-flex;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-yaqut-outline" title="فحص ومزامنة قواعد البيانات">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    <span>مزامنة يدوية</span>
+                </button>
+            </form>
         </div>
     </header>
+
+    @if (TempData["MigrationNotice"] != null)
+    {
+        var isDanger = TempData["MigrationNoticeType"]?.ToString() == "danger";
+        <div class="yq-dashboard-panel" role="alert" style="padding: 1rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; border-color: @(isDanger ? "#dc3545" : "var(--yq-admin-gold, #b8942e)");">
+            <i class="bi @(isDanger ? "bi-exclamation-triangle-fill text-danger" : "bi-check-circle-fill text-success")" style="font-size: 1.2rem;"></i>
+            <span style="color: var(--yq-admin-text, #f8f5ee); font-weight: 600; font-size: 0.9rem;">@TempData["MigrationNotice"]</span>
+        </div>
+    }
+
+    @if (Model.MigrationStatus != null && !Model.MigrationStatus.IsAllSynchronized)
+    {
+        <div class="yq-dashboard-panel" style="padding: 1.25rem; border-right: 4px solid var(--yq-admin-gold, #b8942e); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div>
+                <span class="yq-dashboard-eyebrow" style="color: var(--yq-admin-gold-bright, #d4af37);">
+                    تنبيه الجاهزية: قواعد البيانات
+                </span>
+                <h4 style="margin: 0.2rem 0; color: var(--yq-admin-text, #f8f5ee); font-size: 1.05rem; font-weight: 700;">
+                    @(Model.MigrationStatus.PendingStoreMigrationsCount > 0 || Model.MigrationStatus.PendingUsersMigrationsCount > 0 ? "توجد ترقيات معلقة تحتاج إلى تطبيق" : "حالة عدم اتساق أو انقطاع اتصال بقواعد البيانات")
+                </h4>
+                <p style="margin: 0; color: var(--yq-admin-muted, #9e9b93); font-size: 0.82rem;">
+                    <span>المتجر: @(Model.MigrationStatus.IsStoreConnected ? (Model.MigrationStatus.PendingStoreMigrationsCount > 0 ? $"{Model.MigrationStatus.PendingStoreMigrationsCount} ترقية معلقة" : "محدثة ومتطابقة") : "غير متصل")</span>
+                    <span style="margin: 0 0.5rem;">•</span>
+                    <span>المستخدمين: @(Model.MigrationStatus.IsUsersConnected ? (Model.MigrationStatus.PendingUsersMigrationsCount > 0 ? $"{Model.MigrationStatus.PendingUsersMigrationsCount} ترقية معلقة" : (Model.MigrationStatus.IsUsersSchemaCompatible ? "محدثة ومتطابقة" : "المخطط بحاجة لمواءمة")) : "غير متصل")</span>
+                </p>
+            </div>
+            <form asp-area="Admin" asp-controller="Dashboard" asp-action="TriggerManualSync" method="post" style="display:inline-flex;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-yaqut-gold" @(Model.MigrationStatus.IsMigrationInProgress ? "disabled" : "")>
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    <span>@(Model.MigrationStatus.IsMigrationInProgress ? "جاري الترقية..." : "مزامنة وترقية الآن")</span>
+                </button>
+            </form>
+        </div>
+    }
 
     <section class="yq-dashboard-kpis" aria-label="مؤشرات الأداء">
         <article class="yq-dashboard-kpi">

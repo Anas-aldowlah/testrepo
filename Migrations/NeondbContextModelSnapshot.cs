@@ -188,6 +188,70 @@ namespace YAGOT_2._0.Migrations
                     b.ToTable("deliveryorders", (string)null);
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.LocalSiteStateSnapshot", b =>
+                {
+                    b.Property<int>("SiteId")
+                        .HasColumnType("integer")
+                        .HasColumnName("siteid");
+
+                    b.Property<int>("ContractVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("contractversion");
+
+                    b.Property<DateTimeOffset>("EffectiveAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effectiveatutc");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiresatutc");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mode");
+
+                    b.Property<int>("OriginalDurationDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("originaldurationdays");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("SiteName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("sitename");
+
+                    b.Property<string>("SiteUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("siteurl");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("startdate");
+
+                    b.HasKey("SiteId")
+                        .HasName("local_site_state_snapshots_pkey");
+
+                    b.ToTable("local_site_state_snapshots", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_local_site_state_contract_version", "contractversion = 1");
+
+                            t.HasCheckConstraint("ck_local_site_state_duration", "originaldurationdays > 0");
+
+                            t.HasCheckConstraint("ck_local_site_state_mode", "mode IN ('Online', 'Development', 'Offline')");
+
+                            t.HasCheckConstraint("ck_local_site_state_revision", "revision >= 1");
+
+                            t.HasCheckConstraint("ck_local_site_state_site_id", "siteid = 1");
+                        });
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -1092,6 +1156,96 @@ namespace YAGOT_2._0.Migrations
                     b.HasIndex("Userid");
 
                     b.ToTable("securitylogs", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SiteStateEventReceipt", b =>
+                {
+                    b.Property<Guid>("DeliveryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deliveryid");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("decision");
+
+                    b.Property<byte[]>("PayloadSha256")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("payloadsha256");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recordedatutc");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("revision");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("integer")
+                        .HasColumnName("siteid");
+
+                    b.HasKey("DeliveryId")
+                        .HasName("site_state_event_receipts_pkey");
+
+                    b.HasIndex(new[] { "SiteId", "Revision" }, "ix_site_state_event_receipts_site_revision");
+
+                    b.ToTable("site_state_event_receipts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_site_state_event_receipts_decision", "decision IN ('Applied', 'Equal', 'EqualConflict', 'Stale')");
+
+                            t.HasCheckConstraint("ck_site_state_event_receipts_hash_length", "octet_length(payloadsha256) = 32");
+
+                            t.HasCheckConstraint("ck_site_state_event_receipts_revision", "revision >= 1");
+
+                            t.HasCheckConstraint("ck_site_state_event_receipts_site_id", "siteid = 1");
+                        });
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.SiteStateSyncCheckpoint", b =>
+                {
+                    b.Property<int>("SiteId")
+                        .HasColumnType("integer")
+                        .HasColumnName("siteid");
+
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("consecutivefailures");
+
+                    b.Property<DateTimeOffset>("LastAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lastattemptatutc");
+
+                    b.Property<string>("LastFailureCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("lastfailurecode");
+
+                    b.Property<long?>("LastObservedRemoteRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("lastobservedremoterevision");
+
+                    b.Property<DateTimeOffset?>("LastSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lastsuccessatutc");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedatutc");
+
+                    b.HasKey("SiteId")
+                        .HasName("site_state_sync_checkpoints_pkey");
+
+                    b.ToTable("site_state_sync_checkpoints", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_site_state_sync_checkpoints_failures", "consecutivefailures >= 0");
+
+                            t.HasCheckConstraint("ck_site_state_sync_checkpoints_remote_revision", "lastobservedremoterevision IS NULL OR lastobservedremoterevision >= 1");
+
+                            t.HasCheckConstraint("ck_site_state_sync_checkpoints_site_id", "siteid = 1");
+                        });
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Storesetting", b =>

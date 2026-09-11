@@ -15,6 +15,8 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Integration;
+using YAGOT_2._0.Integration.SiteState;
 using YAGOT_2._0.Services.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.DataProtection;
@@ -51,7 +53,7 @@ builder.Services.AddResponseCompression(options =>
     options.Providers.Add<GzipCompressionProvider>();
 });
 
-// Performance: In-memory cache for SiteStatus
+// Shared application cache for catalog, settings, and OTP services
 builder.Services.AddMemoryCache();
 
 // Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
@@ -106,22 +108,10 @@ builder.Services.AddOptions<PublicUrlOptions>()
                              || builder.Environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp),
         "PublicUrl:BaseUrl must be an absolute HTTPS URL (HTTP is allowed only in Development).")
     .ValidateOnStart();
+builder.Services.AddSiteStateWebhook(builder.Configuration);
 builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
 
-static void ConfigureExternalApiClient(IServiceProvider services, HttpClient client)
-{
-    var configuration = services.GetRequiredService<IConfiguration>();
-    var baseUrl = configuration["ExternalApi:BaseUrl"];
-
-    if (string.IsNullOrWhiteSpace(baseUrl))
-    {
-        throw new InvalidOperationException("ExternalApi:BaseUrl is not configured.");
-    }
-
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-}
-
-builder.Services.AddHttpClient<DealingAPI>(ConfigureExternalApiClient);
+builder.Services.AddTransient<DealingAPI>();
 builder.Services.AddScoped<IVisitService, VisitService>();
 builder.Services.AddScoped<StoreSettingsService>();
 
@@ -295,9 +285,16 @@ builder.Services.AddScoped<CategoryServer>();
 builder.Services.Configure<ImageProcessingOptions>(
     builder.Configuration.GetSection(ImageProcessingOptions.SectionName));
 builder.Services.AddScoped<Image>();
-builder.Services.AddHttpClient<SiteStatusFilter>(ConfigureExternalApiClient);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddLocalSiteRuntimeState();
+builder.Services.AddScoped<ISiteAccessDecisionService, SiteAccessDecisionService>();
+builder.Services.AddSiteStateReconciliation(builder.Configuration);
+builder.Services.AddScoped<SiteStatusFilter>();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<SiteStatusFilterAdmin>(ConfigureExternalApiClient);
+builder.Services.AddSingleton<MigrationStateTracker>();
+builder.Services.AddScoped<DatabaseMigrationCoordinator>();
+builder.Services.AddHostedService<MigrationBackgroundService>();
+builder.Services.AddScoped<SiteStatusFilterAdmin>();
 
 // Phase 6: Backend Caching & Non-blocking Visit Queue
 builder.Services.Configure<BackendCacheOptions>(
@@ -313,21 +310,30 @@ builder.Services.AddHttpClient("IpWhoIs", client =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// فحص الجاهزية للقراءة فقط أثناء إقلاع التطبيق (Read-Only Readiness Check)
+var (isDbReady, dbReadinessReason) = await DatabaseMigrationCoordinator.VerifyStartupReadinessAsync(app.Services, app.Logger);
+if (!isDbReady)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<NeondbContext>();
-    await dbContext.Database.MigrateAsync();
-
-    var userDbContext = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
-    await userDbContext.Database.MigrateAsync();
+    if (app.Environment.IsProduction())
+    {
+        app.Logger.LogCritical("تعذر بدء تشغيل التطبيق في بيئة الإنتاج نظراً لعدم جاهزية قواعد البيانات أو وجود ترقيات معلقة: {Reason}", dbReadinessReason);
+        throw new InvalidOperationException($"فشل إقلاع التطبيق (Fail-Closed): قواعد البيانات غير جاهزة أو توجد ترقيات معلقة ({dbReadinessReason}).");
+    }
+    else
+    {
+        app.Logger.LogWarning("تنبيه بيئة التطوير: قواعد البيانات بحاجة إلى ترقية أو فحص ({Reason}).", dbReadinessReason);
+    }
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders =
         ForwardedHeaders.XForwardedFor |
         ForwardedHeaders.XForwardedProto
-});
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseResponseCompression();
 
@@ -361,10 +367,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
-app.UseResponseCompression();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
@@ -420,6 +424,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseRouting();
+app.UseSiteStateWebhookProtocol();
 app.UseRateLimiter();
 app.UseCors("AllowAll");
 app.UseSession();
@@ -480,36 +485,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase)
-        || context.Request.Path.StartsWithSegments("/DirectiveDevClose/Developer")
-        || context.Request.Path.StartsWithSegments("/DirectiveDevClose/close")
-        || context.Request.Path.StartsWithSegments("/Account/Auth")
-        || context.Request.Path.StartsWithSegments("/Account/Google"))
-    {
-        await next();
-        return;
-    }
-
-    // Performance: Cache site status for 5 minutes to avoid external API call on every request
-    const string cacheKey = "YQ_SiteStatus";
-    var cache = context.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-
-    if (!cache.TryGetValue(cacheKey, out object? cachedStatus) || cachedStatus == null)
-    {
-        var dealingApi = context.RequestServices.GetRequiredService<DealingAPI>();
-        var status = await dealingApi.checkDeveloperMode(1);
-        cache.Set(cacheKey, status, TimeSpan.FromMinutes(5));
-        context.Items["SiteStatus"] = status;
-    }
-    else
-    {
-        context.Items["SiteStatus"] = cachedStatus;
-    }
-
-    await next();
-});
 app.UseAuthorization();
 
 app.MapStaticAssets();

@@ -6,7 +6,6 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
-using static YAGOT_2._0.Services.DealingAPI;
 namespace Yagot.Areas.Admin.Controllers;
 
 [Area("Admin")]

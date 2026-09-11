@@ -6,7 +6,6 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Caching;
-using static YAGOT_2._0.Services.DealingAPI;
 
 namespace Yagot.Controllers;
 

@@ -39,6 +39,15 @@
         return $"{Url.Action("Index", "Products")}{Microsoft.AspNetCore.Http.QueryString.Create(values)}";
     }
 
+    string FormatProductCount(int count)
+    {
+        if (count == 0) return "لا توجد منتجات";
+        if (count == 1) return "منتج واحد";
+        if (count == 2) return "منتجان";
+        if (count >= 3 && count <= 10) return $"{count} منتجات";
+        return $"{count} منتج";
+    }
+
     ViewData["Title"] = isSearchMode
         ? $"نتائج البحث: {request.Search}"
         : (isBrandMode ? $"منتجات: {string.Join(", ", request.Brand)}"
@@ -63,11 +72,23 @@
             </text>;
             
             Func<dynamic, IHtmlContent> actionTemplate = @<a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-circle" aria-hidden="true"></i> @(isBrandMode && !isSearchMode ? "إزالة فلتر الشركة" : "إزالة البحث")</a>;
+
+            string searchSubtitle;
+            if (Model.TotalCount == 0)
+                searchSubtitle = "لم يتم العثور على أي منتج";
+            else if (Model.TotalCount == 1)
+                searchSubtitle = "تم العثور على <strong>منتج واحد</strong>";
+            else if (Model.TotalCount == 2)
+                searchSubtitle = "تم العثور على <strong>منتجين</strong>";
+            else if (Model.TotalCount >= 3 && Model.TotalCount <= 10)
+                searchSubtitle = $"تم العثور على <strong>{Model.TotalCount}</strong> منتجات";
+            else
+                searchSubtitle = $"تم العثور على <strong>{Model.TotalCount}</strong> منتج";
             
             var headerVM = new YAGOT_2._0.Models.PageHeaderViewModel {
                 Variant = "Utility",
                 Title = $"\"{(isBrandMode && !isSearchMode ? string.Join(", ", request.Brand) : request.Search)}\"",
-                Subtitle = $"تم العثور على <strong>{Model.TotalCount}</strong> {(Model.TotalCount == 1 ? "منتج" : "منتجات")}",
+                Subtitle = searchSubtitle,
                 Breadcrumbs = breadcrumbTemplate != null ? breadcrumbTemplate(null) : null,
                 Actions = actionTemplate(null)
             };
@@ -118,8 +139,14 @@
         </nav>
     }
 
+    @{
+        var countText = FormatProductCount(Model.TotalCount);
+        var resultsCountLabel = selectedCategory != null
+            ? (Model.TotalCount == 0 ? $"لا توجد منتجات في {selectedCategory.Name}" : $"{countText} في {selectedCategory.Name}")
+            : countText;
+    }
     <div class="yq-shop-toolbar yq-reveal">
-        <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@Model.TotalCount عطر</p>
+        <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@resultsCountLabel</p>
         <div class="yq-shop-toolbar__actions">
             <div class="yq-shop-sort">
                 <label for="yqSortSelect"><i class="bi bi-sort-down"></i> ترتيب حسب</label>
