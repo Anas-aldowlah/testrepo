@@ -1,4 +1,4 @@
-@model IEnumerable<YAGOT_2._0.Models.Category>
+@model IEnumerable<YAGOT_2._0.Services.Caching.Dtos.CategorySummaryDto>
 @using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "التصنيفات";
@@ -30,9 +30,10 @@
     @if (categories.Any())
     {
         <div class="yq-categories-grid">
-            @foreach (var cat in categories)
+            @for (var i = 0; i < categories.Count; i++)
             {
-                var productCount = cat.Products?.Count ?? 0;
+                var cat = categories[i];
+                var productCount = cat.SellableProductsCount;
                 var categoryImageUrl = Url.Content("~/images/placeholder-product.svg");
                 if (!string.IsNullOrWhiteSpace(cat.Imageurl))
                 {
@@ -72,7 +73,9 @@
                         @if (!string.IsNullOrEmpty(cat.Imageurl))
                         {
                             <img src="@categoryImageUrl" alt="" aria-hidden="true"
-                                 data-yaqut-fallback="/images/placeholder-product.svg" loading="lazy" decoding="async" />
+                                 data-yaqut-fallback="/images/placeholder-product.svg"
+                                 loading="@(i < 3 ? "eager" : "lazy")"
+                                 decoding="async" />
                         }
                         else
                         {

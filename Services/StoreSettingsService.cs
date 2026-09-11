@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Services
 {
@@ -32,10 +34,11 @@ namespace YAGOT_2._0.Services
         private readonly NeondbContext _context;
         private readonly ILogger<StoreSettingsService> _logger;
         private readonly IMemoryCache _cache;
+        private readonly BackendCacheOptions _cacheOptions;
+        private readonly ICacheInvalidationService _invalidationService;
         private static readonly SemaphoreSlim SettingsLock = new(1, 1);
-        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-        private const string SettingsCacheKey = "storefront:store-settings:v1";
-        private const string FooterCacheKey = "storefront:footer-settings:v1";
+        private const string SettingsCacheKey = StorefrontCacheKeys.StoreSettings;
+        private const string FooterCacheKey = StorefrontCacheKeys.FooterSettings;
         private static long _cacheVersion;
 
         private static readonly PaymentMethodDefinition[] PaymentMethodDefinitions =
@@ -49,11 +52,15 @@ namespace YAGOT_2._0.Services
         public StoreSettingsService(
             NeondbContext context,
             ILogger<StoreSettingsService> logger,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IOptions<BackendCacheOptions> cacheOptions,
+            ICacheInvalidationService invalidationService)
         {
             _context = context;
             _logger = logger;
             _cache = cache;
+            _cacheOptions = cacheOptions.Value;
+            _invalidationService = invalidationService;
         }
 
         public async Task<FooterSettings> GetFooterSettingsAsync()
@@ -64,7 +71,7 @@ namespace YAGOT_2._0.Services
             if (_cache.TryGetValue(SettingsCacheKey, out StoreSettings? cachedSettings) && cachedSettings != null)
             {
                 var footer = ToFooterSettings(cachedSettings);
-                _cache.Set(FooterCacheKey, footer, CacheDuration);
+                _cache.Set(FooterCacheKey, footer, _cacheOptions.SettingsDuration);
                 return footer;
             }
 
@@ -85,7 +92,7 @@ namespace YAGOT_2._0.Services
 
                 var footer = footerData ?? new FooterSettings(string.Empty, string.Empty, string.Empty, string.Empty);
                 if (loadVersion == Volatile.Read(ref _cacheVersion))
-                    _cache.Set(FooterCacheKey, footer, CacheDuration);
+                    _cache.Set(FooterCacheKey, footer, _cacheOptions.SettingsDuration);
                 return footer;
             }
             catch (Exception ex)
@@ -126,8 +133,8 @@ namespace YAGOT_2._0.Services
                 var cachedCopy = CloneSettings(settings);
                 if (loadVersion == Volatile.Read(ref _cacheVersion))
                 {
-                    _cache.Set(SettingsCacheKey, cachedCopy, CacheDuration);
-                    _cache.Set(FooterCacheKey, ToFooterSettings(cachedCopy), CacheDuration);
+                    _cache.Set(SettingsCacheKey, cachedCopy, _cacheOptions.SettingsDuration);
+                    _cache.Set(FooterCacheKey, ToFooterSettings(cachedCopy), _cacheOptions.SettingsDuration);
                 }
                 return CloneSettings(cachedCopy);
             }
@@ -151,7 +158,6 @@ namespace YAGOT_2._0.Services
         {
             try
             {
-                InvalidateCache();
                 NormalizeSettings(settings);
 
                 var settingsRows = await _context.Storesettings
@@ -374,8 +380,7 @@ namespace YAGOT_2._0.Services
         private void InvalidateCache()
         {
             Interlocked.Increment(ref _cacheVersion);
-            _cache.Remove(SettingsCacheKey);
-            _cache.Remove(FooterCacheKey);
+            _invalidationService.InvalidateStoreSettings();
         }
 
         private static FooterSettings ToFooterSettings(StoreSettings settings) => new(

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Services;
 
@@ -17,11 +18,16 @@ public sealed class BestSellerService : IBestSellerService
 
     private readonly NeondbContext _context;
     private readonly ILogger<BestSellerService> _logger;
+    private readonly ICacheInvalidationService _invalidationService;
 
-    public BestSellerService(NeondbContext context, ILogger<BestSellerService> logger)
+    public BestSellerService(
+        NeondbContext context,
+        ILogger<BestSellerService> logger,
+        ICacheInvalidationService invalidationService)
     {
         _context = context;
         _logger = logger;
+        _invalidationService = invalidationService;
     }
 
     public async Task<BestSellerRefreshResult> RefreshBestSellersAsync(CancellationToken cancellationToken = default)
@@ -130,6 +136,7 @@ public sealed class BestSellerService : IBestSellerService
                 if (products.Count > 0)
                     await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+                _invalidationService.InvalidateHomeShowcase();
 
                 stopwatch.Stop();
 

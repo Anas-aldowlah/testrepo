@@ -447,10 +447,12 @@
             @if (Model.Products.Count > 0)
             {
                 <div id="yaqutProductsGrid" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 yq-shop-grid">
-                    @foreach (var item in Model.Products)
+                    @for (var i = 0; i < Model.Products.Count; i++)
                     {
+                        var item = Model.Products[i];
+                        var cardViewData = new ViewDataDictionary(ViewData) { ["IsEager"] = (i < 4) };
                         <div class="col yq-col-item" data-product-id="@item.Id">
-                            <partial name="_ProductCard" model="item" />
+                            <partial name="_ProductCard" model="item" view-data="cardViewData" />
                         </div>
                     }
                 </div>

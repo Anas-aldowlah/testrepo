@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $wwwroot = Join-Path $repoRoot 'wwwroot'
+$managedImageRoot = Join-Path (Join-Path $repoRoot 'App_Data') 'images'
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Get-RepoRelativePath {
@@ -53,11 +54,17 @@ $javascriptFiles = @($firstPartyFiles | Where-Object { $_.Extension -in '.js', '
 $cssFiles = @($firstPartyFiles | Where-Object { $_.Extension -eq '.css' })
 $imageFiles = @($firstPartyFiles | Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg', '.jfif', '.gif', '.webp', '.avif', '.svg', '.ico' })
 $fontFiles = @($firstPartyFiles | Where-Object { $_.Extension -in '.woff', '.woff2', '.ttf', '.otf', '.eot' })
+$managedImageFiles = if (Test-Path -LiteralPath $managedImageRoot) {
+    @(Get-ChildItem -LiteralPath $managedImageRoot -Recurse -File)
+} else {
+    @()
+}
 
 Write-Host "First-party JavaScript: $($javascriptFiles.Count) files / $(Get-TotalBytes $javascriptFiles) bytes"
 Write-Host "First-party CSS: $($cssFiles.Count) files / $(Get-TotalBytes $cssFiles) bytes"
 Write-Host "First-party images: $($imageFiles.Count) files / $(Get-TotalBytes $imageFiles) bytes"
 Write-Host "First-party fonts: $($fontFiles.Count) files / $(Get-TotalBytes $fontFiles) bytes"
+Write-Host "App_Data product/category images: $($managedImageFiles.Count) files / $(Get-TotalBytes $managedImageFiles) bytes"
 
 Write-Host 'Largest first-party static assets:'
 $firstPartyFiles |
@@ -65,9 +72,9 @@ $firstPartyFiles |
     Select-Object -First 10 |
     ForEach-Object { Write-Host "  $($_.Length) bytes  $(Get-RepoRelativePath $_.FullName)" }
 
-# Product, category, and receipt files may be database-owned. They are reported,
-# but they do not fail the frontend-owned >1 MB guard without an ownership map.
-$dataBackedPattern = '^wwwroot/(?:images/(?:products|categories)/|uploads/)'
+# Legacy receipt files under wwwroot may be database-owned. Product and category
+# uploads are stored outside the static web root and reported separately above.
+$dataBackedPattern = '^wwwroot/uploads/'
 $knownLargeStaticAssets = @{
     'wwwroot/images/home/perfume-hero-golden-v1.png' = 2347274
 }

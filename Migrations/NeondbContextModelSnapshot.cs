@@ -360,6 +360,9 @@ namespace YAGOT_2._0.Migrations
 
                     b.HasIndex(new[] { "CancelledAt" }, "ix_orders_cancelledat");
 
+                    b.HasIndex(new[] { "Orderdate" }, "ix_orders_orderdate")
+                        .IsDescending();
+
                     b.HasIndex(new[] { "Status", "Orderdate" }, "ix_orders_status_orderdate")
                         .IsDescending(false, true);
 
@@ -866,8 +869,6 @@ namespace YAGOT_2._0.Migrations
 
                     b.HasIndex(new[] { "InvoiceNumber" }, "ix_sales_invoice_number")
                         .IsUnique();
-
-                    b.HasIndex(new[] { "SalesDayId" }, "ix_sales_sales_day_id");
 
                     b.HasIndex(new[] { "SalesDayId", "Status" }, "ix_sales_sales_day_status");
 

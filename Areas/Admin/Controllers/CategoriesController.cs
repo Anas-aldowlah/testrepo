@@ -6,6 +6,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Caching;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
@@ -20,17 +21,20 @@ public class CategoriesController : Controller
     private readonly CategoryServer _categoryService;
     private readonly Image _ImageServes;
     private readonly ProductCatalogService _catalogService;
+    private readonly ICacheInvalidationService _invalidationService;
 
     public CategoriesController(
         NeondbContext context,
         CategoryServer categoryService,
         Image imageServes,
-        ProductCatalogService catalogService)
+        ProductCatalogService catalogService,
+        ICacheInvalidationService invalidationService)
     {
         _context = context;
         _categoryService = categoryService;
         _ImageServes = imageServes;
         _catalogService = catalogService;
+        _invalidationService = invalidationService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
@@ -44,10 +48,11 @@ public class CategoriesController : Controller
                 ProductCount = _context.Products.Count(p => p.Categoryid == c.Id)
             });
 
+        var pagedCategories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize);
         var model = new AdminCategoriesIndexViewModel
         {
-            Categories = await PagedResult<AdminCategoryListItemViewModel>.CreateAsync(categoryQuery, page, pageSize),
-            TotalCategories = await _context.Categories.CountAsync(),
+            Categories = pagedCategories,
+            TotalCategories = pagedCategories.TotalItems,
             TotalProducts = await _context.Products.CountAsync()
         };
         
@@ -77,17 +82,18 @@ public class CategoriesController : Controller
             Imageurl = imageUrl != null ? GetCategoryImageUrl(imageUrl) : DefaultCategoryImageUrl,
         };
 
-
         await _context.Categories.AddAsync(model);
         await _context.SaveChangesAsync();
-        _catalogService.InvalidateMetadataCache();
+        _invalidationService.InvalidateCatalogMetadata();
+        _invalidationService.InvalidateCategoriesList();
+        _invalidationService.InvalidateHomeShowcase();
         TempData["Success"] = "تمت إضافة التصنيف بنجاح.";
         return RedirectToAction(nameof(Index));
     }
     
-    public IActionResult Edit(int id)
+    public async Task<IActionResult> Edit(int id)
     {
-        var category = _context.Categories.FirstOrDefault(c => c.Id == id);
+        var category = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             return NotFound();
@@ -113,27 +119,47 @@ public class CategoriesController : Controller
 
         var category = await _categoryService.GetCategoryByID(categoryVW.Id);
         if (category==null) return NotFound();
-        category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
-        if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
+        var previousImageUrl = category.Imageurl;
+        string? uploadedImageUrl = null;
+        var imageReferenceSaved = false;
+        try
         {
-            var updatedImageUrl = await _ImageServes.UpdateImage(
-                categoryVW.ImageFile,
-                "categories",
-                categoryVW.Existingimage ?? string.Empty);
-
-            if (updatedImageUrl != null)
+            category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
+            if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
             {
-                category.Imageurl = updatedImageUrl;
-            }
-        }
-        category.Name = categoryVW.Name;
-        category.Description = categoryVW.Description;
+                uploadedImageUrl = await _ImageServes.UpdateImage(
+                    categoryVW.ImageFile,
+                    "categories",
+                    categoryVW.Existingimage ?? string.Empty);
 
-        _context.Update(category);
-        await _context.SaveChangesAsync();
-        _catalogService.InvalidateMetadataCache();
-        TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
-        return RedirectToAction(nameof(Index));
+                if (uploadedImageUrl != null)
+                    category.Imageurl = uploadedImageUrl;
+            }
+            category.Name = categoryVW.Name;
+            category.Description = categoryVW.Description;
+
+            _context.Update(category);
+            await _context.SaveChangesAsync();
+            imageReferenceSaved = true;
+
+            if (uploadedImageUrl != null &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                _ImageServes.DeleteImage("categories", previousImageUrl);
+            }
+
+            _invalidationService.InvalidateCatalogMetadata();
+            _invalidationService.InvalidateCategoriesList();
+            _invalidationService.InvalidateHomeShowcase();
+            TempData["Success"] = "تم حفظ تعديلات التصنيف بنجاح.";
+            return RedirectToAction(nameof(Index));
+        }
+        finally
+        {
+            if (!imageReferenceSaved && uploadedImageUrl != null)
+                _ImageServes.DeleteImage("categories", uploadedImageUrl);
+        }
 
     }
 
@@ -149,7 +175,7 @@ public class CategoriesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
         var category = _context.Categories.FirstOrDefault(c => c.Id == id);
         if (category != null)
@@ -161,22 +187,18 @@ public class CategoriesController : Controller
                 TempData["Error"] = "لا يمكن حذف التصنيف لأنه يحتوي على منتجات";
                 return RedirectToAction(nameof(Index));
             }
-            if (!string.IsNullOrEmpty(category.Imageurl))
-            {
-                if (!string.Equals(category.Imageurl, "/images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(category.Imageurl, "images/categories/category_8428362.png", StringComparison.OrdinalIgnoreCase))
-                {
-                    var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
-             "images", "categories", Path.GetFileName(category.Imageurl));
-                    if (System.IO.File.Exists(imagePath))
-                    {
-                        System.IO.File.Delete(imagePath);
-                    }
-                }
-            }
+            var previousImageUrl = category.Imageurl;
             _context.Categories.Remove(category);
-            _context.SaveChanges();
-            _catalogService.InvalidateMetadataCache();
+            await _context.SaveChangesAsync();
+
+            if (!string.Equals(previousImageUrl, DefaultCategoryImageUrl, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(previousImageUrl, DefaultCategoryImageUrl.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                _ImageServes.DeleteImage("categories", previousImageUrl);
+            }
+            _invalidationService.InvalidateCatalogMetadata();
+            _invalidationService.InvalidateCategoriesList();
+            _invalidationService.InvalidateHomeShowcase();
             TempData["Success"] = "تم حذف التصنيف بنجاح.";
 
         }

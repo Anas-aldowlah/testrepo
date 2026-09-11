@@ -194,6 +194,9 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => new { e.Status, e.Orderdate }, "ix_orders_status_orderdate")
                 .IsDescending(false, true);
 
+            entity.HasIndex(e => e.Orderdate, "ix_orders_orderdate")
+                .IsDescending(true);
+
             entity.HasIndex(e => e.CancelledAt, "ix_orders_cancelledat");
 
             entity.HasIndex(e => new { e.Userid, e.Orderdate }, "ix_orders_userid_orderdate")
@@ -701,7 +704,6 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                     "ck_sales_amounts_nonnegative",
                     "total_amount >= 0 AND discount_total >= 0 AND final_amount >= 0"));
 
-            entity.HasIndex(e => e.SalesDayId, "ix_sales_sales_day_id");
             entity.HasIndex(e => e.InvoiceNumber, "ix_sales_invoice_number").IsUnique();
             entity.HasIndex(e => new { e.SalesDayId, e.Status }, "ix_sales_sales_day_status");
 
