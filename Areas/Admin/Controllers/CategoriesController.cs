@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
@@ -22,23 +23,31 @@ public class CategoriesController : Controller
     private readonly Image _ImageServes;
     private readonly ProductCatalogService _catalogService;
     private readonly ICacheInvalidationService _invalidationService;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public CategoriesController(
         NeondbContext context,
         CategoryServer categoryService,
         Image imageServes,
         ProductCatalogService catalogService,
-        ICacheInvalidationService invalidationService)
+        ICacheInvalidationService invalidationService,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _categoryService = categoryService;
         _ImageServes = imageServes;
         _catalogService = catalogService;
         _invalidationService = invalidationService;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryView))
+        {
+            return Forbid();
+        }
+
         var categoryQuery = _context.Categories
             .AsNoTracking()
             .OrderBy(c => c.Name)
@@ -61,6 +70,11 @@ public class CategoriesController : Controller
 
     public IActionResult Create()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryCreate))
+        {
+            return Forbid();
+        }
+
         return View();
     }
 
@@ -68,6 +82,12 @@ public class CategoriesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CategoryVW categoryVW)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryCreate) ||
+            HasImageMutation(categoryVW) && !IsEnabled(CapabilityFeatureCodes.CategoryImages))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
         {
             return View(categoryVW);
@@ -93,6 +113,11 @@ public class CategoriesController : Controller
     
     public async Task<IActionResult> Edit(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryEdit))
+        {
+            return Forbid();
+        }
+
         var category = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
@@ -112,6 +137,12 @@ public class CategoriesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(CategoryVW categoryVW)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryEdit) ||
+            HasImageMutation(categoryVW) && !IsEnabled(CapabilityFeatureCodes.CategoryImages))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
         {
             return View(categoryVW);
@@ -124,13 +155,13 @@ public class CategoriesController : Controller
         var imageReferenceSaved = false;
         try
         {
-            category.Imageurl = GetCategoryImageUrl(categoryVW.Existingimage);
+            category.Imageurl = previousImageUrl;
             if (categoryVW.ImageFile != null && categoryVW.ImageFile.Length > 0)
             {
                 uploadedImageUrl = await _ImageServes.UpdateImage(
                     categoryVW.ImageFile,
                     "categories",
-                    categoryVW.Existingimage ?? string.Empty);
+                    previousImageUrl ?? string.Empty);
 
                 if (uploadedImageUrl != null)
                     category.Imageurl = uploadedImageUrl;
@@ -177,6 +208,11 @@ public class CategoriesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CategoryDelete))
+        {
+            return Forbid();
+        }
+
         var category = _context.Categories.FirstOrDefault(c => c.Id == id);
         if (category != null)
         {
@@ -204,4 +240,9 @@ public class CategoriesController : Controller
         }
         return RedirectToAction(nameof(Index));
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
+
+    private static bool HasImageMutation(CategoryVW category) =>
+        category.ImageFile is { Length: > 0 };
 }

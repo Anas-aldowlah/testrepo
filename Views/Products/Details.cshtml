@@ -1,4 +1,5 @@
 @model YAGOT_2._0.Models.Product
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @using YAGOT_2._0.Services
 @{
     ViewData["Title"] = Model?.Name;
@@ -92,7 +93,14 @@
             @if (Model.Category != null)
             {
                 <i class="bi bi-chevron-left" aria-hidden="true"></i>
-                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id">@Model.Category.Name</a>
+                @if (CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView))
+                {
+                    <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id">@Model.Category.Name</a>
+                }
+                else
+                {
+                    <span>@Model.Category.Name</span>
+                }
             }
             <i class="bi bi-chevron-left" aria-hidden="true"></i>
             <span>@Model.Name</span>
@@ -126,9 +134,12 @@
                     <div class="yq-pdp-meta-tags">
                         @if (Model.Category != null)
                         {
-                            <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id" class="yq-pdp-category" title="تصفح جميع منتجات هذا التصنيف">
-                                <i class="bi bi-flower2"></i> @Model.Category.Name
-                            </a>
+                            @if (CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView))
+                            {
+                                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@Model.Category.Id" class="yq-pdp-category" title="تصفح جميع منتجات هذا التصنيف">
+                                    <i class="bi bi-flower2"></i> @Model.Category.Name
+                                </a>
+                            }
                         }
                         
                         @if (!string.IsNullOrWhiteSpace(Model.Brand))

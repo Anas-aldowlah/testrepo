@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -11,15 +12,26 @@ public class ProductsController : Controller
 {
     private readonly NeondbContext _context;
     private readonly ProductCatalogService _catalogService;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
-    public ProductsController(NeondbContext context, ProductCatalogService catalogService)
+    public ProductsController(
+        NeondbContext context,
+        ProductCatalogService catalogService,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _catalogService = catalogService;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(ProductsCatalogRequest request, CancellationToken cancellationToken)
     {
+        if (request.CategoryId.HasValue && request.CategoryId.Value != -100 &&
+            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.CategoryProductsView))
+        {
+            return NotFound();
+        }
+
         if (!ModelState.IsValid)
         {
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")

@@ -1,9 +1,14 @@
 @model YAGOT_2._0.Models.Admin.AdminCategoriesIndexViewModel
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إدارة التصنيفات";
 
     var categories = Model.Categories.Items;
+    var canCreate = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryCreate);
+    var canEdit = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryEdit);
+    var canDelete = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryDelete);
+    var canViewImages = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
     var pagerViewData = new ViewDataDictionary(ViewData)
     {
         ["RouteValues"] = new Dictionary<string, object?>(),
@@ -28,12 +33,15 @@
             <p>نظّم مجموعات العطور، راجع الوصف وعدد المنتجات المرتبطة بكل تصنيف، وانتقل بسرعة إلى إجراءات الإدارة اليومية.</p>
         </div>
 
-        <div class="yq-categories-hero__actions" aria-label="إجراءات التصنيفات">
-            <a asp-action="Create" class="btn-yaqut-gold">
-                <i class="bi bi-folder-plus" aria-hidden="true"></i>
-                <span>إضافة تصنيف</span>
-            </a>
-        </div>
+        @if (canCreate)
+        {
+            <div class="yq-categories-hero__actions" aria-label="إجراءات التصنيفات">
+                <a asp-action="Create" class="btn-yaqut-gold">
+                    <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                    <span>إضافة تصنيف</span>
+                </a>
+            </div>
+        }
     </header>
 
     <partial name="_YaqutOperationDialog" />
@@ -84,7 +92,7 @@
                         {
                             var cat = row.Category;
                             var productCount = row.ProductCount;
-                            var imageUrl = string.IsNullOrWhiteSpace(cat.Imageurl)
+                            var imageUrl = !canViewImages || string.IsNullOrWhiteSpace(cat.Imageurl)
                                 ? null
                                 : Url.Content(cat.Imageurl.StartsWith("/") ? "~" + cat.Imageurl : "~/" + cat.Imageurl);
 
@@ -123,11 +131,16 @@
                                 </td>
                                 <td data-label="الإجراءات">
                                     <div class="yq-categories-actions">
-                                        <a asp-action="Edit" asp-route-id="@cat.Id" class="yq-categories-action yq-categories-action--edit" aria-label="تعديل @cat.Name" title="تعديل">
-                                            <i class="bi bi-pencil-square" aria-hidden="true"></i>
-                                            <span>تعديل</span>
-                                        </a>
-                                        <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
+                                        @if (canEdit)
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@cat.Id" class="yq-categories-action yq-categories-action--edit" aria-label="تعديل @cat.Name" title="تعديل">
+                                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                                <span>تعديل</span>
+                                            </a>
+                                        }
+                                        @if (canDelete)
+                                        {
+                                            <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
                                               class="yq-category-delete-form"
                                               data-category-delete-form
                                               data-category-name="@cat.Name"
@@ -138,7 +151,8 @@
                                                 <i class="bi bi-trash3" aria-hidden="true"></i>
                                                 <span>حذف</span>
                                             </button>
-                                        </form>
+                                            </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -154,14 +168,19 @@
                 <i class="bi bi-tags" aria-hidden="true"></i>
                 <h3>لا توجد تصنيفات بعد</h3>
                 <p>ابدأ بإضافة تصنيف جديد لتنظيم المنتجات داخل الكتالوج.</p>
-                <a asp-action="Create" class="btn-yaqut-gold">
-                    <i class="bi bi-folder-plus" aria-hidden="true"></i>
-                    <span>إضافة تصنيف</span>
-                </a>
+                @if (canCreate)
+                {
+                    <a asp-action="Create" class="btn-yaqut-gold">
+                        <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                        <span>إضافة تصنيف</span>
+                    </a>
+                }
             </div>
         }
     </section>
 
+    @if (canDelete)
+    {
     <dialog class="yq-category-delete-dialog" data-category-delete-dialog aria-labelledby="categoryDeleteDialogTitle" aria-describedby="categoryDeleteDialogDescription">
         <div class="yq-category-delete-dialog__shell">
             <header class="yq-category-delete-dialog__header">
@@ -217,8 +236,12 @@
             </footer>
         </div>
     </dialog>
+    }
 </section>
 
 @section Scripts {
-    <script src="~/js/admin/category-delete.js" asp-append-version="true"></script>
+    @if (canDelete)
+    {
+        <script src="~/js/admin/category-delete.js" asp-append-version="true"></script>
+    }
 }

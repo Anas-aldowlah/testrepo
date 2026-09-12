@@ -1,9 +1,15 @@
 @model YAGOT_2._0.Services.ViewModels
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "الرئيسية | ياقوت";
     ViewData["IsHomePage"] = true;
 
-    var categories = Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>();
+    var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
+    var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
+    var categoryImagesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
+    var categories = categoryViewEnabled
+        ? Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>()
+        : new List<YAGOT_2._0.Models.Category>();
     var newArrivals = Model.NewArrivals?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
     var heroSlides = Model.HeroSlides?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
     var bestSellingProducts = Model.BestSellingProducts?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
@@ -67,7 +73,7 @@
                     <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold btn-yaqut-gold--lg">
                         <i class="bi bi-stars"></i> تصفح المنتجات
                     </a>
-                    @if (featuredCategory != null)
+                    @if (featuredCategory != null && categoryProductsEnabled)
                     {
                         <a asp-controller="Products" asp-action="Index"
                            asp-route-categoryId="@featuredCategory.Id"
@@ -217,15 +223,15 @@
             <div class="yq-home-categories" aria-label="تصنيفات العطور">
                 @foreach (var category in categories)
                 {
-                    var categoryImage = string.IsNullOrWhiteSpace(category.Imageurl)
+                    var categoryImage = !categoryImagesEnabled || string.IsNullOrWhiteSpace(category.Imageurl)
                         ? Url.Content("~/images/placeholder-product.svg")
                         : (category.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || category.Imageurl.StartsWith("/")
                             ? category.Imageurl
                             : Url.Content("~/" + category.Imageurl.TrimStart('/')));
-                    <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@category.Id" class="yq-home-category">
+                    <a href="@(categoryProductsEnabled ? Url.Action("Index", "Products", new { categoryId = category.Id }) : null)" class="yq-home-category">
                         <img src="@categoryImage" alt="@category.Name" loading="lazy" decoding="async"
                              data-yaqut-fallback="/images/placeholder-product.svg" />
-                        <span><strong>@category.Name</strong><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
+                        <span><strong>@category.Name</strong>@if (categoryProductsEnabled) { <i class="bi bi-arrow-left" aria-hidden="true"></i> }</span>
                     </a>
                 }
             </div>

@@ -2,9 +2,11 @@
 @using YAGOT_2._0.Integration.SiteState
 @using YAGOT_2._0.Services.Integration
 @inject ISiteAccessDecisionService SiteDecisionService
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     var storefrontDecision = await SiteDecisionService.DecideAsync(SiteAccessSurface.Storefront, User);
     var isStorefrontAllowed = storefrontDecision.IsAllowed;
+    var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
 }
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="yaqut-admin-root">
@@ -111,12 +113,15 @@
                         <i class="bi bi-box-seam"></i>
                         <span>المنتجات</span>
                     </a>
-                    <a asp-area="Admin" asp-controller="Categories" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Categories") ? "is-active" : "")"
-                       aria-current="@(IsActive("Categories") ? "page" : null)" title="التصنيفات">
-                        <i class="bi bi-tags"></i>
-                        <span>التصنيفات</span>
-                    </a>
+                    @if (categoryViewEnabled)
+                    {
+                        <a asp-area="Admin" asp-controller="Categories" asp-action="Index"
+                           class="yq-admin-nav__link @(IsActive("Categories") ? "is-active" : "")"
+                           aria-current="@(IsActive("Categories") ? "page" : null)" title="التصنيفات">
+                            <i class="bi bi-tags"></i>
+                            <span>التصنيفات</span>
+                        </a>
+                    }
                 </div>
 
                 <div class="yq-admin-nav__group">
