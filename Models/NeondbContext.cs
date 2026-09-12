@@ -62,6 +62,12 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
     public virtual DbSet<SiteStateSyncCheckpoint> SiteStateSyncCheckpoints { get; set; }
 
+    public virtual DbSet<LocalCapabilitySnapshot> LocalCapabilitySnapshots { get; set; }
+
+    public virtual DbSet<CapabilityEventReceipt> CapabilityEventReceipts { get; set; }
+
+    public virtual DbSet<CapabilitySyncCheckpoint> CapabilitySyncCheckpoints { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -968,6 +974,67 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.UpdatedAtUtc)
                 .HasColumnType("timestamp with time zone")
                 .HasColumnName("updatedatutc");
+        });
+
+        modelBuilder.Entity<LocalCapabilitySnapshot>(entity =>
+        {
+            entity.HasKey(e => e.SiteId).HasName("local_capability_snapshots_pkey");
+            entity.ToTable("local_capability_snapshots", table =>
+            {
+                table.HasCheckConstraint("ck_local_capability_site_id", "siteid >= 1");
+                table.HasCheckConstraint("ck_local_capability_contract_version", "contractversion = 1");
+                table.HasCheckConstraint("ck_local_capability_revision", "revision >= 1");
+                table.HasCheckConstraint("ck_local_capability_hash_length", "octet_length(payloadsha256) = 32");
+            });
+            entity.Property(e => e.SiteId).ValueGeneratedNever().HasColumnName("siteid");
+            entity.Property(e => e.ContractVersion).HasColumnName("contractversion");
+            entity.Property(e => e.CatalogVersion).HasMaxLength(64).HasColumnName("catalogversion");
+            entity.Property(e => e.Revision).HasColumnName("revision");
+            entity.Property(e => e.SnapshotJson).HasColumnType("jsonb").HasColumnName("snapshotjson");
+            entity.Property(e => e.PayloadSha256).HasColumnType("bytea").HasColumnName("payloadsha256");
+            entity.Property(e => e.GeneratedAtUtc).HasColumnType("timestamp with time zone").HasColumnName("generatedatutc");
+            entity.Property(e => e.EffectiveAtUtc).HasColumnType("timestamp with time zone").HasColumnName("effectiveatutc");
+            entity.Property(e => e.AppliedAtUtc).HasColumnType("timestamp with time zone").HasColumnName("appliedatutc");
+        });
+
+        modelBuilder.Entity<CapabilityEventReceipt>(entity =>
+        {
+            entity.HasKey(e => e.DeliveryId).HasName("capability_event_receipts_pkey");
+            entity.ToTable("capability_event_receipts", table =>
+            {
+                table.HasCheckConstraint("ck_capability_receipts_site_id", "siteid >= 1");
+                table.HasCheckConstraint("ck_capability_receipts_revision", "revision >= 1");
+                table.HasCheckConstraint("ck_capability_receipts_hash_length", "octet_length(payloadsha256) = 32");
+                table.HasCheckConstraint("ck_capability_receipts_decision", "decision IN ('Applied', 'Equal', 'Stale', 'EqualConflict')");
+            });
+            entity.HasIndex(e => new { e.SiteId, e.Revision }, "ix_capability_event_receipts_site_revision");
+            entity.Property(e => e.DeliveryId).ValueGeneratedNever().HasColumnName("deliveryid");
+            entity.Property(e => e.SiteId).HasColumnName("siteid");
+            entity.Property(e => e.Revision).HasColumnName("revision");
+            entity.Property(e => e.PayloadSha256).HasColumnType("bytea").HasColumnName("payloadsha256");
+            entity.Property(e => e.Decision).HasMaxLength(20).HasColumnName("decision");
+            entity.Property(e => e.RecordedAtUtc).HasColumnType("timestamp with time zone").HasColumnName("recordedatutc");
+        });
+
+        modelBuilder.Entity<CapabilitySyncCheckpoint>(entity =>
+        {
+            entity.HasKey(e => e.SiteId).HasName("capability_sync_checkpoints_pkey");
+            entity.ToTable("capability_sync_checkpoints", table =>
+            {
+                table.HasCheckConstraint("ck_capability_checkpoint_site_id", "siteid >= 1");
+                table.HasCheckConstraint("ck_capability_checkpoint_attempted_revision", "lastattemptedrevision IS NULL OR lastattemptedrevision >= 1");
+                table.HasCheckConstraint("ck_capability_checkpoint_observed_revision", "lastobservedremoterevision IS NULL OR lastobservedremoterevision >= 1");
+                table.HasCheckConstraint("ck_capability_checkpoint_applied_revision", "lastsuccessfullyappliedrevision IS NULL OR lastsuccessfullyappliedrevision >= 1");
+            });
+            entity.Property(e => e.SiteId).ValueGeneratedNever().HasColumnName("siteid");
+            entity.Property(e => e.LastAttemptedRevision).HasColumnName("lastattemptedrevision");
+            entity.Property(e => e.LastObservedRemoteRevision).HasColumnName("lastobservedremoterevision");
+            entity.Property(e => e.LastSuccessfullyAppliedRevision).HasColumnName("lastsuccessfullyappliedrevision");
+            entity.Property(e => e.LastAttemptAtUtc).HasColumnType("timestamp with time zone").HasColumnName("lastattemptatutc");
+            entity.Property(e => e.LastSuccessAtUtc).HasColumnType("timestamp with time zone").HasColumnName("lastsuccessatutc");
+            entity.Property(e => e.Health).HasMaxLength(32).HasColumnName("health");
+            entity.Property(e => e.LastFailureCategory).HasMaxLength(64).HasColumnName("lastfailurecategory");
+            entity.Property(e => e.UpdatedAtUtc).HasColumnType("timestamp with time zone").HasColumnName("updatedatutc");
         });
 
         OnModelCreatingPartial(modelBuilder);
