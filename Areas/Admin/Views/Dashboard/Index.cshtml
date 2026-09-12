@@ -1,9 +1,11 @@
 @model YAGOT_2._0.Models.Admin.AdminDashboardViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 
 @{
     ViewData["Title"] = "لوحة التحكم";
 
     var recentOrders = Model.RecentOrders;
+    var categoryCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryCreate);
 }
 
 @section Styles {
@@ -23,10 +25,13 @@
                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 <span>إضافة منتج</span>
             </a>
-            <a asp-area="Admin" asp-controller="Categories" asp-action="Create" class="btn-yaqut-outline">
-                <i class="bi bi-folder-plus" aria-hidden="true"></i>
-                <span>إضافة تصنيف</span>
-            </a>
+            @if (categoryCreateEnabled)
+            {
+                <a asp-area="Admin" asp-controller="Categories" asp-action="Create" class="btn-yaqut-outline">
+                    <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                    <span>إضافة تصنيف</span>
+                </a>
+            }
             <form asp-area="Admin" asp-controller="Dashboard" asp-action="TriggerManualSync" method="post" style="display:inline-flex;">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn-yaqut-outline" title="فحص ومزامنة قواعد البيانات">
@@ -228,10 +233,13 @@
                         <span><i class="bi bi-plus-lg" aria-hidden="true"></i>إضافة منتج</span>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                     </a>
-                    <a asp-area="Admin" asp-controller="Categories" asp-action="Create">
-                        <span><i class="bi bi-folder-plus" aria-hidden="true"></i>إضافة تصنيف</span>
-                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                    </a>
+                    @if (categoryCreateEnabled)
+                    {
+                        <a asp-area="Admin" asp-controller="Categories" asp-action="Create">
+                            <span><i class="bi bi-folder-plus" aria-hidden="true"></i>إضافة تصنيف</span>
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </a>
+                    }
                     <a asp-area="Admin" asp-controller="Orders" asp-action="Index">
                         <span><i class="bi bi-receipt" aria-hidden="true"></i>إدارة الطلبات</span>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>

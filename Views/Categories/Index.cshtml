@@ -1,7 +1,10 @@
 @model IEnumerable<YAGOT_2._0.Services.Caching.Dtos.CategorySummaryDto>
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "التصنيفات";
+    var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
+    var categoryImagesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
     var categories = Model.ToList();
 }
 
@@ -35,7 +38,7 @@
                 var cat = categories[i];
                 var productCount = cat.SellableProductsCount;
                 var categoryImageUrl = Url.Content("~/images/placeholder-product.svg");
-                if (!string.IsNullOrWhiteSpace(cat.Imageurl))
+                if (categoryImagesEnabled && !string.IsNullOrWhiteSpace(cat.Imageurl))
                 {
                     var candidateImageUrl = cat.Imageurl.Trim();
                     if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
@@ -66,11 +69,11 @@
                         }
                     }
                 }
-                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@cat.Id"
+                <a href="@(categoryProductsEnabled ? Url.Action("Index", "Products", new { categoryId = cat.Id }) : null)"
                    class="yq-cat-luxury-tile yq-reveal">
                     
                     <div class="yq-cat-luxury-tile__bg">
-                        @if (!string.IsNullOrEmpty(cat.Imageurl))
+                        @if (categoryImagesEnabled && !string.IsNullOrEmpty(cat.Imageurl))
                         {
                             <img src="@categoryImageUrl" alt="" aria-hidden="true"
                                  data-yaqut-fallback="/images/placeholder-product.svg"
@@ -116,7 +119,10 @@
                                     }
                                 </span>
                                 <div class="yq-cat-luxury-tile__action">
-                                    <span class="yq-cat-luxury-tile__action-text">تصفح المنتجات</span> <i class="bi bi-arrow-left"></i>
+                                    @if (categoryProductsEnabled)
+                                    {
+                                        <span class="yq-cat-luxury-tile__action-text">تصفح المنتجات</span> <i class="bi bi-arrow-left"></i>
+                                    }
                                 </div>
                             </div>
                         </div>

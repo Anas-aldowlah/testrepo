@@ -1,4 +1,5 @@
 @model CategoryVW
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "تعديل التصنيف";
 
@@ -12,6 +13,7 @@
             : Url.Content(existingImage!.StartsWith("/") ? "~" + existingImage : "~/" + existingImage))
         : Url.Content("~/images/placeholder-product.svg");
     var hasValidationErrors = ViewData.ModelState.ErrorCount > 0;
+    var categoryImagesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
 }
 
 @section Styles {
@@ -89,6 +91,8 @@
                 </section>
             </div>
 
+            @if (categoryImagesEnabled)
+            {
             <aside class="yq-category-form__media" aria-labelledby="categoryImageTitle">
                 <section class="yq-category-form__section yq-category-form__section--sticky">
                     <div class="yq-category-form__section-head">
@@ -123,6 +127,7 @@
                     </div>
                 </section>
             </aside>
+            }
         </div>
 
         <div class="yq-category-form__actions" aria-label="إجراءات تعديل التصنيف">

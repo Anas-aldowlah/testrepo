@@ -1,8 +1,10 @@
 @model YAGOT_2._0.Models.ProductsCatalogViewModel
 @using Microsoft.AspNetCore.Html
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     var request = Model.Request;
     var selectedCategory = Model.SelectedCategory;
+    var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
     var isSearchMode = !string.IsNullOrWhiteSpace(request.Search);
     var isBrandMode = request.Brand.Length > 0;
     var activeFilterCount = 0;
@@ -124,7 +126,7 @@
         <div class="yq-recent-searches__list" id="yqRecentSearchesList"></div>
     </div>
 
-    @if (Model.Categories.Count > 0)
+    @if (categoryProductsEnabled && Model.Categories.Count > 0)
     {
         <nav class="yq-shop-pills yq-reveal" aria-label="تصفية حسب التصنيف">
             <button type="button" class="yq-shop-pill @(request.CategoryId == null ? "is-active" : "")" data-yq-category="">
@@ -185,7 +187,10 @@
 
             <form id="yqCatalogFilters" asp-action="Index" method="get" class="yq-filter-form">
                 <input type="hidden" name="search" value="@request.Search" />
-                <input type="hidden" id="yqCategoryId" name="categoryId" value="@request.CategoryId" />
+                @if (categoryProductsEnabled)
+                {
+                    <input type="hidden" id="yqCategoryId" name="categoryId" value="@request.CategoryId" />
+                }
 
                 @{
                     var hasAvailabilityFilter = request.Availability != "all";
@@ -255,7 +260,7 @@
                     </div>
                 </div>
 
-                @if (Model.Categories.Count > 0)
+                @if (categoryProductsEnabled && Model.Categories.Count > 0)
                 {
                     var catSelectedCount = request.CategoryId.HasValue ? 1 : 0;
                     <div class="yq-filter-card is-collapsed" data-filter-card="category">

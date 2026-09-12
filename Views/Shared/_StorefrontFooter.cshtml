@@ -1,4 +1,5 @@
     @inject YAGOT_2._0.Services.StoreSettingsService StoreSettingsService
+    @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
     @{
         var routeController = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
         var routeAction = ViewContext.RouteData.Values["action"] as string ?? "Index";
@@ -21,6 +22,7 @@
         var categoriesActive = IsActive("Categories");
         var cartActive = IsActive("Cart");
         var ordersActive = IsActive("Orders");
+        var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
     }
 
     <footer class="yaqut-footer">
@@ -71,14 +73,17 @@
                                 <span>جميع المنتجات</span>
                             </a>
                         </li>
-                        <li>
-                            <a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">
+                        @if (categoryViewEnabled)
+                        {
+                            <li>
+                                <a asp-controller="Categories" asp-action="Index" class="@(categoriesActive ? "is-active" : null)" aria-current="@(categoriesActive ? "page" : null)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                                     <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"/>
                                 </svg>
                                 <span>التصنيفات</span>
-                            </a>
-                        </li>
+                                </a>
+                            </li>
+                        }
                         <li>
                             <a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
