@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAGOT_2.0", "YAGOT_2.0.csproj", "{36330D35-E8AB-4120-1D25-9CFBD63303D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4-00C04F79EFBC}") = "Yaqoot.Capabilities.Tests", "tests\Yaqoot.Capabilities.Tests\Yaqoot.Capabilities.Tests.csproj", "{6D10BCB7-6C18-4AF4-B487-F0906AF28A1F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yaqoot.Capabilities.Tests", "tests\Yaqoot.Capabilities.Tests\Yaqoot.Capabilities.Tests.csproj", "{6D10BCB7-6C18-4AF4-B487-F0906AF28A1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

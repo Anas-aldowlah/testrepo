@@ -20,7 +20,7 @@ using YAGOT_2._0.Models.UsersDatabase;
 using YAGOT_2._0.Services;
 
 namespace YAGOT_2._0.Controllers;
-
+ 
 public class AccountController : Controller
 {
     private const string REG_SESSION_KEY = "YAGOT_RegistrationSessionState";

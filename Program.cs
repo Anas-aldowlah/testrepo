@@ -56,7 +56,7 @@ builder.Services.AddResponseCompression(options =>
 
 // Shared application cache for catalog, settings, and OTP services
 builder.Services.AddMemoryCache();
-builder.Services.AddCapabilityFoundation();
+builder.Services.AddCapabilityFoundation(builder.Configuration);
 
 // Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
 builder.Services.AddAntiforgery(options =>
