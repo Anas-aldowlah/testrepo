@@ -20,6 +20,7 @@ using YAGOT_2._0.Integration.SiteState;
 using YAGOT_2._0.Services.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.DataProtection;
+using YAGOT_2._0.Core.Capabilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +56,7 @@ builder.Services.AddResponseCompression(options =>
 
 // Shared application cache for catalog, settings, and OTP services
 builder.Services.AddMemoryCache();
+builder.Services.AddCapabilityFoundation();
 
 // Antiforgery configuration to support RequestVerificationToken header for JSON fetch requests
 builder.Services.AddAntiforgery(options =>
