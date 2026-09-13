@@ -1,8 +1,11 @@
 @using YAGOT_2._0.Models.Admin
 @model AdminProductCreateViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إضافة منتج";
     var rows = Model.RetailPrices;
+    var canManageBrands = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
+    var canSellRetail = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.RetailSelling);
 }
 
 @section Styles {
@@ -39,6 +42,8 @@
                     <input asp-for="Name" class="yaqut-form-input" autocomplete="off" />
                     <span asp-validation-for="Name" class="yq-product-validation"></span>
                 </div>
+                @if (canManageBrands)
+                {
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Brand" class="yaqut-form-label">الماركة</label>
                     <input asp-for="Brand" list="brandsList" class="yaqut-form-input" autocomplete="off" />
@@ -52,6 +57,7 @@
                         </datalist>
                     }
                 </div>
+                }
                 <div class="yaqut-form-group yq-product-field yq-product-field--wide">
                     <label asp-for="Categoryid" class="yaqut-form-label">التصنيف</label>
                     <select asp-for="Categoryid" asp-items="@ViewBag.Categoryid" class="yaqut-form-input">
@@ -104,13 +110,18 @@
                     <span asp-validation-for="Stockquantity" class="yq-product-validation"></span>
                     <span class="yq-product-help">قطعة = عدد القطع. مل = عدد العبوات.</span>
                 </div>
+                @if (canSellRetail)
+                {
                 <label class="yaqut-form-group yq-product-field yq-product-field--wide yq-retail-toggle">
                     <input asp-for="IsRetailEnabled" type="checkbox" data-retail-toggle />
                     <span>تفعيل أسعار التجزئة</span>
                 </label>
                 <span asp-validation-for="IsRetailEnabled" class="yq-product-validation yq-product-field--wide" data-retail-toggle-validation></span>
+                }
             </div>
 
+            @if (canSellRetail)
+            {
             <div class="yq-retail-prices" data-retail-prices hidden>
                 <div class="yq-retail-prices__head">
                     <div class="yq-retail-prices__intro">
@@ -157,11 +168,12 @@
                 </div>
                 <span asp-validation-for="RetailPrices" class="yq-product-validation yq-retail-group-validation" data-retail-group-validation tabindex="-1"></span>
             </div>
+            }
         </section>
 
         <div class="yq-product-form__actions">
             <a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-lg"></i><span>إلغاء</span></a>
-            <button type="submit" class="btn-yaqut-gold" data-retail-save disabled><i class="bi bi-check2-circle"></i><span>حفظ المنتج</span></button>
+            <button type="submit" class="btn-yaqut-gold" data-retail-save disabled="@canSellRetail"><i class="bi bi-check2-circle"></i><span>حفظ المنتج</span></button>
         </div>
     </form>
 </section>

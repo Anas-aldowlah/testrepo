@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 
@@ -9,10 +10,12 @@ public class InventoryService : IInventoryService
     public const int MaximumStockQuantity = StockAdjustmentLimits.MaximumQuantity;
 
     private readonly NeondbContext _context;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
-    public InventoryService(NeondbContext context)
+    public InventoryService(NeondbContext context, ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public int CalculateDeductionAmount(Product product, int quantity, int? retailSizeMl)
@@ -62,6 +65,9 @@ public class InventoryService : IInventoryService
     {
         if (!retailPriceId.HasValue)
             return null;
+
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+            throw new InvalidOperationException("Retail selling capability is disabled.");
 
         if (!string.Equals(product.StockUnit, "Ml", StringComparison.OrdinalIgnoreCase) ||
             product.VolumeMl is not > 0 ||

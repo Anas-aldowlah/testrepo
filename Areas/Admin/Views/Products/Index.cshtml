@@ -1,5 +1,6 @@
 @model YAGOT_2._0.Models.Admin.AdminProductsIndexViewModel
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إدارة المنتجات";
 
@@ -7,6 +8,12 @@
 
     var activeProducts = Model.Products.Items;
     var categories = Model.Categories;
+    var canCreate = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductCreate);
+    var canEdit = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductEdit);
+    var canDelete = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductDelete);
+    var canManageBrands = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
+    var canSearch = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductSearchFilter);
+    var canManageInventory = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.InventoryManagement);
     var pagerViewData = new ViewDataDictionary(ViewData)
     {
         ["RouteValues"] = new Dictionary<string, object?> { ["search"] = Model.Search },
@@ -32,6 +39,8 @@
         </div>
 
         <div class="yq-products-hero__actions" aria-label="إجراءات المنتجات">
+            @if (canEdit)
+            {
             <form asp-action="RefreshBestSellers" method="post" class="d-inline" onsubmit="var btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'bi bi-arrow-repeat spin\'></i> جاري التحديث...';">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
@@ -40,14 +49,21 @@
                     <span>تحديث الأكثر مبيعًا</span>
                 </button>
             </form>
+            }
+            @if (canDelete)
+            {
             <a asp-action="trash" class="btn-yaqut-outline">
                 <i class="bi bi-trash" aria-hidden="true"></i>
                 <span>سلة المحذوفات</span>
             </a>
+            }
+            @if (canCreate)
+            {
             <a asp-action="Create" class="btn-yaqut-gold">
                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 <span>إضافة منتج</span>
             </a>
+            }
         </div>
     </header>
 
@@ -61,6 +77,8 @@
 
     <partial name="_YaqutOperationDialog" />
 
+    @if (canManageInventory)
+    {
     <section class="yq-products-summary" aria-label="ملخص المنتجات">
         <article class="yq-products-stat yq-products-stat--success">
             <span class="yq-products-stat__icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
@@ -91,6 +109,7 @@
             </div>
         </article>
     </section>
+    }
 
     <section class="yq-products-panel" aria-labelledby="productsTableTitle">
         <div class="yq-products-panel__header">
@@ -98,6 +117,8 @@
                 <span class="yq-products-eyebrow">قائمة الإدارة</span>
                 <h3 id="productsTableTitle">جميع المنتجات النشطة</h3>
             </div>
+            @if (canSearch)
+            {
             <form method="get" class="yq-admin-list-search" role="search" aria-label="البحث في المنتجات">
                 <input type="hidden" name="pageSize" value="@Model.Products.PageSize" />
                 <label class="visually-hidden" for="productsSearch">البحث في المنتجات</label>
@@ -107,6 +128,8 @@
                     <span>بحث</span>
                 </button>
             </form>
+            }
+            }
         </div>
 
         @if (activeProducts.Any())
@@ -117,9 +140,9 @@
                         <tr>
                             <th scope="col">المنتج</th>
                             <th scope="col">التصنيف</th>
-                            <th scope="col">الشركة</th>
+                            @if (canManageBrands) { <th scope="col">الشركة</th> }
                             <th scope="col">السعر</th>
-                            <th scope="col">المخزون</th>
+                            @if (canManageInventory) { <th scope="col">المخزون</th> }
                             <th scope="col">المبيعات (60 يوم)</th>
                             <th scope="col">الحالة</th>
                             <th scope="col">الإجراءات</th>
@@ -159,20 +182,26 @@
                                 <td data-label="التصنيف">
                                     <span class="yq-products-category">@(p.Category?.Name ?? "-")</span>
                                 </td>
+                                @if (canManageBrands)
+                                {
                                 <td data-label="الشركة">
                                     <span class="yq-products-brand">@(p.Brand ?? "-")</span>
                                 </td>
+                                }
                                 <td data-label="السعر">
                                     <div class="yq-products-price">
                                         <strong>@(p.Price.ToYaqutPrice())</strong>
                                     </div>
                                 </td>
+                                @if (canManageInventory)
+                                {
                                 <td data-label="المخزون">
                                     <div class="yq-products-stock">
                                         <span class="yq-products-badge @stockClass">@stockLabel</span>
                                         <small>@stockDisplayText</small>
                                     </div>
                                 </td>
+                                }
                                 <td data-label="المبيعات (60 يوم)">
                                     <span class="yq-products-badge @(p.TotalSold > 0 ? "yq-products-badge--warning" : "yq-products-badge--neutral")" title="إجمالي الوحدات المباعة خلال آخر 60 يوماً">
                                         <i class="bi bi-fire"></i><strong>@p.TotalSold</strong> وحدة
@@ -183,16 +212,22 @@
                                 </td>
                                 <td data-label="الإجراءات">
                                     <div class="yq-products-actions">
+                                        @if (canEdit)
+                                        {
                                         <a asp-action="Edit" asp-route-id="@p.Id" class="yq-products-action yq-products-action--edit" aria-label="تعديل @p.Name" title="تعديل">
                                             <i class="bi bi-pencil-square" aria-hidden="true"></i>
                                             <span>تعديل</span>
                                         </a>
+                                        }
+                                        @if (canDelete)
+                                        {
                                         <form asp-action="Delete" asp-route-id="@p.Id" method="post" data-yaqut-confirm="هل أنت متأكد من حذف المنتج @p.Name؟">
                                             <button type="submit" class="yq-products-action yq-products-action--delete" aria-label="حذف @p.Name" title="حذف">
                                                 <i class="bi bi-trash3" aria-hidden="true"></i>
                                                 <span>حذف</span>
                                             </button>
                                         </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -209,14 +244,20 @@
                 <h3>لا توجد منتجات نشطة</h3>
                 <p>ابدأ بإضافة منتج جديد أو راجع سلة المحذوفات لتعديل المنتجات غير المعروضة وإعادة نشرها.</p>
                 <div class="yq-products-empty__actions">
+                    @if (canCreate)
+                    {
                     <a asp-action="Create" class="btn-yaqut-gold">
                         <i class="bi bi-plus-lg" aria-hidden="true"></i>
                         <span>إضافة منتج</span>
                     </a>
+                    }
+                    @if (canDelete)
+                    {
                     <a asp-action="trash" class="btn-yaqut-outline">
                         <i class="bi bi-trash" aria-hidden="true"></i>
                         <span>سلة المحذوفات</span>
                     </a>
+                    }
                 </div>
             </div>
         }

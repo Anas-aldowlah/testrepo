@@ -7,6 +7,7 @@
     var storefrontDecision = await SiteDecisionService.DecideAsync(SiteAccessSurface.Storefront, User);
     var isStorefrontAllowed = storefrontDecision.IsAllowed;
     var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
+    var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
 }
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="yaqut-admin-root">
@@ -107,12 +108,15 @@
 
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">الكتالوج</span>
-                    <a asp-area="Admin" asp-controller="Products" asp-action="Index"
-                       class="yq-admin-nav__link @(IsActive("Products") ? "is-active" : "")"
-                       aria-current="@(IsActive("Products") ? "page" : null)" title="المنتجات">
-                        <i class="bi bi-box-seam"></i>
-                        <span>المنتجات</span>
-                    </a>
+                    @if (productViewEnabled)
+                    {
+                        <a asp-area="Admin" asp-controller="Products" asp-action="Index"
+                           class="yq-admin-nav__link @(IsActive("Products") ? "is-active" : "")"
+                           aria-current="@(IsActive("Products") ? "page" : null)" title="المنتجات">
+                            <i class="bi bi-box-seam"></i>
+                            <span>المنتجات</span>
+                        </a>
+                    }
                     @if (categoryViewEnabled)
                     {
                         <a asp-area="Admin" asp-controller="Categories" asp-action="Index"

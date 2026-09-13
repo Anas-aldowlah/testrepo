@@ -26,10 +26,37 @@ public class ProductsController : Controller
 
     public async Task<IActionResult> Index(ProductsCatalogRequest request, CancellationToken cancellationToken)
     {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductView))
+        {
+            return NotFound();
+        }
+
         if (request.CategoryId.HasValue && request.CategoryId.Value != -100 &&
             !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.CategoryProductsView))
         {
             return NotFound();
+        }
+
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductSearchFilter))
+        {
+            ResetSearchAndFilters(request);
+            ModelState.Clear();
+        }
+        else
+        {
+            if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductBrands))
+            {
+                request.Brand = [];
+                ModelState.Remove(nameof(ProductsCatalogRequest.Brand));
+            }
+
+            if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+            {
+                request.Retail = "all";
+                request.RetailSize = [];
+                ModelState.Remove(nameof(ProductsCatalogRequest.Retail));
+                ModelState.Remove(nameof(ProductsCatalogRequest.RetailSize));
+            }
         }
 
         if (!ModelState.IsValid)
@@ -42,24 +69,37 @@ public class ProductsController : Controller
         }
 
         var model = await _catalogService.GetCatalogAsync(request, cancellationToken);
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+        {
+            foreach (var product in model.Products)
+                product.RetailPrices = [];
+        }
         return View(model);
     }
 
     public async Task<IActionResult> Details(int id)
     {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductView))
+            return NotFound();
+
         // تعرض تفاصيل المنتج محدد
         var product = (await _context.Products
             .Where(p => p.Id == id)
             .ToProductCardsAsync(HttpContext.RequestAborted))
             .SingleOrDefault();
         if (product == null) return NotFound();
-        product.RetailPrices = ProductRetailAvailability.GetCustomerUsablePrices(product).ToList();
+        product.RetailPrices = _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling)
+            ? ProductRetailAvailability.GetCustomerUsablePrices(product).ToList()
+            : [];
         return View(product);
     }
 
     [HttpGet]
     public async Task<IActionResult> RecentlyViewed([FromQuery] int[] ids)
     {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductView))
+            return NotFound();
+
         if (ids == null || ids.Length == 0)
             return PartialView("_RecentlyViewedCard", new List<Product>());
 
@@ -77,12 +117,26 @@ public class ProductsController : Controller
             var p = products.FirstOrDefault(x => x.Id == id);
             if (p != null)
             {
-                p.RetailPrices = ProductRetailAvailability.GetCustomerUsablePrices(p).ToList();
+                p.RetailPrices = _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling)
+                    ? ProductRetailAvailability.GetCustomerUsablePrices(p).ToList()
+                    : [];
                 orderedProducts.Add(p);
             }
         }
 
         return PartialView("_RecentlyViewedCard", orderedProducts);
+    }
+
+    private static void ResetSearchAndFilters(ProductsCatalogRequest request)
+    {
+        request.Search = null;
+        request.Brand = [];
+        request.MinPrice = null;
+        request.MaxPrice = null;
+        request.Retail = "all";
+        request.Availability = "all";
+        request.RetailSize = [];
+        request.Sort = "newest";
     }
 }
 
