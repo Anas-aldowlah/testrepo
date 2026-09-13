@@ -1,4 +1,5 @@
 @model YAGOT_2._0.Models.UsersDatabase.User
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = $"تفاصيل المستخدم #{Model.Id}";
 
@@ -21,6 +22,7 @@
         "Customer" => "yq-users-badge--customer",
         _ => "yq-users-badge--neutral"
     };
+    var roleManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.StoreRolesPermissions);
 }
 
 @section Styles {
@@ -262,6 +264,8 @@
                 </div>
             </section>
 
+            @if (roleManagementEnabled)
+            {
             <!-- بطاقة التحكم بالصلاحيات -->
             <section class="yq-user-detail-card" aria-labelledby="roleManagementTitle">
                 <div class="yq-user-detail-card__header">
@@ -308,6 +312,7 @@
                     }
                 </div>
             </section>
+            }
 
             <section class="yq-user-detail-card" aria-labelledby="accountInfoTitle">
                 <div class="yq-user-detail-card__header">

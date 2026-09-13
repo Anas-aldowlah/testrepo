@@ -7,6 +7,7 @@ using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Models.UsersDatabase;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -19,22 +20,30 @@ public class DashboardController : Controller
     private readonly MigrationStateTracker _migrationTracker;
     private readonly DatabaseMigrationCoordinator _migrationCoordinator;
     private readonly ILogger<DashboardController> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public DashboardController(
         NeondbContext context,
         UsersDbContext user,
         MigrationStateTracker migrationTracker,
         DatabaseMigrationCoordinator migrationCoordinator,
-        ILogger<DashboardController> logger)
+        ILogger<DashboardController> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _dbUser = user;
         _migrationTracker = migrationTracker;
         _migrationCoordinator = migrationCoordinator;
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
     public async Task<IActionResult> Index()
     {
+        if (!IsDashboardEnabled())
+        {
+            return Forbid();
+        }
+
         var orderSummary = await _context.Orders
             .AsNoTracking()
             .GroupBy(_ => 1)
@@ -91,6 +100,11 @@ public class DashboardController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TriggerManualSync()
     {
+        if (!IsDashboardEnabled())
+        {
+            return Forbid();
+        }
+
         var (success, errorMessage) = await _migrationCoordinator.ExecuteControlledMigrationAsync();
         if (success)
         {
@@ -115,4 +129,7 @@ public class DashboardController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    private bool IsDashboardEnabled() =>
+        _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.StoreDashboard);
 }

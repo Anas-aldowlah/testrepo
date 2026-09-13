@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers
 {
@@ -16,20 +17,28 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
         private readonly StoreSettingsService _settingsService;
         private readonly NeondbContext _context;
         private readonly ILogger<SettingsController> _logger;
+        private readonly ICapabilityEvaluator _capabilityEvaluator;
 
         public SettingsController(
             StoreSettingsService settingsService,
             NeondbContext context,
-            ILogger<SettingsController> logger)
+            ILogger<SettingsController> logger,
+            ICapabilityEvaluator capabilityEvaluator)
         {
             _settingsService = settingsService;
             _context = context;
             _logger = logger;
+            _capabilityEvaluator = capabilityEvaluator;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            if (!IsSettingsEnabled())
+            {
+                return Forbid();
+            }
+
             var settings = await _settingsService.GetSettingsAsync();
             
             // Prepare categories for dropdown
@@ -46,6 +55,11 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(StoreSettings settings)
         {
+            if (!IsSettingsEnabled())
+            {
+                return Forbid();
+            }
+
             if (ModelState.IsValid)
             {
                 try
@@ -79,5 +93,8 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
             ViewBag.Categories = new SelectList(categories, "Id", "Name", settings.FeaturedCategoryId);
             return View(settings);
         }
+
+        private bool IsSettingsEnabled() =>
+            _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.StoreSettings);
     }
 }

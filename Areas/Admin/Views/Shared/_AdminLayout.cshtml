@@ -8,6 +8,12 @@
     var isStorefrontAllowed = storefrontDecision.IsAllowed;
     var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
     var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
+    var dashboardEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.StoreDashboard);
+    var userManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.StoreUserEmployeeManagement);
+    var settingsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.StoreSettings);
+    var posCashierEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosCashier);
+    var posReportsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosReports);
+    var orderManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderManagement);
 }
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="yaqut-admin-root">
@@ -63,6 +69,8 @@
         <!-- SIDEBAR -->
         <aside class="yq-admin-sidebar" id="yqAdminSidebar" aria-label="القائمة الجانبية للإدارة">
             <div class="yq-admin-sidebar__head">
+                @if (dashboardEnabled)
+                {
                 <a class="yq-admin-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" aria-label="Yaqoot admin dashboard">
                     <span class="yq-admin-brand__mark">
                         <img src="~/images/yaqut-logo.png" alt="Yaqoot" class="yq-admin-brand__logo" />
@@ -72,6 +80,19 @@
                         <small>لوحة الإدارة</small>
                     </span>
                 </a>
+                }
+                else
+                {
+                <span class="yq-admin-brand">
+                    <span class="yq-admin-brand__mark">
+                        <img src="~/images/yaqut-logo.png" alt="Yaqoot" class="yq-admin-brand__logo" />
+                    </span>
+                    <span class="yq-admin-brand__text">
+                        <strong>ياقوت</strong>
+                        <small>لوحة الإدارة</small>
+                    </span>
+                </span>
+                }
                 <button type="button" class="yq-admin-sidebar__collapse" id="yqSidebarCollapseBtn"
                         aria-controls="yqAdminSidebar" aria-expanded="true"
                         aria-label="طي القائمة الجانبية" title="طي/توسيع القائمة">
@@ -86,24 +107,33 @@
 
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">نظرة عامة</span>
+                    @if (dashboardEnabled)
+                    {
                     <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index"
                        class="yq-admin-nav__link @(IsActive("Dashboard") ? "is-active" : "")"
                        aria-current="@(IsActive("Dashboard") ? "page" : null)" title="لوحة التحكم">
                         <i class="bi bi-speedometer2"></i>
                         <span>لوحة التحكم</span>
                     </a>
+                    }
+                    @if (posCashierEnabled)
+                    {
                     <a asp-area="Admin" asp-controller="QuickSales" asp-action="Index"
                        class="yq-admin-nav__link @(IsActive("QuickSales") && !IsActive("QuickSales", "Reports") ? "is-active" : "")"
                        aria-current="@(IsActive("QuickSales") && !IsActive("QuickSales", "Reports") ? "page" : null)" title="البيع السريع (POS)">
                         <i class="bi bi-lightning-charge-fill text-warning"></i>
                         <span>البيع السريع (POS)</span>
                     </a>
+                    }
+                    @if (posReportsEnabled)
+                    {
                     <a asp-area="Admin" asp-controller="QuickSales" asp-action="Reports"
                        class="yq-admin-nav__link @(IsActive("QuickSales", "Reports") ? "is-active" : "")"
                        aria-current="@(IsActive("QuickSales", "Reports") ? "page" : null)" title="تقارير POS">
                         <i class="bi bi-bar-chart-line-fill text-info"></i>
                         <span>تقارير POS</span>
                     </a>
+                    }
                 </div>
 
                 <div class="yq-admin-nav__group">
@@ -128,6 +158,8 @@
                     }
                 </div>
 
+                @if (orderManagementEnabled)
+                {
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">المبيعات</span>
                     <a asp-area="Admin" asp-controller="Orders" asp-action="Index"
@@ -137,7 +169,10 @@
                         <span>الطلبات</span>
                     </a>
                 </div>
+                }
 
+                @if (userManagementEnabled)
+                {
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">المستخدمون</span>
                     <a asp-area="Admin" asp-controller="Users" asp-action="Index"
@@ -147,7 +182,10 @@
                         <span>المستخدمين</span>
                     </a>
                 </div>
+                }
 
+                @if (settingsEnabled)
+                {
                 <div class="yq-admin-nav__group">
                     <span class="yq-admin-nav__group-label">النظام</span>
                     <a asp-area="Admin" asp-controller="Settings" asp-action="Index"
@@ -157,6 +195,7 @@
                         <span>الإعدادات</span>
                     </a>
                 </div>
+                }
 
             </nav>
 
@@ -195,7 +234,14 @@
 
                 <div class="yq-admin-topbar__titles">
                     <nav class="yq-admin-breadcrumb" aria-label="مسار التصفح">
-                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">الإدارة</a>
+                        @if (dashboardEnabled)
+                        {
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">الإدارة</a>
+                        }
+                        else
+                        {
+                            <span>الإدارة</span>
+                        }
                         @await RenderSectionAsync("Breadcrumb", required: false)
                     </nav>
                     <h1 class="yq-admin-topbar__title">@pageTitle</h1>
