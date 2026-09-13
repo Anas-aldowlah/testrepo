@@ -19,6 +19,11 @@
     var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
     var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
     var productSearchEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductSearchFilter);
+    var customerLoginEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerLogin);
+    var customerGoogleLoginEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerGoogleLogin);
+    var customerRegistrationEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerAccountCreate)
+        && customerGoogleLoginEnabled;
+    var customerProfileEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerProfile);
 }
 
 <div class="yaqut-announce" role="note" aria-label="مزايا التسوق">
@@ -62,10 +67,13 @@
 
                 @if (isAuthenticated)
                 {
-                    <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip @(profileActive ? "is-active" : null)" title="حسابي" aria-current="@(profileActive ? "page" : null)">
-                        <i class="bi bi-person-circle" aria-hidden="true"></i>
-                        <span>حسابي</span>
-                    </a>
+                    @if (isAdmin || customerProfileEnabled)
+                    {
+                        <a asp-controller="Account" asp-action="Profile" class="yaqut-user-chip @(profileActive ? "is-active" : null)" title="حسابي" aria-current="@(profileActive ? "page" : null)">
+                            <i class="bi bi-person-circle" aria-hidden="true"></i>
+                            <span>حسابي</span>
+                        </a>
+                    }
 
                     <a asp-controller="Orders" asp-action="Index" class="yaqut-orders-link @(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
                         <i class="bi bi-receipt" aria-hidden="true"></i>
@@ -87,7 +95,7 @@
                         </button>
                     </form>
                 }
-                else
+                else if (customerLoginEnabled || customerGoogleLoginEnabled || customerRegistrationEnabled)
                 {
                     <a asp-controller="Account" asp-action="Auth" class="yaqut-login-btn">
                         <i class="bi bi-person" aria-hidden="true"></i>
@@ -146,9 +154,12 @@
                 <div class="yaqut-nav__section" role="group" aria-label="الحساب">
                     @if (isAuthenticated)
                     {
-                        <a asp-controller="Account" asp-action="Profile" class="@(profileActive ? "is-active" : null)" aria-current="@(profileActive ? "page" : null)">
-                            <i class="bi bi-person-circle" aria-hidden="true"></i><span>حسابي</span>
-                        </a>
+                        @if (isAdmin || customerProfileEnabled)
+                        {
+                            <a asp-controller="Account" asp-action="Profile" class="@(profileActive ? "is-active" : null)" aria-current="@(profileActive ? "page" : null)">
+                                <i class="bi bi-person-circle" aria-hidden="true"></i><span>حسابي</span>
+                            </a>
+                        }
                         <a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
                             <i class="bi bi-receipt" aria-hidden="true"></i><span>طلباتي</span>
                         </a>
@@ -164,7 +175,7 @@
                             </button>
                         </form>
                     }
-                    else
+                    else if (customerLoginEnabled || customerGoogleLoginEnabled || customerRegistrationEnabled)
                     {
                         <a asp-controller="Account" asp-action="Auth">
                             <i class="bi bi-person" aria-hidden="true"></i><span>تسجيل الدخول</span>

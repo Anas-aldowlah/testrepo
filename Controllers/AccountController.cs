@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
@@ -34,6 +35,7 @@ public class AccountController : Controller
     private readonly ITimeLimitedDataProtector _passwordResetProtector;
     private readonly Uri _publicBaseUri;
     private readonly ILogger<AccountController> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public AccountController(
         NeondbContext db,
@@ -44,7 +46,8 @@ public class AccountController : Controller
         IPasswordResetEmailSender passwordResetEmailSender,
         IDataProtectionProvider dataProtectionProvider,
         IOptions<PublicUrlOptions> publicUrlOptions,
-        ILogger<AccountController> logger)
+        ILogger<AccountController> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _db = db;
         _configuration = configuration;
@@ -57,6 +60,7 @@ public class AccountController : Controller
             .ToTimeLimitedDataProtector();
         _publicBaseUri = new Uri(publicUrlOptions.Value.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     #region Registration Session State Helpers
@@ -95,6 +99,16 @@ public class AccountController : Controller
     public IActionResult Auth(string? returnUrl = null, bool register = false)
     {
         returnUrl = GetRedirectUrl(returnUrl);
+        var isAdminSignIn = IsAdminReturnUrl(returnUrl);
+        var loginEnabled = isAdminSignIn ||
+            IsEnabled(CapabilityFeatureCodes.CustomerLogin) ||
+            IsEnabled(CapabilityFeatureCodes.CustomerGoogleLogin);
+        var registrationEnabled = !isAdminSignIn && IsRegistrationEnabled();
+        if ((register && !registrationEnabled) || (!loginEnabled && !registrationEnabled))
+        {
+            return NotFound();
+        }
+
         if (User.Identity?.IsAuthenticated == true)
         {
             return LocalRedirect(returnUrl);
@@ -102,13 +116,19 @@ public class AccountController : Controller
 
         var regState = GetRegistrationState();
         ViewData["ReturnUrl"] = returnUrl;
-        ViewData["ShowRegister"] = register || regState.Step > 1;
+        ViewData["ShowRegister"] = registrationEnabled && (register || !loginEnabled || regState.Step > 1);
+        ViewData["AdminSignIn"] = isAdminSignIn;
         ViewData["RegState"] = regState;
         return View();
     }
 
     public IActionResult AuthR(string? returnUrl = null, string? email = null)
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         ViewData["ReturnUrl"] = GetRedirectUrl(returnUrl);
         TempData["Email"] = email;
         var regState = GetRegistrationState();
@@ -123,7 +143,14 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginModel model, string? returnUrl = null)
     {
         returnUrl = GetRedirectUrl(returnUrl);
+        var isAdminSignIn = IsAdminReturnUrl(returnUrl);
+        if (!isAdminSignIn && !IsEnabled(CapabilityFeatureCodes.CustomerLogin))
+        {
+            return NotFound();
+        }
+
         ViewData["ReturnUrl"] = returnUrl;
+        ViewData["AdminSignIn"] = isAdminSignIn;
         var phone = model.Phone?.Trim() ?? string.Empty;
        
         if (string.IsNullOrWhiteSpace(model.Phone))
@@ -147,6 +174,12 @@ public class AccountController : Controller
         }
 
         var userSiteVB = await _db.UserSites.FirstOrDefaultAsync(i => i.UserId == userGloble.Id);
+        var isAdministrator = userSiteVB?.Role is "Admin" or "Developer";
+        if (!isAdministrator && !IsEnabled(CapabilityFeatureCodes.CustomerLogin))
+        {
+            return NotFound();
+        }
+
         if (userSiteVB != null && userSiteVB.SearchNameSyncVersion == 1)
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -186,6 +219,12 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool isRegister = false)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerGoogleLogin) ||
+            isRegister && !IsEnabled(CapabilityFeatureCodes.CustomerAccountCreate))
+        {
+            return NotFound();
+        }
+
         returnUrl = GetRedirectUrl(returnUrl);
         TempData.Remove("GoogleLoginError");
         TempData.Remove("GoogleLoginErrorTitle");
@@ -205,6 +244,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> GoogleResponse(string? returnUrl = null, bool isRegister = false)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerGoogleLogin))
+        {
+            return NotFound();
+        }
+
         returnUrl = GetRedirectUrl(returnUrl);
         var externalResult = await HttpContext.AuthenticateAsync(AuthenticationSchemes.External);
         if (!externalResult.Succeeded || externalResult.Principal == null)
@@ -306,6 +350,12 @@ public class AccountController : Controller
 
         // A verified Google identity without a local account starts registration.
         // It is not issued an application cookie until registration completes.
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerAccountCreate))
+        {
+            ClearRegistrationState();
+            return NotFound();
+        }
+
         var state = new RegistrationSessionState
         {
             GoogleSubjectId = sub ?? normalizedEmail,
@@ -328,6 +378,11 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult GetRegisterState()
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         var state = GetRegistrationState();
         return Json(new
         {
@@ -346,6 +401,11 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> SaveStep2Info([FromBody] Step2InfoRequest request)
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         if (request == null || string.IsNullOrWhiteSpace(request.Phone))
         {
             return Json(new { success = false, message = "رقم الجوال مطلوب." });
@@ -394,6 +454,11 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationModel model, string? returnUrl = null)
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         if (model == null)
         {
             return Json(new { success = false, message = "البيانات المدخلة غير صالحة." });
@@ -548,6 +613,11 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult SetRegisterStep(int step)
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         var state = GetRegistrationState();
         if (step == 3 && (!state.IsGoogleVerified || !state.IsPhoneStepCompleted || string.IsNullOrWhiteSpace(state.PhoneNumber)))
         {
@@ -571,6 +641,11 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult ResetRegistration()
     {
+        if (!IsRegistrationEnabled())
+        {
+            return NotFound();
+        }
+
         ClearRegistrationState();
         return Json(new { success = true });
     }
@@ -606,6 +681,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
+        if (IsCustomerFeatureDisabled(CapabilityFeatureCodes.CustomerProfile))
+        {
+            return NotFound();
+        }
+
         var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdVal) || !int.TryParse(userIdVal, out var userId))
             return Challenge();
@@ -633,6 +713,11 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileVM model)
     {
+        if (IsCustomerFeatureDisabled(CapabilityFeatureCodes.CustomerProfile))
+        {
+            return NotFound();
+        }
+
         var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdVal) || !int.TryParse(userIdVal, out var userId))
             return Challenge();
@@ -690,6 +775,11 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult RecoveryAccount()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerAccountRecovery))
+        {
+            return NotFound();
+        }
+
         return View();
     }
 
@@ -698,6 +788,11 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> RecoveryAccount(RecoveryModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerAccountRecovery))
+        {
+            return NotFound();
+        }
+
         var email = model.Email?.Trim();
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -745,6 +840,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> ResetPassword(string? token)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerAccountRecovery))
+        {
+            return NotFound();
+        }
+
         var payload = await ValidatePasswordResetTokenAsync(token);
         if (payload == null)
         {
@@ -759,6 +859,11 @@ public class AccountController : Controller
     [EnableRateLimiting("Auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CustomerAccountRecovery))
+        {
+            return NotFound();
+        }
+
         if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
         {
             ModelState.AddModelError(nameof(model.Password), "كلمة المرور يجب أن تكون 6 أحرف على الأقل.");
@@ -804,6 +909,20 @@ public class AccountController : Controller
 
         return returnUrl;
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
+
+    private bool IsRegistrationEnabled() =>
+        IsEnabled(CapabilityFeatureCodes.CustomerAccountCreate) &&
+        IsEnabled(CapabilityFeatureCodes.CustomerGoogleLogin);
+
+    private bool IsCustomerFeatureDisabled(string featureCode) =>
+        !User.IsInRole("Admin") &&
+        !User.IsInRole("Developer") &&
+        !IsEnabled(featureCode);
+
+    private static bool IsAdminReturnUrl(string returnUrl) =>
+        returnUrl.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase);
 
     private async Task<PasswordResetTokenPayload?> ValidatePasswordResetTokenAsync(string? token)
     {

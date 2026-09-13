@@ -1,10 +1,18 @@
 @using YAGOT_2._0.Models
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     Layout = "_AuthLayout";
     ViewData["Title"] = "بوابة الدخول وإنشاء الحساب";
     var requestedReturnUrl = ViewData["ReturnUrl"] as string;
     var returnUrl = Url.IsLocalUrl(requestedReturnUrl) ? requestedReturnUrl! : "/Home/Index";
-    var showRegisterPanel = (ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true;
+    var adminSignIn = (ViewData["AdminSignIn"] as bool?) == true;
+    var customerLoginEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerLogin);
+    var googleLoginEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerGoogleLogin);
+    var accountCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerAccountCreate);
+    var recoveryEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerAccountRecovery);
+    var loginEnabled = adminSignIn || customerLoginEnabled || googleLoginEnabled;
+    var registrationEnabled = accountCreateEnabled && googleLoginEnabled;
+    var showRegisterPanel = registrationEnabled && ((ViewData["ShowRegister"] as bool?) == true || (TempData["ShowRegister"] as bool?) == true || !loginEnabled);
     var regState = ViewData["RegState"] as RegistrationSessionState ?? new RegistrationSessionState();
     var initialStep = regState.Step > 0 ? regState.Step : 1;
 }
@@ -42,6 +50,8 @@
             </header>
 
             <div class="yaqut-auth-tabs" role="tablist" aria-label="اختيار نوع الدخول">
+                @if (loginEnabled)
+                {
                 <button type="button"
                         class="yaqut-auth-tab @(showRegisterPanel ? "" : "is-active")"
                         id="loginToggle"
@@ -51,6 +61,9 @@
                         tabindex="@(showRegisterPanel ? "-1" : "0")">
                     <i class="bi bi-box-arrow-in-left" aria-hidden="true"></i> تسجيل الدخول
                 </button>
+                }
+                @if (registrationEnabled)
+                {
                 <button type="button"
                         class="yaqut-auth-tab @(showRegisterPanel ? "is-active" : "")"
                         id="registerToggle"
@@ -60,6 +73,7 @@
                         tabindex="@(showRegisterPanel ? "0" : "-1")">
                     <i class="bi bi-person-plus" aria-hidden="true"></i> إنشاء حساب جديد
                 </button>
+                }
             </div>
 
             @if (!ViewData.ModelState.IsValid)
@@ -74,6 +88,8 @@
             }
 
             <!-- PANEL 1: LOGIN -->
+            @if (loginEnabled)
+            {
             <div id="loginPanel"
                  class="auth-panel @(showRegisterPanel ? "d-none" : "")"
                  role="tabpanel"
@@ -81,6 +97,8 @@
                  aria-hidden="@(showRegisterPanel ? "true" : "false")">
 
                 <!-- GOOGLE LOGIN BUTTON AT TOP OF LOGIN PANEL -->
+                @if (googleLoginEnabled && !adminSignIn)
+                {
                 <div class="yaqut-auth-google-login-wrap mb-3 text-center">
                     <a asp-controller="Account"
                        asp-action="GoogleLogin"
@@ -98,6 +116,7 @@
                         <span class="google-btn-text fw-bold fs-6">المتابعة باستخدام Google</span>
                     </a>
                 </div>
+                }
 
                 @if (TempData["PasswordResetSuccess"] is string passwordResetSuccess)
                 {
@@ -113,13 +132,18 @@
                             <h5 class="mb-0 fw-bold fs-6">@(TempData["GoogleLoginErrorTitle"] ?? "تعذر تسجيل الدخول عبر Google")</h5>
                         </div>
                         <p class="mb-2 small">@TempData["GoogleLoginError"]</p>
-                        <button type="button" class="btn btn-sm btn-yaqut-gold w-100" id="btnSwitchToRegisterFromAlert">
-                            <i class="bi bi-person-plus-fill"></i> إنشاء حساب جديد الآن
-                        </button>
+                        @if (registrationEnabled)
+                        {
+                            <button type="button" class="btn btn-sm btn-yaqut-gold w-100" id="btnSwitchToRegisterFromAlert">
+                                <i class="bi bi-person-plus-fill"></i> إنشاء حساب جديد الآن
+                            </button>
+                        }
                     </div>
                 }
 
                 <!-- OR DIVIDER -->
+                @if (customerLoginEnabled || adminSignIn)
+                {
                 <div class="yq-auth-divider my-3">
                     <span>أو عبر رقم الجوال</span>
                 </div>
@@ -168,13 +192,20 @@
                         <i class="bi bi-unlock" aria-hidden="true"></i> تسجيل الدخول
                     </button>
                 </form>
+                }
                 <div class="yaqut-auth-help">
                     <span><i class="bi bi-question-circle" aria-hidden="true"></i> تحتاج لاستعادة الوصول؟</span>
-                    <a asp-controller="Account" asp-action="RecoveryAccount">نسيت كلمة المرور</a>
+                    @if (recoveryEnabled && !adminSignIn)
+                    {
+                        <a asp-controller="Account" asp-action="RecoveryAccount">نسيت كلمة المرور</a>
+                    }
                 </div>
             </div>
+            }
 
             <!-- PANEL 2: REDESIGNED 3-STEP REGISTER WIZARD -->
+            @if (registrationEnabled)
+            {
             <div id="registerPanel"
                  class="auth-panel yq-register-panel @(showRegisterPanel ? "" : "d-none")"
                  role="tabpanel"
@@ -405,6 +436,7 @@
                 </div>
 
             </div>
+            }
 
             <div class="yq-auth-links-container">
                 <a href="@returnUrl" class="yq-guest-link">
