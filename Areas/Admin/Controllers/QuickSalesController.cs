@@ -44,6 +44,9 @@ public class QuickSalesController : Controller
     // 1. MAIN QUICK SALES DASHBOARD / STATE ROUTE
     public async Task<IActionResult> Index()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier))
+            return Forbid();
+
         var openDay = await _context.SalesDays
             .AsNoTracking()
             .FirstOrDefaultAsync(sd => sd.Status == "Open");
@@ -52,7 +55,7 @@ public class QuickSalesController : Controller
         int todayCompletedCount = 0;
         decimal todayCompletedTotal = 0m;
 
-        if (openDay != null)
+        if (openDay != null && IsEnabled(CapabilityFeatureCodes.PosDrafts))
         {
             activeDrafts = await _context.Sales
                 .AsNoTracking()
@@ -60,7 +63,10 @@ public class QuickSalesController : Controller
                 .Where(s => s.SalesDayId == openDay.Id && s.Status == "Draft")
                 .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
                 .ToListAsync();
+        }
 
+        if (openDay != null && IsEnabled(CapabilityFeatureCodes.PosSalesLedger))
+        {
             var todaySummary = await _context.Sales
                 .AsNoTracking()
                 .Where(s => s.SalesDayId == openDay.Id && s.Status == "Completed")
@@ -91,6 +97,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> OpenDay()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesDay))
+            return Forbid();
+
         var existingOpenDay = await _context.SalesDays
             .AsNoTracking()
             .FirstOrDefaultAsync(sd => sd.Status == "Open");
@@ -115,6 +124,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> OpenDay(OpenSalesDayViewModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesDay))
+            return Forbid();
+
         if (model == null)
         {
             return RedirectToAction(nameof(Index));
@@ -169,6 +181,14 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> NewSale(int? draftId, int? id = null, bool edit = false)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier) ||
+            !IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
+        var requestedDraftId = draftId.GetValueOrDefault() > 0 || id.GetValueOrDefault() > 0;
+        if (!requestedDraftId && !IsEnabled(CapabilityFeatureCodes.PosInvoices))
+            return Forbid();
+
         var openDay = await _context.SalesDays
             .AsNoTracking()
             .FirstOrDefaultAsync(sd => sd.Status == "Open");
@@ -329,6 +349,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> SearchProducts(string q)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 1)
         {
             return Json(new List<ProductSearchResultDto>());
@@ -375,6 +398,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> SearchCustomers(string q)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 1)
         {
             return Json(new List<QuickSaleCustomerDto>());
@@ -410,6 +436,11 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveDraft([FromBody] SaveDraftRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier) ||
+            !IsEnabled(CapabilityFeatureCodes.PosDrafts) ||
+            HasDisabledDiscounts(model))
+            return Forbid();
+
         if (HasDisabledRetailItems(model?.Items))
             return Forbid();
 
@@ -602,6 +633,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AcquireDraftEditSession([FromBody] DraftEditSessionRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         if (model == null || model.SaleId <= 0)
             return BadRequest(new { success = false, message = "معرف المسودة غير صالح." });
 
@@ -631,6 +665,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RenewDraftEditSession([FromBody] DraftEditSessionRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         var renewed = model != null && await _draftEditSessions.RenewAsync(model.SaleId, model.EditSessionId, HttpContext.RequestAborted);
         return renewed
             ? Json(new { success = true })
@@ -641,6 +678,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReleaseDraftEditSession([FromBody] DraftEditSessionRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         var released = model != null && await _draftEditSessions.ReleaseAsync(model.SaleId, model.EditSessionId, HttpContext.RequestAborted);
         return Json(new { success = released });
     }
@@ -648,6 +688,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> DraftState(int saleId, Guid? editSessionId = null)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         if (saleId <= 0)
             return BadRequest(new { success = false, message = "معرف المسودة غير صالح." });
 
@@ -666,6 +709,9 @@ public class QuickSalesController : Controller
     // 6. DRAFT SALES LIST PAGE
     public async Task<IActionResult> Drafts()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         var openDay = await _context.SalesDays
             .AsNoTracking()
             .FirstOrDefaultAsync(sd => sd.Status == "Open");
@@ -690,6 +736,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDraft([FromBody] DeleteDraftRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosDrafts))
+            return Forbid();
+
         if (model == null || model.SaleId <= 0)
         {
             return Json(new { success = false, message = "معرف المسودة غير صالح." });
@@ -747,6 +796,10 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> GetPaymentMethods()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier) ||
+            !IsEnabled(CapabilityFeatureCodes.PosMultiplePayments))
+            return Forbid();
+
         var methods = await GetActivePaymentMethodsListAsync();
         var result = methods.Select(pm => new PaymentMethodOptionDto
         {
@@ -817,6 +870,13 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteSale([FromBody] CompleteSaleRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosCashier) ||
+            !IsEnabled(CapabilityFeatureCodes.PosInvoices) ||
+            !IsEnabled(CapabilityFeatureCodes.PosDrafts) ||
+            !IsEnabled(CapabilityFeatureCodes.PosMultiplePayments) ||
+            HasDisabledDiscounts(model))
+            return Forbid();
+
         if (HasDisabledRetailItems(model?.Items))
             return Forbid();
 
@@ -963,6 +1023,13 @@ public class QuickSalesController : Controller
                             Success = false,
                             Message = "يجب حفظ أحدث عناصر المسودة بنجاح قبل اعتماد البيع."
                         });
+                    }
+
+                    if (!IsEnabled(CapabilityFeatureCodes.PosDiscounts) &&
+                        (sale.DiscountTotal > 0m || persistedItems.Any(item => item.Discount > 0m)))
+                    {
+                        await transaction.RollbackAsync();
+                        return Forbid();
                     }
 
                     // Replace the draft detail only after its Draft status is verified under lock.
@@ -1176,6 +1243,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> Ledger(int? id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesLedger))
+            return Forbid();
+
         SalesDay? salesDay = null;
 
         if (id.HasValue && id.Value > 0)
@@ -1260,6 +1330,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> SaleDetails(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesLedger))
+            return Forbid();
+
         var sale = await _context.Sales
             .AsNoTracking()
             .Include(s => s.SaleItems)
@@ -1317,6 +1390,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CloseDay([FromBody] CloseSalesDayRequestModel model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesDay))
+            return Forbid();
+
         if (model == null || model.SalesDayId <= 0)
         {
             return Json(new { success = false, message = "طلب إغلاق اليوم غير صالحة." });
@@ -1418,6 +1494,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> History(int page = 1, int pageSize = 20)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosSalesLedger))
+            return Forbid();
+
         pageSize = Math.Clamp(pageSize, 5, 50);
         var totalDays = await _context.SalesDays.CountAsync();
         var totalPages = totalDays == 0 ? 1 : (int)Math.Ceiling(totalDays / (double)pageSize);
@@ -1478,6 +1557,9 @@ public class QuickSalesController : Controller
     [HttpGet]
     public async Task<IActionResult> Reports(DateTime? startDate, DateTime? endDate)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.PosReports))
+            return Forbid();
+
         var start = (startDate ?? DateTime.Today.AddDays(-7)).Date;
         var end = (endDate ?? DateTime.Today).Date;
 
@@ -1596,6 +1678,16 @@ public class QuickSalesController : Controller
     private bool HasDisabledRetailItems(IEnumerable<SaveDraftItemModel>? items) =>
         !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling) &&
         items?.Any(item => item.RetailPriceId.HasValue || item.RetailSizeMl.HasValue) == true;
+
+    private bool HasDisabledDiscounts(SaveDraftRequestModel? model) =>
+        !IsEnabled(CapabilityFeatureCodes.PosDiscounts) &&
+        (model?.DiscountTotal > 0m || model?.Items?.Any(item => item.Discount > 0m) == true);
+
+    private bool HasDisabledDiscounts(CompleteSaleRequestModel? model) =>
+        !IsEnabled(CapabilityFeatureCodes.PosDiscounts) &&
+        (model?.DiscountTotal > 0m || model?.Items?.Any(item => item.Discount > 0m) == true);
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
 
     private void SuppressRetailOptionsWhenDisabled(IEnumerable<ProductSearchResultDto> products)
     {

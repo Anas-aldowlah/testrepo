@@ -1,8 +1,10 @@
 @model List<YAGOT_2._0.Models.Admin.SalesDayHistoryItemDto>
 @using YAGOT_2._0.Models.Admin
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "سجل دفاتر اليوم السابقة";
+    var salesDayEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosSalesDay);
 
     var pagerViewData = new ViewDataDictionary(ViewData)
     {
@@ -42,11 +44,14 @@
             </div>
             <h4 class="h5 fw-bold mb-2">لا توجد دفاتر أيام سابقة مسجلة</h4>
             <p class="text-muted small mb-4">قم بفتح أول يوم بيع لتبدأ بتوثيق العمليات اليومية في النظام.</p>
+            @if (salesDayEnabled)
+            {
             <div>
                 <a asp-action="OpenDay" class="btn btn-yaqut-gold px-4 py-2 fw-bold">
                     <i class="bi bi-calendar-plus-fill me-1"></i> فتح يوم بيع جديد
                 </a>
             </div>
+            }
         </div>
     }
     else
