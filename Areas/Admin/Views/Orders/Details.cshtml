@@ -1,6 +1,7 @@
 @model YAGOT_2._0.Models.Order
 @using YAGOT_2._0.Services
 @inject DealingAPI DealingApiService
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = $"تفاصيل الطلب #{Model.Id}";
 
@@ -43,7 +44,8 @@
                 string.Empty,
                 null,
                 false);
-    var receiptUrl = !string.IsNullOrWhiteSpace(Model.Receipturl)
+    var paymentProofEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderPaymentProof);
+    var receiptUrl = paymentProofEnabled && !string.IsNullOrWhiteSpace(Model.Receipturl)
         ? Url.Action("Receipt", "Orders", new { area = "Admin", id = Model.Id })
         : null;
     var statusLabel = Model.Status switch
@@ -75,7 +77,7 @@
         !Model.Paymentreviewedat.HasValue &&
         !Model.Paymentreviewedbyuserid.HasValue;
     var isTerminal = Model.Status is OrderStatuses.Cancelled or OrderStatuses.Delivered or OrderStatuses.Refunded;
-    var canVerifyPayment = Model.Status == "Pending" &&
+    var canVerifyPayment = paymentProofEnabled && Model.Status == "Pending" &&
         !Model.Stockdeducted &&
         !Model.Paymentverifiedat.HasValue &&
         !Model.Paymentverifiedbyuserid.HasValue &&
@@ -393,6 +395,8 @@
                         <div><dt>المراجعة</dt><dd>تمت بواسطة مسؤول.</dd></div>
                     }
                 </dl>
+                @if (paymentProofEnabled)
+                {
                 <form asp-action="VerifyPayment" method="post" class="yq-order-status-form" data-yq-verify-payment>
                     <input type="hidden" name="id" value="@Model.Id" />
                     <button type="submit" class="btn-yaqut-gold yq-orders-verify-btn" disabled="@(!canVerifyPayment)">
@@ -400,6 +404,7 @@
                         <span>تحقق من الدفع</span>
                     </button>
                 </form>
+                }
                 @if (isConflictAwaitingDecision)
                 {
                     var conflictLines = string.Join("||", items

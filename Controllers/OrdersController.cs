@@ -7,6 +7,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using System.Security.Claims;
+using YAGOT_2._0.Core.Capabilities;
 
 namespace YAGOT_2._0.Controllers;
 
@@ -25,6 +26,7 @@ public class OrdersController : Controller
     private readonly UsersDbContext _dbUser;
     private readonly ILogger<OrdersController> _logger;
     private readonly ReceiptStorageService _receiptStorage;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public OrdersController(
         OrderService orderService,
@@ -35,7 +37,8 @@ public class OrdersController : Controller
         NeondbContext context,
         UsersDbContext users,
         ILogger<OrdersController> logger,
-        ReceiptStorageService receiptStorage)
+        ReceiptStorageService receiptStorage,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _orderService = orderService;
@@ -46,6 +49,7 @@ public class OrdersController : Controller
         _dbUser = users;
         _logger = logger;
         _receiptStorage = receiptStorage;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     [HttpGet]
@@ -55,6 +59,9 @@ public class OrdersController : Controller
         int page = 1,
         int? pageSize = null)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return NotFound();
+
         var userId = await ResolveUserIdAsync();
         var model = await _orderService.GetUserOrdersPageAsync(
             userId,
@@ -69,6 +76,9 @@ public class OrdersController : Controller
     [HttpGet]
     public async Task<IActionResult> Checkout()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.Checkout))
+            return NotFound();
+
         var cart = await GetCurrentCartAsync();
 
         if (cart.Cartitems == null || !cart.Cartitems.Any())
@@ -91,6 +101,18 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CheckoutPost(CheckoutVM model)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.Checkout) ||
+            !IsEnabled(CapabilityFeatureCodes.OrderCreate))
+        {
+            return NotFound();
+        }
+
+        if (model.ReceiptImage is { Length: > 0 } &&
+            !IsEnabled(CapabilityFeatureCodes.OrderPaymentProof))
+        {
+            return NotFound();
+        }
+
         var cart = await GetCurrentCartAsync();
         if (cart.Cartitems == null || !cart.Cartitems.Any())
         {
@@ -231,6 +253,9 @@ public class OrdersController : Controller
     [HttpGet]
     public async Task<IActionResult> Confirmation(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderCreate))
+            return NotFound();
+
         var userId = await ResolveUserIdAsync();
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
@@ -246,6 +271,9 @@ public class OrdersController : Controller
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return NotFound();
+
         var userId = await ResolveUserIdAsync();
         var order = await _orderService.GetOrderByIdAsync(id, HttpContext.RequestAborted);
         if (order == null || order.Userid != userId) return NotFound();
@@ -266,6 +294,9 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResolveInventoryConflict(ResolveInventoryConflictRequest input)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return NotFound();
+
         var userId = await ResolveUserIdAsync();
         var isAjax = IsAjaxRequest();
 
@@ -395,6 +426,9 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult SaveCheckoutDraft([FromBody] CheckoutDraftState draft)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.Checkout))
+            return NotFound();
+
         if (draft == null) return BadRequest();
         if (!string.IsNullOrEmpty(draft.DraftId) && HttpContext.Session.GetString("ClearedDraft_" + draft.DraftId) == "true")
         {
@@ -412,6 +446,9 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult ClearCheckoutDraft()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.Checkout))
+            return NotFound();
+
         var key = GetDraftSessionKey();
         HttpContext.Session.Remove(key);
         return Ok();
@@ -435,6 +472,8 @@ public class OrdersController : Controller
         var userIdVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         return int.TryParse(userIdVal, out userId);
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
 
     private Task<int> ResolveUserIdAsync()
     {

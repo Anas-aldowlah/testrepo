@@ -2,6 +2,7 @@
 @using System.Security.Claims;
 @using YAGOT_2._0.Services
 @inject DealingAPI DealingApiService;
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إتمام الطلب";
     var items = Model?.Cart?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
@@ -19,6 +20,8 @@
         _ => $"{itemsCount} منتج"
     };
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var orderCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderCreate);
+    var paymentProofEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderPaymentProof);
     var checkoutFormValues = ViewData["CheckoutFormValues"] as Microsoft.AspNetCore.Http.IFormCollection;
     var customerName = User.Identity?.Name;
     var encryptedPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value;
@@ -351,6 +354,8 @@
                 </fieldset>
                 <span asp-validation-for="PaymentMethod" id="paymentMethodError" class="yq-checkout-field__error yq-checkout-field__error--payment" role="alert"></span>
 
+                @if (paymentProofEnabled)
+                {
                 <div id="receiptUploadSection" class="yq-receipt-upload-section">
                     <div class="yq-receipt-box">
                         <div class="yq-receipt-box__header">
@@ -410,6 +415,7 @@
                         </div>
                     </div>
                 </div>
+                }
 
             </section>
         </div>
@@ -528,9 +534,12 @@
             </div>
 
             <div class="yq-checkout-summary__actions">
+                @if (orderCreateEnabled)
+                {
                 <button type="submit" form="yqCheckoutForm" class="btn-yaqut-gold yq-checkout-place-btn" id="yqPlaceOrderBtn">
                     <i class="bi bi-shield-check" aria-hidden="true"></i> تأكيد الطلب
                 </button>
+                }
 
                 <p class="yq-checkout-summary__secure">
                     <i class="bi bi-lock" aria-hidden="true"></i> معاملتك محمية وآمنة بالكامل

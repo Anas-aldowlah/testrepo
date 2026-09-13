@@ -1,7 +1,9 @@
 @model YAGOT_2._0.Models.Product
 @using YAGOT_2._0.Services
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
-    var showQuickAdd = ViewData["ShowQuickAdd"] as bool? ?? true;
+    var showQuickAdd = (ViewData["ShowQuickAdd"] as bool? ?? true) &&
+        CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CartProductManagement);
     var isEager = ViewData["IsEager"] as bool? ?? false;
     var categoryName = Model.Category?.Name ?? string.Empty;
     var isAvailable = ProductRetailAvailability.IsSellable(Model);

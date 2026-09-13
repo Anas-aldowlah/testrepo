@@ -12,6 +12,7 @@
     var hasNotes   = parts.Length >= 2;
     var productBrandsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
     var productSearchEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductSearchFilter);
+    var cartProductManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CartProductManagement);
     var isMlProduct = Model?.StockUnit == "Ml" && Model.VolumeMl is > 0;
     var pieceAvailableUnits = Model?.Stockquantity ?? 0;
     var fullAvailableUnits = isMlProduct ? (int)Math.Floor((double)Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
@@ -191,7 +192,7 @@
                         <p class="yq-pdp-summary">@(parts.Length > 0 ? parts[0] : desc)</p>
                     }
 
-                    @if (inStock)
+                    @if (inStock && cartProductManagementEnabled)
                     {
                         <form asp-controller="Cart"
                               asp-action="Add"

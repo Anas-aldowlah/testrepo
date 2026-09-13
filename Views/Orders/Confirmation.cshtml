@@ -2,9 +2,11 @@
 @using System.Security.Claims
 @using YAGOT_2._0.Services
 @inject DealingAPI DealingApiService
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = $"تأكيد الطلب #{Model.Id}";
     var items = Model.Orderitems?.ToList() ?? new List<YAGOT_2._0.Models.Orderitem>();
+    var orderManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderManagement);
 
     var delivery = Model.Deliveryorder;
     var customerName = Model.User?.Name ?? User.Identity?.Name ?? "العميل";
@@ -382,6 +384,8 @@
             <!-- 7. PRIMARY, SECONDARY & TERTIARY ACTIONS -->
             <div class="yq-confirm-actions" role="group" aria-label="خيارات المتابعة والتنقل">
                 <!-- PRIMARY: VIEW ORDER DETAILS (PERMANENT TRACKING DESTINATION) -->
+                @if (orderManagementEnabled)
+                {
                 <a asp-controller="Orders"
                    asp-action="Details"
                    asp-route-id="@Model.Id"
@@ -389,6 +393,7 @@
                     <i class="bi bi-receipt" aria-hidden="true"></i>
                     <span>عرض تفاصيل الطلب</span>
                 </a>
+                }
 
                 <!-- SECONDARY: CONTINUE SHOPPING -->
                 <a asp-controller="Products"
@@ -399,12 +404,15 @@
                 </a>
 
                 <!-- TERTIARY: ORDERS LIST -->
+                @if (orderManagementEnabled)
+                {
                 <a asp-controller="Orders"
                    asp-action="Index"
                    class="yq-confirm-btn yq-confirm-btn--ghost">
                     <i class="bi bi-clock-history" aria-hidden="true"></i>
                     <span>عرض جميع طلباتي</span>
                 </a>
+                }
             </div>
 
             <!-- 8. OPTIONAL WHATSAPP SUPPORT BOX -->

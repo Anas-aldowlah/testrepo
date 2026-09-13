@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @using System.Security.Claims
 @inject DealingAPI DealingApiService
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إدارة الطلبات";
 
@@ -11,6 +12,7 @@
     var search = Model.Search;
     var hasActiveFilters = Model.HasActiveFilters;
     var paymentPresentations = ViewData["PaymentMethodPresentations"] as IReadOnlyDictionary<string, PaymentMethodPresentation>;
+    var paymentProofEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderPaymentProof);
     var pagerRouteValues = new Dictionary<string, object?>
     {
         ["search"] = search,
@@ -254,7 +256,7 @@
                             var allowedTargets = isConflictAwaitingDecision
                                 ? Array.Empty<string>()
                                 : OrderStatusPolicy.GetAllowedTargets(order.Status);
-                            var canVerifyPayment = order.Status == OrderStatuses.Pending &&
+                            var canVerifyPayment = paymentProofEnabled && order.Status == OrderStatuses.Pending &&
                                 !order.Stockdeducted &&
                                 !order.Paymentverifiedat.HasValue &&
                                 !order.Paymentverifiedbyuserid.HasValue &&
@@ -299,7 +301,7 @@
                                         string.Empty,
                                         null,
                                         false);
-                            var receiptImage = !string.IsNullOrWhiteSpace(order.Receipturl)
+                            var receiptImage = paymentProofEnabled && !string.IsNullOrWhiteSpace(order.Receipturl)
                                 ? Url.Action("Receipt", "Orders", new { area = "Admin", id = order.Id })
                                 : null;
 
@@ -397,6 +399,8 @@
                                             <i class="bi bi-credit-card-fill" aria-hidden="true"></i>
                                         </button>
 
+                                        @if (paymentProofEnabled)
+                                        {
                                         @* Receipt Popover *@
                                         <button type="button"
                                                 class="yq-quick-btn yq-quick-btn--receipt"
@@ -410,6 +414,7 @@
                                                 aria-label="إيصال الدفع">
                                             <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
                                         </button>
+                                        }
                                     </div>
                                 </td>
                                 <td data-label="الإجراءات">
@@ -448,6 +453,8 @@
                                                 <i class="bi bi-check2" aria-hidden="true"></i><span class="yq-orders-label--desktop">حفظ</span><span class="yq-orders-label--mobile">حفظ الحالة</span>
                                             </button>
                                         </form>
+                                        @if (paymentProofEnabled)
+                                        {
                                         <form asp-action="VerifyPayment" method="post" class="yq-orders-actions yq-verify-payment-form" data-yq-verify-payment>
                                             <input type="hidden" name="id" value="@order.Id" />
                                             @{
@@ -466,6 +473,7 @@
                                                 <span class="yq-orders-label--desktop">@verifyDesktopText</span><span class="yq-orders-label--mobile">@verifyBtnText</span>
                                             </button>
                                         </form>
+                                        }
                                         @if (isConflictAwaitingDecision)
                                         {
                                             var conflictLines = string.Join("||", (order.Orderitems ?? [])

@@ -24,6 +24,8 @@
         var ordersActive = IsActive("Orders");
         var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
         var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
+        var cartViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CartView);
+        var orderManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderManagement);
     }
 
     <footer class="yaqut-footer">
@@ -88,6 +90,8 @@
                                 </a>
                             </li>
                         }
+                        @if (cartViewEnabled)
+                        {
                         <li>
                             <a asp-controller="Cart" asp-action="Index" class="@(cartActive ? "is-active" : null)" aria-current="@(cartActive ? "page" : null)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -96,7 +100,8 @@
                                 <span>سلة المشتريات</span>
                             </a>
                         </li>
-                        @if (isAuthenticated)
+                        }
+                        @if (isAuthenticated && orderManagementEnabled)
                         {
                             <li>
                                 <a asp-controller="Orders" asp-action="Index" class="@(ordersActive ? "is-active" : null)" aria-current="@(ordersActive ? "page" : null)">
@@ -107,7 +112,7 @@
                                 </a>
                             </li>
                         }
-                        else
+                        else if (!isAuthenticated)
                         {
                             <li>
                                 <a asp-controller="Account" asp-action="Auth">

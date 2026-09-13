@@ -1,5 +1,9 @@
 @model IEnumerable<YAGOT_2._0.Models.Product>
 @using YAGOT_2._0.Services
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
+@{
+    var cartProductManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CartProductManagement);
+}
 
 @foreach (var product in Model)
 {
@@ -48,7 +52,7 @@
                         <span>غير متوفر</span>
                     </button>
                 }
-                else if (isRetailAvailable)
+                else if (isRetailAvailable && cartProductManagementEnabled)
                 {
                     <a href="@Url.Action("Details", "Products", new { id = product.Id })"
                        class="yq-pcard__ov-btn yq-pcard__ov-btn--gold" aria-label="اختر الحجم">
@@ -56,7 +60,7 @@
                         <span>اختر الحجم</span>
                     </a>
                 }
-                else if (isBaseOptionAvailable)
+                else if (isBaseOptionAvailable && cartProductManagementEnabled)
                 {
                     <form asp-controller="Cart" asp-action="Add" method="post"
                           class="yaqut-quick-add-form"
