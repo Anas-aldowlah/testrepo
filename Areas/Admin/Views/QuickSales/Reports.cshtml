@@ -1,6 +1,8 @@
 @model YAGOT_2._0.Models.Admin.QuickSalesReportsIndexViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "تقارير البيع السريع";
+    var ledgerEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosSalesLedger);
 }
 
 @section Breadcrumb {
@@ -21,9 +23,12 @@
             <p class="text-muted small mb-0">تحليلات المبيعات، تفكيك التحصيل حسب طريقة الدفع، والمنتجات الأكثر مبيعاً</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            @if (ledgerEnabled)
+            {
             <a asp-action="History" class="btn btn-outline-secondary px-3 py-2 fw-bold">
                 <i class="bi bi-clock-history me-1"></i> سجل الأيام
             </a>
+            }
             <a asp-action="Index" class="btn btn-outline-dark px-3 py-2 fw-bold">الرئيسية</a>
         </div>
     </div>

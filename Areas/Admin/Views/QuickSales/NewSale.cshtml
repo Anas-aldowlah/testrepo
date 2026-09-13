@@ -1,9 +1,13 @@
 @model YAGOT_2._0.Models.Admin.NewSaleViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var sale = Model.Sale;
     var openSalesDay = Model.SalesDay;
     var isEdit = Model.IsExistingDraft;
+    var discountsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosDiscounts);
+    var paymentsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosMultiplePayments);
+    var invoicesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosInvoices);
     ViewData["Title"] = isEdit ? $"تعديل المسودة {sale.InvoiceNumber}" : "عملية بيع جديدة";
 }
 
@@ -27,6 +31,10 @@
         }
         .yq-pos {
             min-width: 0;
+        }
+        .yq-pos.pos-discounts-disabled .pos-cell-discount,
+        .yq-pos.pos-discounts-disabled .pos-overall-discount {
+            display: none !important;
         }
         .yq-pos h2 {
             overflow-wrap: anywhere;
@@ -465,7 +473,7 @@ html[data-theme="dark"] .form-select,
 <input type="hidden" id="posSaleId" value="@sale.Id" />
 <input type="hidden" id="posDraftRevision" value="@sale.DraftRevision" />
 
-<div class="container-fluid px-0 yq-pos">
+<div class="container-fluid px-0 yq-pos @(!discountsEnabled ? "pos-discounts-disabled" : "")">
     <div id="posAlertContainer" class="pos-alert-container" aria-live="polite" aria-atomic="true"></div>
     <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
         <span>يمكن للجميع عرض المسودة، والتعديل متاح لجلسة واحدة فقط.</span>
@@ -520,7 +528,7 @@ html[data-theme="dark"] .form-select,
                                 <th class="yq-th-w70px text-center">الصورة</th>
                                 <th class="yq-th-w140px text-center">الكمية</th>
                                 <th class="yq-th-w120px text-end">سعر الوحدة</th>
-                                <th class="yq-th-w110px text-end">الخصم</th>
+                                <th class="yq-th-w110px text-end pos-cell-discount">الخصم</th>
                                 <th class="yq-th-w130px text-end">الإجمالي</th>
                                 <th class="yq-th-w60px text-center">إزالة</th>
                             </tr>
@@ -552,7 +560,7 @@ html[data-theme="dark"] .form-select,
                     <strong class="fs-6 text-white" id="summarySubtotal">Ù Ù«Ù Ù  Ø±.Ø³</strong>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 pos-overall-discount">
                     <label for="posOverallDiscount" class="form-label text-white-50 small mb-1">خصم إجمالي على الفاتورة (ر.س):</label>
                     <input type="number" step="0.01" min="0" id="posOverallDiscount" class="form-control form-control-sm text-end" value="@sale.DiscountTotal" placeholder="0.00" />
                 </div>
@@ -565,7 +573,7 @@ html[data-theme="dark"] .form-select,
                 </div>
 
                 <!-- PAYMENT METHODS SECTION -->
-                <div class="border-top border-secondary pt-3 mb-4">
+                <div class="border-top border-secondary pt-3 mb-4 @(paymentsEnabled ? "" : "d-none")">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                         <h6 class="fw-bold text-warning mb-0"><i class="bi bi-wallet2 me-1"></i> وسيلة/وسائل الدفع</h6>
                         <button type="button" class="btn btn-sm btn-outline-warning text-nowrap py-0 px-2 fs-7" id="btnAddPaymentRow">
@@ -611,7 +619,7 @@ html[data-theme="dark"] .form-select,
 
                 <!-- PRIMARY ACTION BUTTONS -->
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm" id="btnCompleteSale">
+                    <button type="button" class="btn btn-yaqut-gold py-3 fw-bold fs-6 shadow-sm @((invoicesEnabled && paymentsEnabled) ? "" : "d-none")" id="btnCompleteSale">
                         <i class="bi bi-check-circle-fill me-2 fs-5"></i> اعتماد البيع وخصم المخزون
                     </button>
                     <button type="button" class="btn btn-outline-light py-2 fw-bold small opacity-75" id="btnSaveDraft">

@@ -1,6 +1,11 @@
 @model YAGOT_2._0.Models.Admin.QuickSalesIndexViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "البيع السريع (POS)";
+    var salesDayEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosSalesDay);
+    var invoicesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosInvoices);
+    var draftsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosDrafts);
+    var ledgerEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosSalesLedger);
 }
 
 @section Breadcrumb {
@@ -61,7 +66,10 @@
                         <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2 fs-6 rounded-pill d-inline-flex align-items-center">
                             <i class="bi bi-lock-fill me-1"></i> لا يوجد يوم بيع مفتوح
                         </span>
-                        <a asp-action="History" class="btn btn-sm btn-outline-warning text-white fw-bold px-3 py-2">سجل الأيام</a>
+                        @if (ledgerEnabled)
+                        {
+                            <a asp-action="History" class="btn btn-sm btn-outline-warning text-white fw-bold px-3 py-2">سجل الأيام</a>
+                        }
                     </div>
                 }
             </div>
@@ -73,6 +81,8 @@
     {
         <div class="row g-3 g-md-4 mb-4">
             <!-- NEW SALE ACTION CARD -->
+            @if (draftsEnabled && invoicesEnabled)
+            {
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="yq-qs-action-card yq-qs-action-gold card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-warning bg-opacity-10 p-3 mb-3 text-warning">
@@ -85,8 +95,11 @@
                     </a>
                 </div>
             </div>
+            }
 
             <!-- TODAY'S LEDGER CARD -->
+            @if (ledgerEnabled)
+            {
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="yq-qs-action-card yq-qs-action-green card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-success bg-opacity-10 p-3 mb-3 text-success">
@@ -102,8 +115,11 @@
                     </a>
                 </div>
             </div>
+            }
 
             <!-- DRAFTS ACTION CARD -->
+            @if (draftsEnabled)
+            {
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="yq-qs-action-card yq-qs-action-gray card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-secondary bg-opacity-10 p-3 mb-3 text-primary">
@@ -121,8 +137,11 @@
                     </a>
                 </div>
             </div>
+            }
 
             <!-- HISTORY CARD -->
+            @if (ledgerEnabled)
+            {
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="yq-qs-action-card yq-qs-action-blue card h-100 shadow-sm rounded-4 p-4 text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="rounded-circle bg-info bg-opacity-10 p-3 mb-3 text-info">
@@ -135,10 +154,11 @@
                     </a>
                 </div>
             </div>
+            }
         </div>
 
         <!-- RECENT DRAFTS TABLE -->
-        @if (Model.ActiveDrafts.Any())
+        @if (draftsEnabled && Model.ActiveDrafts.Any())
         {
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between border-bottom">
@@ -193,14 +213,20 @@
                 بدء عمليات البيع المباشرة والمسودات يتطلب فتح يوم بيع جديد أولاً لتنظيم عمليات السجل اليومي.
             </p>
             <div class="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3">
+                @if (salesDayEnabled)
+                {
                 <a asp-action="OpenDay" class="btn btn-yaqut-gold btn-lg px-4 py-3 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2 w-100 w-sm-auto">
                     <i class="bi bi-calendar-plus-fill"></i>
                     <span>فتح يوم بيع جديد الآن</span>
                 </a>
+                }
+                @if (ledgerEnabled)
+                {
                 <a asp-action="History" class="btn yq-qs-btn-secondary btn-lg px-4 py-3 fw-bold d-inline-flex align-items-center justify-content-center gap-2 w-100 w-sm-auto">
                     <i class="bi bi-clock-history"></i>
                     <span>تصفح السجل التاريخي</span>
                 </a>
+                }
             </div>
         </div>
     }

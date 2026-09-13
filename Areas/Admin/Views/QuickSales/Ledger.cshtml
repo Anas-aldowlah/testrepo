@@ -1,7 +1,12 @@
 @model YAGOT_2._0.Models.Admin.SalesDayLedgerViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = $"دفتر اليوم - {Model.SalesDay.Date:yyyy/MM/dd}";
     var isOpen = Model.SalesDay.Status == "Open";
+    var cashierEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosCashier);
+    var draftsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosDrafts);
+    var invoicesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosInvoices);
+    var salesDayEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.PosSalesDay);
 }
 
 @functions {
@@ -48,12 +53,18 @@
         <div class="d-flex align-items-center gap-2">
             @if (isOpen)
             {
+                @if (cashierEnabled && draftsEnabled && invoicesEnabled)
+                {
                 <a asp-action="NewSale" class="btn btn-yaqut-gold fw-bold px-3 py-2 shadow-sm">
                     <i class="bi bi-cart-plus-fill me-1"></i> بيع جديد
                 </a>
+                }
+                @if (salesDayEnabled)
+                {
                 <button type="button" class="btn btn-danger fw-bold px-3 py-2 shadow-sm" id="btnOpenCloseModal">
                     <i class="bi bi-lock-fill me-1"></i> إغلاق يوم البيع
                 </button>
+                }
             }
             <a asp-action="History" class="btn btn-outline-secondary px-3 py-2 fw-bold">
                 <i class="bi bi-clock-history me-1"></i> سجل الأيام السابقة
@@ -264,7 +275,7 @@
 </div>
 
 <!-- CLOSE DAY MODAL -->
-@if (isOpen)
+@if (isOpen && salesDayEnabled)
 {
     <div class="modal fade" id="closeDayModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
