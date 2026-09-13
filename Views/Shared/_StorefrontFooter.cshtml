@@ -23,6 +23,7 @@
         var cartActive = IsActive("Cart");
         var ordersActive = IsActive("Orders");
         var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
+        var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
     }
 
     <footer class="yaqut-footer">
@@ -65,6 +66,8 @@
                                 <span>الرئيسية</span>
                             </a>
                         </li>
+                        @if (productViewEnabled)
+                        {
                         <li>
                             <a asp-controller="Products" asp-action="Index" class="@(productsActive ? "is-active" : null)" aria-current="@(productsActive ? "page" : null)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -73,6 +76,7 @@
                                 <span>جميع المنتجات</span>
                             </a>
                         </li>
+                        }
                         @if (categoryViewEnabled)
                         {
                             <li>

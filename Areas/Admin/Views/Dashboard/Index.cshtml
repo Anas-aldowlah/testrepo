@@ -6,6 +6,8 @@
 
     var recentOrders = Model.RecentOrders;
     var categoryCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryCreate);
+    var productCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductCreate);
+    var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
 }
 
 @section Styles {
@@ -21,10 +23,13 @@
         </div>
 
         <div class="yq-dashboard-hero__actions" aria-label="إجراءات سريعة">
+            @if (productCreateEnabled)
+            {
             <a asp-area="Admin" asp-controller="Products" asp-action="Create" class="btn-yaqut-gold">
                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
                 <span>إضافة منتج</span>
             </a>
+            }
             @if (categoryCreateEnabled)
             {
                 <a asp-area="Admin" asp-controller="Categories" asp-action="Create" class="btn-yaqut-outline">
@@ -229,10 +234,13 @@
                 </div>
 
                 <nav class="yq-dashboard-actions" aria-label="اختصارات العمل">
+                    @if (productCreateEnabled)
+                    {
                     <a asp-area="Admin" asp-controller="Products" asp-action="Create">
                         <span><i class="bi bi-plus-lg" aria-hidden="true"></i>إضافة منتج</span>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                     </a>
+                    }
                     @if (categoryCreateEnabled)
                     {
                         <a asp-area="Admin" asp-controller="Categories" asp-action="Create">
@@ -244,10 +252,13 @@
                         <span><i class="bi bi-receipt" aria-hidden="true"></i>إدارة الطلبات</span>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                     </a>
+                    @if (productViewEnabled)
+                    {
                     <a asp-area="Admin" asp-controller="Products" asp-action="Index">
                         <span><i class="bi bi-box-seam" aria-hidden="true"></i>إدارة المنتجات</span>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                     </a>
+                    }
                 </nav>
             </section>
         </aside>

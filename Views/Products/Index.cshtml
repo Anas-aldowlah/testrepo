@@ -5,6 +5,9 @@
     var request = Model.Request;
     var selectedCategory = Model.SelectedCategory;
     var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
+    var productSearchEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductSearchFilter);
+    var productBrandsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
+    var retailSellingEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.RetailSelling);
     var isSearchMode = !string.IsNullOrWhiteSpace(request.Search);
     var isBrandMode = request.Brand.Length > 0;
     var activeFilterCount = 0;
@@ -121,7 +124,7 @@
         }
     }
 
-    <div class="yq-recent-searches" id="yqRecentSearches" hidden>
+    <div class="yq-recent-searches" id="yqRecentSearches" hidden="@(!productSearchEnabled)">
         <span class="yq-recent-searches__label"><i class="bi bi-clock-history"></i> عمليات بحث سابقة</span>
         <div class="yq-recent-searches__list" id="yqRecentSearchesList"></div>
     </div>
@@ -150,7 +153,7 @@
     <div class="yq-shop-toolbar yq-reveal">
         <p id="yaqutResultsCount" class="yq-shop-toolbar__count" role="status" aria-live="polite">@resultsCountLabel</p>
         <div class="yq-shop-toolbar__actions">
-            <div class="yq-shop-sort">
+            <div class="yq-shop-sort" hidden="@(!productSearchEnabled)">
                 <label for="yqSortSelect"><i class="bi bi-sort-down"></i> ترتيب حسب</label>
                 <select id="yqSortSelect" name="sort" form="yqCatalogFilters" class="yq-shop-sort__select" data-yq-auto-submit>
                     <option value="newest" selected="@(request.Sort == "newest")">الأحدث</option>
@@ -159,7 +162,7 @@
                     <option value="name" selected="@(request.Sort == "name")">الاسم (أ-ي)</option>
                 </select>
             </div>
-            <button type="button" id="yaqutFilterToggle" class="btn-yaqut-outline yq-shop-filter-toggle">
+            <button type="button" id="yaqutFilterToggle" class="btn-yaqut-outline yq-shop-filter-toggle" hidden="@(!productSearchEnabled)">
                 <i class="bi bi-sliders"></i> الفلاتر
                 @if (activeFilterCount > 0)
                 {
@@ -171,7 +174,7 @@
 
     <div class="yq-shop-layout">
         <div class="yq-filter-backdrop" id="yqFilterBackdrop" data-yq-filter-close tabindex="-1" aria-hidden="true"></div>
-        <aside id="yaqutFilters" class="yq-shop-filters yq-glass" aria-labelledby="yqFilterMainTitle">
+        <aside id="yaqutFilters" class="yq-shop-filters yq-glass" aria-labelledby="yqFilterMainTitle" hidden="@(!productSearchEnabled)">
             <div class="yq-filter-header">
                 <div class="yq-filter-header__top">
                     <div class="yq-filter-header__title">                        <h3 id="yqFilterMainTitle">تصفية المنتجات</h3>
@@ -229,6 +232,8 @@
                 @{
                     var hasRetailFilter = request.Retail != "all";
                 }
+                @if (retailSellingEnabled)
+                {
                 <div class="yq-filter-card is-collapsed" data-filter-card="retail">
                     <button type="button" class="yq-filter-card__header" aria-expanded="false" data-filter-toggle>
                         <span class="yq-filter-card__title">
@@ -259,6 +264,7 @@
                         </div>
                     </div>
                 </div>
+                }
 
                 @if (categoryProductsEnabled && Model.Categories.Count > 0)
                 {
@@ -301,7 +307,7 @@
                     </div>
                 }
 
-                @if (Model.Brands.Count > 0)
+                @if (productBrandsEnabled && Model.Brands.Count > 0)
                 {
                     var brandCount = request.Brand.Length;
                     <div class="yq-filter-card is-collapsed" data-filter-card="brand">
@@ -337,7 +343,7 @@
                     </div>
                 }
 
-                @if (Model.RetailSizes.Count > 0)
+                @if (retailSellingEnabled && Model.RetailSizes.Count > 0)
                 {
                     var hasRetailSizeFilter = request.RetailSize.Length > 0;
                     <div class="yq-filter-card is-collapsed @(request.Retail == "no" ? "d-none" : "")" data-filter-card="retailsize" id="yqRetailSizeGroup">

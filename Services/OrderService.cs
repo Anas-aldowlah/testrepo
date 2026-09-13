@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services;
@@ -25,17 +26,20 @@ public class OrderService
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<OrderService> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public OrderService(
         NeondbContext context,
         CartLockService cartLock,
         IInventoryService inventoryService,
-        ILogger<OrderService> logger)
+        ILogger<OrderService> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _cartLock = cartLock;
         _inventoryService = inventoryService;
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -64,6 +68,8 @@ public class OrderService
 
                 if (cart == null || cart.Cartitems.Count == 0)
                     throw new InvalidOperationException("السلة فارغة - لا يمكن إنشاء طلب بدون منتجات");
+
+                EnsureRetailSellingEnabled(cart.Cartitems);
 
                 var products = await LockCheckoutProductsAsync(
                     cart.Cartitems.Select(item => item.Productid),
@@ -357,6 +363,7 @@ public class OrderService
                 }
 
                 var orderItems = await LoadOrderItemsAsync(order.Id, cancellationToken);
+                EnsureRetailSellingEnabled(orderItems);
                 var products = await LockProductsAsync(orderItems, cancellationToken);
                 var allocation = BuildAllocation(orderItems, products);
                 var hasConflict = allocation.Any(line => line.UnavailableQuantity > 0);
@@ -495,6 +502,8 @@ public class OrderService
                 var orderItems = order.Orderitems.OrderBy(item => item.Id).ToList();
                 if (orderItems.Count == 0)
                     throw new InvalidOperationException("لا يمكن تنفيذ طلب لا يحتوي على منتجات.");
+
+                EnsureRetailSellingEnabled(orderItems);
 
                 if (!order.Paymentreviewedat.HasValue || !order.Paymentreviewedbyuserid.HasValue)
                     throw new InvalidOperationException("تعذر إكمال الطلب الآن. يرجى التواصل مع المتجر.");
@@ -768,6 +777,24 @@ public class OrderService
         {
             _logger.LogError(exception, "Order transition {Operation} failed for order {OrderId}.", operationName, orderId);
             throw;
+        }
+    }
+
+    private void EnsureRetailSellingEnabled(IEnumerable<Cartitem> items)
+    {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling) &&
+            items.Any(item => item.RetailPriceId.HasValue))
+        {
+            throw new InvalidOperationException("Retail selling capability is disabled.");
+        }
+    }
+
+    private void EnsureRetailSellingEnabled(IEnumerable<Orderitem> items)
+    {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling) &&
+            items.Any(item => item.RetailPriceId.HasValue || item.RetailSizeMl.HasValue))
+        {
+            throw new InvalidOperationException("Retail selling capability is disabled.");
         }
     }
 

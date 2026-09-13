@@ -12,6 +12,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
@@ -24,17 +25,20 @@ public class QuickSalesController : Controller
     private readonly IInventoryService _inventoryService;
     private readonly IDraftEditSessionService _draftEditSessions;
     private readonly ILogger<QuickSalesController> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public QuickSalesController(
         NeondbContext context,
         IInventoryService inventoryService,
         IDraftEditSessionService draftEditSessions,
-        ILogger<QuickSalesController> logger)
+        ILogger<QuickSalesController> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _inventoryService = inventoryService;
         _draftEditSessions = draftEditSessions;
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     // 1. MAIN QUICK SALES DASHBOARD / STATE ROUTE
@@ -289,6 +293,8 @@ public class QuickSalesController : Controller
             })
             .ToListAsync();
 
+        SuppressRetailOptionsWhenDisabled(availableProducts);
+
         var customers = await _context.Sales
             .AsNoTracking()
             .Where(s => s.CustomerName != null && s.CustomerName != "")
@@ -360,6 +366,8 @@ public class QuickSalesController : Controller
             })
             .ToListAsync();
 
+        SuppressRetailOptionsWhenDisabled(products);
+
         return Json(products);
     }
 
@@ -402,6 +410,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveDraft([FromBody] SaveDraftRequestModel model)
     {
+        if (HasDisabledRetailItems(model?.Items))
+            return Forbid();
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -806,6 +817,9 @@ public class QuickSalesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteSale([FromBody] CompleteSaleRequestModel model)
     {
+        if (HasDisabledRetailItems(model?.Items))
+            return Forbid();
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -1577,5 +1591,21 @@ public class QuickSalesController : Controller
     {
         if (values.Any(value => value is < 0m or > 1000000.00m))
             throw new OverflowException("A transaction amount exceeds the allowed currency range.");
+    }
+
+    private bool HasDisabledRetailItems(IEnumerable<SaveDraftItemModel>? items) =>
+        !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling) &&
+        items?.Any(item => item.RetailPriceId.HasValue || item.RetailSizeMl.HasValue) == true;
+
+    private void SuppressRetailOptionsWhenDisabled(IEnumerable<ProductSearchResultDto> products)
+    {
+        if (_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+            return;
+
+        foreach (var product in products)
+        {
+            product.IsRetailEnabled = false;
+            product.RetailPrices = [];
+        }
     }
 }

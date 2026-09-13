@@ -6,6 +6,7 @@ using System.Security.Claims;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 
 namespace Yagot.Controllers;
 
@@ -15,15 +16,18 @@ public class CartController : Controller
     private readonly CartService _cartService;
     private readonly GuestCartService _guestCartService;
     private readonly ILogger<CartController> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public CartController(
         CartService cartService,
         GuestCartService guestCartService,
-        ILogger<CartController> logger)
+        ILogger<CartController> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _cartService = cartService;
         _guestCartService = guestCartService;
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index()
@@ -52,6 +56,12 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(AddCartItemInput input)
     {
+        if (input.RetailPriceId.HasValue &&
+            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -106,6 +116,12 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update(UpdateCartItemInput input)
     {
+        if (input.RetailPriceId.HasValue &&
+            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 

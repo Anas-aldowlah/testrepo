@@ -6,6 +6,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using YAGOT_2._0.Services.Caching;
+using YAGOT_2._0.Core.Capabilities;
 
 namespace Yagot.Controllers;
 
@@ -17,32 +18,40 @@ public class HomeController : Controller
     private readonly StoreSettingsService _storeSettingsService;
     private readonly ProductCatalogService _catalogService;
     private readonly IStorefrontCacheService _storefrontCacheService;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public HomeController(
         NeondbContext context,
         IVisitService visitService,
         StoreSettingsService storeSettingsService,
         ProductCatalogService catalogService,
-        IStorefrontCacheService storefrontCacheService)
+        IStorefrontCacheService storefrontCacheService,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _visitService = visitService;
         _storeSettingsService = storeSettingsService;
         _catalogService = catalogService;
         _storefrontCacheService = storefrontCacheService;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(int? categoryId)
     {
-        var showcase = await _storefrontCacheService.GetHomeShowcaseAsync(HttpContext.RequestAborted);
+        var canViewProducts = _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductView);
+        var showcase = canViewProducts
+            ? await _storefrontCacheService.GetHomeShowcaseAsync(HttpContext.RequestAborted)
+            : null;
         var categoriesFromDb = (await _catalogService.GetCategoriesAsync(HttpContext.RequestAborted)).ToList();
-        var brands = (await _catalogService.GetBrandsAsync(HttpContext.RequestAborted)).ToList();
+        var brands = canViewProducts && _capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.ProductBrands)
+            ? (await _catalogService.GetBrandsAsync(HttpContext.RequestAborted)).ToList()
+            : [];
 
         var model = new ViewModels
         {
-            NewArrivals = showcase.GetNewArrivalProducts(),
-            HeroSlides = showcase.GetHeroSlideProducts(),
-            BestSellingProducts = showcase.GetBestSellingProducts(),
+            NewArrivals = showcase?.GetNewArrivalProducts() ?? [],
+            HeroSlides = showcase?.GetHeroSlideProducts() ?? [],
+            BestSellingProducts = showcase?.GetBestSellingProducts() ?? [],
             Brands = brands,
             Categories = categoriesFromDb,
             StoreSettings = await _storeSettingsService.GetSettingsAsync()

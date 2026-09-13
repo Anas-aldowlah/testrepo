@@ -7,6 +7,7 @@
     var categoryViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryView);
     var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
     var categoryImagesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
+    var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
     var categories = categoryViewEnabled
         ? Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>()
         : new List<YAGOT_2._0.Models.Category>();
@@ -70,10 +71,13 @@
                     @heroDesc
                 </p>
                 <div class="yq-home-hero__actions">
+                    @if (productViewEnabled)
+                    {
                     <a asp-controller="Products" asp-action="Index" class="btn-yaqut-gold btn-yaqut-gold--lg">
                         <i class="bi bi-stars"></i> تصفح المنتجات
                     </a>
-                    @if (featuredCategory != null && categoryProductsEnabled)
+                    }
+                    @if (productViewEnabled && featuredCategory != null && categoryProductsEnabled)
                     {
                         <a asp-controller="Products" asp-action="Index"
                            asp-route-categoryId="@featuredCategory.Id"
@@ -164,6 +168,8 @@
 
 
 
+    @if (productViewEnabled)
+    {
     <section class="container yq-home-section" aria-labelledby="newArrivalsTitle">
         <header class="yq-home-section__head">
             <div>
@@ -188,6 +194,7 @@
             <div class="yq-home-empty"><i class="bi bi-droplet"></i><p>لا توجد عطور معروضة حالياً. عُد قريباً لاكتشاف الجديد.</p></div>
         }
     </section>
+    }
 
     @if (bestSellingProducts.Count >= 3)
     {
@@ -228,10 +235,10 @@
                         : (category.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || category.Imageurl.StartsWith("/")
                             ? category.Imageurl
                             : Url.Content("~/" + category.Imageurl.TrimStart('/')));
-                    <a href="@(categoryProductsEnabled ? Url.Action("Index", "Products", new { categoryId = category.Id }) : null)" class="yq-home-category">
+                    <a href="@(productViewEnabled && categoryProductsEnabled ? Url.Action("Index", "Products", new { categoryId = category.Id }) : null)" class="yq-home-category">
                         <img src="@categoryImage" alt="@category.Name" loading="lazy" decoding="async"
                              data-yaqut-fallback="/images/placeholder-product.svg" />
-                        <span><strong>@category.Name</strong>@if (categoryProductsEnabled) { <i class="bi bi-arrow-left" aria-hidden="true"></i> }</span>
+                        <span><strong>@category.Name</strong>@if (productViewEnabled && categoryProductsEnabled) { <i class="bi bi-arrow-left" aria-hidden="true"></i> }</span>
                     </a>
                 }
             </div>

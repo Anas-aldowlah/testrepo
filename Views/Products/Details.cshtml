@@ -10,6 +10,8 @@
     var heartNote  = parts.Length > 1 ? parts[1] : (parts.Length == 1 ? parts[0] : "");
     var baseNote   = parts.Length > 2 ? parts[2] : "";
     var hasNotes   = parts.Length >= 2;
+    var productBrandsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
+    var productSearchEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductSearchFilter);
     var isMlProduct = Model?.StockUnit == "Ml" && Model.VolumeMl is > 0;
     var pieceAvailableUnits = Model?.Stockquantity ?? 0;
     var fullAvailableUnits = isMlProduct ? (int)Math.Floor((double)Model!.Stockquantity / Model.VolumeMl!.Value) : pieceAvailableUnits;
@@ -142,9 +144,9 @@
                             }
                         }
                         
-                        @if (!string.IsNullOrWhiteSpace(Model.Brand))
+                        @if (productBrandsEnabled && !string.IsNullOrWhiteSpace(Model.Brand))
                         {
-                            <a asp-controller="Products" asp-action="Index" asp-route-brand="@Model.Brand" class="yq-pdp-brand-tag" title="تصفح جميع منتجات هذه الشركة">
+                            <a asp-controller="Products" asp-action="Index" asp-route-brand="@(productSearchEnabled ? Model.Brand : null)" class="yq-pdp-brand-tag" title="تصفح جميع منتجات هذه الشركة">
                                 <i class="bi bi-building"></i> @Model.Brand
                             </a>
                         }
@@ -375,12 +377,19 @@
                                 <span class="yq-pdp-quick-specs__val">@Model.Category.Name</span>
                             </li>
                         }
-                        @if (!string.IsNullOrWhiteSpace(Model.Brand))
+                        @if (productBrandsEnabled && !string.IsNullOrWhiteSpace(Model.Brand))
                         {
                             <li>
                                 <span class="yq-pdp-quick-specs__key"><i class="bi bi-building"></i> الشركة</span>
                                 <span class="yq-pdp-quick-specs__val">
-                                    <a asp-controller="Products" asp-action="Index" asp-route-search="@Model.Brand" class="yq-brand-link">@Model.Brand</a>
+                                    @if (productSearchEnabled)
+                                    {
+                                        <a asp-controller="Products" asp-action="Index" asp-route-search="@Model.Brand" class="yq-brand-link">@Model.Brand</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-brand-link">@Model.Brand</span>
+                                    }
                                 </span>
                             </li>
                         }

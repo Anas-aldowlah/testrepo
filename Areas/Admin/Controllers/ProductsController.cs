@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
@@ -26,6 +27,7 @@ public class ProductsController : Controller
     private readonly ProductCatalogService _catalogService;
     private readonly ICacheInvalidationService _invalidationService;
     private readonly ILogger<ProductsController> _logger;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     public ProductsController(
         ProductService productService,
@@ -35,7 +37,8 @@ public class ProductsController : Controller
         IBestSellerService bestSellerService,
         ProductCatalogService catalogService,
         ICacheInvalidationService invalidationService,
-        ILogger<ProductsController> logger)
+        ILogger<ProductsController> logger,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _productService = productService;
         _context = context;
@@ -45,10 +48,17 @@ public class ProductsController : Controller
         _catalogService = catalogService;
         _invalidationService = invalidationService;
         _logger = logger;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductView))
+            return Forbid();
+
+        if (!IsEnabled(CapabilityFeatureCodes.ProductSearchFilter))
+            search = null;
+
         var activeQuery = _context.Products
             .AsNoTracking()
             .Where(p => !(p.Stockquantity == 0 &&
@@ -65,27 +75,9 @@ public class ProductsController : Controller
                 (p.Category != null && p.Category.Name.Contains(search)));
         }
 
-        var inventorySummary = await _context.Products
-            .AsNoTracking()
-            .GroupBy(_ => 1)
-            .Select(group => new
-            {
-                Active = group.Count(p => !(p.Stockquantity == 0 &&
-                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy))),
-                Archived = group.Count(p => p.Stockquantity == 0 &&
-                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
-                LowStock = group.Count(p =>
-                    !(p.Stockquantity == 0 &&
-                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
-                    p.Stockquantity > 0 &&
-                    ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
-                     (p.StockUnit != "Ml" && p.Stockquantity < 5))),
-                OutOfStock = group.Count(p =>
-                    !(p.Stockquantity == 0 &&
-                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
-                    p.Stockquantity <= 0)
-            })
-            .SingleOrDefaultAsync();
+        var inventorySummary = IsEnabled(CapabilityFeatureCodes.InventoryManagement)
+            ? await GetInventorySummaryAsync()
+            : (Active: 0, Archived: 0, LowStock: 0, OutOfStock: 0);
 
         var model = new AdminProductsIndexViewModel
         {
@@ -97,10 +89,10 @@ public class ProductsController : Controller
                 page,
                 pageSize),
             Categories = await _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync(),
-            TotalActiveProducts = inventorySummary?.Active ?? 0,
-            TotalArchivedProducts = inventorySummary?.Archived ?? 0,
-            LowStockCount = inventorySummary?.LowStock ?? 0,
-            OutOfStockCount = inventorySummary?.OutOfStock ?? 0,
+            TotalActiveProducts = inventorySummary.Active,
+            TotalArchivedProducts = inventorySummary.Archived,
+            LowStockCount = inventorySummary.LowStock,
+            OutOfStockCount = inventorySummary.OutOfStock,
             Search = search ?? string.Empty,
             BestSellersLastUpdated = await _bestSellerService.GetLastRefreshTimeAsync()
         };
@@ -113,6 +105,9 @@ public class ProductsController : Controller
     [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> RefreshBestSellers(string? returnUrl = null)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductEdit))
+            return Forbid();
+
         _logger.LogInformation("Admin user {AdminUser} initiated a manual Best Sellers refresh.", User.Identity?.Name);
 
         var result = await _bestSellerService.RefreshBestSellersAsync(HttpContext.RequestAborted);
@@ -140,6 +135,9 @@ public class ProductsController : Controller
     [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> trash(int page = 1, int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductView))
+            return Forbid();
+
         var archivedQuery = _context.Products
             .AsNoTracking()
             .Where(p => p.Stockquantity == 0 &&
@@ -163,6 +161,9 @@ public class ProductsController : Controller
     [HttpGet]
     public async Task<IActionResult> Create()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductCreate))
+            return Forbid();
+
         await PopulateCreateOptionsAsync();
         return View(new AdminProductCreateViewModel
         {
@@ -176,6 +177,13 @@ public class ProductsController : Controller
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> Create(AdminProductCreateViewModel input)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductCreate) ||
+            HasBrandMutation(input.Brand) && !IsEnabled(CapabilityFeatureCodes.ProductBrands) ||
+            HasRetailMutation(input.IsRetailEnabled, input.RetailPrices) && !IsEnabled(CapabilityFeatureCodes.RetailSelling))
+        {
+            return Forbid();
+        }
+
         ValidateCreateConfiguration(input);
         var productvw = ToProductViewModel(input);
         ValidateRetailPrices(productvw, product: null, modelPrefix: null);
@@ -258,6 +266,9 @@ public class ProductsController : Controller
 
     public async Task<IActionResult> Edit(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductEdit))
+            return Forbid();
+
         var product = await _context.Products
             .Include(p => p.RetailPrices)
             .SingleOrDefaultAsync(p => p.Id == id);
@@ -274,10 +285,28 @@ public class ProductsController : Controller
     public async Task<IActionResult> Edit(
         [Bind(Prefix = nameof(AdminProductEditViewModel.Product))] ProductVW productVW)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductEdit))
+            return Forbid();
+
+        if (!IsEnabled(CapabilityFeatureCodes.ProductBrands) && HasBrandMutation(productVW.Brand) ||
+            !IsEnabled(CapabilityFeatureCodes.RetailSelling) && HasRetailMutation(productVW.IsRetailEnabled, productVW.RetailPrices))
+        {
+            return Forbid();
+        }
+
         var product = await _context.Products
             .Include(p => p.RetailPrices)
             .SingleOrDefaultAsync(p => p.Id == productVW.Id);
         if (product == null) return NotFound();
+
+        if (!IsEnabled(CapabilityFeatureCodes.ProductBrands))
+            productVW.Brand = product.Brand;
+
+        if (!IsEnabled(CapabilityFeatureCodes.RetailSelling))
+        {
+            productVW.IsRetailEnabled = product.IsRetailEnabled;
+            productVW.RetailPrices = ToProductViewModel(product).RetailPrices;
+        }
 
         try
         {
@@ -382,6 +411,9 @@ public class ProductsController : Controller
     public async Task<IActionResult> AdjustStock(
         [Bind(Prefix = nameof(AdminProductEditViewModel.StockAdjustment))] StockAdjustmentViewModel input)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.InventoryManagement))
+            return Forbid();
+
         if (!ModelState.IsValid)
             return await StockValidationViewAsync(input);
 
@@ -416,6 +448,9 @@ public class ProductsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.ProductDelete))
+            return Forbid();
+
         var product = await _productService.GetProductByIdAsync(id);
         if (product == null) return NotFound();
 
@@ -506,12 +541,12 @@ public class ProductsController : Controller
     private async Task PopulateEditOptionsAsync()
     {
         ViewBag.Categories = await _productService.GetCategoriesAsync();
-        ViewBag.Brands = await _context.Products
+        ViewBag.Brands = IsEnabled(CapabilityFeatureCodes.ProductBrands) ? await _context.Products
             .AsNoTracking()
             .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
             .Select(product => product.Brand!.Trim())
             .Distinct()
-            .ToListAsync();
+            .ToListAsync() : [];
     }
 
     private static ProductVW ToProductViewModel(AdminProductCreateViewModel input) => new()
@@ -541,13 +576,13 @@ public class ProductsController : Controller
             await _context.Categories.AsNoTracking().OrderBy(category => category.Name).ToListAsync(),
             "Id",
             "Name");
-        ViewBag.Brands = await _context.Products
+        ViewBag.Brands = IsEnabled(CapabilityFeatureCodes.ProductBrands) ? await _context.Products
             .AsNoTracking()
             .Where(product => !string.IsNullOrWhiteSpace(product.Brand))
             .Select(product => product.Brand!.Trim())
             .Distinct()
             .OrderBy(brand => brand)
-            .ToListAsync();
+            .ToListAsync() : [];
     }
 
     private async Task<IActionResult> CreateValidationViewAsync(AdminProductCreateViewModel submitted)
@@ -816,5 +851,44 @@ public class ProductsController : Controller
 
     private static string NormalizeStockUnit(string? stockUnit) =>
         string.Equals(stockUnit, "Ml", StringComparison.OrdinalIgnoreCase) ? "Ml" : "Piece";
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
+
+    private static bool HasBrandMutation(string? brand) => !string.IsNullOrWhiteSpace(brand);
+
+    private static bool HasRetailMutation(bool isRetailEnabled, IEnumerable<ProductRetailPriceInput>? prices) =>
+        isRetailEnabled || prices?.Any(price => price.Id.HasValue || price.SizeMl > 0 || price.Price > 0) == true;
+
+    private static bool HasRetailMutation(bool isRetailEnabled, IEnumerable<AdminProductCreateRetailPriceInput>? prices) =>
+        isRetailEnabled || prices?.Any(price => price.Id.HasValue || price.SizeMl > 0 || price.Price > 0) == true;
+
+    private async Task<(int Active, int Archived, int LowStock, int OutOfStock)> GetInventorySummaryAsync()
+    {
+        var summary = await _context.Products
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Active = group.Count(p => !(p.Stockquantity == 0 &&
+                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy))),
+                Archived = group.Count(p => p.Stockquantity == 0 &&
+                    (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)),
+                LowStock = group.Count(p =>
+                    !(p.Stockquantity == 0 &&
+                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
+                    p.Stockquantity > 0 &&
+                    ((p.StockUnit == "Ml" && p.VolumeMl != null && p.Stockquantity < p.VolumeMl * 5) ||
+                     (p.StockUnit != "Ml" && p.Stockquantity < 5))),
+                OutOfStock = group.Count(p =>
+                    !(p.Stockquantity == 0 &&
+                      (p.Imageurl == DeletedProductImagePath || p.Imageurl == DeletedProductImagePathLegacy)) &&
+                    p.Stockquantity <= 0)
+            })
+            .SingleOrDefaultAsync();
+
+        return summary == null
+            ? (0, 0, 0, 0)
+            : (summary.Active, summary.Archived, summary.LowStock, summary.OutOfStock);
+    }
 
 }

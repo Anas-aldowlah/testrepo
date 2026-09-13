@@ -1,5 +1,6 @@
 @using YAGOT_2._0.Models.Admin
 @model AdminProductEditViewModel
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "تعديل المنتج";
     var product = Model.Product;
@@ -14,6 +15,9 @@
     var currentBalanceLabel = isMlStock
         ? currentPackages.HasValue ? $"{currentPackages.Value:0.###} عبوة" : "الرصيد بالعبوات غير متاح"
         : $"{product.Stockquantity:N0} قطعة";
+    var canManageBrands = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductBrands);
+    var canManageInventory = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.InventoryManagement);
+    var canSellRetail = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.RetailSelling);
 }
 
 @section Styles {
@@ -63,6 +67,8 @@
                     <input asp-for="Product.Name" class="yaqut-form-input" autocomplete="off" />
                     <span asp-validation-for="Product.Name" class="yq-product-validation"></span>
                 </div>
+                @if (canManageBrands)
+                {
                 <div class="yaqut-form-group yq-product-field">
                     <label asp-for="Product.Brand" class="yaqut-form-label">الماركة</label>
                     <input asp-for="Product.Brand" list="brandsList" class="yaqut-form-input" autocomplete="off" />
@@ -77,6 +83,11 @@
                         </datalist>
                     }
                 </div>
+                }
+                else
+                {
+                    @* Brand is deliberately omitted; the controller preserves the persisted value. *@
+                }
                 <div class="yaqut-form-group yq-product-field yq-product-field--wide">
                     <label asp-for="Product.Categoryid" class="yaqut-form-label">التصنيف</label>
                     <select asp-for="Product.Categoryid" asp-items="@(new SelectList(categories, "Id", "Name"))" class="yaqut-form-input"></select>
@@ -122,18 +133,26 @@
                     <input asp-for="Product.VolumeMl" type="number" min="1" class="yaqut-form-input" data-base-volume />
                     <span asp-validation-for="Product.VolumeMl" class="yq-product-validation"></span>
                 </div>
+                @if (canManageInventory)
+                {
                 <div class="yaqut-form-group yq-product-field">
                     <span class="yaqut-form-label">الرصيد الحالي</span>
                     <div class="yq-current-stock">
                         <strong>@currentBalanceLabel</strong>
                     </div>
                 </div>
+                }
+                @if (canSellRetail)
+                {
                 <label class="yaqut-form-group yq-product-field yq-product-field--wide yq-retail-toggle">
                     <input asp-for="Product.IsRetailEnabled" type="checkbox" data-retail-toggle />
                     <span>تفعيل أسعار التجزئة</span>
                 </label>
+                }
             </div>
 
+            @if (canSellRetail)
+            {
             <div class="yq-retail-prices" data-retail-prices hidden>
                 <div class="yq-retail-prices__head">
                     <div class="yq-retail-prices__intro">
@@ -200,14 +219,21 @@
                       class="yq-product-validation yq-retail-group-validation"
                       data-retail-group-validation></span>
             </div>
+            }
+            else
+            {
+                @* Retail configuration is deliberately omitted; the controller preserves persisted rows. *@
+            }
         </section>
 
         <div class="yq-product-form__actions">
             <a asp-action="Index" class="btn-yaqut-outline"><i class="bi bi-x-lg"></i><span>إلغاء</span></a>
-            <button type="submit" class="btn-yaqut-gold" data-edit-save data-retail-save disabled><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
+            <button type="submit" class="btn-yaqut-gold" data-edit-save data-retail-save disabled="@canSellRetail"><i class="bi bi-check2-circle"></i><span>حفظ التعديلات</span></button>
         </div>
     </form>
 
+    @if (canManageInventory)
+    {
     <form asp-action="AdjustStock" method="post" class="yq-product-form yq-stock-adjustment-form"
           data-stock-adjustment data-current-stock="@product.Stockquantity" data-base-size="@(product.VolumeMl ?? 0)"
           data-is-ml="@isMlStock.ToString().ToLowerInvariant()">
@@ -281,6 +307,7 @@
             }
         </section>
     </form>
+    }
 </section>
 
 @section Scripts {
