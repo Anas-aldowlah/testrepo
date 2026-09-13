@@ -1,6 +1,11 @@
 @model bool
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     var returnUrl = ViewData["CheckoutAuthReturnUrl"] as string ?? $"{Context.Request.Path}{Context.Request.QueryString}";
+    var loginEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerLogin)
+        || CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerGoogleLogin);
+    var registrationEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerAccountCreate)
+        && CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CustomerGoogleLogin);
 }
 
 <div class="modal fade yq-checkout-auth-modal"
@@ -28,12 +33,17 @@
                 </p>
             </div>
             <div class="modal-footer yq-checkout-auth-modal__actions">
+                @if (loginEnabled)
+                {
                 <a asp-controller="Account"
                    asp-action="Auth"
                    asp-route-returnUrl="@returnUrl"
                    class="btn-yaqut-gold yq-checkout-auth-modal__action">
                     <i class="bi bi-box-arrow-in-left"></i> تسجيل الدخول
                 </a>
+                }
+                @if (registrationEnabled)
+                {
                 <a asp-controller="Account"
                    asp-action="Auth"
                    asp-route-register="true"
@@ -41,6 +51,7 @@
                    class="btn-yaqut-outline yq-checkout-auth-modal__action">
                     <i class="bi bi-person-plus"></i> إنشاء حساب جديد
                 </a>
+                }
             </div>
         </div>
     </div>
