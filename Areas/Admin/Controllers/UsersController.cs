@@ -6,6 +6,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 namespace Yagot.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -16,15 +17,26 @@ public class UsersController : Controller
     private readonly NeondbContext _context;
     private readonly DealingAPI _DealingAPI;
     private readonly UsersDbContext _dbUser;
-    public UsersController(NeondbContext context,DealingAPI dealingAPI,UsersDbContext User)
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
+    public UsersController(
+        NeondbContext context,
+        DealingAPI dealingAPI,
+        UsersDbContext User,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _DealingAPI = dealingAPI;
         _dbUser = User;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.StoreUserEmployeeManagement))
+        {
+            return Forbid();
+        }
+
         var usersPage = await PagedResult<YAGOT_2._0.Models.UsersDatabase.User>.CreateAsync(
             _dbUser.Users
             .AsNoTracking()
@@ -65,6 +77,11 @@ public class UsersController : Controller
 
     public async Task<IActionResult> Details(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.StoreUserEmployeeManagement))
+        {
+            return Forbid();
+        }
+
         var user = await _dbUser.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user => user.Id == id);
@@ -113,6 +130,11 @@ public class UsersController : Controller
     [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> ChangeRole(int userId, string newRole)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.StoreRolesPermissions))
+        {
+            return Forbid();
+        }
+
         var userExists = await _dbUser.Users.AnyAsync(u => u.Id == userId);
         if (!userExists)
         {
@@ -203,6 +225,11 @@ public class UsersController : Controller
     [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> ToggleBlock(int userId, bool block, string? returnUrl = null)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.StoreUserEmployeeManagement))
+        {
+            return Forbid();
+        }
+
         var userExists = await _dbUser.Users.AnyAsync(u => u.Id == userId);
         if (!userExists)
         {
@@ -286,4 +313,6 @@ public class UsersController : Controller
         }
         return RedirectToAction(nameof(Details), new { id = userId });
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
 }
