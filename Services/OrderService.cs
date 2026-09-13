@@ -48,6 +48,15 @@ public class OrderService
         string? receiptUrl = null,
         CancellationToken cancellationToken = default)
     {
+        if (!_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.OrderCreate))
+            throw new InvalidOperationException("Order creation capability is disabled.");
+
+        if (!string.IsNullOrWhiteSpace(receiptUrl) &&
+            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.OrderPaymentProof))
+        {
+            throw new InvalidOperationException("Order payment proof capability is disabled.");
+        }
+
         await ValidateCheckoutAsync(checkout, cancellationToken);
 
         var strategy = _context.Database.CreateExecutionStrategy();

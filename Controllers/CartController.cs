@@ -32,6 +32,9 @@ public class CartController : Controller
 
     public async Task<IActionResult> Index()
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CartView))
+            return NotFound();
+
         try
         {
             var cart = await GetCurrentCartAsync();
@@ -56,8 +59,11 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(AddCartItemInput input)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CartProductManagement))
+            return NotFound();
+
         if (input.RetailPriceId.HasValue &&
-            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+            !IsEnabled(CapabilityFeatureCodes.RetailSelling))
         {
             return Forbid();
         }
@@ -116,8 +122,11 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update(UpdateCartItemInput input)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CartProductManagement))
+            return NotFound();
+
         if (input.RetailPriceId.HasValue &&
-            !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.RetailSelling))
+            !IsEnabled(CapabilityFeatureCodes.RetailSelling))
         {
             return Forbid();
         }
@@ -195,6 +204,9 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(int cartItemId, int productId, int? retailPriceId)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.CartProductManagement))
+            return NotFound();
+
         try
         {
             if (TryResolveUserId(out var userId))
@@ -280,6 +292,8 @@ public class CartController : Controller
         var userIdVal = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return int.TryParse(userIdVal, out userId);
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
 
     private bool IsAjaxRequest()
     {

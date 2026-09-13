@@ -1,6 +1,7 @@
 @model YAGOT_2._0.Models.Cart
 @using YAGOT_2._0.Services
 @using Microsoft.AspNetCore.Html
+@inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "سلة المشتريات";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
@@ -17,6 +18,9 @@
         : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} مل" : "للقطعة");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var cartProductManagementEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CartProductManagement);
+    var checkoutEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.Checkout);
+    var orderCreateEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OrderCreate);
 }
 
 @section Styles {
@@ -107,6 +111,8 @@
                                     <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Product?.Id"
                                        class="yq-cart-item__name">@item.Product?.Name</a>
                                 </div>
+                                @if (cartProductManagementEnabled)
+                                {
                                 <form asp-controller="Cart" asp-action="Remove" method="post" class="yq-cart-item__remove-form">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
@@ -116,9 +122,12 @@
                                         <i class="bi bi-trash3"></i>
                                     </button>
                                 </form>
+                                }
                             </div>
 
                             <div class="yq-cart-item__footer">
+                                @if (cartProductManagementEnabled)
+                                {
                                 <form asp-controller="Cart" asp-action="Update" method="post" class="yq-cart-item__qty-block" data-yq-cart-qty-form data-yq-cart-max-units="@maxUnits" data-yq-cart-preset-limit="@Math.Min(maxUnits, 10)">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="cartItemId" value="@item.Id" />
@@ -179,6 +188,7 @@
                                        aria-live="polite"
                                        hidden></p>
                                 </form>
+                                }
 
                                 <div class="yq-cart-item__pricing">
                                     <span class="yq-cart-item__unit-price"
@@ -212,6 +222,8 @@
                     </div>
                 </div>
 
+                @if (checkoutEnabled && orderCreateEnabled)
+                {
                 <a asp-controller="Orders"
                    asp-action="Checkout"
                    class="btn-yaqut-gold yq-cart-checkout-btn"
@@ -220,6 +232,7 @@
                    data-yq-auth-modal="yqCheckoutAuthModal">
                     <i class="bi bi-credit-card"></i> إتمام الطلب والدفع
                 </a>
+                }
 
                 <a asp-controller="Products" asp-action="Index" class="yq-cart-summary__continue">
                     <i class="bi bi-arrow-left"></i> متابعة التسوق

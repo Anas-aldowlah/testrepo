@@ -7,6 +7,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Core.Capabilities;
 namespace YAGOT_2._0.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -18,6 +19,7 @@ public class OrdersController : Controller
     private readonly OrderService _orderService;
     private readonly ReceiptStorageService _receiptStorage;
     private readonly StoreSettingsService _settingsService;
+    private readonly ICapabilityEvaluator _capabilityEvaluator;
 
     private static readonly HashSet<string> AllowedStatuses =
         new(OrderStatusPolicy.DisplayStatuses, StringComparer.OrdinalIgnoreCase);
@@ -27,17 +29,22 @@ public class OrdersController : Controller
         UsersDbContext dbUser,
         OrderService orderService,
         ReceiptStorageService receiptStorage,
-        StoreSettingsService settingsService)
+        StoreSettingsService settingsService,
+        ICapabilityEvaluator capabilityEvaluator)
     {
         _context = context;
         _dbUser = dbUser;
         _orderService = orderService;
         _receiptStorage = receiptStorage;
         _settingsService = settingsService;
+        _capabilityEvaluator = capabilityEvaluator;
     }
 
     public async Task<IActionResult> Index(string[]? status, string? search, int page = 1, int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return Forbid();
+
         var selectedStatus = status?
             .Where(s => !string.IsNullOrWhiteSpace(s) && AllowedStatuses.Contains(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -125,6 +132,9 @@ public class OrdersController : Controller
 
     public async Task<IActionResult> Details(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return Forbid();
+
         var order = await _context.Orders
             .AsNoTracking()
             .Include(o => o.Orderitems)
@@ -146,6 +156,12 @@ public class OrdersController : Controller
     [Authorize(Roles = "Admin,Developer")]
     public async Task<IActionResult> Receipt(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement) ||
+            !IsEnabled(CapabilityFeatureCodes.OrderPaymentProof))
+        {
+            return Forbid();
+        }
+
         var storedValue = await _context.Orders
             .AsNoTracking()
             .Where(order => order.Id == id)
@@ -203,6 +219,9 @@ public class OrdersController : Controller
         int page = 1,
         int pageSize = 10)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return Forbid();
+
         var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         var normalizedStatus = OrderService.NormalizeStatus(status);
         if (normalizedStatus == null || !AllowedStatuses.Contains(normalizedStatus))
@@ -269,6 +288,9 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateAdminNote(int id, string? adminNote)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement))
+            return Forbid();
+
         var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         var trimmedAdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
         if (trimmedAdminNote != null && trimmedAdminNote.Length > 500)
@@ -338,6 +360,12 @@ public class OrdersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> VerifyPayment(int id)
     {
+        if (!IsEnabled(CapabilityFeatureCodes.OrderManagement) ||
+            !IsEnabled(CapabilityFeatureCodes.OrderPaymentProof))
+        {
+            return Forbid();
+        }
+
         var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         var adminIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(adminIdValue, out var adminId) || adminId <= 0)
@@ -393,5 +421,7 @@ public class OrdersController : Controller
             .SingleOrDefaultAsync(item => item.Id == orderId, HttpContext.RequestAborted);
         return order == null ? null : OrderWhatsAppLinkBuilder.Build(order, null);
     }
+
+    private bool IsEnabled(string featureCode) => _capabilityEvaluator.IsFeatureEnabled(featureCode);
 
 }
