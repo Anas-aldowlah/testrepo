@@ -19,6 +19,14 @@ public partial class Sale
 
     public decimal DiscountTotal { get; set; }
 
+    public decimal PromotionDiscountTotal { get; set; } = 0.00m;
+
+    public decimal ManualDiscountTotal { get; set; } = 0.00m;
+
+    public string CurrencyCode { get; set; } = "YER";
+
+    public string? PromotionSnapshotJson { get; set; }
+
     public decimal FinalAmount { get; set; }
 
     public string Status { get; set; } = "Draft";

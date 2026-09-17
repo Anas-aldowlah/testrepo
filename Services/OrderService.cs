@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services.Promotions;
 
 namespace YAGOT_2._0.Services;
 
@@ -27,19 +28,25 @@ public class OrderService
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<OrderService> _logger;
     private readonly ICapabilityEvaluator _capabilityEvaluator;
+    private readonly IPromotionEngine? _promotionEngine;
+    private readonly StoreSettingsService? _storeSettingsService;
 
     public OrderService(
         NeondbContext context,
         CartLockService cartLock,
         IInventoryService inventoryService,
         ILogger<OrderService> logger,
-        ICapabilityEvaluator capabilityEvaluator)
+        ICapabilityEvaluator capabilityEvaluator,
+        IPromotionEngine? promotionEngine = null,
+        StoreSettingsService? storeSettingsService = null)
     {
         _context = context;
         _cartLock = cartLock;
         _inventoryService = inventoryService;
         _logger = logger;
         _capabilityEvaluator = capabilityEvaluator;
+        _promotionEngine = promotionEngine;
+        _storeSettingsService = storeSettingsService;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -84,9 +91,42 @@ public class OrderService
                     cart.Cartitems.Select(item => item.Productid),
                     cancellationToken);
 
-                ValidateSubmittedCart(checkout, cart.Cartitems, products);
+                PromotionCalculationResult? promoResult = null;
+                if (_promotionEngine != null)
+                {
+                    var currencyCode = _storeSettingsService != null
+                        ? await _storeSettingsService.GetCurrencyCodeAsync()
+                        : CurrencyHelper.ActiveCurrencyCode;
 
-                var orderTotal = CalculateOrderTotal(cart.Cartitems, products);
+                    var promoContext = new PromotionCalculationContext
+                    {
+                        Channel = "Online",
+                        CustomerId = userId.ToString(),
+                        BypassCache = true,
+                        CurrencyCode = currencyCode,
+                        Items = cart.Cartitems.Select(item => new PromotionCalculationLineItem
+                        {
+                            LineIdentifier = item.Id.ToString(),
+                            ProductId = item.Productid,
+                            CategoryId = products.TryGetValue(item.Productid, out var p) ? p.Categoryid : null,
+                            RetailPriceId = item.RetailPriceId,
+                            RetailSizeMl = item.RetailPrice?.SizeMl,
+                            Quantity = item.Quantity,
+                            UnitPrice = _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice)
+                        }).ToList()
+                    };
+
+                    promoResult = await _promotionEngine.CalculatePromotionsAsync(promoContext, cancellationToken);
+                }
+
+                ValidateSubmittedCart(checkout, cart.Cartitems, products, promoResult);
+
+                var orderTotal = promoResult != null
+                    ? promoResult.NetTotal + ShippingPolicy.CalculateCharge(promoResult.NetTotal)
+                    : CalculateOrderTotal(cart.Cartitems, products);
+
+                var currency = promoResult?.CurrencyCode
+                    ?? (_storeSettingsService != null ? await _storeSettingsService.GetCurrencyCodeAsync() : CurrencyHelper.ActiveCurrencyCode);
 
                 var order = new Order
                 {
@@ -101,7 +141,11 @@ public class OrderService
                     Paymentmethod = checkout.PaymentMethod,
                     Paymentstatus = receiptUrl != null ? "Pending" : "Unpaid",
                     Receipturl = receiptUrl,
-                    Notes = checkout.DeliveryNotes
+                    Notes = checkout.DeliveryNotes,
+                    Discounttotal = promoResult?.TotalDiscounts ?? 0.00m,
+                    Spendamountdiscount = promoResult?.SpendAmountDiscount ?? 0.00m,
+                    Currencycode = currency,
+                    Promotionsnapshotjson = promoResult?.PromotionSnapshotJson
                 };
 
                 _context.Orders.Add(order);
@@ -120,6 +164,18 @@ public class OrderService
 
                 foreach (var item in cart.Cartitems)
                 {
+                    var linePromo = promoResult?.Lines.FirstOrDefault(l =>
+                        l.LineIdentifier == item.Id.ToString() ||
+                        (l.ProductId == item.Productid && l.RetailPriceId == item.RetailPriceId));
+                    var primaryPromo = linePromo?.AppliedPromotions.FirstOrDefault();
+                    var appliedJson = linePromo != null && linePromo.AppliedPromotions.Any()
+                        ? System.Text.Json.JsonSerializer.Serialize(linePromo.AppliedPromotions)
+                        : null;
+                    var baseUnitPrice = _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice);
+                    var finalUnitPrice = linePromo != null ? linePromo.FinalUnitPrice : baseUnitPrice;
+                    var discountAmount = linePromo?.TotalDiscount ?? 0.00m;
+                    var freeQty = (int)(linePromo?.FreeQuantity ?? 0);
+
                     _context.Orderitems.Add(new Orderitem
                     {
                         Orderid = order.Id,
@@ -127,7 +183,14 @@ public class OrderService
                         RetailPriceId = item.RetailPriceId,
                         RetailSizeMl = item.RetailPrice?.SizeMl,
                         Quantity = item.Quantity,
-                        Unitprice = _inventoryService.GetUnitPrice(products[item.Productid], item.RetailPrice)
+                        Unitprice = finalUnitPrice,
+                        Originalunitprice = baseUnitPrice,
+                        Discountamount = discountAmount,
+                        Finalunitprice = finalUnitPrice,
+                        Freequantity = freeQty,
+                        Appliedpromotionid = primaryPromo?.PromotionId,
+                        Appliedpromotiontitle = primaryPromo?.Title,
+                        Appliedpromotionsjson = appliedJson
                     });
                 }
 
@@ -185,7 +248,8 @@ public class OrderService
     private void ValidateSubmittedCart(
         CheckoutVM checkout,
         IEnumerable<Cartitem> cartItems,
-        IReadOnlyDictionary<int, Product> products)
+        IReadOnlyDictionary<int, Product> products,
+        PromotionCalculationResult? promoResult = null)
     {
         const string staleCartMessage =
             "تغيرت محتويات السلة أو الأسعار. يرجى تحديث صفحة إتمام الطلب والمحاولة مرة أخرى.";
@@ -242,13 +306,16 @@ public class OrderService
             }
         }
 
-        decimal currentTotal = 0m;
+        decimal grossTotal = 0m;
         checked
         {
             foreach (var item in currentItems)
-                currentTotal += item.Quantity * item.UnitPrice;
+                grossTotal += item.Quantity * item.UnitPrice;
         }
-        if (checkout.SubmittedCartTotal != currentTotal)
+
+        decimal expectedNetTotal = promoResult != null ? promoResult.NetTotal : grossTotal;
+
+        if (checkout.SubmittedCartTotal != expectedNetTotal && checkout.SubmittedCartTotal != grossTotal)
             throw new InvalidOperationException(staleCartMessage);
     }
 
@@ -666,7 +733,7 @@ public class OrderService
         {
             foreach (var item in orderItems)
             {
-                var quantity = item.FulfilledQuantity ?? item.Quantity;
+                var quantity = (item.FulfilledQuantity ?? item.Quantity) + item.Freequantity;
                 if (quantity == 0)
                     continue;
 
@@ -701,7 +768,7 @@ public class OrderService
         var lines = orderItems.Select(item => new OrderAllocationLine(
             item.Id,
             item.Productid,
-            requestedQuantities?.GetValueOrDefault(item.Id) ?? item.Quantity,
+            (requestedQuantities?.GetValueOrDefault(item.Id) ?? item.Quantity) + item.Freequantity,
             _inventoryService.CalculateDeductionAmount(products[item.Productid], 1, item.RetailSizeMl),
             item.Unitprice));
         var stock = products.ToDictionary(pair => pair.Key, pair => pair.Value.Stockquantity);

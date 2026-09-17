@@ -1,0 +1,1306 @@
+@model YAGOT_2._0.Models.Admin.PromotionFormVM
+@{
+    ViewData["Title"] = "إضافة عرض جديد";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
+    <style nonce="@Context.Items["csp-nonce"]">
+        .promo-card {
+            background: rgba(18, 26, 38, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .promo-card__title {
+            color: #e3b65b;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 10px;
+        }
+        .form-label {
+            color: #cbd5e1;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .form-control, .form-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #e3b65b;
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(227, 182, 91, 0.25);
+        }
+        .form-select option {
+            background: #16202e;
+            color: #fff;
+        }
+        .target-option-card {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .target-option-card:hover {
+            border-color: rgba(227, 182, 91, 0.4);
+            background: rgba(227, 182, 91, 0.05);
+        }
+        .target-option-card.active {
+            border-color: #e3b65b;
+            background: rgba(227, 182, 91, 0.12);
+        }
+        .picker-container {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+        }
+        .picker-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+        .picker-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .picker-thumb {
+            width: 36px;
+            height: 36px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .selected-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(227, 182, 91, 0.12);
+            border: 1px solid rgba(227, 182, 91, 0.35);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.85rem;
+            transition: all 0.15s ease;
+        }
+        .selected-chip:hover {
+            background: rgba(227, 182, 91, 0.2);
+            border-color: #e3b65b;
+        }
+        .selected-chip .btn-remove-chip {
+            background: transparent;
+            border: none;
+            color: #f87171;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+            display: flex;
+            align-items: center;
+        }
+        .selected-chip .btn-remove-chip:hover {
+            color: #ef4444;
+        }
+
+        /* ===== DEDICATED LUXURY PROMO MODAL ===== */
+        .promo-modal .modal-content {
+            background: #121a24 !important;
+            border: 1px solid rgba(227, 182, 91, 0.4) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7) !important;
+            color: #f8fafc !important;
+            overflow: hidden;
+        }
+        .promo-modal .modal-header {
+            background: #172130 !important;
+            border-bottom: 1px solid rgba(227, 182, 91, 0.2) !important;
+            padding: 18px 24px !important;
+        }
+        .promo-modal .modal-title {
+            color: #e3b65b !important;
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 !important;
+        }
+        .promo-modal .modal-body {
+            background: #0f1620 !important;
+            padding: 20px 24px !important;
+            color: #f8fafc !important;
+        }
+        .promo-modal .modal-footer {
+            background: #172130 !important;
+            border-top: 1px solid rgba(227, 182, 91, 0.2) !important;
+            padding: 14px 24px !important;
+        }
+
+        /* Inputs in Modal */
+        .promo-modal .modal-filter-input,
+        .promo-modal .modal-filter-select {
+            background: #1b2636 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+            border-radius: 8px !important;
+            font-size: 0.9rem !important;
+            padding: 9px 14px !important;
+        }
+        .promo-modal .modal-filter-input:focus,
+        .promo-modal .modal-filter-select:focus {
+            border-color: #e3b65b !important;
+            box-shadow: 0 0 0 0.2rem rgba(227, 182, 91, 0.25) !important;
+            outline: none !important;
+        }
+        .promo-modal .modal-filter-select option {
+            background: #172130 !important;
+            color: #ffffff !important;
+        }
+        .promo-modal .modal-input-addon {
+            background: #172130 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #e3b65b !important;
+            border-radius: 0 8px 8px 0 !important;
+            padding: 0 14px !important;
+        }
+
+        /* Action Buttons */
+        .promo-modal .btn-modal-action {
+            background: rgba(255, 255, 255, 0.06) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #cbd5e1 !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            padding: 6px 14px !important;
+            border-radius: 6px !important;
+            transition: all 0.2s ease;
+        }
+        .promo-modal .btn-modal-action:hover {
+            background: rgba(227, 182, 91, 0.15) !important;
+            border-color: #e3b65b !important;
+            color: #e3b65b !important;
+        }
+        .promo-modal .modal-count-badge {
+            background: #e3b65b !important;
+            color: #0b0f14 !important;
+            font-weight: 800 !important;
+            font-size: 0.85rem !important;
+            padding: 6px 14px !important;
+            border-radius: 20px !important;
+        }
+
+        /* Modal Items Scroll Container */
+        .promo-modal .modal-items-container {
+            max-height: 390px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 4px;
+        }
+
+        /* Item Row */
+        .promo-modal .modal-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background: #16202c !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 10px !important;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .promo-modal .modal-item-row:hover {
+            background: #1c2938 !important;
+            border-color: rgba(227, 182, 91, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        .promo-modal .modal-item-row.is-selected {
+            background: rgba(227, 182, 91, 0.14) !important;
+            border-color: #e3b65b !important;
+            box-shadow: 0 0 12px rgba(227, 182, 91, 0.1) !important;
+        }
+
+        /* Strict Product Thumbnail Box (No Overflow) */
+        .promo-modal .product-thumb-box {
+            width: 46px !important;
+            height: 46px !important;
+            min-width: 46px !important;
+            max-width: 46px !important;
+            min-height: 46px !important;
+            max-height: 46px !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #0f1620 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .promo-modal .product-thumb-img {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 46px !important;
+            max-height: 46px !important;
+            object-fit: cover !important;
+            display: block !important;
+        }
+
+        /* Typography */
+        .promo-modal .product-info-title {
+            color: #ffffff !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+            line-height: 1.3 !important;
+            cursor: pointer;
+        }
+        .promo-modal .product-info-category {
+            color: #94a3b8 !important;
+            font-size: 0.8rem !important;
+            margin-top: 2px !important;
+            display: block !important;
+        }
+        .promo-modal .product-price-badge {
+            background: rgba(227, 182, 91, 0.15) !important;
+            color: #e3b65b !important;
+            border: 1px solid rgba(227, 182, 91, 0.3) !important;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            padding: 5px 10px !important;
+            border-radius: 6px !important;
+            white-space: nowrap !important;
+        }
+
+        /* Scrollbar */
+        .promo-modal .modal-items-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .promo-modal .modal-items-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        .promo-modal .modal-items-container::-webkit-scrollbar-thumb {
+            background: rgba(227, 182, 91, 0.4);
+            border-radius: 4px;
+        }
+        .promo-modal .modal-items-container::-webkit-scrollbar-thumb:hover {
+            background: #e3b65b;
+        }
+    </style>
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">العروض والخصومات</a>
+    <span>/</span>
+    <span>إضافة عرض جديد</span>
+}
+
+<section class="yq-products-admin">
+    <header class="yq-products-hero mb-4">
+        <div class="yq-products-hero__content">
+            <span class="yq-products-eyebrow">إضافة عرض ترويجي</span>
+            <h2>إضافة عرض جديد</h2>
+            <p>قم بتعبئة تفاصيل العرض واختيار نوع الخصم والنطاق المستهدف وفترة الصلاحية.</p>
+        </div>
+        <div class="yq-products-hero__actions">
+            <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                <i class="bi bi-arrow-right me-1"></i> العودة للقائمة
+            </a>
+        </div>
+    </header>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <!-- 1. GENERAL INFORMATION -->
+        <div class="promo-card">
+            <h3 class="promo-card__title">
+                <i class="bi bi-info-circle-fill"></i> البيانات الأساسية للعرض
+            </h3>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="Title" class="form-label">عنوان العرض <span class="text-danger">*</span></label>
+                    <input asp-for="Title" class="form-control" placeholder="مثال: خصم الصيف الكبير 20%" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="BannerFile" class="form-label">صورة البانر (اختياري)</label>
+                    <input asp-for="BannerFile" type="file" class="form-control" accept="image/*" />
+                    <span asp-validation-for="BannerFile" class="text-danger small"></span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Description" class="form-label">وصف العرض</label>
+                    <textarea asp-for="Description" class="form-control" rows="3" placeholder="اكتب تفاصيل وشروط العرض هنا..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. PROMOTION TYPE & VALUES -->
+        <div class="promo-card">
+            <h3 class="promo-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: -0.15em;" aria-hidden="true">
+                    <path d="M13.442 2.558a.625.625 0 0 1 0 .884l-10 10a.625.625 0 1 1-.884-.884l10-10a.625.625 0 0 1 .884 0M4.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0 1a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m7 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0 1a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5"/>
+                </svg> نوع العرض وقيمة الخصم
+            </h3>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label asp-for="PromotionType" class="form-label">نوع الخصم / العرض <span class="text-danger">*</span></label>
+                    <select asp-for="PromotionType" class="form-select" id="promotionTypeSelect">
+                        <option value="Percentage">خصم نسبة مئوية (%)</option>
+                        <option value="FixedAmount">خصم مبلغ ثابت (@CurrencyDisplay.Symbol)</option>
+                        <option value="BuyXGetY">اشتر X واحصل على Y مجاناً</option>
+                        <option value="QuantityPrice">سعر خاص عند شراء كمية محددة</option>
+                        <option value="SpendAmount">خصم عند الوصول لمبلغ شراء محدد</option>
+                    </select>
+                </div>
+
+                <!-- Field: DiscountValue (Percentage or FixedAmount) -->
+                <div class="col-md-6" id="discountValueGroup">
+                    <label asp-for="DiscountValue" class="form-label" id="discountValueLabel">قيمة الخصم <span class="text-danger">*</span></label>
+                    <input asp-for="DiscountValue" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="DiscountValue" class="text-danger small"></span>
+                </div>
+
+                <!-- Field: MinimumAmount -->
+                <div class="col-md-6 d-none" id="minimumAmountGroup">
+                    <label asp-for="MinimumAmount" class="form-label">الحد الأدنى لمبلغ الشراء (@CurrencyDisplay.Symbol)</label>
+                    <input asp-for="MinimumAmount" class="form-control" type="number" step="0.01" placeholder="مثال: 200" />
+                    <span asp-validation-for="MinimumAmount" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 d-none" id="spendDiscountTypeGroup">
+                    <label asp-for="SpendDiscountType" class="form-label">نوع خصم حد الشراء</label>
+                    <select asp-for="SpendDiscountType" class="form-select">
+                        <option value="FixedAmount">مبلغ ثابت (@CurrencyDisplay.Symbol)</option>
+                        <option value="Percentage">نسبة مئوية (%)</option>
+                    </select>
+                </div>
+
+                <!-- Field: BuyQuantity & FreeQuantity (BuyXGetY) -->
+                <div class="col-md-3 d-none" id="buyQtyGroup">
+                    <label asp-for="BuyQuantity" class="form-label">الكمية المطلوبة (X)</label>
+                    <input asp-for="BuyQuantity" class="form-control" type="number" placeholder="مثال: 2" />
+                    <span asp-validation-for="BuyQuantity" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3 d-none" id="freeQtyGroup">
+                    <label asp-for="FreeQuantity" class="form-label">الكمية المجانية (Y)</label>
+                    <input asp-for="FreeQuantity" class="form-control" type="number" placeholder="مثال: 1" />
+                    <span asp-validation-for="FreeQuantity" class="text-danger small"></span>
+                </div>
+
+                <!-- Field: OfferPrice -->
+                <div class="col-md-6 d-none" id="offerPriceGroup">
+                    <label asp-for="OfferPrice" class="form-label">سعر العرض الإجمالي (@CurrencyDisplay.Symbol)</label>
+                    <input asp-for="OfferPrice" class="form-control" type="number" step="0.01" placeholder="مثال: 99.00" />
+                    <span asp-validation-for="OfferPrice" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. TARGETING SECTION -->
+        <div class="promo-card">
+            <h3 class="promo-card__title">
+                <i class="bi bi-crosshair"></i> النطاق المستهدف للعرض
+            </h3>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="target-option-card @(Model.TargetType == "All" ? "active" : "")" data-target="All">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" asp-for="TargetType" value="All" id="targetAll" />
+                            <label class="form-check-label fw-bold text-white cursor-pointer" for="targetAll">
+                                🏪 المتجر بالكامل
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">يطبق العرض على كافة المنتجات والتصنيفات في المتجر.</small>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="target-option-card @(Model.TargetType == "Products" ? "active" : "")" data-target="Products">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="TargetType" value="Products" id="targetProducts" />
+                                <label class="form-check-label fw-bold text-white cursor-pointer" for="targetProducts">
+                                    📦 منتجات محدودة
+                                </label>
+                            </div>
+                            <span class="badge fw-bold" id="targetProductsCardBadge" style="background: rgba(255, 255, 255, 0.12); color: #94a3b8;">0 محدد</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">حدد منتجات معينة من الكتالوج لتطبيق العرض عليها.</small>
+
+                        <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
+                            <button type="button" class="btn btn-sm btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2 py-2 fw-bold" id="btnOpenProductModal" data-bs-toggle="modal" data-bs-target="#productSelectModal">
+                                <i class="bi bi-plus-circle-fill"></i>
+                                <span>إضافة / اختيار المنتجات</span>
+                                <span class="badge bg-warning text-dark ms-1 card-prod-count">0</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="target-option-card @(Model.TargetType == "Categories" ? "active" : "")" data-target="Categories">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="TargetType" value="Categories" id="targetCategories" />
+                                <label class="form-check-label fw-bold text-white cursor-pointer" for="targetCategories">
+                                    🏷️ تصنيفات محدودة
+                                </label>
+                            </div>
+                            <span class="badge fw-bold" id="targetCategoriesCardBadge" style="background: rgba(255, 255, 255, 0.12); color: #94a3b8;">0 محدد</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">يطبق العرض على جميع المنتجات التابعة لتصنيفات محددة.</small>
+
+                        <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
+                            <button type="button" class="btn btn-sm btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2 py-2 fw-bold" id="btnOpenCategoryModal" data-bs-toggle="modal" data-bs-target="#categorySelectModal">
+                                <i class="bi bi-plus-circle-fill"></i>
+                                <span>إضافة / اختيار التصنيفات</span>
+                                <span class="badge bg-warning text-dark ms-1 card-cat-count">0</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <span asp-validation-for="SelectedProductIds" class="text-danger small d-block mb-2"></span>
+            <span asp-validation-for="SelectedCategoryIds" class="text-danger small d-block mb-2"></span>
+
+            <!-- PRODUCT TARGET SUMMARY PANEL -->
+            <div id="productPickerContainer" class="d-none">
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(18, 26, 38, 0.95); border: 1px solid rgba(227, 182, 91, 0.35); box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 mb-3 border-bottom border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5 text-warning"><i class="bi bi-box-seam-fill"></i></span>
+                            <span class="fw-bold text-white">المنتجات المحددة للعرض:</span>
+                            <span class="badge bg-warning text-dark fw-bold px-2 py-1" id="selectedProductCountBadge">0 محدد</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-warning fw-bold d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#productSelectModal" style="background:#e3b65b; color:#000;">
+                                <i class="bi bi-plus-circle-fill"></i> إضافة / تعديل المنتجات
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="deselectAllProductsBtn">
+                                <i class="bi bi-trash"></i> مسح التحديد
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty state when 0 products selected -->
+                    <div id="productEmptyChipsState" class="text-center py-4 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
+                        <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                        <span>لم تقم بإضافة أي منتجات لهذا العرض بعد.</span>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning fw-bold px-3 py-1" data-bs-toggle="modal" data-bs-target="#productSelectModal">
+                                <i class="bi bi-plus-lg me-1"></i> فتح نافذة اختيار المنتجات
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected Products Chips Preview -->
+                    <div id="selectedProductsChipsList" class="d-flex flex-wrap gap-2 d-none">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- CATEGORY TARGET SUMMARY PANEL -->
+            <div id="categoryPickerContainer" class="d-none">
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(18, 26, 38, 0.95); border: 1px solid rgba(227, 182, 91, 0.35); box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 mb-3 border-bottom border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5 text-warning"><i class="bi bi-tags-fill"></i></span>
+                            <span class="fw-bold text-white">التصنيفات المحددة للعرض:</span>
+                            <span class="badge bg-warning text-dark fw-bold px-2 py-1" id="selectedCategoryCountBadge">0 محدد</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-warning fw-bold d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#categorySelectModal" style="background:#e3b65b; color:#000;">
+                                <i class="bi bi-plus-circle-fill"></i> إضافة / تعديل التصنيفات
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="deselectAllCategoriesBtn">
+                                <i class="bi bi-trash"></i> مسح التحديد
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty state when 0 categories selected -->
+                    <div id="categoryEmptyChipsState" class="text-center py-4 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
+                        <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                        <span>لم تقم بإضافة أي تصنيفات لهذا العرض بعد.</span>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning fw-bold px-3 py-1" data-bs-toggle="modal" data-bs-target="#categorySelectModal">
+                                <i class="bi bi-plus-lg me-1"></i> فتح نافذة اختيار التصنيفات
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected Categories Chips Preview -->
+                    <div id="selectedCategoriesChipsList" class="d-flex flex-wrap gap-2 d-none">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. SCHEDULE & OPTIONS -->
+        <div class="promo-card">
+            <h3 class="promo-card__title">
+                <i class="bi bi-clock"></i> فترات الصلاحية والإعدادات
+            </h3>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="StartDate" class="form-label">تاريخ ووقت البداية (توقيت اليمن) <span class="text-danger">*</span></label>
+                    <input asp-for="StartDate" type="datetime-local" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="StartDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="EndDate" class="form-label">تاريخ ووقت النهاية (توقيت اليمن) <span class="text-danger">*</span></label>
+                    <input asp-for="EndDate" type="datetime-local" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="EndDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Priority" class="form-label">الأولوية (الرقم الأصغر يطبق أولاً)</label>
+                    <input asp-for="Priority" type="number" class="form-control" placeholder="0" />
+                    <span asp-validation-for="Priority" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-center pt-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="isActiveSwitch" />
+                        <label class="form-check-label fw-bold text-white" for="isActiveSwitch">تفعيل العرض فوراً</label>
+                    </div>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-center pt-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="CanBeCombined" id="canCombineSwitch" />
+                        <label class="form-check-label fw-bold text-white" for="canCombineSwitch">قابل للدمج مع عروض أخرى</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIONS FOOTER -->
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a asp-action="Index" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 8px;">إلغاء</a>
+            <button type="submit" class="btn btn-warning px-5 py-2 fw-bold" style="background: #e3b65b; border: none; color: #000; border-radius: 8px;">
+                <i class="bi bi-check-lg me-1"></i> حفظ العرض
+            </button>
+        </div>
+        <!-- PRODUCT SELECTION MODAL -->
+        <!-- PRODUCT SELECTION MODAL -->
+        <!-- PRODUCT SELECTION MODAL -->
+        <div class="modal fade promo-modal" id="productSelectModal" tabindex="-1" aria-labelledby="productSelectModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                <div class="modal-content" style="background: #111827 !important; border: 1px solid rgba(227, 182, 91, 0.4) !important; border-radius: 16px !important; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85) !important; color: #f8fafc !important; overflow: hidden;">
+                    <div class="modal-header" style="background: #162234 !important; border-bottom: 1px solid rgba(227, 182, 91, 0.25) !important; padding: 18px 24px !important;">
+                        <h5 class="modal-title d-flex align-items-center gap-2" id="productSelectModalLabel" style="color: #e3b65b !important; font-size: 1.15rem !important; font-weight: 700 !important; margin: 0 !important;">
+                            <i class="bi bi-box-seam fs-5"></i>
+                            <span>اختيار وتحديد المنتجات المشمولة بالعرض</span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+
+                    <div class="modal-body" style="background: #0d131d !important; padding: 20px 24px !important; color: #f8fafc !important;">
+                        <!-- Filter & Search Controls -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-7">
+                                <div class="input-group">
+                                    <span class="input-group-text modal-input-addon" style="background: #162234 !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #e3b65b !important; border-radius: 0 8px 8px 0 !important; padding: 0 14px !important;"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="modalProductSearch" class="form-control modal-filter-input" placeholder="ابحث باسم المنتج..." autocomplete="off" style="background: #1b2636 !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #ffffff !important; border-radius: 8px 0 0 8px !important; font-size: 0.9rem !important; padding: 9px 14px !important;" />
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <select id="modalCategoryFilter" class="form-select modal-filter-select" style="background: #1b2636 !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #ffffff !important; border-radius: 8px !important; font-size: 0.9rem !important; padding: 9px 14px !important;">
+                                    <option value="">جميع التصنيفات</option>
+                                    @if (Model.AvailableProducts != null)
+                                    {
+                                        var categories = Model.AvailableProducts
+                                            .Where(p => !string.IsNullOrEmpty(p.CategoryName))
+                                            .Select(p => p.CategoryName!)
+                                            .Distinct()
+                                            .OrderBy(c => c);
+                                        foreach (var cat in categories)
+                                        {
+                                            <option value="@cat.ToLower()">@cat</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 mb-3 border-bottom border-secondary border-opacity-25">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-modal-action" id="modalSelectAllProducts" style="background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; color: #cbd5e1 !important; font-size: 0.85rem !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 8px !important;">
+                                    <i class="bi bi-check-all me-1"></i> تحديد الكل المعروض
+                                </button>
+                                <button type="button" class="btn btn-modal-action" id="modalDeselectAllProducts" style="background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; color: #cbd5e1 !important; font-size: 0.85rem !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 8px !important;">
+                                    <i class="bi bi-x-lg me-1"></i> إلغاء التحديد
+                                </button>
+                            </div>
+                            <span class="modal-count-badge" id="modalProductCountBadge" style="background: #e3b65b !important; color: #0b0f14 !important; font-weight: 800 !important; font-size: 0.85rem !important; padding: 6px 14px !important; border-radius: 20px !important;">0 محدد</span>
+                        </div>
+
+                        <!-- Empty State if no search match -->
+                        <div id="modalProductEmptyState" class="text-center text-muted py-4 d-none">
+                            <i class="bi bi-search d-block fs-4 mb-1 opacity-50 text-warning"></i>
+                            <span class="text-white opacity-75">لا توجد منتجات مطابقة للبحث.</span>
+                        </div>
+
+                        <!-- Products List -->
+                        <div class="modal-items-container" style="max-height: 380px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;">
+                            @if (Model.AvailableProducts != null && Model.AvailableProducts.Any())
+                            {
+                                foreach (var prod in Model.AvailableProducts)
+                                {
+                                    <div class="modal-item-row product-item-row @(prod.IsSelected ? "is-selected" : "")" 
+                                         data-id="@prod.Id" 
+                                         data-name="@prod.Name.ToLower()" 
+                                         data-cat="@((prod.CategoryName ?? "").ToLower())"
+                                         data-display-name="@prod.Name"
+                                         data-price="@prod.Price.ToString("N2")"
+                                         data-img="@(prod.ImageUrl ?? "")"
+                                         style="display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important; padding: 10px 14px !important; margin-bottom: 8px !important; background: #151f2c; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer;">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <input type="checkbox" name="SelectedProductIds" value="@prod.Id" class="form-check-input product-checkbox" id="prod_@prod.Id" @(prod.IsSelected ? "checked" : "") style="cursor: pointer; width: 18px; height: 18px;" />
+                                            <div class="product-thumb-box" style="width: 46px !important; min-width: 46px !important; max-width: 46px !important; height: 46px !important; min-height: 46px !important; max-height: 46px !important; border-radius: 8px !important; overflow: hidden !important; flex-shrink: 0 !important; background: #0b0f17 !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; display: flex !important; align-items: center !important; justify-content: center !important;">
+                                                @if (!string.IsNullOrEmpty(prod.ImageUrl))
+                                                {
+                                                    <img src="@prod.ImageUrl" alt="@prod.Name" class="product-thumb-img" loading="lazy" style="width: 46px !important; max-width: 46px !important; height: 46px !important; max-height: 46px !important; object-fit: cover !important; display: block !important;" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-box text-warning fs-5"></i>
+                                                }
+                                            </div>
+                                            <div>
+                                                <label for="prod_@prod.Id" class="product-info-title" style="color: #ffffff !important; font-size: 0.95rem !important; font-weight: 700 !important; margin: 0 !important; line-height: 1.35 !important; cursor: pointer; display: block;">
+                                                    @prod.Name
+                                                </label>
+                                                <span class="product-info-category" style="color: #94a3b8 !important; font-size: 0.8rem !important; margin-top: 2px !important; display: block !important;">@(prod.CategoryName ?? "بدون تصنيف")</span>
+                                            </div>
+                                        </div>
+                                        <span class="product-price-badge" style="background: rgba(227, 182, 91, 0.15) !important; color: #e3b65b !important; border: 1px solid rgba(227, 182, 91, 0.3) !important; font-size: 0.85rem !important; font-weight: 700 !important; padding: 5px 12px !important; border-radius: 6px !important; white-space: nowrap !important;">
+                                            @prod.Price.ToString("N2") @(CurrencyDisplay.Symbol)
+                                        </span>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-muted py-4">
+                                    لا توجد منتجات في الكتالوج حالياً.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="modal-footer justify-content-between" style="background: #162234 !important; border-top: 1px solid rgba(227, 182, 91, 0.2) !important; padding: 14px 24px !important;">
+                        <div class="small" style="color: #94a3b8;">
+                            تم تحديد <strong class="text-warning fw-bold fs-6" id="modalSelectedCountSummary">0</strong> منتج
+                        </div>
+                        <button type="button" class="btn btn-warning px-4 py-2 fw-bold" data-bs-dismiss="modal" style="background:#e3b65b !important; color:#000 !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 14px rgba(227, 182, 91, 0.3);">
+                            <i class="bi bi-check2-circle me-1"></i> حفظ وتأكيد التحديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORY SELECTION MODAL -->
+        <div class="modal fade promo-modal" id="categorySelectModal" tabindex="-1" aria-labelledby="categorySelectModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
+                <div class="modal-content" style="background: #111827 !important; border: 1px solid rgba(227, 182, 91, 0.4) !important; border-radius: 16px !important; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85) !important; color: #f8fafc !important; overflow: hidden;">
+                    <div class="modal-header" style="background: #162234 !important; border-bottom: 1px solid rgba(227, 182, 91, 0.25) !important; padding: 18px 24px !important;">
+                        <h5 class="modal-title d-flex align-items-center gap-2" id="categorySelectModalLabel" style="color: #e3b65b !important; font-size: 1.15rem !important; font-weight: 700 !important; margin: 0 !important;">
+                            <i class="bi bi-tags fs-5"></i>
+                            <span>اختيار وتحديد التصنيفات المشمولة بالعرض</span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+
+                    <div class="modal-body" style="background: #0d131d !important; padding: 20px 24px !important; color: #f8fafc !important;">
+                        <!-- Search Control -->
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text modal-input-addon" style="background: #162234 !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #e3b65b !important; border-radius: 0 8px 8px 0 !important; padding: 0 14px !important;"><i class="bi bi-search"></i></span>
+                                <input type="text" id="modalCategorySearch" class="form-control modal-filter-input" placeholder="ابحث باسم التصنيف..." autocomplete="off" style="background: #1b2636 !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #ffffff !important; border-radius: 8px 0 0 8px !important; font-size: 0.9rem !important; padding: 9px 14px !important;" />
+                            </div>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom border-secondary border-opacity-25">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-modal-action" id="modalSelectAllCategories" style="background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; color: #cbd5e1 !important; font-size: 0.85rem !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 8px !important;">
+                                    <i class="bi bi-check-all me-1"></i> تحديد الكل
+                                </button>
+                                <button type="button" class="btn btn-modal-action" id="modalDeselectAllCategories" style="background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; color: #cbd5e1 !important; font-size: 0.85rem !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 8px !important;">
+                                    <i class="bi bi-x-lg me-1"></i> إلغاء التحديد
+                                </button>
+                            </div>
+                            <span class="modal-count-badge" id="modalCategoryCountBadge" style="background: #e3b65b !important; color: #0b0f14 !important; font-weight: 800 !important; font-size: 0.85rem !important; padding: 6px 14px !important; border-radius: 20px !important;">0 محدد</span>
+                        </div>
+
+                        <!-- Empty State if no search match -->
+                        <div id="modalCategoryEmptyState" class="text-center text-muted py-4 d-none">
+                            <i class="bi bi-search d-block fs-4 mb-1 opacity-50 text-warning"></i>
+                            <span class="text-white opacity-75">لا توجد تصنيفات مطابقة للبحث.</span>
+                        </div>
+
+                        <!-- Categories List -->
+                        <div class="modal-items-container" style="max-height: 380px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;">
+                            @if (Model.AvailableCategories != null && Model.AvailableCategories.Any())
+                            {
+                                foreach (var cat in Model.AvailableCategories)
+                                {
+                                    <div class="modal-item-row category-item-row @(cat.IsSelected ? "is-selected" : "")" 
+                                         data-id="@cat.Id" 
+                                         data-name="@cat.Name.ToLower()"
+                                         data-display-name="@cat.Name"
+                                         data-img="@(cat.ImageUrl ?? "")"
+                                         style="display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important; padding: 10px 14px !important; margin-bottom: 8px !important; background: #151f2c; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer;">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <input type="checkbox" name="SelectedCategoryIds" value="@cat.Id" class="form-check-input category-checkbox" id="cat_@cat.Id" @(cat.IsSelected ? "checked" : "") style="cursor: pointer; width: 18px; height: 18px;" />
+                                            <div class="product-thumb-box" style="width: 46px !important; min-width: 46px !important; max-width: 46px !important; height: 46px !important; min-height: 46px !important; max-height: 46px !important; border-radius: 8px !important; overflow: hidden !important; flex-shrink: 0 !important; background: #0b0f17 !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; display: flex !important; align-items: center !important; justify-content: center !important;">
+                                                @if (!string.IsNullOrEmpty(cat.ImageUrl))
+                                                {
+                                                    <img src="@cat.ImageUrl" alt="@cat.Name" class="product-thumb-img" loading="lazy" style="width: 46px !important; max-width: 46px !important; height: 46px !important; max-height: 46px !important; object-fit: cover !important; display: block !important;" />
+                                                }
+                                                else
+                                                {
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#e3b65b" viewBox="0 0 16 16">
+                                                        <path d="M2 2a1 1 0 0 1 1-1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 2 6.586V2zm3.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+                                                        <path d="M1.293 7.707A1 1 0 0 1 1 7V2.5A1.5 1.5 0 0 1 2.5 1H7a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7z"/>
+                                                    </svg>
+                                                }
+                                            </div>
+                                            <div>
+                                                <label for="cat_@cat.Id" class="product-info-title" style="color: #ffffff !important; font-size: 0.95rem !important; font-weight: 700 !important; margin: 0 !important; cursor: pointer; display: block;">
+                                                    @cat.Name
+                                                </label>
+                                                <span class="product-info-category" style="color: #94a3b8 !important; font-size: 0.8rem !important; margin-top: 2px !important; display: block !important;">@(cat.ProductCount) منتج متوفر</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge" style="background: rgba(227, 182, 91, 0.12) !important; color: #e3b65b !important; border: 1px solid rgba(227, 182, 91, 0.25) !important; font-size: 0.8rem !important; font-weight: 700 !important; padding: 5px 12px !important; border-radius: 6px !important;">
+                                            @(cat.ProductCount) منتج
+                                        </span>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-muted py-4">
+                                    لا توجد تصنيفات مسجلة حالياً.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="modal-footer justify-content-between" style="background: #162234 !important; border-top: 1px solid rgba(227, 182, 91, 0.2) !important; padding: 14px 24px !important;">
+                        <div class="small" style="color: #94a3b8;">
+                            تم تحديد <strong class="text-warning fw-bold fs-6" id="modalSelectedCategoryCountSummary">0</strong> تصنيف
+                        </div>
+                        <button type="button" class="btn btn-warning px-4 py-2 fw-bold" data-bs-dismiss="modal" style="background:#e3b65b !important; color:#000 !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 14px rgba(227, 182, 91, 0.3);">
+                            <i class="bi bi-check2-circle me-1"></i> حفظ وتأكيد التحديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Currency Symbol
+            const currencySymbol = "@CurrencyDisplay.Symbol";
+
+            // 1. Dynamic Promotion Type Fields
+            const typeSelect = document.getElementById("promotionTypeSelect");
+            const discountGroup = document.getElementById("discountValueGroup");
+            const discountLabel = document.getElementById("discountValueLabel");
+            const minAmountGroup = document.getElementById("minimumAmountGroup");
+            const buyQtyGroup = document.getElementById("buyQtyGroup");
+            const freeQtyGroup = document.getElementById("freeQtyGroup");
+            const offerPriceGroup = document.getElementById("offerPriceGroup");
+            const offerPriceLabel = document.getElementById("offerPriceLabel");
+            const spendDiscountTypeGroup = document.getElementById("spendDiscountTypeGroup");
+
+            function updateTypeFields() {
+                if (!typeSelect) return;
+                const val = typeSelect.value;
+                if (discountGroup) discountGroup.classList.add("d-none");
+                if (minAmountGroup) minAmountGroup.classList.add("d-none");
+                if (buyQtyGroup) buyQtyGroup.classList.add("d-none");
+                if (freeQtyGroup) freeQtyGroup.classList.add("d-none");
+                if (offerPriceGroup) offerPriceGroup.classList.add("d-none");
+                if (spendDiscountTypeGroup) spendDiscountTypeGroup.classList.add("d-none");
+
+                if (val === "Percentage") {
+                    if (discountGroup) discountGroup.classList.remove("d-none");
+                    if (discountLabel) discountLabel.innerHTML = 'نسبة الخصم (%) <span class="text-danger">*</span>';
+                } else if (val === "FixedAmount") {
+                    if (discountGroup) discountGroup.classList.remove("d-none");
+                    if (discountLabel) discountLabel.innerHTML = `مبلغ الخصم (${currencySymbol}) <span class="text-danger">*</span>`;
+                } else if (val === "BuyXGetY") {
+                    if (buyQtyGroup) buyQtyGroup.classList.remove("d-none");
+                    if (freeQtyGroup) freeQtyGroup.classList.remove("d-none");
+                } else if (val === "QuantityPrice") {
+                    if (buyQtyGroup) buyQtyGroup.classList.remove("d-none");
+                    if (offerPriceGroup) offerPriceGroup.classList.remove("d-none");
+                    if (offerPriceLabel) {
+                        offerPriceLabel.innerHTML = `إجمالي سعر الباقة للكمية المحددة (${currencySymbol}) <span class="text-danger">*</span>`;
+                    }
+                } else if (val === "SpendAmount") {
+                    if (minAmountGroup) minAmountGroup.classList.remove("d-none");
+                    if (discountGroup) discountGroup.classList.remove("d-none");
+                    if (spendDiscountTypeGroup) spendDiscountTypeGroup.classList.remove("d-none");
+                    if (discountLabel) discountLabel.innerHTML = 'قيمة خصم حد الشراء <span class="text-danger">*</span>';
+                }
+            }
+
+            if (typeSelect) {
+                typeSelect.addEventListener("change", updateTypeFields);
+                updateTypeFields();
+            }
+
+            // 2. Dynamic Target Scope Selection
+            const targetRadioButtons = document.querySelectorAll('input[name="TargetType"]');
+            const productPicker = document.getElementById("productPickerContainer");
+            const categoryPicker = document.getElementById("categoryPickerContainer");
+            const targetCards = document.querySelectorAll(".target-option-card");
+
+            function updateTargetVisibility() {
+                const checkedRadio = document.querySelector('input[name="TargetType"]:checked');
+                const selectedVal = checkedRadio ? checkedRadio.value : "All";
+                
+                if (productPicker) productPicker.classList.add("d-none");
+                if (categoryPicker) categoryPicker.classList.add("d-none");
+
+                targetCards.forEach(card => {
+                    if (card.dataset.target === selectedVal) {
+                        card.classList.add("active");
+                    } else {
+                        card.classList.remove("active");
+                    }
+                });
+
+                if (selectedVal === "Products" && productPicker) {
+                    productPicker.classList.remove("d-none");
+                } else if (selectedVal === "Categories" && categoryPicker) {
+                    categoryPicker.classList.remove("d-none");
+                }
+            }
+
+            function openModalIfZero(targetType) {
+                if (targetType === "Products") {
+                    const checked = document.querySelectorAll(".product-checkbox:checked").length;
+                    if (checked === 0) {
+                        const modalEl = document.getElementById("productSelectModal");
+                        if (modalEl && typeof bootstrap !== "undefined") {
+                            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                        }
+                    }
+                } else if (targetType === "Categories") {
+                    const checked = document.querySelectorAll(".category-checkbox:checked").length;
+                    if (checked === 0) {
+                        const modalEl = document.getElementById("categorySelectModal");
+                        if (modalEl && typeof bootstrap !== "undefined") {
+                            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                        }
+                    }
+                }
+            }
+
+            targetRadioButtons.forEach(radio => radio.addEventListener("change", function () {
+                updateTargetVisibility();
+                if (this.checked) openModalIfZero(this.value);
+            }));
+
+            targetCards.forEach(card => {
+                card.addEventListener("click", function (e) {
+                    if (e.target.closest("button") || e.target.closest("input")) return;
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        updateTargetVisibility();
+                        openModalIfZero(radio.value);
+                    }
+                });
+            });
+
+            // Card button triggers
+            const btnOpenProd = document.getElementById("btnOpenProductModal");
+            if (btnOpenProd) {
+                btnOpenProd.addEventListener("click", function () {
+                    const r = document.getElementById("targetProducts");
+                    if (r) { r.checked = true; updateTargetVisibility(); }
+                });
+            }
+            const btnOpenCat = document.getElementById("btnOpenCategoryModal");
+            if (btnOpenCat) {
+                btnOpenCat.addEventListener("click", function () {
+                    const r = document.getElementById("targetCategories");
+                    if (r) { r.checked = true; updateTargetVisibility(); }
+                });
+            }
+
+            // 3. Counter Badges, Checkboxes Sync & Chips Rendering
+            const productCheckboxes = document.querySelectorAll(".product-checkbox");
+            const categoryCheckboxes = document.querySelectorAll(".category-checkbox");
+            
+            const prodCountBadge = document.getElementById("selectedProductCountBadge");
+            const catCountBadge = document.getElementById("selectedCategoryCountBadge");
+            const targetProdCardBadge = document.getElementById("targetProductsCardBadge");
+            const targetCatCardBadge = document.getElementById("targetCategoriesCardBadge");
+            const cardProdCountText = document.querySelectorAll(".card-prod-count");
+            const cardCatCountText = document.querySelectorAll(".card-cat-count");
+            const modalProdBadge = document.getElementById("modalProductCountBadge");
+            const modalCatBadge = document.getElementById("modalCategoryCountBadge");
+            const modalSelectedProdSummary = document.getElementById("modalSelectedCountSummary");
+            const modalSelectedCatSummary = document.getElementById("modalSelectedCategoryCountSummary");
+
+            const prodChipsContainer = document.getElementById("selectedProductsChipsList");
+            const catChipsContainer = document.getElementById("selectedCategoriesChipsList");
+            const prodEmptyChipsState = document.getElementById("productEmptyChipsState");
+            const catEmptyChipsState = document.getElementById("categoryEmptyChipsState");
+
+            function updateProductUI() {
+                const checkedBoxes = Array.from(document.querySelectorAll(".product-checkbox:checked"));
+                const count = checkedBoxes.length;
+
+                if (prodCountBadge) prodCountBadge.textContent = `${count} محدد`;
+                if (targetProdCardBadge) {
+                    targetProdCardBadge.textContent = `${count} محدد`;
+                    if (count > 0) {
+                        targetProdCardBadge.style.background = "#e3b65b";
+                        targetProdCardBadge.style.color = "#0b0f14";
+                    } else {
+                        targetProdCardBadge.style.background = "rgba(255, 255, 255, 0.12)";
+                        targetProdCardBadge.style.color = "#94a3b8";
+                    }
+                }
+                if (modalProdBadge) modalProdBadge.textContent = `${count} محدد`;
+                if (modalSelectedProdSummary) modalSelectedProdSummary.textContent = count;
+                cardProdCountText.forEach(el => el.textContent = count);
+
+                // Row highlighting
+                document.querySelectorAll(".product-item-row").forEach(row => {
+                    const cb = row.querySelector(".product-checkbox");
+                    row.classList.toggle("is-selected", cb && cb.checked);
+                });
+
+                // Render Chips
+                if (prodChipsContainer) {
+                    prodChipsContainer.innerHTML = "";
+                    if (count === 0) {
+                        if (prodEmptyChipsState) prodEmptyChipsState.classList.remove("d-none");
+                        prodChipsContainer.classList.add("d-none");
+                    } else {
+                        if (prodEmptyChipsState) prodEmptyChipsState.classList.add("d-none");
+                        prodChipsContainer.classList.remove("d-none");
+
+                        checkedBoxes.forEach(cb => {
+                            const row = cb.closest(".product-item-row");
+                            if (!row) return;
+                            const id = row.dataset.id;
+                            const name = row.dataset.displayName || "";
+                            const price = row.dataset.price || "";
+                            const img = row.dataset.img || "";
+
+                            const chip = document.createElement("div");
+                            chip.className = "selected-chip";
+                            chip.innerHTML = `
+                                ${img ? `<div class="product-thumb-box" style="width:26px !important; height:26px !important; min-width:26px !important; max-width:26px !important; min-height:26px !important; max-height:26px !important; border-radius:4px !important; overflow:hidden !important; flex-shrink:0 !important;"><img src="${img}" class="product-thumb-img" alt="${name}" /></div>` : `<i class="bi bi-box text-warning"></i>`}
+                                <span class="fw-bold">${name}</span>
+                                <span class="text-warning small">(${price} ${currencySymbol})</span>
+                                <button type="button" class="btn-remove-chip" data-remove-id="${id}" title="إلغاء هذا المنتج">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            `;
+                            prodChipsContainer.appendChild(chip);
+                        });
+                    }
+                }
+            }
+
+            function updateCategoryUI() {
+                const checkedBoxes = Array.from(document.querySelectorAll(".category-checkbox:checked"));
+                const count = checkedBoxes.length;
+
+                if (catCountBadge) catCountBadge.textContent = `${count} محدد`;
+                if (targetCatCardBadge) {
+                    targetCatCardBadge.textContent = `${count} محدد`;
+                    if (count > 0) {
+                        targetCatCardBadge.style.background = "#e3b65b";
+                        targetCatCardBadge.style.color = "#0b0f14";
+                    } else {
+                        targetCatCardBadge.style.background = "rgba(255, 255, 255, 0.12)";
+                        targetCatCardBadge.style.color = "#94a3b8";
+                    }
+                }
+                if (modalCatBadge) modalCatBadge.textContent = `${count} محدد`;
+                if (modalSelectedCatSummary) modalSelectedCatSummary.textContent = count;
+                cardCatCountText.forEach(el => el.textContent = count);
+
+                // Row highlighting
+                document.querySelectorAll(".category-item-row").forEach(row => {
+                    const cb = row.querySelector(".category-checkbox");
+                    row.classList.toggle("is-selected", cb && cb.checked);
+                });
+
+                // Render Chips
+                if (catChipsContainer) {
+                    catChipsContainer.innerHTML = "";
+                    if (count === 0) {
+                        if (catEmptyChipsState) catEmptyChipsState.classList.remove("d-none");
+                        catChipsContainer.classList.add("d-none");
+                    } else {
+                        if (catEmptyChipsState) catEmptyChipsState.classList.add("d-none");
+                        catChipsContainer.classList.remove("d-none");
+
+                        checkedBoxes.forEach(cb => {
+                            const row = cb.closest(".category-item-row");
+                            if (!row) return;
+                            const id = row.dataset.id;
+                            const name = row.dataset.displayName || "";
+                            const img = row.dataset.img || "";
+
+                            const chip = document.createElement("div");
+                            chip.className = "selected-chip";
+                            const tagSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#e3b65b" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 2 6.586V2zm3.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M1.293 7.707A1 1 0 0 1 1 7V2.5A1.5 1.5 0 0 1 2.5 1H7a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7z"/></svg>`;
+                            const thumbHtml = img 
+                                ? `<div class="product-thumb-box" style="width:26px !important; height:26px !important; min-width:26px !important; max-width:26px !important; min-height:26px !important; max-height:26px !important; border-radius:4px !important; overflow:hidden !important; flex-shrink:0 !important;"><img src="${img}" class="product-thumb-img" alt="${name}" /></div>`
+                                : tagSvg;
+
+                            chip.innerHTML = `
+                                ${thumbHtml}
+                                <span class="fw-bold">${name}</span>
+                                <button type="button" class="btn-remove-chip" data-remove-cat-id="${id}" title="إلغاء هذا التصنيف">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            `;
+                            catChipsContainer.appendChild(chip);
+                        });
+                    }
+                }
+            }
+
+            // Direct and delegated change listeners
+            productCheckboxes.forEach(cb => cb.addEventListener("change", updateProductUI));
+            categoryCheckboxes.forEach(cb => cb.addEventListener("change", updateCategoryUI));
+
+            document.addEventListener("change", function (e) {
+                if (e.target && e.target.classList.contains("product-checkbox")) {
+                    updateProductUI();
+                } else if (e.target && e.target.classList.contains("category-checkbox")) {
+                    updateCategoryUI();
+                }
+            });
+
+            // Modal hide synchronization
+            const prodModalEl = document.getElementById("productSelectModal");
+            if (prodModalEl) {
+                prodModalEl.addEventListener("hidden.bs.modal", updateProductUI);
+            }
+            const catModalEl = document.getElementById("categorySelectModal");
+            if (catModalEl) {
+                catModalEl.addEventListener("hidden.bs.modal", updateCategoryUI);
+            }
+
+            // Chips remove clicks (delegated)
+            if (prodChipsContainer) {
+                prodChipsContainer.addEventListener("click", function (e) {
+                    const btn = e.target.closest("[data-remove-id]");
+                    if (btn) {
+                        const id = btn.dataset.removeId;
+                        const cb = document.getElementById(`prod_${id}`);
+                        if (cb) {
+                            cb.checked = false;
+                            updateProductUI();
+                        }
+                    }
+                });
+            }
+
+            if (catChipsContainer) {
+                catChipsContainer.addEventListener("click", function (e) {
+                    const btn = e.target.closest("[data-remove-cat-id]");
+                    if (btn) {
+                        const id = btn.dataset.removeCatId;
+                        const cb = document.getElementById(`cat_${id}`);
+                        if (cb) {
+                            cb.checked = false;
+                            updateCategoryUI();
+                        }
+                    }
+                });
+            }
+
+            // Universal modal item click delegation (handles checkbox, label, thumb, badge, row)
+            document.addEventListener("click", function (e) {
+                const row = e.target.closest(".modal-item-row");
+                if (!row) return;
+
+                const cb = row.querySelector(".product-checkbox, .category-checkbox");
+                if (!cb) return;
+
+                // Native toggle on checkbox or label
+                if (e.target === cb || e.target.tagName.toLowerCase() === "label" || e.target.closest("label")) {
+                    setTimeout(() => {
+                        if (cb.classList.contains("product-checkbox")) updateProductUI();
+                        if (cb.classList.contains("category-checkbox")) updateCategoryUI();
+                    }, 0);
+                    return;
+                }
+
+                // Clicked anywhere else on the row (image, text, badge, padding)
+                e.preventDefault();
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event("change", { bubbles: true }));
+                if (cb.classList.contains("product-checkbox")) updateProductUI();
+                if (cb.classList.contains("category-checkbox")) updateCategoryUI();
+            });
+
+            // Deselect All / Clear Buttons
+            const deselectAllProdBtn = document.getElementById("deselectAllProductsBtn");
+            const modalDeselectAllProdBtn = document.getElementById("modalDeselectAllProducts");
+            function clearAllProducts() {
+                productCheckboxes.forEach(cb => cb.checked = false);
+                updateProductUI();
+            }
+            if (deselectAllProdBtn) deselectAllProdBtn.addEventListener("click", clearAllProducts);
+            if (modalDeselectAllProdBtn) modalDeselectAllProdBtn.addEventListener("click", clearAllProducts);
+
+            const deselectAllCatBtn = document.getElementById("deselectAllCategoriesBtn");
+            const modalDeselectAllCatBtn = document.getElementById("modalDeselectAllCategories");
+            function clearAllCategories() {
+                categoryCheckboxes.forEach(cb => cb.checked = false);
+                updateCategoryUI();
+            }
+            if (deselectAllCatBtn) deselectAllCatBtn.addEventListener("click", clearAllCategories);
+            if (modalDeselectAllCatBtn) modalDeselectAllCatBtn.addEventListener("click", clearAllCategories);
+
+            // Select All Visible Products in Modal
+            const modalSelectAllProd = document.getElementById("modalSelectAllProducts");
+            if (modalSelectAllProd) {
+                modalSelectAllProd.addEventListener("click", function () {
+                    document.querySelectorAll(".product-item-row").forEach(row => {
+                        if (row.style.display !== "none") {
+                            const cb = row.querySelector(".product-checkbox");
+                            if (cb) cb.checked = true;
+                        }
+                    });
+                    updateProductUI();
+                });
+            }
+
+            // Select All Visible Categories in Modal
+            const modalSelectAllCat = document.getElementById("modalSelectAllCategories");
+            if (modalSelectAllCat) {
+                modalSelectAllCat.addEventListener("click", function () {
+                    document.querySelectorAll(".category-item-row").forEach(row => {
+                        if (row.style.display !== "none") {
+                            const cb = row.querySelector(".category-checkbox");
+                            if (cb) cb.checked = true;
+                        }
+                    });
+                    updateCategoryUI();
+                });
+            }
+
+            // Live Search & Category Filter for Products
+            const modalProdSearch = document.getElementById("modalProductSearch");
+            const modalCatFilter = document.getElementById("modalCategoryFilter");
+            const modalProdEmptyState = document.getElementById("modalProductEmptyState");
+
+            function filterModalProducts() {
+                const query = (modalProdSearch ? modalProdSearch.value : "").toLowerCase().trim();
+                const cat = (modalCatFilter ? modalCatFilter.value : "").toLowerCase().trim();
+                let visibleCount = 0;
+
+                document.querySelectorAll(".product-item-row").forEach(row => {
+                    const name = row.dataset.name || "";
+                    const rowCat = row.dataset.cat || "";
+                    const matchesName = name.includes(query);
+                    const matchesCat = !cat || rowCat.includes(cat);
+                    const visible = matchesName && matchesCat;
+                    row.style.display = visible ? "flex" : "none";
+                    if (visible) visibleCount++;
+                });
+
+                if (modalProdEmptyState) {
+                    modalProdEmptyState.classList.toggle("d-none", visibleCount > 0);
+                }
+            }
+
+            if (modalProdSearch) {
+                modalProdSearch.addEventListener("input", filterModalProducts);
+                modalProdSearch.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter") e.preventDefault();
+                });
+            }
+            if (modalCatFilter) modalCatFilter.addEventListener("change", filterModalProducts);
+
+            // Live Search for Categories
+            const modalCatSearch = document.getElementById("modalCategorySearch");
+            const modalCatEmptyState = document.getElementById("modalCategoryEmptyState");
+
+            function filterModalCategories() {
+                const query = (modalCatSearch ? modalCatSearch.value : "").toLowerCase().trim();
+                let visibleCount = 0;
+
+                document.querySelectorAll(".category-item-row").forEach(row => {
+                    const name = row.dataset.name || "";
+                    const visible = name.includes(query);
+                    row.style.display = visible ? "flex" : "none";
+                    if (visible) visibleCount++;
+                });
+
+                if (modalCatEmptyState) {
+                    modalCatEmptyState.classList.toggle("d-none", visibleCount > 0);
+                }
+            }
+
+            if (modalCatSearch) {
+                modalCatSearch.addEventListener("input", filterModalCategories);
+                modalCatSearch.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter") e.preventDefault();
+                });
+            }
+
+            // Initial Execution
+            updateTargetVisibility();
+            updateProductUI();
+            updateCategoryUI();
+        });
+    </script>
+}

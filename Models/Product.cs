@@ -42,4 +42,59 @@ public partial class Product
     public virtual ICollection<ProductRetailPrice> RetailPrices { get; set; } = new List<ProductRetailPrice>();
 
     public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+
+    // Dynamic Runtime Promotion Properties (Not Mapped to DB)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool HasPromotion { get; set; } = false;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int? PromotionId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PromotionTitle { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PromotionType { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal OriginalPrice => Price;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal DiscountAmount { get; set; } = 0;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal FinalPrice => Price - DiscountAmount;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal? DiscountPercentage => Price > 0 && DiscountAmount > 0 ? Math.Round((DiscountAmount / Price) * 100m, 2) : null;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int? FreeQuantity { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int? BuyQuantity { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PromotionDescription { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PromotionBannerImage { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal? PromoDiscountValue { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal? OfferPrice { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public decimal? MinimumAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTimeOffset? PromotionStartDate { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTimeOffset? PromotionEndDate { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int? PromotionPriority { get; set; }
 }

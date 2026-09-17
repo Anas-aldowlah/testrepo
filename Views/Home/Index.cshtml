@@ -1,4 +1,5 @@
 @model YAGOT_2._0.Services.ViewModels
+@using YAGOT_2._0.Extensions
 @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "الرئيسية | ياقوت";
@@ -14,6 +15,8 @@
     var newArrivals = Model.NewArrivals?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
     var heroSlides = Model.HeroSlides?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
     var bestSellingProducts = Model.BestSellingProducts?.ToList() ?? new List<YAGOT_2._0.Models.Product>();
+    var promoProducts = Model.PromoProducts?.ToList() ?? (ViewBag.PromoProducts as List<YAGOT_2._0.Models.Product>) ?? new List<YAGOT_2._0.Models.Product>();
+    var activeSpendPromos = ViewBag.ActiveSpendPromotions as List<YAGOT_2._0.Models.Promotion>;
 
     var storeSettings = Model.StoreSettings ?? new YAGOT_2._0.Models.StoreSettings();
     var heroTitle = !string.IsNullOrWhiteSpace(storeSettings.HeroMarketingText)
@@ -166,7 +169,79 @@
         </section>
     }
 
+    @if (productViewEnabled && (promoProducts.Any() || (activeSpendPromos != null && activeSpendPromos.Any())))
+    {
+        <!-- PROMOTIONS SECTION (🔥 العروض الحالية) -->
+        <section class="container yq-home-section yq-home-section--promotions" aria-labelledby="promotionsTitle">
+            <header class="yq-home-section__head">
+                <div>
+                    <span class="yq-home-kicker text-warning"><i class="bi bi-fire text-danger"></i> لفترة محدودة</span>
+                    <h2 id="promotionsTitle" class="yq-home-section__title text-warning">العروض الحالية</h2>
+                    <p class="yq-home-section__sub">أقوى الصفقات والمنتجات الترويجية بأسعار استثنائية</p>
+                </div>
+                <a asp-controller="Offers" asp-action="Index" class="yq-home-section__link">
+                    عرض جميع العروض <i class="bi bi-arrow-left"></i>
+                </a>
+            </header>
 
+            <div class="yq-home-product-rail yq-home-product-rail--promotions" tabindex="0" aria-label="العروض الحالية">
+                @if (activeSpendPromos != null && activeSpendPromos.Any())
+                {
+                    @foreach (var spendPromo in activeSpendPromos)
+                    {
+                        <div class="yq-home-product-item">
+                            <article class="yq-pcard yq-pcard--banner-ad h-100 d-flex flex-column justify-content-between p-3 rounded-4 shadow-lg border border-warning" style="background: linear-gradient(135deg, rgba(30,34,53,0.95), rgba(15,18,30,0.98)); position: relative; overflow: hidden; min-width: 260px; min-height: 380px;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill shadow-sm fw-bold">
+                                        <i class="bi bi-megaphone-fill me-1"></i> إعلان عرض عام
+                                    </span>
+                                    @if (spendPromo.EndDate > DateTimeOffset.UtcNow)
+                                    {
+                                        <span class="badge bg-danger text-white px-2 py-1 fs-6 rounded-pill">
+                                            <i class="bi bi-clock-history me-1"></i> لفترة محدودة
+                                        </span>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(spendPromo.BannerImage))
+                                {
+                                    <div class="my-2 text-center rounded-3 overflow-hidden" style="max-height: 160px;">
+                                        <img src="@spendPromo.BannerImage" alt="@spendPromo.Title" class="img-fluid rounded-3 w-100 h-100" style="object-fit: cover;" />
+                                    </div>
+                                }
+
+                                <div class="mt-2 text-center flex-grow-1 d-flex flex-column justify-content-center">
+                                    <h4 class="text-gold fw-bold mb-2 fs-5">@spendPromo.Title</h4>
+                                    <p class="text-light small mb-2 opacity-90">
+                                        @(string.IsNullOrWhiteSpace(spendPromo.Description)
+                                            ? spendPromo.SpendDiscountType == YAGOT_2._0.Models.DiscountValueType.Percentage
+                                                ? $"خصم {spendPromo.DiscountValue:0.##}% على الفاتورة عند الوصول للحد الأدنى"
+                                                : $"خصم {spendPromo.DiscountValue.ToYaqutPrice()} على الفاتورة عند الوصول للحد الأدنى"
+                                            : spendPromo.Description)
+                                    </p>
+                                    @if (spendPromo.MinimumAmount.HasValue && spendPromo.MinimumAmount > 0)
+                                    {
+                                        <div class="p-2 rounded-3 bg-dark bg-opacity-50 text-warning small fw-bold mb-2 border border-warning border-opacity-25">
+                                            <i class="bi bi-cart-check me-1"></i> الحد الأدنى: @spendPromo.MinimumAmount.Value.ToYaqutPrice()
+                                        </div>
+                                    }
+                                </div>
+
+                                <a asp-controller="Offers" asp-action="Index" class="btn btn-warning w-100 fw-bold mt-2 py-2 shadow-sm rounded-3" style="background: #e3b65b; border: none; color: #111;">
+                                    <i class="bi bi-bag-heart me-1"></i> تسوق واستفد من العرض
+                                </a>
+                            </article>
+                        </div>
+                    }
+                }
+
+                @foreach (var product in promoProducts)
+                {
+                    <partial name="_ProductCard" model="product" />
+                }
+            </div>
+        </section>
+    }
 
     @if (productViewEnabled)
     {

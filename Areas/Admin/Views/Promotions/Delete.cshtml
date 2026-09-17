@@ -1,0 +1,63 @@
+@model YAGOT_2._0.Models.Admin.PromotionDetailsVM
+@{
+    ViewData["Title"] = "تأكيد حذف العرض الترويجي";
+    var promo = Model.Promotion;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">العروض والخصومات</a>
+    <span>/</span>
+    <span>تأكيد الحذف</span>
+}
+
+<section class="yq-products-admin">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card bg-dark text-light border-danger shadow-lg rounded-3 mt-4" style="background: rgba(18, 26, 38, 0.9) !important; border: 1px solid rgba(239, 68, 68, 0.4) !important;">
+                <div class="card-header bg-danger bg-opacity-20 border-danger p-4 text-center">
+                    <i class="bi bi-exclamation-triangle-fill text-danger display-4 d-block mb-2"></i>
+                    <h3 class="card-title text-danger fw-bold mb-0">تأكيد حذف العرض الترويجي</h3>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="alert alert-warning border-warning bg-warning bg-opacity-10 text-warning rounded-3 mb-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>تنبيه هام:</strong> سيتم حذف هذا العرض وإلغاء ارتباطه بالمنتجات والتصنيفات. 
+                        <strong class="d-block mt-1 text-white">لن يتم حذف أي منتج أو تصنيف من الكتالوج العام للمتجر.</strong>
+                    </div>
+
+                    <div class="border border-secondary rounded-3 p-3 bg-black bg-opacity-30 mb-4">
+                        <h5 class="text-white fw-bold mb-2">@promo.Title</h5>
+                        <div class="d-flex justify-content-between text-muted small mb-2">
+                            <span>نوع العرض: <strong class="text-info">@promo.PromotionType</strong></span>
+                            <span>النطاق: <strong class="text-warning">@Model.TargetSummary</strong></span>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>تاريخ البداية: @Model.StartDateLocal.ToString("yyyy/MM/dd")</span>
+                            <span>تاريخ النهاية: @Model.EndDateLocal.ToString("yyyy/MM/dd")</span>
+                        </div>
+                    </div>
+
+                    <p class="text-center text-muted mb-4">هل أنت تأكد من رغبتك في حذف هذا العرض بشكل نهائي؟</p>
+
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" asp-for="Promotion.Id" name="id" />
+                        <div class="d-flex justify-content-center gap-3">
+                            <a asp-action="Index" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 8px;">
+                                إلغاء والعودة
+                            </a>
+                            <button type="submit" class="btn btn-danger px-5 py-2 fw-bold" style="border-radius: 8px;">
+                                <i class="bi bi-trash-fill me-1"></i> تأكيد الحذف النهائـي
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

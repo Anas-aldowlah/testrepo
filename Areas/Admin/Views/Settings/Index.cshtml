@@ -45,6 +45,10 @@
                 <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
                 <span>الدفع</span>
             </button>
+            <button class="yq-settings-tab" id="currency-tab" data-bs-toggle="tab" data-bs-target="#currency-pane" type="button" role="tab" aria-controls="currency-pane" aria-selected="false">
+                <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                <span>العملة</span>
+            </button>
         </div>
 
         <div class="tab-content yq-settings-panels">
@@ -257,6 +261,48 @@
                             <textarea asp-for="OtherPaymentInstructions" class="form-control" rows="4" placeholder="تعليمات الدفع بالطرق الأخرى..."></textarea>
                             <div class="form-text">سيظهر هذا النص للعميل عند اختيار طريقة الدفع الأخرى.</div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-pane fade yq-settings-panel" id="currency-pane" role="tabpanel" aria-labelledby="currency-tab">
+                <div class="yq-settings-panel__head">
+                    <div>
+                        <span class="yq-settings-eyebrow">النظام المالي</span>
+                        <h3>عملة المتجر والنظام الأساسية</h3>
+                    </div>
+                    <p>العملة المعتمدة لجميع أسعار المنتجات، السلة، إتمام الطلب، الفواتير، ونقاط البيع (POS).</p>
+                </div>
+
+                <div class="yq-settings-grid">
+                    <div class="yq-settings-field yq-settings-field--full">
+                        <label asp-for="CurrencyCode" class="form-label">العملة النشطة</label>
+                        @if (User.IsInRole("Developer"))
+                        {
+                            <select asp-for="CurrencyCode" class="form-select">
+                                <option value="YER">ريال يمني (YER - ر.ي)</option>
+                                <option value="SAR">ريال سعودي (SAR - ر.س)</option>
+                                <option value="USD">دولار أمريكي (USD - $)</option>
+                            </select>
+                            <span asp-validation-for="CurrencyCode" class="text-danger"></span>
+                            <div class="form-text text-warning mt-2">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                <strong>تنبيه للمطور:</strong> تغيير العملة يؤثر على المعاملات الجديدة فقط. الفواتير والطلبات السابقة تحتفظ بعملتها التاريخية دون أي تعديل أو إعادة احتساب تلقائي.
+                            </div>
+                        }
+                        else
+                        {
+                            <select asp-for="CurrencyCode" class="form-select" disabled="disabled">
+                                <option value="YER">ريال يمني (YER - ر.ي)</option>
+                                <option value="SAR">ريال سعودي (SAR - ر.س)</option>
+                                <option value="USD">دولار أمريكي (USD - $)</option>
+                            </select>
+                            <input type="hidden" asp-for="CurrencyCode" />
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-shield-lock-fill me-1 text-primary"></i>
+                                تعديل عملة النظام مقتصر على حساب المطور (Developer) فقط لحماية السجلات المالية التاريخية.
+                            </div>
+                        }
                     </div>
                 </div>
             </section>

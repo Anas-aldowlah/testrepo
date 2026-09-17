@@ -43,6 +43,11 @@ namespace YAGOT_2._0.Models
         public string? OtherPaymentInstructions { get; set; } = "سيتم التواصل معك هاتفياً للاتفاق على طريقة الدفع المناسبة";
 
         public List<PaymentMethodSetting> AdditionalPaymentMethods { get; set; } = new();
+
+        // ============================================
+        // 4. العملة (System Currency - Developer Only)
+        // ============================================
+        public string CurrencyCode { get; set; } = "YER";
     }
 
     public class PaymentMethodSetting

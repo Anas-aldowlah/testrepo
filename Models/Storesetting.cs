@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
@@ -22,6 +22,8 @@ public partial class Storesetting
     public string? Heromarketingtext { get; set; }
 
     public string? Heromarketingdesc { get; set; }
+ 
+    public string Currencycode { get; set; } = "YER";
 
     public virtual ICollection<Paymentmethod> Paymentmethods { get; set; } = new List<Paymentmethod>();
 }

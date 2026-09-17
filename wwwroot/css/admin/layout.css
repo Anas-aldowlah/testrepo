@@ -363,6 +363,14 @@ html[data-theme="dark"] .yq-admin-shell,
         transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
     }
 
+    .yq-admin-nav__link i svg,
+    .yq-admin-back-store i svg {
+        width: 1.15rem;
+        height: 1.15rem;
+        display: block;
+        fill: currentColor;
+    }
+
     .yq-admin-nav__link span,
     .yq-admin-back-store span {
         overflow: hidden;

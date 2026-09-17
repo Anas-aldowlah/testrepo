@@ -429,6 +429,21 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("cancelledat");
 
+                    b.Property<string>("Currencycode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("YER")
+                        .HasColumnName("currency_code");
+
+                    b.Property<decimal>("Discounttotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_total");
+
                     b.Property<decimal?>("Finalfulfilledamount")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
@@ -474,9 +489,20 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("paymentverifiedbyuserid");
 
+                    b.Property<string>("Promotionsnapshotjson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("promotion_snapshot_json");
+
                     b.Property<string>("Receipturl")
                         .HasColumnType("text")
                         .HasColumnName("receipturl");
+
+                    b.Property<decimal>("Spendamountdiscount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("spend_amount_discount");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -648,6 +674,39 @@ namespace YAGOT_2._0.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("Appliedpromotionid")
+                        .HasColumnType("integer")
+                        .HasColumnName("applied_promotion_id");
+
+                    b.Property<string>("Appliedpromotionsjson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("applied_promotions_json");
+
+                    b.Property<string>("Appliedpromotiontitle")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("applied_promotion_title");
+
+                    b.Property<decimal>("Discountamount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_amount");
+
+                    b.Property<decimal>("Finalunitprice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("final_unit_price");
+
+                    b.Property<int>("Freequantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("free_quantity");
+
                     b.Property<int?>("FulfilledQuantity")
                         .HasColumnType("integer")
                         .HasColumnName("fulfilled_quantity");
@@ -655,6 +714,13 @@ namespace YAGOT_2._0.Migrations
                     b.Property<int>("Orderid")
                         .HasColumnType("integer")
                         .HasColumnName("orderid");
+
+                    b.Property<decimal>("Originalunitprice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("original_unit_price");
 
                     b.Property<int>("Productid")
                         .HasColumnType("integer")
@@ -924,6 +990,159 @@ namespace YAGOT_2._0.Migrations
                         });
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.Promotion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BannerImage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("banner_image");
+
+                    b.Property<int?>("BuyQuantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("buy_quantity");
+
+                    b.Property<bool>("CanBeCombined")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("can_be_combined");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("discount_value");
+
+                    b.Property<DateTimeOffset>("EndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
+
+                    b.Property<int?>("FreeQuantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("free_quantity");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal?>("MinimumAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("minimum_amount");
+
+                    b.Property<decimal?>("OfferPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("offer_price");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10)
+                        .HasColumnName("priority");
+
+                    b.Property<string>("PromotionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("promotion_type");
+
+                    b.Property<int>("SpendDiscountType")
+                        .HasColumnType("integer")
+                        .HasColumnName("spend_discount_type");
+
+                    b.Property<DateTimeOffset>("StartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("All")
+                        .HasColumnName("target_type");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("promotions_pkey");
+
+                    b.HasIndex(new[] { "IsActive", "StartDate", "EndDate" }, "idx_promotions_active_dates");
+
+                    b.HasIndex(new[] { "Priority", "CreatedAt" }, "idx_promotions_priority");
+
+                    b.ToTable("promotions", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.PromotionCategory", b =>
+                {
+                    b.Property<int>("PromotionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("PromotionId", "CategoryId")
+                        .HasName("pk_promotion_categories");
+
+                    b.HasIndex(new[] { "CategoryId" }, "idx_promotion_categories_category");
+
+                    b.ToTable("promotion_categories", (string)null);
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.PromotionProduct", b =>
+                {
+                    b.Property<int>("PromotionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("PromotionId", "ProductId")
+                        .HasName("pk_promotion_products");
+
+                    b.HasIndex(new[] { "ProductId" }, "idx_promotion_products_product");
+
+                    b.ToTable("promotion_products", (string)null);
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
                 {
                     b.Property<int>("Id")
@@ -947,6 +1166,14 @@ namespace YAGOT_2._0.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)")
                         .HasColumnName("created_by");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("YER")
+                        .HasColumnName("currency_code");
 
                     b.Property<string>("CustomerName")
                         .HasMaxLength(150)
@@ -996,9 +1223,27 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("invoice_number");
 
+                    b.Property<decimal>("ManualDiscountTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("manual_discount_total");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
+
+                    b.Property<decimal>("PromotionDiscountTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("promotion_discount_total");
+
+                    b.Property<string>("PromotionSnapshotJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("promotion_snapshot_json");
 
                     b.Property<int>("SalesDayId")
                         .HasColumnType("integer")
@@ -1046,12 +1291,42 @@ namespace YAGOT_2._0.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AppliedPromotionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("applied_promotion_id");
+
+                    b.Property<string>("AppliedPromotionTitle")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("applied_promotion_title");
+
                     b.Property<decimal>("Discount")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasDefaultValue(0m)
                         .HasColumnName("discount");
+
+                    b.Property<decimal>("FinalUnitPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("final_unit_price");
+
+                    b.Property<decimal>("ManualDiscountAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("manual_discount_amount");
+
+                    b.Property<decimal>("OriginalUnitPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("original_unit_price");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("integer")
@@ -1061,6 +1336,13 @@ namespace YAGOT_2._0.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("product_name");
+
+                    b.Property<decimal>("PromotionDiscountAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("promotion_discount_amount");
 
                     b.Property<int>("Quantity")
                         .ValueGeneratedOnAdd()
@@ -1422,6 +1704,14 @@ namespace YAGOT_2._0.Migrations
                         .HasColumnName("contactemail")
                         .HasDefaultValueSql("''::text");
 
+                    b.Property<string>("Currencycode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("YER")
+                        .HasColumnName("currency_code");
+
                     b.Property<int?>("Featuredcategoryid")
                         .HasColumnType("integer")
                         .HasColumnName("featuredcategoryid");
@@ -1745,6 +2035,48 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("YAGOT_2._0.Models.PromotionCategory", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_categories_categories");
+
+                    b.HasOne("YAGOT_2._0.Models.Promotion", "Promotion")
+                        .WithMany("PromotionCategories")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_categories_promotions");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Promotion");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.PromotionProduct", b =>
+                {
+                    b.HasOne("YAGOT_2._0.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_products_products");
+
+                    b.HasOne("YAGOT_2._0.Models.Promotion", "Promotion")
+                        .WithMany("PromotionProducts")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_products_promotions");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Promotion");
+                });
+
             modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>
                 {
                     b.HasOne("YAGOT_2._0.Models.SalesDay", "SalesDay")
@@ -1859,6 +2191,13 @@ namespace YAGOT_2._0.Migrations
                     b.Navigation("Orderitems");
 
                     b.Navigation("SaleItems");
+                });
+
+            modelBuilder.Entity("YAGOT_2._0.Models.Promotion", b =>
+                {
+                    b.Navigation("PromotionCategories");
+
+                    b.Navigation("PromotionProducts");
                 });
 
             modelBuilder.Entity("YAGOT_2._0.Models.Sale", b =>

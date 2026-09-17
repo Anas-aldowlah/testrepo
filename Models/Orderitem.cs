@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YAGOT_2._0.Models;
@@ -18,6 +18,20 @@ public partial class Orderitem
     public int Quantity { get; set; }
 
     public decimal Unitprice { get; set; }
+
+    public decimal Originalunitprice { get; set; } = 0.00m;
+
+    public decimal Discountamount { get; set; } = 0.00m;
+
+    public decimal Finalunitprice { get; set; } = 0.00m;
+
+    public int Freequantity { get; set; } = 0;
+
+    public int? Appliedpromotionid { get; set; }
+
+    public string? Appliedpromotiontitle { get; set; }
+
+    public string? Appliedpromotionsjson { get; set; }
 
     public int? FulfilledQuantity { get; set; }
 

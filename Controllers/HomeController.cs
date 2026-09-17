@@ -19,6 +19,8 @@ public class HomeController : Controller
     private readonly ProductCatalogService _catalogService;
     private readonly IStorefrontCacheService _storefrontCacheService;
     private readonly ICapabilityEvaluator _capabilityEvaluator;
+    private readonly ProductService _productService;
+    private readonly YAGOT_2._0.Services.Promotions.IPromotionEngine _promotionEngine;
 
     public HomeController(
         NeondbContext context,
@@ -26,7 +28,9 @@ public class HomeController : Controller
         StoreSettingsService storeSettingsService,
         ProductCatalogService catalogService,
         IStorefrontCacheService storefrontCacheService,
-        ICapabilityEvaluator capabilityEvaluator)
+        ICapabilityEvaluator capabilityEvaluator,
+        ProductService productService,
+        YAGOT_2._0.Services.Promotions.IPromotionEngine promotionEngine)
     {
         _context = context;
         _visitService = visitService;
@@ -34,6 +38,8 @@ public class HomeController : Controller
         _catalogService = catalogService;
         _storefrontCacheService = storefrontCacheService;
         _capabilityEvaluator = capabilityEvaluator;
+        _productService = productService;
+        _promotionEngine = promotionEngine;
     }
 
     public async Task<IActionResult> Index(int? categoryId)
@@ -47,11 +53,23 @@ public class HomeController : Controller
             ? (await _catalogService.GetBrandsAsync(HttpContext.RequestAborted)).ToList()
             : [];
 
+        var activePromos = await _promotionEngine.GetActivePromotionsAsync(false, HttpContext.RequestAborted);
+        ViewBag.ActiveSpendPromotions = activePromos.Where(p => p.PromotionType == "SpendAmount").ToList();
+
+        List<Product> promoProducts = [];
+        if (canViewProducts)
+        {
+            var allProductsWithPromos = await _productService.GetAllProductsAsync(inStockOnly: true, cancellationToken: HttpContext.RequestAborted);
+            promoProducts = allProductsWithPromos.Where(p => p.HasPromotion).Take(12).ToList();
+        }
+        ViewBag.PromoProducts = promoProducts;
+
         var model = new ViewModels
         {
             NewArrivals = showcase?.GetNewArrivalProducts() ?? [],
             HeroSlides = showcase?.GetHeroSlideProducts() ?? [],
             BestSellingProducts = showcase?.GetBestSellingProducts() ?? [],
+            PromoProducts = promoProducts,
             Brands = brands,
             Categories = categoriesFromDb,
             StoreSettings = await _storeSettingsService.GetSettingsAsync()

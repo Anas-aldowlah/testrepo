@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using YAGOT_2._0.Models;
+using YAGOT_2._0.Services.Promotions;
 
 namespace YAGOT_2._0.Services;
 
@@ -19,6 +20,8 @@ public class GuestCartService
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<GuestCartService> _logger;
     private readonly IDataProtector _cookieProtector;
+    private readonly IPromotionEngine _promotionEngine;
+    private readonly StoreSettingsService _settingsService;
     private List<GuestCartItem>? _currentItems;
     private Cart? _readCart;
 
@@ -32,7 +35,9 @@ public class GuestCartService
         CartLockService cartLock,
         IInventoryService inventoryService,
         IDataProtectionProvider dataProtectionProvider,
-        ILogger<GuestCartService> logger)
+        ILogger<GuestCartService> logger,
+        IPromotionEngine promotionEngine,
+        StoreSettingsService settingsService)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
@@ -40,6 +45,8 @@ public class GuestCartService
         _inventoryService = inventoryService;
         _cookieProtector = dataProtectionProvider.CreateProtector("YAGOT.GuestCart.v1");
         _logger = logger;
+        _promotionEngine = promotionEngine;
+        _settingsService = settingsService;
     }
 
     public async Task<Cart> GetCartAsync()
@@ -148,7 +155,59 @@ public class GuestCartService
                     : productPrices[item.ProductId]))
             .ToList();
 
-        return CartStateSummary.Create(items, cartItemId, productId, retailPriceId);
+        var summary = CartStateSummary.Create(items, cartItemId, productId, retailPriceId);
+
+        if (items.Count > 0)
+        {
+            var calcItems = items.Select(i => new PromotionCalculationLineItem
+            {
+                LineIdentifier = i.CartItemId.ToString(),
+                ProductId = i.ProductId,
+                RetailPriceId = i.RetailPriceId,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice
+            }).ToList();
+
+            var calcContext = new PromotionCalculationContext
+            {
+                Items = calcItems
+            };
+
+            var calcResult = await _promotionEngine.CalculatePromotionsAsync(calcContext);
+            summary.GrossSubtotal = calcResult.GrossSubtotal;
+            summary.TotalDiscounts = calcResult.TotalDiscounts;
+            summary.FinalTotal = calcResult.NetTotal;
+            summary.Subtotal = calcResult.NetTotal;
+            summary.CurrencyCode = calcResult.CurrencyCode;
+            summary.CurrencySymbol = calcResult.CurrencySymbol;
+            summary.FreeProducts = calcResult.FreeProducts;
+            summary.AppliedPromotions = calcResult.Lines.SelectMany(l => l.AppliedPromotions)
+                .Concat(calcResult.AppliedSpendPromotions).ToList();
+
+            if (summary.Item != null)
+            {
+                var lineCalc = calcResult.Lines.FirstOrDefault(l =>
+                    l.ProductId == summary.Item.ProductId && l.RetailPriceId == summary.Item.RetailPriceId);
+                if (lineCalc != null)
+                {
+                    summary.Item = summary.Item with
+                    {
+                        OriginalUnitPrice = lineCalc.OriginalUnitPrice,
+                        DiscountAmount = lineCalc.TotalDiscount,
+                        FinalLineTotal = lineCalc.FinalLineTotal,
+                        FreeQuantity = lineCalc.FreeQuantity
+                    };
+                }
+            }
+        }
+        else
+        {
+            var curCode = await _settingsService.GetCurrencyCodeAsync();
+            summary.CurrencyCode = curCode;
+            summary.CurrencySymbol = CurrencyHelper.GetSymbol(curCode);
+        }
+
+        return summary;
     }
 
     public async Task AddToCartAsync(int productId, int quantity, int? retailPriceId = null)

@@ -1,0 +1,573 @@
+/* ==========================================================================
+   Yaqut — Promotions Storefront Design System & UI Enhancements
+   ========================================================================== */
+
+:root {
+    --yq-promo-flame: #ef4444;
+    --yq-promo-flame-bg: rgba(239, 68, 68, 0.12);
+    --yq-promo-gold: #d97706;
+    --yq-promo-gold-bg: rgba(217, 119, 6, 0.12);
+    --yq-promo-purple: #8b5cf6;
+    --yq-promo-purple-bg: rgba(139, 92, 246, 0.12);
+    --yq-promo-emerald: #10b981;
+    --yq-promo-emerald-bg: rgba(16, 185, 129, 0.12);
+    --yq-promo-blue: #3b82f6;
+    --yq-promo-blue-bg: rgba(59, 130, 246, 0.12);
+}
+
+/* --- Badges --- */
+.yq-promo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 50rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.yq-promo-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.yq-promo-badge--flame {
+    background: var(--yq-promo-flame-bg);
+    color: var(--yq-promo-flame);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.yq-promo-badge--gold {
+    background: var(--yq-promo-gold-bg);
+    color: var(--yq-promo-gold);
+    border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.yq-promo-badge--purple {
+    background: var(--yq-promo-purple-bg);
+    color: var(--yq-promo-purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.yq-promo-badge--emerald {
+    background: var(--yq-promo-emerald-bg);
+    color: var(--yq-promo-emerald);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* --- Countdown Timer Pill --- */
+.yq-promo-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: monospace, var(--yq-font-body, system-ui, -apple-system, sans-serif);
+}
+
+.yq-promo-timer__icon {
+    color: var(--yq-gold-bright, #e3b65b);
+    animation: yqPulse 1.5s infinite;
+}
+
+@keyframes yqPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.92); }
+}
+
+/* --- Product Details Special Offer Box --- */
+.yq-pdp-promo-box {
+    margin: 1.25rem 0;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, rgba(239, 68, 68, 0.04) 100%);
+    border: 1.5px solid rgba(217, 119, 6, 0.3);
+    box-shadow: 0 4px 20px rgba(217, 119, 6, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.yq-pdp-promo-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--yq-gold-bright, #e3b65b), var(--yq-promo-flame));
+}
+
+.yq-pdp-promo-box__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.yq-pdp-promo-box__title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--yq-text-main, #f8fafc);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.yq-pdp-promo-box__desc {
+    font-size: 0.92rem;
+    color: var(--yq-text-soft, #94a3b8);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.yq-pdp-promo-box__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed rgba(217, 119, 6, 0.2);
+}
+
+.yq-pdp-promo-box__mechanics {
+    font-size: 0.85rem;
+    color: var(--yq-promo-emerald);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* --- Cart & Checkout Promo Banners --- */
+.yq-cart-promo-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--yq-text-main, #f8fafc);
+    font-size: 0.88rem;
+}
+
+.yq-cart-promo-progress {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: rgba(217, 119, 6, 0.08);
+    border: 1px dashed rgba(217, 119, 6, 0.3);
+    color: var(--yq-promo-gold);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+/* --- Savings Pill Tag --- */
+.yq-savings-tag {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.26) 100%) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15) !important;
+    white-space: nowrap !important;
+}
+
+.theme-light .yq-savings-tag {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+}
+
+/* ==========================================================================
+   CREATIVE & LUXURY PROMOTION CARD ENHANCEMENTS (.yq-pcard--promo)
+   ========================================================================== */
+
+/* 1. Card Container */
+.yq-pcard--promo,
+.yq-home-product-rail--promotions .yq-pcard {
+    border-radius: 16px !important;
+    border: 1px solid rgba(212, 175, 55, 0.35) !important;
+    border-top: 3px solid #d4af37 !important;
+    background: var(--yq-bg-elevated, #15181c) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.theme-light .yq-pcard--promo,
+.theme-light .yq-home-product-rail--promotions .yq-pcard {
+    background: #ffffff !important;
+    border-color: rgba(212, 175, 55, 0.4) !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
+}
+
+.yq-pcard--promo:hover,
+.yq-home-product-rail--promotions .yq-pcard:hover {
+    transform: translateY(-6px) !important;
+    border-color: #d4af37 !important;
+    box-shadow: 0 16px 36px rgba(212, 175, 55, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light .yq-pcard--promo:hover,
+.theme-light .yq-home-product-rail--promotions .yq-pcard:hover {
+    box-shadow: 0 14px 32px rgba(212, 175, 55, 0.2), 0 6px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 2. Floating Promo Badges on Image */
+.yq-pcard__promo-badges {
+    position: absolute !important;
+    top: 10px !important;
+    inset-inline-start: 10px !important;
+    z-index: 5 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+    pointer-events: none !important;
+}
+
+.yq-pcard__promo-badges .yq-promo-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.28rem 0.65rem !important;
+    border-radius: 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.2s ease !important;
+}
+
+.yq-pcard__promo-badges .yq-promo-badge--flame {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+.yq-pcard__promo-badges .yq-promo-badge--gold {
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    color: #f0d878 !important;
+    border: 1px solid rgba(212, 175, 55, 0.5) !important;
+}
+
+.theme-light .yq-pcard__promo-badges .yq-promo-badge--gold {
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: #b45309 !important;
+    border-color: #d97706 !important;
+}
+
+/* 3. Sleek Digital Counter Tiles Widget */
+.yq-promo-timer--tiles {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 10px !important;
+    background: linear-gradient(180deg, rgba(20, 24, 34, 0.85) 0%, rgba(13, 16, 23, 0.95) 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.25) !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+.theme-light .yq-promo-timer--tiles {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-color: rgba(212, 175, 55, 0.35) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+.yq-timer-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 0.74rem !important;
+    font-weight: 800 !important;
+    color: #d4af37 !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 0.2px !important;
+}
+
+.theme-light .yq-timer-header {
+    color: #b45309 !important;
+}
+
+.yq-timer-pulse {
+    animation: yqStopwatchPulse 1.4s infinite !important;
+    color: #ef4444 !important;
+}
+
+@keyframes yqStopwatchPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.75; }
+}
+
+.yq-timer-tiles-wrap {
+    width: 100% !important;
+}
+
+.yq-timer-tiles {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 4px !important;
+}
+
+.yq-timer-tile {
+    flex: 1 !important;
+    height: 42px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(180deg, #1b212d 0%, #11151e 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.25) !important;
+    border-radius: 7px !important;
+    padding: 2px 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.theme-light .yq-timer-tile {
+    background: #ffffff !important;
+    border: 1px solid rgba(212, 175, 55, 0.35) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.yq-timer-num {
+    font-size: 0.95rem !important;
+    font-weight: 900 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    color: #f0d878 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.5px !important;
+}
+
+.theme-light .yq-timer-num {
+    color: #0f172a !important;
+}
+
+.yq-timer-unit {
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+}
+
+.theme-light .yq-timer-unit {
+    color: #64748b !important;
+}
+
+.yq-timer-sep {
+    font-size: 0.9rem !important;
+    font-weight: 900 !important;
+    color: #d4af37 !important;
+    line-height: 1 !important;
+    margin-bottom: 8px !important;
+    opacity: 0.8 !important;
+}
+
+.theme-light .yq-timer-sep {
+    color: #b45309 !important;
+}
+
+.yq-timer-expired {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    color: #ef4444 !important;
+}
+
+/* 4. Product Title & Typography */
+.yq-pcard--promo .yq-pcard__name,
+.yq-home-product-rail--promotions .yq-pcard__name {
+    margin-bottom: 0.5rem !important;
+    min-height: 2.2rem !important;
+}
+
+.yq-pcard--promo .yq-pcard__name-link,
+.yq-home-product-rail--promotions .yq-pcard__name-link {
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    color: var(--yq-text-main, #f8fafc) !important;
+    line-height: 1.4 !important;
+    transition: color 0.2s ease !important;
+}
+
+.theme-light .yq-pcard--promo .yq-pcard__name-link,
+.theme-light .yq-home-product-rail--promotions .yq-pcard__name-link {
+    color: #0f172a !important;
+}
+
+.yq-pcard--promo:hover .yq-pcard__name-link,
+.yq-home-product-rail--promotions .yq-pcard:hover .yq-pcard__name-link {
+    color: #d4af37 !important;
+}
+
+.theme-light .yq-pcard--promo:hover .yq-pcard__name-link,
+.theme-light .yq-home-product-rail--promotions .yq-pcard:hover .yq-pcard__name-link {
+    color: #b45309 !important;
+}
+
+/* 5. Luxury Price Box & Savings Badge */
+.yq-pcard--promo .yq-pcard__price-box,
+.yq-home-product-rail--promotions .yq-pcard__price-box {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 8px !important;
+    margin-top: 4px !important;
+    padding-top: 6px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.theme-light .yq-pcard--promo .yq-pcard__price-box,
+.theme-light .yq-home-product-rail--promotions .yq-pcard__price-box {
+    border-top-color: #f1f5f9 !important;
+}
+
+.yq-pcard__price-row {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+}
+
+.yq-pcard__price--deal {
+    font-size: 1.25rem !important;
+    font-weight: 900 !important;
+    color: #f0d878 !important;
+    line-height: 1 !important;
+}
+
+.theme-light .yq-pcard__price--deal {
+    color: #b45309 !important;
+}
+
+.yq-pcard__price-original {
+    font-size: 0.82rem !important;
+    color: #94a3b8 !important;
+    text-decoration: line-through !important;
+    font-weight: 500 !important;
+}
+
+.theme-light .yq-pcard__price-original {
+    color: #64748b !important;
+}
+
+/* 6. Creative Action Bar (Bottom of Card) */
+.yq-pcard--promo .yq-pcard__actions,
+.yq-home-product-rail--promotions .yq-pcard__actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px 12px 12px !important;
+    border-top: 1px solid rgba(212, 175, 55, 0.15) !important;
+    margin-top: auto !important;
+    background: transparent !important;
+}
+
+.theme-light .yq-pcard--promo .yq-pcard__actions,
+.theme-light .yq-home-product-rail--promotions .yq-pcard__actions {
+    border-top-color: #f1f5f9 !important;
+}
+
+.yq-pcard--promo .yq-pcard__action-add,
+.yq-home-product-rail--promotions .yq-pcard__action-add {
+    flex: 1 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 9px !important;
+    border: none !important;
+    background: linear-gradient(135deg, #f0d878 0%, #d4af37 50%, #b8942e 100%) !important;
+    color: #0b0f14 !important;
+    font-weight: 800 !important;
+    font-size: 0.875rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    box-shadow: 0 3px 12px rgba(212, 175, 55, 0.3) !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.yq-pcard--promo .yq-pcard__action-add:hover,
+.yq-home-product-rail--promotions .yq-pcard__action-add:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #f0d878 50%, #d4af37 100%) !important;
+    color: #000000 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5) !important;
+}
+
+.yq-pcard--promo .yq-pcard__action-view,
+.yq-home-product-rail--promotions .yq-pcard__action-view {
+    width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 9px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(212, 175, 55, 0.1) !important;
+    border: 1px solid rgba(212, 175, 55, 0.25) !important;
+    color: #d4af37 !important;
+    font-size: 1.1rem !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex-shrink: 0 !important;
+}
+
+.theme-light .yq-pcard--promo .yq-pcard__action-view,
+.theme-light .yq-home-product-rail--promotions .yq-pcard__action-view {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+.yq-pcard--promo .yq-pcard__action-view:hover,
+.yq-home-product-rail--promotions .yq-pcard__action-view:hover {
+    background: rgba(212, 175, 55, 0.2) !important;
+    border-color: #d4af37 !important;
+    color: #f0d878 !important;
+    transform: translateY(-2px) !important;
+}
+
+.theme-light .yq-pcard--promo .yq-pcard__action-view:hover,
+.theme-light .yq-home-product-rail--promotions .yq-pcard__action-view:hover {
+    background: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+

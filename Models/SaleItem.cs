@@ -21,6 +21,18 @@ public partial class SaleItem
 
     public decimal UnitPrice { get; set; }
 
+    public decimal OriginalUnitPrice { get; set; } = 0.00m;
+
+    public decimal PromotionDiscountAmount { get; set; } = 0.00m;
+
+    public decimal ManualDiscountAmount { get; set; } = 0.00m;
+
+    public decimal FinalUnitPrice { get; set; } = 0.00m;
+
+    public int? AppliedPromotionId { get; set; }
+
+    public string? AppliedPromotionTitle { get; set; }
+
     public decimal Discount { get; set; }
 
     public decimal Total { get; set; }
