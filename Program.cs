@@ -15,6 +15,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Promotions;
 using YAGOT_2._0.Services.Integration;
 using YAGOT_2._0.Integration.SiteState;
 using YAGOT_2._0.Services.Caching;
@@ -116,6 +117,8 @@ builder.Services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSend
 builder.Services.AddTransient<DealingAPI>();
 builder.Services.AddScoped<IVisitService, VisitService>();
 builder.Services.AddScoped<StoreSettingsService>();
+builder.Services.AddScoped<IPromotionEngine, PromotionEngine>();
+builder.Services.AddScoped<PromotionSnapshotReader>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

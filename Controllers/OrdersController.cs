@@ -6,6 +6,7 @@ using YAGOT_2._0.Data;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Promotions;
 using System.Security.Claims;
 using YAGOT_2._0.Core.Capabilities;
 
@@ -27,6 +28,7 @@ public class OrdersController : Controller
     private readonly ILogger<OrdersController> _logger;
     private readonly ReceiptStorageService _receiptStorage;
     private readonly ICapabilityEvaluator _capabilityEvaluator;
+    private readonly IPromotionEngine? _promotionEngine;
 
     public OrdersController(
         OrderService orderService,
@@ -38,7 +40,8 @@ public class OrdersController : Controller
         UsersDbContext users,
         ILogger<OrdersController> logger,
         ReceiptStorageService receiptStorage,
-        ICapabilityEvaluator capabilityEvaluator)
+        ICapabilityEvaluator capabilityEvaluator,
+        IPromotionEngine? promotionEngine = null)
     {
         _context = context;
         _orderService = orderService;
@@ -50,6 +53,7 @@ public class OrdersController : Controller
         _logger = logger;
         _receiptStorage = receiptStorage;
         _capabilityEvaluator = capabilityEvaluator;
+        _promotionEngine = promotionEngine;
     }
 
     [HttpGet]
@@ -93,6 +97,12 @@ public class OrdersController : Controller
             ViewData["CheckoutDraftJson"] = draftJson;
         }
 
+        if (_promotionEngine != null)
+        {
+            var promoResult = await _promotionEngine.CalculateCartDiscountAsync(cart);
+            ViewBag.PromotionResult = promoResult;
+        }
+
         return View(await BuildCheckoutViewModelAsync(cart));
     }
 
@@ -126,6 +136,12 @@ public class OrdersController : Controller
         {
             if (IsAjaxRequest())
                 return ValidationProblem(ModelState);
+
+            if (_promotionEngine != null)
+            {
+                var promoResult = await _promotionEngine.CalculateCartDiscountAsync(cart);
+                ViewBag.PromotionResult = promoResult;
+            }
 
             await PopulateCheckoutPaymentMethodsAsync(model);
             return View("Checkout", model);
@@ -529,6 +545,12 @@ public class OrdersController : Controller
                 title: title,
                 detail: detail,
                 type: $"https://httpstatuses.com/{statusCode}");
+        }
+
+        if (_promotionEngine != null && model.Cart != null)
+        {
+            var promoResult = await _promotionEngine.CalculateCartDiscountAsync(model.Cart);
+            ViewBag.PromotionResult = promoResult;
         }
 
         ModelState.AddModelError(string.Empty, detail);

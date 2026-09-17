@@ -1,10 +1,12 @@
 @model YAGOT_2._0.Models.Cart
 @using YAGOT_2._0.Services
+@using YAGOT_2._0.Services.Promotions
 @using Microsoft.AspNetCore.Html
 @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "سلة المشتريات";
     var items = Model?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
+    var promoResult = ViewBag.PromotionResult as CartPromotionResult;
     decimal UnitPrice(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.Price ?? item.Product?.Price ?? 0;
     int MaxUnits(YAGOT_2._0.Models.Cartitem item)
     {
@@ -54,10 +56,33 @@
 
             <!-- CART ITEMS -->
             <div class="yq-cart-items yq-reveal">
+                @if (promoResult?.FreeProducts?.Any() == true)
+                {
+                    <div class="yaqut-alert yaqut-alert--success mb-3 p-3 rounded-3" role="status">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-gift-fill fs-5 me-2 text-success"></i>
+                            <strong class="fs-6">هدايا مجانية مضافة لطلبك بفضل العروض الترويجية!</strong>
+                        </div>
+                        <ul class="mb-0 ps-3 mt-2">
+                            @foreach (var freeItem in promoResult.FreeProducts)
+                            {
+                                <li>
+                                    <strong>@freeItem.FreeQuantity × @freeItem.ProductName</strong>
+                                    @if (freeItem.RetailSizeMl > 0)
+                                    {
+                                        <span>(@freeItem.RetailSizeMl مل)</span>
+                                    }
+                                    <span class="badge bg-success ms-2">مجاناً (@freeItem.PromotionTitle)</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
                 @foreach (var item in items)
                 {
                     var lineTotal = item.Quantity * UnitPrice(item);
                     var maxUnits = MaxUnits(item);
+                    var itemPromo = promoResult?.ItemResults.FirstOrDefault(ir => ir.ProductId == item.Productid && ir.RetailPriceId == item.RetailPriceId);
                     var productImageUrl = Url.Content("~/images/placeholder-product.svg");
                     if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
                     {
@@ -191,13 +216,36 @@
                                 }
 
                                 <div class="yq-cart-item__pricing">
-                                    <span class="yq-cart-item__unit-price"
-                                          data-unit-price="@UnitPrice(item).ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                                        @(UnitPrice(item).ToYaqutPrice()) / @UnitLabel(item)
-                                    </span>
-                                    <span class="yq-cart-item__line-total">
-                                        @(lineTotal.ToYaqutPrice())
-                                    </span>
+                                    @if (itemPromo != null && itemPromo.DiscountAmount > 0)
+                                    {
+                                        <div class="text-end">
+                                            <div>
+                                                <del class="text-muted small">@(itemPromo.OriginalPrice.ToYaqutPrice(promoResult?.CurrencyCode))</del>
+                                                <span class="text-success fw-bold">@(itemPromo.FinalPrice.ToYaqutPrice(promoResult?.CurrencyCode)) / @UnitLabel(item)</span>
+                                            </div>
+                                            <span class="yq-cart-item__line-total text-success fw-bold">
+                                                @((itemPromo.FinalPrice * item.Quantity).ToYaqutPrice(promoResult?.CurrencyCode))
+                                            </span>
+                                            @if (itemPromo.FreeQuantity > 0)
+                                            {
+                                                <div><span class="badge bg-success mt-1"><i class="bi bi-gift me-1"></i> +@itemPromo.FreeQuantity مجاناً</span></div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="yq-cart-item__unit-price"
+                                              data-unit-price="@UnitPrice(item).ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                            @(UnitPrice(item).ToYaqutPrice(promoResult?.CurrencyCode)) / @UnitLabel(item)
+                                        </span>
+                                        <span class="yq-cart-item__line-total">
+                                            @(lineTotal.ToYaqutPrice(promoResult?.CurrencyCode))
+                                        </span>
+                                        @if (itemPromo?.FreeQuantity > 0)
+                                        {
+                                            <div><span class="badge bg-success mt-1"><i class="bi bi-gift me-1"></i> +@itemPromo.FreeQuantity مجاناً</span></div>
+                                        }
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -214,12 +262,44 @@
 
                     @await Html.PartialAsync("_FreeShipping")
 
-                    <div class="yq-cart-summary__total-box">
-                        <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
-                        <div class="yq-cart-summary__total-value">
-                            <span data-yq-summary-total>@(subtotal.ToYaqutPrice())</span>
+                    @if (promoResult != null && promoResult.DiscountTotal > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">المجموع الفرعي:</span>
+                            <span>@(promoResult.OriginalTotal.ToYaqutPrice(promoResult.CurrencyCode))</span>
                         </div>
-                    </div>
+                        <div class="d-flex justify-content-between mb-2 small text-success">
+                            <span>خصم العروض:</span>
+                            <span>- @(promoResult.DiscountTotal.ToYaqutPrice(promoResult.CurrencyCode))</span>
+                        </div>
+                        @if (promoResult.AppliedPromotions.Any())
+                        {
+                            <div class="mb-3 pt-1 border-top border-light">
+                                @foreach (var ap in promoResult.AppliedPromotions)
+                                {
+                                    <div class="d-flex justify-content-between text-success" style="font-size: 0.8rem;">
+                                        <span><i class="bi bi-tag-fill me-1"></i> @ap.Title</span>
+                                        <span>- @(ap.DiscountAmount.ToYaqutPrice(promoResult.CurrencyCode))</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div class="yq-cart-summary__total-box">
+                            <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
+                            <div class="yq-cart-summary__total-value">
+                                <span data-yq-summary-total>@(promoResult.FinalTotal.ToYaqutPrice(promoResult.CurrencyCode))</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="yq-cart-summary__total-box">
+                            <span class="yq-cart-summary__total-label">الإجمالي النهائي</span>
+                            <div class="yq-cart-summary__total-value">
+                                <span data-yq-summary-total>@(subtotal.ToYaqutPrice(promoResult?.CurrencyCode))</span>
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 @if (checkoutEnabled && orderCreateEnabled)

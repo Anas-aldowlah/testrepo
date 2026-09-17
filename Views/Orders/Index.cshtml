@@ -276,10 +276,10 @@
                     <div class="yq-order-card__footer">
                         <div class="yq-order-card__total-block">
                             <span class="yq-order-card__label">الإجمالي</span>
-                            <strong class="yq-order-card__total"><bdi>@(order.Totalamount.ToYaqutPrice())</bdi></strong>
+                            <strong class="yq-order-card__total"><bdi>@(order.Totalamount.ToYaqutPrice(order.Currencycode))</bdi></strong>
                             @if (hasFulfilledAdjustment)
                             {
-                                <span class="yq-order-card__fulfilled-note">المعتمد للتنفيذ: <bdi>@(order.Finalfulfilledamount.ToYaqutPrice())</bdi></span>
+                                <span class="yq-order-card__fulfilled-note">المعتمد للتنفيذ: <bdi>@(order.Finalfulfilledamount.ToYaqutPrice(order.Currencycode))</bdi></span>
                             }
                         </div>
                         @if (isConflict)

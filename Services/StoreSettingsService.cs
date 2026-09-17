@@ -105,13 +105,19 @@ namespace YAGOT_2._0.Services
         public async Task<StoreSettings> GetSettingsAsync()
         {
             if (_cache.TryGetValue(SettingsCacheKey, out StoreSettings? cachedSettings) && cachedSettings != null)
+            {
+                CurrencyHelper.ActiveCurrencyCode = cachedSettings.CurrencyCode;
                 return CloneSettings(cachedSettings);
+            }
 
             await SettingsLock.WaitAsync();
             try
             {
                 if (_cache.TryGetValue(SettingsCacheKey, out cachedSettings) && cachedSettings != null)
+                {
+                    CurrencyHelper.ActiveCurrencyCode = cachedSettings.CurrencyCode;
                     return CloneSettings(cachedSettings);
+                }
 
                 var loadVersion = Volatile.Read(ref _cacheVersion);
                 var settings = await GetExistingSettingsAsync();
@@ -131,6 +137,7 @@ namespace YAGOT_2._0.Services
                 ApplyPaymentMethods(settings, paymentMethods);
 
                 var cachedCopy = CloneSettings(settings);
+                CurrencyHelper.ActiveCurrencyCode = cachedCopy.CurrencyCode;
                 if (loadVersion == Volatile.Read(ref _cacheVersion))
                 {
                     _cache.Set(SettingsCacheKey, cachedCopy, _cacheOptions.SettingsDuration);
@@ -226,6 +233,7 @@ namespace YAGOT_2._0.Services
             settings.BinDowalAccountNumber = settings.BinDowalAccountNumber ?? string.Empty;
             settings.OtherPaymentName = NormalizePaymentName(settings.OtherPaymentName, "أخرى");
             settings.OtherPaymentInstructions = settings.OtherPaymentInstructions ?? string.Empty;
+            settings.CurrencyCode = CurrencyHelper.Normalize(settings.CurrencyCode);
         }
 
         private static string NormalizePaymentName(string? name, string fallback)
@@ -244,6 +252,7 @@ namespace YAGOT_2._0.Services
             target.Featuredcategoryid = source.FeaturedCategoryId;
             target.Heromarketingtext = source.HeroMarketingText;
             target.Heromarketingdesc = source.HeroMarketingDesc;
+            target.Currencycode = CurrencyHelper.Normalize(source.CurrencyCode);
         }
 
         private static Storesetting ToEntity(StoreSettings settings)
@@ -257,7 +266,8 @@ namespace YAGOT_2._0.Services
                 Tiktoklink = settings.TikTokLink,
                 Featuredcategoryid = settings.FeaturedCategoryId,
                 Heromarketingtext = settings.HeroMarketingText,
-                Heromarketingdesc = settings.HeroMarketingDesc
+                Heromarketingdesc = settings.HeroMarketingDesc,
+                Currencycode = CurrencyHelper.Normalize(settings.CurrencyCode)
             };
         }
 
@@ -373,8 +383,15 @@ namespace YAGOT_2._0.Services
                 TikTokLink = entity.Tiktoklink ?? string.Empty,
                 FeaturedCategoryId = entity.Featuredcategoryid,
                 HeroMarketingText = entity.Heromarketingtext ?? string.Empty,
-                HeroMarketingDesc = entity.Heromarketingdesc ?? string.Empty
+                HeroMarketingDesc = entity.Heromarketingdesc ?? string.Empty,
+                CurrencyCode = CurrencyHelper.Normalize(entity.Currencycode)
             };
+        }
+
+        public async Task<string> GetCurrencyCodeAsync()
+        {
+            var settings = await GetSettingsAsync();
+            return CurrencyHelper.Normalize(settings.CurrencyCode);
         }
 
         private void InvalidateCache()
@@ -401,6 +418,7 @@ namespace YAGOT_2._0.Services
             FeaturedCategoryId = settings.FeaturedCategoryId,
             HeroMarketingText = settings.HeroMarketingText,
             HeroMarketingDesc = settings.HeroMarketingDesc,
+            CurrencyCode = CurrencyHelper.Normalize(settings.CurrencyCode),
             OmqiPaymentName = settings.OmqiPaymentName,
             OmqiAccountName = settings.OmqiAccountName,
             OmqiAccountNumber = settings.OmqiAccountNumber,

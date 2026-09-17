@@ -7,6 +7,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
 using YAGOT_2._0.Core.Capabilities;
+using YAGOT_2._0.Services.Promotions;
 
 namespace Yagot.Controllers;
 
@@ -17,17 +18,20 @@ public class CartController : Controller
     private readonly GuestCartService _guestCartService;
     private readonly ILogger<CartController> _logger;
     private readonly ICapabilityEvaluator _capabilityEvaluator;
+    private readonly IPromotionEngine? _promotionEngine;
 
     public CartController(
         CartService cartService,
         GuestCartService guestCartService,
         ILogger<CartController> logger,
-        ICapabilityEvaluator capabilityEvaluator)
+        ICapabilityEvaluator capabilityEvaluator,
+        IPromotionEngine? promotionEngine = null)
     {
         _cartService = cartService;
         _guestCartService = guestCartService;
         _logger = logger;
         _capabilityEvaluator = capabilityEvaluator;
+        _promotionEngine = promotionEngine;
     }
 
     public async Task<IActionResult> Index()
@@ -38,6 +42,10 @@ public class CartController : Controller
         try
         {
             var cart = await GetCurrentCartAsync();
+            var promoResult = _promotionEngine != null
+                ? await _promotionEngine.CalculateCartDiscountAsync(cart)
+                : null;
+            ViewBag.PromotionResult = promoResult;
             return View(cart);
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -223,6 +231,10 @@ public class CartController : Controller
             if (IsAjaxRequest())
             {
                 var cart = await GetCurrentCartAsync();
+                var promoResult = _promotionEngine != null
+                    ? await _promotionEngine.CalculateCartDiscountAsync(cart)
+                    : null;
+                ViewBag.PromotionResult = promoResult;
                 return View("Index", cart);
             }
 
@@ -272,7 +284,19 @@ public class CartController : Controller
             totalQuantity = summary.TotalQuantity,
             uniqueItemCount = summary.UniqueItemCount,
             subtotal = summary.Subtotal,
-            subtotalText = $"{summary.Subtotal.ToYaqutPrice()}",
+            subtotalText = $"{summary.Subtotal.ToYaqutPrice(summary.CurrencyCode)}",
+            grossSubtotal = summary.GrossSubtotal,
+            grossSubtotalText = $"{summary.GrossSubtotal.ToYaqutPrice(summary.CurrencyCode)}",
+            totalDiscounts = summary.TotalDiscounts,
+            totalDiscountsText = $"{summary.TotalDiscounts.ToYaqutPrice(summary.CurrencyCode)}",
+            spendAmountDiscount = summary.SpendAmountDiscount,
+            spendAmountDiscountText = $"{summary.SpendAmountDiscount.ToYaqutPrice(summary.CurrencyCode)}",
+            finalTotal = summary.FinalTotal,
+            finalTotalText = $"{summary.FinalTotal.ToYaqutPrice(summary.CurrencyCode)}",
+            currencyCode = summary.CurrencyCode,
+            currencySymbol = summary.CurrencySymbol,
+            freeProducts = summary.FreeProducts,
+            appliedPromotions = summary.AppliedPromotions,
             item = summary.Item == null
                 ? null
                 : new
@@ -281,8 +305,12 @@ public class CartController : Controller
                     productId = summary.Item.ProductId,
                     retailPriceId = summary.Item.RetailPriceId,
                     quantity = summary.Item.Quantity,
-                    lineTotal,
-                    lineTotalText = $"{lineTotal.ToYaqutPrice()}"
+                    originalUnitPrice = summary.Item.OriginalUnitPrice,
+                    unitPrice = summary.Item.UnitPrice,
+                    discountAmount = summary.Item.DiscountAmount,
+                    lineTotal = summary.Item.FinalLineTotal > 0 ? summary.Item.FinalLineTotal : lineTotal,
+                    lineTotalText = $"{(summary.Item.FinalLineTotal > 0 ? summary.Item.FinalLineTotal : lineTotal).ToYaqutPrice(summary.CurrencyCode)}",
+                    freeQuantity = summary.Item.FreeQuantity
                 }
         };
     }

@@ -1,6 +1,8 @@
 @model YAGOT_2._0.Models.Product
 @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @using YAGOT_2._0.Services
+@using YAGOT_2._0.Services.Promotions
+@using YAGOT_2._0.Extensions
 @{
     ViewData["Title"] = Model?.Name;
     ViewData["Description"] = Model?.Description?.Trim();
@@ -42,10 +44,19 @@
     };
     var lowStock = initialAvailableUnits is > 0 and <= 5;
     var lowStockMessage = $"المتوفر حاليًا {availableStockText} فقط";
+    var utcNow = DateTimeOffset.UtcNow;
+    var hasActivePromo = Model != null && Model.HasPromotion &&
+                         (!Model.PromotionStartDate.HasValue || Model.PromotionStartDate.Value <= utcNow) &&
+                         (!Model.PromotionEndDate.HasValue || Model.PromotionEndDate.Value > utcNow);
+
+    var rawProductImage = (hasActivePromo && !string.IsNullOrWhiteSpace(Model?.PromotionBannerImage))
+        ? Model!.PromotionBannerImage
+        : Model?.Imageurl;
+
     var productImageUrl = Url.Content("~/images/placeholder-product.svg");
-    if (!string.IsNullOrWhiteSpace(Model?.Imageurl))
+    if (!string.IsNullOrWhiteSpace(rawProductImage))
     {
-        var candidateImageUrl = Model.Imageurl.Trim();
+        var candidateImageUrl = rawProductImage.Trim();
         if (Uri.TryCreate(candidateImageUrl, UriKind.Absolute, out var absoluteImageUri))
         {
             if (absoluteImageUri.Scheme == Uri.UriSchemeHttp || absoluteImageUri.Scheme == Uri.UriSchemeHttps)
@@ -116,7 +127,33 @@
             <div class="yq-pdp-gallery yq-reveal">
                 <div class="yq-pdp-gallery__frame">
                     <div class="yq-pdp-gallery__glow"></div>
-                    @if (inStock)
+                    @if (hasActivePromo)
+                    {
+                        <span class="yq-pdp-gallery__badge yq-promo-badge text-white px-3 py-1 rounded-pill shadow-sm" style="top: 15px; right: 15px; background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid #f87171;">
+                            <i class="bi bi-fire text-warning me-1"></i>
+                            @if (Model!.PromotionType == "Percentage" || Model.PromotionType == "PercentageDiscount")
+                            {
+                                <span>خصم %@Model.DiscountPercentage?.ToString("0.##")</span>
+                            }
+                            else if (Model.PromotionType == "FixedAmount" || Model.PromotionType == "FixedDiscount")
+                            {
+                                <span>وفر @(Model.DiscountAmount.ToYaqutPrice())</span>
+                            }
+                            else if (Model.PromotionType == "BuyXGetY")
+                            {
+                                <span>🎁 اشترِ @(Model.BuyQuantity ?? 2) احصل على @(Model.FreeQuantity ?? 1) مجاناً</span>
+                            }
+                            else if (Model.PromotionType == "QuantityPrice")
+                            {
+                                <span>عرض كمية خاص</span>
+                            }
+                            else
+                            {
+                                <span>🔥 @(Model.PromotionTitle ?? "عرض خاص")</span>
+                            }
+                        </span>
+                    }
+                    else if (inStock)
                     {
                         <span class="yq-pdp-gallery__badge">
                             <i class="bi bi-stars"></i> متوفر
@@ -156,9 +193,31 @@
                     <h1 class="yq-pdp-title">@Model.Name</h1>
 
                     <div class="yq-pdp-price-row">
-                        <div class="yq-pdp-price">
-                            @(initialPrice.ToYaqutPrice())
-                        </div>
+                        @if (hasActivePromo && Model!.DiscountAmount > 0 && !selectedRetailPriceId.HasValue)
+                        {
+                            <div class="yq-pdp-price-discounted-box">
+                                <div class="yq-pdp-price-old text-muted mb-1" style="font-size: 0.95rem;">
+                                    <span>السعر قبل الخصم:</span>
+                                    <del class="text-secondary text-decoration-line-through me-1">@(Model.OriginalPrice.ToYaqutPrice())</del>
+                                </div>
+                                <div class="yq-pdp-price d-flex align-items-center gap-2">
+                                    <span class="text-gold font-weight-bold" style="color: #e3b65b;">السعر بعد الخصم:</span>
+                                    <span class="fs-2 text-warning fw-bold">@(Model.FinalPrice.ToYaqutPrice())</span>
+                                    @if (Model.DiscountPercentage.HasValue && Model.DiscountPercentage > 0)
+                                    {
+                                        <span class="badge bg-danger ms-2 px-2 py-1 fs-6">
+                                            وفر @(Model.DiscountAmount.ToYaqutPrice()) (%@Model.DiscountPercentage?.ToString("0.##"))
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="yq-pdp-price">
+                                @(initialPrice.ToYaqutPrice())
+                            </div>
+                        }
                         <!-- WISHLIST BUTTON -->
                         <button type="button"
                                 class="yq-pdp-wishlist"
@@ -190,6 +249,93 @@
                     @if (!string.IsNullOrWhiteSpace(desc) && !hasNotes)
                     {
                         <p class="yq-pdp-summary">@(parts.Length > 0 ? parts[0] : desc)</p>
+                    }
+
+                    @if (hasActivePromo)
+                    {
+                        <!-- PROMOTION CARD & LIVE COUNTDOWN TIMER -->
+                        <div class="yq-pdp-promo-box" id="yqPdpPromoCard">
+                            @if (!string.IsNullOrWhiteSpace(Model!.PromotionBannerImage))
+                            {
+                                <div class="yq-pdp-promo-banner mb-3 overflow-hidden rounded-3">
+                                    <img src="@Model.PromotionBannerImage" alt="@Model.PromotionTitle" class="img-fluid w-100 rounded-3 shadow-sm" style="max-height: 220px; object-fit: cover;" />
+                                </div>
+                            }
+                            <div class="yq-pdp-promo-box__head">
+                                <h3 class="yq-pdp-promo-box__title">
+                                    <i class="bi bi-fire text-danger"></i>
+                                    <span>@(Model.PromotionTitle ?? "عرض خاص")</span>
+                                </h3>
+                                <span class="yq-promo-badge yq-promo-badge--flame">
+                                    @if (Model.PromotionType == "Percentage" || Model.PromotionType == "PercentageDiscount")
+                                    {
+                                        <span>خصم @Model.DiscountPercentage?.ToString("0.##")%</span>
+                                    }
+                                    else if (Model.PromotionType == "FixedAmount" || Model.PromotionType == "FixedDiscount")
+                                    {
+                                        <span>وفر @(Model.DiscountAmount.ToYaqutPrice())</span>
+                                    }
+                                    else if (Model.PromotionType == "BuyXGetY")
+                                    {
+                                        var bQty = Model.BuyQuantity.HasValue && Model.BuyQuantity.Value > 0 ? Model.BuyQuantity.Value : 2;
+                                        var fQty = Model.FreeQuantity.HasValue && Model.FreeQuantity.Value > 0 ? Model.FreeQuantity.Value : 1;
+                                        <span>اشتر @bQty واحصل على @fQty مجاناً</span>
+                                    }
+                                    else if (Model.PromotionType == "QuantityPrice")
+                                    {
+                                        <span>عرض كمية خاص</span>
+                                    }
+                                    else
+                                    {
+                                        <span>عرض محدود</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <p class="yq-pdp-promo-box__desc">
+                                @if (!string.IsNullOrWhiteSpace(Model.PromotionDescription))
+                                {
+                                    @Model.PromotionDescription
+                                }
+                                else if (Model.PromotionType == "Percentage" || Model.PromotionType == "PercentageDiscount")
+                                {
+                                    <span>احصل على خصم بمقدار %@Model.DiscountPercentage?.ToString("0.##") عند طلب هذا المنتج الآن!</span>
+                                }
+                                else if (Model.PromotionType == "FixedAmount" || Model.PromotionType == "FixedDiscount")
+                                {
+                                    <span>وفر @(Model.DiscountAmount.ToYaqutPrice()) فورية ومباشرة عند إكمال طلب هذا المنتج!</span>
+                                }
+                                else if (Model.PromotionType == "BuyXGetY")
+                                {
+                                    var bQtyDesc = Model.BuyQuantity.HasValue && Model.BuyQuantity.Value > 0 ? Model.BuyQuantity.Value : 2;
+                                    var fQtyDesc = Model.FreeQuantity.HasValue && Model.FreeQuantity.Value > 0 ? Model.FreeQuantity.Value : 1;
+                                    <span>اشتر @bQtyDesc قطع من هذا المنتج واحصل على @fQtyDesc قطعة إضافية مجاناً!</span>
+                                }
+                                else if (Model.PromotionType == "QuantityPrice")
+                                {
+                                    <span>سعر خاص عند شراء كميات أكبر من هذا المنتج!</span>
+                                }
+                                else
+                                {
+                                    <span>استفد من خصومات هذا العرض الترويجي المميز قبل انتهاء المهلة المحددة!</span>
+                                }
+                            </p>
+
+                            <div class="yq-pdp-promo-box__footer">
+                                @if (Model.PromotionEndDate.HasValue)
+                                {
+                                    <div class="yq-promo-timer" data-yq-countdown="@PromotionTime.ToUtcIso8601(Model.PromotionEndDate.Value)" data-yq-startdate="@(Model.PromotionStartDate.HasValue ? PromotionTime.ToUtcIso8601(Model.PromotionStartDate.Value) : "")">
+                                        <i class="bi bi-clock-history yq-promo-timer__icon"></i>
+                                        <span data-yq-timer-display>جاري التحديث...</span>
+                                    </div>
+                                }
+
+                                <div class="yq-pdp-promo-box__mechanics">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>سيتم تطبيق الخصم والعرض تلقائياً عند إضافة الطلب للسلة</span>
+                                </div>
+                            </div>
+                        </div>
                     }
 
                     @if (inStock && cartProductManagementEnabled)

@@ -1660,3 +1660,257 @@
     display: inline-block;
     animation: yq-spin 0.9s linear infinite;
 }
+
+/* ==========================================================================
+   Offers / Promotions Selection Modals (Products & Categories)
+   ========================================================================== */
+.promo-modal .modal-content,
+#productSelectModal .modal-content,
+#categorySelectModal .modal-content {
+    background: #111827 !important;
+    border: 1px solid rgba(227, 182, 91, 0.4) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8) !important;
+    color: #f8fafc !important;
+    overflow: hidden;
+}
+
+.promo-modal .modal-header,
+#productSelectModal .modal-header,
+#categorySelectModal .modal-header {
+    background: #162234 !important;
+    border-bottom: 1px solid rgba(227, 182, 91, 0.25) !important;
+    padding: 18px 24px !important;
+}
+
+.promo-modal .modal-title,
+#productSelectModal .modal-title,
+#categorySelectModal .modal-title {
+    color: #e3b65b !important;
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 !important;
+}
+
+.promo-modal .modal-body,
+#productSelectModal .modal-body,
+#categorySelectModal .modal-body {
+    background: #0d131d !important;
+    padding: 20px 24px !important;
+    color: #f8fafc !important;
+}
+
+.promo-modal .modal-footer,
+#productSelectModal .modal-footer,
+#categorySelectModal .modal-footer {
+    background: #162234 !important;
+    border-top: 1px solid rgba(227, 182, 91, 0.2) !important;
+    padding: 14px 24px !important;
+}
+
+/* Modal Inputs & Dropdowns */
+.promo-modal .modal-filter-input,
+.promo-modal .modal-filter-select,
+#productSelectModal .form-control,
+#productSelectModal .form-select,
+#categorySelectModal .form-control {
+    background: #1b2636 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    font-size: 0.9rem !important;
+    padding: 9px 14px !important;
+}
+
+.promo-modal .modal-filter-input:focus,
+.promo-modal .modal-filter-select:focus,
+#productSelectModal .form-control:focus,
+#productSelectModal .form-select:focus,
+#categorySelectModal .form-control:focus {
+    border-color: #e3b65b !important;
+    box-shadow: 0 0 0 0.2rem rgba(227, 182, 91, 0.25) !important;
+    outline: none !important;
+    background: #1e2c3e !important;
+    color: #ffffff !important;
+}
+
+.promo-modal .modal-filter-input::placeholder,
+#productSelectModal .form-control::placeholder,
+#categorySelectModal .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+.promo-modal .modal-input-addon,
+#productSelectModal .input-group-text,
+#categorySelectModal .input-group-text {
+    background: #162234 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #e3b65b !important;
+    padding: 0 14px !important;
+}
+
+/* Action Buttons */
+.promo-modal .btn-modal-action,
+#productSelectModal .btn-modal-action,
+#categorySelectModal .btn-modal-action {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: #cbd5e1 !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+}
+
+.promo-modal .btn-modal-action:hover,
+#productSelectModal .btn-modal-action:hover,
+#categorySelectModal .btn-modal-action:hover {
+    background: rgba(227, 182, 91, 0.18) !important;
+    border-color: #e3b65b !important;
+    color: #e3b65b !important;
+}
+
+.promo-modal .modal-count-badge,
+#productSelectModal .modal-count-badge,
+#categorySelectModal .modal-count-badge {
+    background: #e3b65b !important;
+    color: #0b0f14 !important;
+    font-weight: 800 !important;
+    font-size: 0.85rem !important;
+    padding: 6px 14px !important;
+    border-radius: 20px !important;
+}
+
+/* Modal Items Scroll Area */
+.promo-modal .modal-items-container,
+#productSelectModal .modal-items-container,
+#categorySelectModal .modal-items-container {
+    max-height: 380px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+
+/* Item Row */
+.promo-modal .modal-item-row,
+#productSelectModal .modal-item-row,
+#categorySelectModal .modal-item-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 10px 14px !important;
+    margin-bottom: 8px !important;
+    background: #151f2c !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.promo-modal .modal-item-row:hover,
+#productSelectModal .modal-item-row:hover,
+#categorySelectModal .modal-item-row:hover {
+    background: #1b2838 !important;
+    border-color: rgba(227, 182, 91, 0.4) !important;
+    transform: translateY(-1px);
+}
+
+.promo-modal .modal-item-row.is-selected,
+#productSelectModal .modal-item-row.is-selected,
+#categorySelectModal .modal-item-row.is-selected {
+    background: rgba(227, 182, 91, 0.14) !important;
+    border-color: #e3b65b !important;
+    box-shadow: 0 0 12px rgba(227, 182, 91, 0.12) !important;
+}
+
+/* Strict Product Thumbnail Box (Prevent Any Image Distortion / Stretch) */
+.product-thumb-box {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #0b0f17 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.product-thumb-box img,
+.product-thumb-img {
+    width: 100% !important;
+    max-width: 46px !important;
+    height: 100% !important;
+    max-height: 46px !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+/* Typography inside Modal */
+.promo-modal .product-info-title,
+#productSelectModal .product-info-title,
+#categorySelectModal .product-info-title {
+    color: #ffffff !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    line-height: 1.35 !important;
+    cursor: pointer;
+}
+
+.promo-modal .product-info-category,
+#productSelectModal .product-info-category {
+    color: #94a3b8 !important;
+    font-size: 0.8rem !important;
+    margin-top: 2px !important;
+    display: block !important;
+}
+
+.promo-modal .product-price-badge,
+#productSelectModal .product-price-badge {
+    background: rgba(227, 182, 91, 0.15) !important;
+    color: #e3b65b !important;
+    border: 1px solid rgba(227, 182, 91, 0.3) !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    padding: 5px 12px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+}
+
+/* Custom Scrollbar */
+.promo-modal .modal-items-container::-webkit-scrollbar,
+#productSelectModal .modal-items-container::-webkit-scrollbar,
+#categorySelectModal .modal-items-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.promo-modal .modal-items-container::-webkit-scrollbar-track,
+#productSelectModal .modal-items-container::-webkit-scrollbar-track,
+#categorySelectModal .modal-items-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.promo-modal .modal-items-container::-webkit-scrollbar-thumb,
+#productSelectModal .modal-items-container::-webkit-scrollbar-thumb,
+#categorySelectModal .modal-items-container::-webkit-scrollbar-thumb {
+    background: rgba(227, 182, 91, 0.4);
+    border-radius: 4px;
+}
+
+.promo-modal .modal-items-container::-webkit-scrollbar-thumb:hover,
+#productSelectModal .modal-items-container::-webkit-scrollbar-thumb:hover,
+#categorySelectModal .modal-items-container::-webkit-scrollbar-thumb:hover {
+    background: #e3b65b;
+}

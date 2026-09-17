@@ -1,5 +1,7 @@
 @model YAGOT_2._0.Models.Product
 @using YAGOT_2._0.Services
+@using YAGOT_2._0.Services.Promotions
+@using YAGOT_2._0.Extensions
 @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     var showQuickAdd = (ViewData["ShowQuickAdd"] as bool? ?? true) &&
@@ -11,14 +13,23 @@
     var isRetailAvailable = ProductRetailAvailability.IsAvailable(Model);
     var isNew = Model.Createdat.HasValue && Model.Createdat.Value >= DateTime.UtcNow.AddDays(-30);
     var statusId = $"yq-ps-{Model.Id}-{Guid.NewGuid():N}";
-    var imageUrl = string.IsNullOrWhiteSpace(Model.Imageurl)
+    var utcNow = DateTimeOffset.UtcNow;
+    var isPromoActive = Model.HasPromotion &&
+                        (!Model.PromotionStartDate.HasValue || Model.PromotionStartDate.Value <= utcNow) &&
+                        (!Model.PromotionEndDate.HasValue || Model.PromotionEndDate.Value > utcNow);
+
+    var rawImage = (isPromoActive && !string.IsNullOrWhiteSpace(Model.PromotionBannerImage))
+        ? Model.PromotionBannerImage
+        : Model.Imageurl;
+
+    var imageUrl = string.IsNullOrWhiteSpace(rawImage)
         ? Url.Content("~/images/placeholder-product.svg")
-        : (Model.Imageurl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || Model.Imageurl.StartsWith("/")
-            ? Model.Imageurl
-            : Url.Content("~/" + Model.Imageurl.TrimStart('/')));
+        : (rawImage.StartsWith("http", StringComparison.OrdinalIgnoreCase) || rawImage.StartsWith("/")
+            ? rawImage
+            : Url.Content("~/" + rawImage.TrimStart('/')));
 }
 
-<article class="yq-pcard @(isAvailable ? string.Empty : "yq-pcard--out")"
+<article class="yq-pcard @(isPromoActive ? "yq-pcard--promo" : string.Empty) @(isAvailable ? string.Empty : "yq-pcard--out")"
          dir="rtl"
          data-yaqut-product
          data-yq-product-card
@@ -38,7 +49,49 @@
                  data-yaqut-fallback="/images/placeholder-product.svg" />
         </a>
 
-        @if (!isAvailable)
+        @if (isPromoActive)
+        {
+            <div class="yq-pcard__promo-badges">
+                <span class="yq-promo-badge yq-promo-badge--flame">
+                    @if (Model.PromotionType == "Percentage" || Model.PromotionType == "PercentageDiscount")
+                    {
+                        var pct = Model.DiscountPercentage ?? (Model.OriginalPrice > 0 ? Math.Round((Model.DiscountAmount / Model.OriginalPrice) * 100m, 0) : (Model.PromoDiscountValue ?? 0m));
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        <span>خصم @pct.ToString("0.##")%</span>
+                    }
+                    else if (Model.PromotionType == "FixedAmount" || Model.PromotionType == "FixedDiscount")
+                    {
+                        <i class="bi bi-tag-fill"></i>
+                        <span>وفر @(Model.DiscountAmount.ToYaqutPrice())</span>
+                    }
+                    else if (Model.PromotionType == "BuyXGetY")
+                    {
+                        var bQty = Model.BuyQuantity.HasValue && Model.BuyQuantity.Value > 0 ? Model.BuyQuantity.Value : 2;
+                        var fQty = Model.FreeQuantity.HasValue && Model.FreeQuantity.Value > 0 ? Model.FreeQuantity.Value : 1;
+                        <i class="bi bi-gift-fill"></i>
+                        <span>اشتر @bQty احصل @fQty مجاناً</span>
+                    }
+                    else if (Model.PromotionType == "QuantityPrice")
+                    {
+                        <i class="bi bi-box-seam"></i>
+                        <span>عرض كمية خاص</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-stars"></i>
+                        <span>عرض حصري</span>
+                    }
+                </span>
+
+                @if (!string.IsNullOrEmpty(Model.PromotionTitle))
+                {
+                    <span class="yq-promo-badge yq-promo-badge--gold" title="@Model.PromotionTitle">
+                        <i class="bi bi-star-fill"></i> @Model.PromotionTitle
+                    </span>
+                }
+            </div>
+        }
+        else if (!isAvailable)
         {
             <span class="yq-pcard__badge yq-pcard__badge--off">
                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" class="bi bi-bag-x" viewBox="0 0 16 16" aria-hidden="true">
@@ -64,11 +117,52 @@
         <h3 class="yq-pcard__name">
             <a asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id" class="yq-pcard__name-link">@Model.Name</a>
         </h3>
+
+        @if (isPromoActive && Model.PromotionEndDate.HasValue)
+        {
+            <div class="yq-promo-timer yq-promo-timer--tiles mb-2" data-yq-timer-tiles="true" data-yq-countdown="@PromotionTime.ToUtcIso8601(Model.PromotionEndDate.Value)" data-yq-startdate="@(Model.PromotionStartDate.HasValue ? PromotionTime.ToUtcIso8601(Model.PromotionStartDate.Value) : "")" data-yq-autohide="true">
+                <div class="yq-timer-header">
+                    <i class="bi bi-stopwatch-fill yq-timer-pulse"></i>
+                    <span>ينتهي العرض خلال:</span>
+                </div>
+                <div data-yq-timer-display class="yq-timer-tiles-wrap">
+                    <div class="yq-timer-tiles">
+                        <div class="yq-timer-tile"><span class="yq-timer-num">--</span><span class="yq-timer-unit">يوم</span></div>
+                        <span class="yq-timer-sep">:</span>
+                        <div class="yq-timer-tile"><span class="yq-timer-num">--</span><span class="yq-timer-unit">ساعة</span></div>
+                        <span class="yq-timer-sep">:</span>
+                        <div class="yq-timer-tile"><span class="yq-timer-num">--</span><span class="yq-timer-unit">دقيقة</span></div>
+                        <span class="yq-timer-sep">:</span>
+                        <div class="yq-timer-tile"><span class="yq-timer-num">--</span><span class="yq-timer-unit">ثانية</span></div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <div class="yq-pcard__footer">
-            <span class="yq-pcard__price">
-                <span class="yq-pcard__price-number">@(Model.Price.ToYaqutAmount())</span>
-                <small class="yq-pcard__price-currency">ر.س</small>
-            </span>
+            @if (isPromoActive && Model.DiscountAmount > 0)
+            {
+                <div class="yq-pcard__price-box">
+                    <div class="yq-pcard__price-row">
+                        <span class="yq-pcard__price yq-pcard__price--deal">
+                            <span class="yq-pcard__price-number">@(Model.FinalPrice.ToYaqutAmount())</span>
+                            <small class="yq-pcard__price-currency">@(CurrencyHelper.GetSymbol())</small>
+                        </span>
+                        <del class="yq-pcard__price-original">@(Model.OriginalPrice.ToYaqutPrice())</del>
+                    </div>
+                    <span class="yq-savings-tag">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        <span>وفر @(Model.DiscountAmount.ToYaqutPrice())</span>
+                    </span>
+                </div>
+            }
+            else
+            {
+                <span class="yq-pcard__price">
+                    <span class="yq-pcard__price-number">@(Model.Price.ToYaqutAmount())</span>
+                    <small class="yq-pcard__price-currency">@(CurrencyHelper.GetSymbol())</small>
+                </span>
+            }
         </div>
         <p id="@statusId" class="yq-pcard__status yq-hidden" data-yq-add-status aria-live="polite"></p>
     </div>

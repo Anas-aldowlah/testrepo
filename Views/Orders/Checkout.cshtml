@@ -1,16 +1,19 @@
 @model YAGOT_2._0.Models.CheckoutVM
 @using System.Security.Claims;
 @using YAGOT_2._0.Services
+@using YAGOT_2._0.Services.Promotions
 @inject DealingAPI DealingApiService;
 @inject YAGOT_2._0.Core.Capabilities.ICapabilityEvaluator CapabilityEvaluator
 @{
     ViewData["Title"] = "إتمام الطلب";
     var items = Model?.Cart?.Cartitems?.ToList() ?? new List<YAGOT_2._0.Models.Cartitem>();
+    var promoResult = ViewBag.PromotionResult as CartPromotionResult;
     decimal UnitPrice(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.Price ?? item.Product?.Price ?? 0;
     string UnitLabel(YAGOT_2._0.Models.Cartitem item) => item.RetailPrice?.SizeMl > 0
         ? $"{item.RetailPrice.SizeMl} ml"
         : (item.Product?.StockUnit == "Ml" && item.Product.VolumeMl is > 0 ? $"{item.Product.VolumeMl.Value} ml" : "");
     decimal subtotal = items.Sum(i => i.Quantity * UnitPrice(i));
+    decimal expectedTotal = promoResult != null ? promoResult.FinalTotal : subtotal;
     var itemsCount = items.Sum(i => i.Quantity);
     var itemsCountText = itemsCount switch
     {
@@ -123,7 +126,7 @@
           novalidate>
         @Html.AntiForgeryToken()
         <input asp-for="CheckoutDraftId" type="hidden" data-yq-checkout-draft-id />
-        <input type="hidden" asp-for="SubmittedCartTotal" value="@subtotal" />
+        <input type="hidden" asp-for="SubmittedCartTotal" value="@expectedTotal" />
         @for (var snapshotIndex = 0; snapshotIndex < items.Count; snapshotIndex++)
         {
             <input type="hidden" name="SubmittedCartItems[@snapshotIndex].ProductId" value="@items[snapshotIndex].Productid" />
@@ -451,7 +454,7 @@
                     </div>
                     <div class="yq-checkout-summary__toggle-side">
                         <span class="yq-checkout-summary__collapsed-total" data-yq-summary-collapsed-total>
-                            @(subtotal.ToYaqutPrice())
+                            @(expectedTotal.ToYaqutPrice(promoResult?.CurrencyCode))
                         </span>
                         <span class="yq-checkout-summary__toggle-action">
                             <span class="yq-checkout-summary__toggle-text">عرض التفاصيل</span>
@@ -466,6 +469,7 @@
                     @foreach (var item in items)
                     {
                         var lineTotal = item.Quantity * UnitPrice(item);
+                        var itemPromo = promoResult?.ItemResults.FirstOrDefault(ir => ir.ProductId == item.Productid && ir.RetailPriceId == item.RetailPriceId);
                         var productImageUrl = Url.Content("~/images/placeholder-product.svg");
                         if (!string.IsNullOrWhiteSpace(item.Product?.Imageurl))
                         {
@@ -509,8 +513,31 @@
                                 <span class="yq-checkout-summary__item-qty">@item.Quantity</span>
                             </div>
                             <span class="yq-checkout-summary__item-name">@item.Product?.Name @(string.IsNullOrWhiteSpace(UnitLabel(item)) ? "" : $" - {UnitLabel(item)}")</span>
-                            <span class="yq-checkout-summary__item-price">@(lineTotal.ToYaqutPrice())</span>
+                            <span class="yq-checkout-summary__item-price">
+                                @if (itemPromo != null && itemPromo.DiscountAmount > 0)
+                                {
+                                    <span class="text-success fw-bold">@((itemPromo.FinalPrice * item.Quantity).ToYaqutPrice(promoResult?.CurrencyCode))</span>
+                                }
+                                else
+                                {
+                                    @(lineTotal.ToYaqutPrice(promoResult?.CurrencyCode))
+                                }
+                            </span>
                         </div>
+                    }
+                    @if (promoResult?.FreeProducts?.Any() == true)
+                    {
+                        @foreach (var fp in promoResult.FreeProducts)
+                        {
+                            <div class="yq-checkout-summary__item border-start border-success border-3 ps-2">
+                                <div class="yq-checkout-summary__item-media">
+                                    <img src="/images/placeholder-product.svg" width="52" height="52" alt="@fp.ProductName" />
+                                    <span class="yq-checkout-summary__item-qty bg-success">@fp.FreeQuantity</span>
+                                </div>
+                                <span class="yq-checkout-summary__item-name">@fp.ProductName - <strong class="text-success">هدية (@fp.PromotionTitle)</strong></span>
+                                <span class="yq-checkout-summary__item-price text-success fw-bold">مجاناً</span>
+                            </div>
+                        }
                     }
                 </div>
 
@@ -518,8 +545,27 @@
 
                 <div class="yq-checkout-summary__row">
                     <span>قيمة المنتجات</span>
-                    <span>@(subtotal.ToYaqutPrice())</span>
+                    <span>@((promoResult?.OriginalTotal ?? subtotal).ToYaqutPrice(promoResult?.CurrencyCode))</span>
                 </div>
+                @if (promoResult != null && promoResult.DiscountTotal > 0)
+                {
+                    <div class="yq-checkout-summary__row text-success">
+                        <span>خصم العروض</span>
+                        <span>- @(promoResult.DiscountTotal.ToYaqutPrice(promoResult.CurrencyCode))</span>
+                    </div>
+                    @if (promoResult.AppliedPromotions.Any())
+                    {
+                        <div class="mb-2 pe-1 border-end border-2 border-success">
+                            @foreach (var ap in promoResult.AppliedPromotions)
+                            {
+                                <div class="small text-muted d-flex justify-content-between">
+                                    <span><i class="bi bi-tag-fill text-success me-1"></i> @ap.Title</span>
+                                    <span>- @(ap.DiscountAmount.ToYaqutPrice(promoResult.CurrencyCode))</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
                 <div class="yq-checkout-summary__row">
                     <span>الشحن</span>
                     @await Html.PartialAsync("_FreeShipping")
@@ -529,7 +575,7 @@
 
                 <div class="yq-checkout-summary__row yq-checkout-summary__row--total">
                     <span>الإجمالي</span>
-                    <span>@(subtotal.ToYaqutPrice())</span>
+                    <span>@(expectedTotal.ToYaqutPrice(promoResult?.CurrencyCode))</span>
                 </div>
             </div>
 

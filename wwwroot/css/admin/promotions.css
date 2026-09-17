@@ -1,0 +1,757 @@
+/* ==========================================================================
+   YAGOT 2.0 - Promotions Management Stylesheet
+   Vibrant, Interactive, High-Contrast & RTL Compatible
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. PANEL CONTAINERS (Filter Panel & Table Panel)
+   -------------------------------------------------------------------------- */
+.promo-filter-panel,
+.promo-table-panel {
+    background: var(--yq-admin-surface-solid, #15181c) !important;
+    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.08)) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+    position: relative;
+}
+
+.theme-light .promo-filter-panel,
+.theme-light .promo-table-panel {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* --------------------------------------------------------------------------
+   2. FILTER TOOLBAR
+   -------------------------------------------------------------------------- */
+.promo-filter-panel {
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    border-top: 2px solid rgba(212, 175, 55, 0.5) !important;
+}
+
+.promo-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.promo-search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #d4af37;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.promo-search-wrapper:focus-within .promo-search-icon {
+    transform: translateY(-50%) scale(1.15);
+    color: #f0d878;
+}
+
+.promo-search-input {
+    width: 100%;
+    height: 42px;
+    background-color: var(--yq-admin-surface-soft, #1b222a) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: var(--yq-admin-text, #ffffff) !important;
+    border-radius: 9px !important;
+    padding-right: 42px !important;
+    padding-left: 14px !important;
+    font-size: 0.875rem !important;
+    transition: all 0.25s ease !important;
+}
+
+.theme-light .promo-search-input {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+.promo-search-input::placeholder {
+    color: var(--yq-admin-muted, #94a3b8) !important;
+}
+
+.promo-search-input:focus {
+    border-color: #d4af37 !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25), 0 0 12px rgba(212, 175, 55, 0.2) !important;
+    outline: none !important;
+}
+
+.promo-select {
+    height: 42px !important;
+    background-color: var(--yq-admin-surface-soft, #1b222a) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: var(--yq-admin-text, #ffffff) !important;
+    border-radius: 9px !important;
+    padding: 0 14px !important;
+    font-size: 0.875rem !important;
+    transition: all 0.25s ease !important;
+    cursor: pointer !important;
+}
+
+.theme-light .promo-select {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+.promo-select:focus {
+    border-color: #d4af37 !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+    outline: none !important;
+}
+
+.promo-select option {
+    background-color: #1b222a;
+    color: #ffffff;
+}
+
+.theme-light .promo-select option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+/* Vibrant Filter Buttons */
+.btn-promo-apply {
+    height: 42px !important;
+    border-radius: 9px !important;
+    background: linear-gradient(135deg, #f0d878 0%, #d4af37 50%, #b8942e 100%) !important;
+    border: 1px solid #e3c677 !important;
+    color: #0b0f14 !important;
+    font-weight: 800 !important;
+    font-size: 0.925rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+}
+
+.btn-promo-apply:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #f0d878 50%, #d4af37 100%) !important;
+    color: #000000 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.55) !important;
+}
+
+.btn-promo-reset {
+    height: 42px !important;
+    width: 42px !important;
+    border-radius: 9px !important;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(2, 132, 199, 0.2) 100%) !important;
+    border: 1px solid rgba(14, 165, 233, 0.3) !important;
+    color: #38bdf8 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-decoration: none !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15) !important;
+}
+
+.btn-promo-reset svg {
+    transition: transform 0.4s ease;
+}
+
+.btn-promo-reset:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    color: #ffffff !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.45) !important;
+    transform: translateY(-2px) !important;
+}
+
+.btn-promo-reset:hover svg {
+    transform: rotate(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   3. TABLE CARD & STRUCTURE
+   -------------------------------------------------------------------------- */
+.promo-table-panel {
+    overflow: hidden !important;
+    margin-bottom: 24px !important;
+}
+
+.promo-table-wrap {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.promo-table {
+    width: 100%;
+    margin-bottom: 0 !important;
+    vertical-align: middle;
+    color: var(--yq-admin-text, #ffffff) !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.promo-table thead th {
+    background: linear-gradient(180deg, #11161f 0%, #0c1017 100%) !important;
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+    font-size: 0.85rem !important;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.25) !important;
+    padding: 16px 14px !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.3px !important;
+}
+
+.theme-light .promo-table thead th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom-color: #cbd5e1 !important;
+}
+
+.promo-table tbody td {
+    vertical-align: middle !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 14px 14px !important;
+    font-size: 0.875rem !important;
+    color: #e2e8f0 !important;
+    background: transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.theme-light .promo-table tbody td {
+    color: #334155 !important;
+    border-bottom-color: #f1f5f9 !important;
+}
+
+/* Row Hover */
+.promo-table tbody tr {
+    transition: all 0.25s ease !important;
+}
+
+.promo-table tbody tr:hover td {
+    background-color: rgba(212, 175, 55, 0.05) !important;
+}
+
+.promo-table tbody tr:hover td:first-child {
+    border-right: 3px solid #d4af37 !important;
+    padding-right: 11px !important;
+}
+
+.theme-light .promo-table tbody tr:hover td {
+    background-color: #f8fafc !important;
+}
+
+/* Thumbnails */
+.promo-banner-thumb {
+    width: 44px !important;
+    height: 44px !important;
+    object-fit: cover !important;
+    border-radius: 9px !important;
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+    background: #1a222d !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.2s ease !important;
+}
+
+.promo-banner-thumb:hover {
+    transform: scale(1.08);
+    border-color: #d4af37 !important;
+}
+
+.promo-thumb-placeholder {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 9px !important;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.18) 0%, rgba(184, 148, 46, 0.28) 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    color: #f0d878 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.15) !important;
+    transition: transform 0.2s ease !important;
+}
+
+.promo-thumb-placeholder:hover {
+    transform: scale(1.08);
+    box-shadow: 0 3px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. VIBRANT COLORFUL BADGES (نوع العرض)
+   -------------------------------------------------------------------------- */
+.promo-type-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 5px 12px !important;
+    border-radius: 7px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.promo-type-badge:hover {
+    transform: translateY(-1px) !important;
+}
+
+/* 1. Percentage - Amber/Gold */
+.promo-type--Percentage {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.28) 100%) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+/* 2. Fixed Amount - Vibrant Emerald */
+.promo-type--FixedAmount {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.28) 100%) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+/* 3. Buy X Get Y - Electric Cyan */
+.promo-type--BuyXGetY {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(2, 132, 199, 0.28) 100%) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(14, 165, 233, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+/* 4. Quantity Price - Royal Purple */
+.promo-type--QuantityPrice {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.28) 100%) !important;
+    color: #c084fc !important;
+    border: 1px solid rgba(168, 85, 247, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.15);
+}
+
+/* 5. Spend Amount - Vivid Rose */
+.promo-type--SpendAmount {
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(225, 29, 72, 0.28) 100%) !important;
+    color: #fb7185 !important;
+    border: 1px solid rgba(244, 63, 94, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   5. TARGET CHIPS (النطاق المستهدف)
+   -------------------------------------------------------------------------- */
+.promo-target-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 5px 12px !important;
+    border-radius: 7px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.2s ease !important;
+}
+
+.promo-target-chip:hover {
+    transform: translateY(-1px) !important;
+}
+
+.promo-target--store {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(79, 70, 229, 0.26) 100%) !important;
+    color: #a5b4fc !important;
+    border: 1px solid rgba(99, 102, 241, 0.4) !important;
+}
+
+.promo-target--products {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.18) 0%, rgba(13, 148, 136, 0.26) 100%) !important;
+    color: #5eead4 !important;
+    border: 1px solid rgba(20, 184, 166, 0.4) !important;
+}
+
+.promo-target--categories {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.18) 0%, rgba(234, 88, 12, 0.26) 100%) !important;
+    color: #fdba74 !important;
+    border: 1px solid rgba(249, 115, 22, 0.4) !important;
+}
+
+/* Priority Badge */
+.promo-priority-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 34px !important;
+    height: 28px !important;
+    padding: 0 8px !important;
+    border-radius: 7px !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%) !important;
+    color: #f1f5f9 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. DISCOUNT PILL BADGES (تفاصيل الخصم)
+   -------------------------------------------------------------------------- */
+.discount-pill {
+    display: inline-flex !important;
+    align-items: baseline !important;
+    gap: 3px !important;
+    padding: 4px 11px !important;
+    border-radius: 7px !important;
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0.3px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.discount-pill--percent {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.32) 100%) !important;
+    color: #fde047 !important;
+    border: 1px solid rgba(245, 158, 11, 0.45) !important;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Light mode override for Percentage discount pill: Black font color */
+.theme-light .discount-pill--percent,
+[data-theme="light"] .discount-pill--percent {
+    color: #000000 !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.32) 100%) !important;
+    border: 1px solid #d97706 !important;
+    box-shadow: 0 1px 4px rgba(217, 119, 6, 0.2) !important;
+}
+
+.discount-pill--fixed {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.32) 100%) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(16, 185, 129, 0.45) !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2) !important;
+}
+
+.theme-light .discount-pill--fixed,
+[data-theme="light"] .discount-pill--fixed {
+    color: #065f46 !important;
+    border-color: #059669 !important;
+}
+
+.discount-pill--bogo {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(2, 132, 199, 0.32) 100%) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(14, 165, 233, 0.45) !important;
+    font-size: 0.92rem !important;
+}
+
+.theme-light .discount-pill--bogo,
+[data-theme="light"] .discount-pill--bogo {
+    color: #0369a1 !important;
+    border-color: #0284c7 !important;
+}
+
+.discount-pill--qty {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(147, 51, 234, 0.32) 100%) !important;
+    color: #d8b4fe !important;
+    border: 1px solid rgba(168, 85, 247, 0.45) !important;
+}
+
+.theme-light .discount-pill--qty,
+[data-theme="light"] .discount-pill--qty {
+    color: #6b21a8 !important;
+    border-color: #7e22ce !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. STATUS BADGES & PULSING GLOW (الحالة)
+   -------------------------------------------------------------------------- */
+.yq-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 5px 14px !important;
+    border-radius: 20px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.yq-status-badge--active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.32) 100%) !important;
+    color: #34d399 !important;
+    border: 1px solid #10b981 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
+}
+
+.yq-status-badge--upcoming {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(2, 132, 199, 0.32) 100%) !important;
+    color: #38bdf8 !important;
+    border: 1px solid #0ea5e9 !important;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.25) !important;
+}
+
+.yq-status-badge--expired {
+    background: rgba(148, 163, 184, 0.16) !important;
+    color: #94a3b8 !important;
+    border: 1px solid #64748b !important;
+}
+
+.yq-status-badge--disabled {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(220, 38, 38, 0.32) 100%) !important;
+    color: #f87171 !important;
+    border: 1px solid #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.25) !important;
+}
+
+.yq-status-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+}
+
+.yq-status-badge--active .yq-status-dot {
+    background-color: #10b981 !important;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7) !important;
+    animation: statusPulseGlow 1.8s infinite !important;
+}
+
+@keyframes statusPulseGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.yq-status-badge--upcoming .yq-status-dot {
+    background-color: #0ea5e9 !important;
+    box-shadow: 0 0 6px #0ea5e9 !important;
+}
+
+.yq-status-badge--expired .yq-status-dot {
+    background-color: #64748b !important;
+}
+
+.yq-status-badge--disabled .yq-status-dot {
+    background-color: #ef4444 !important;
+    box-shadow: 0 0 6px #ef4444 !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. ACTION BUTTONS (Vibrant, Interactive, High-Contrast & Clear Roles)
+   -------------------------------------------------------------------------- */
+.promo-actions-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+}
+
+.promo-actions-group form {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+}
+
+/* Base button properties with absolute specificity */
+.promo-actions-group .promo-btn-action {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    border: 1px solid transparent !important;
+    position: relative !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+/* 1. Toggle Status Action Button */
+.promo-actions-group .promo-btn-action--toggle-active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.35) 100%) !important;
+    border: 1px solid #10b981 !important;
+    color: #34d399 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
+}
+
+.promo-actions-group .promo-btn-action--toggle-active:hover {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-color: #34d399 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.65) !important;
+    transform: translateY(-2px) scale(1.08) !important;
+}
+
+.promo-actions-group .promo-btn-action--toggle-inactive {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(148, 163, 184, 0.2) 100%) !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    color: #f87171 !important;
+}
+
+.promo-actions-group .promo-btn-action--toggle-inactive:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6) !important;
+    transform: translateY(-2px) scale(1.08) !important;
+}
+
+/* 2. View Details Action Button (Electric Cyan) */
+.promo-actions-group .promo-btn-action--view {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(2, 132, 199, 0.35) 100%) !important;
+    border: 1px solid #0ea5e9 !important;
+    color: #38bdf8 !important;
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.25) !important;
+}
+
+.promo-actions-group .promo-btn-action--view:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 18px rgba(14, 165, 233, 0.65) !important;
+    transform: translateY(-2px) scale(1.08) !important;
+}
+
+/* 3. Edit Action Button (Warm Gold / Amber) */
+.promo-actions-group .promo-btn-action--edit {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.35) 100%) !important;
+    border: 1px solid #f59e0b !important;
+    color: #fbbf24 !important;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25) !important;
+}
+
+.promo-actions-group .promo-btn-action--edit:hover {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+    border-color: #fbbf24 !important;
+    color: #0b0f14 !important;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.65) !important;
+    transform: translateY(-2px) scale(1.08) !important;
+}
+
+/* 4. Delete Action Button (Crimson Red) */
+.promo-actions-group .promo-btn-action--delete {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.35) 100%) !important;
+    border: 1px solid #ef4444 !important;
+    color: #f87171 !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.25) !important;
+}
+
+.promo-actions-group .promo-btn-action--delete:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.65) !important;
+    transform: translateY(-2px) scale(1.08) !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. PAGINATION STYLING
+   -------------------------------------------------------------------------- */
+.promo-pagination .page-link {
+    background-color: var(--yq-admin-surface-soft, #1b222a) !important;
+    border: 1px solid var(--yq-admin-border, rgba(255, 255, 255, 0.12)) !important;
+    color: var(--yq-admin-text, #cbd5e1) !important;
+    border-radius: 8px !important;
+    margin: 0 3px !important;
+    font-size: 0.875rem !important;
+    padding: 6px 14px !important;
+    transition: all 0.2s ease !important;
+    text-decoration: none !important;
+}
+
+.promo-pagination .page-link:hover {
+    background-color: rgba(212, 175, 55, 0.15) !important;
+    color: #f0d878 !important;
+    border-color: #d4af37 !important;
+    transform: translateY(-1px) !important;
+}
+
+.promo-pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #d4af37 0%, #b8942e 100%) !important;
+    border-color: #d4af37 !important;
+    color: #0b0f14 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.35) !important;
+}
+
+.promo-pagination .page-item.disabled .page-link {
+    background-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: #64748b !important;
+    pointer-events: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   10. LIGHT MODE THEME CONTRAST ENHANCEMENTS
+   -------------------------------------------------------------------------- */
+.promo-title-text {
+    color: var(--yq-admin-text, #ffffff) !important;
+}
+
+.theme-light .promo-title-text,
+[data-theme="light"] .promo-title-text {
+    color: #0f172a !important;
+}
+
+.promo-date-muted {
+    color: #94a3b8 !important;
+}
+
+.theme-light .promo-date-muted,
+[data-theme="light"] .promo-date-muted {
+    color: #64748b !important;
+}
+
+.promo-period-text {
+    color: #cbd5e1 !important;
+}
+
+.theme-light .promo-period-text,
+[data-theme="light"] .promo-period-text {
+    color: #334155 !important;
+}
+
+.promo-period-label {
+    color: #94a3b8 !important;
+}
+
+.theme-light .promo-period-label,
+[data-theme="light"] .promo-period-label {
+    color: #64748b !important;
+}
+
+.theme-light .promo-priority-badge,
+[data-theme="light"] .promo-priority-badge {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+.theme-light .promo-type--Percentage,
+[data-theme="light"] .promo-type--Percentage {
+    color: #92400e !important;
+    border-color: #f59e0b !important;
+}
+

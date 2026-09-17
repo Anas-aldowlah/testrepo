@@ -68,6 +68,12 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
 
     public virtual DbSet<CapabilitySyncCheckpoint> CapabilitySyncCheckpoints { get; set; }
 
+    public virtual DbSet<Promotion> Promotions { get; set; }
+
+    public virtual DbSet<PromotionProduct> PromotionProducts { get; set; }
+
+    public virtual DbSet<PromotionCategory> PromotionCategories { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -256,6 +262,21 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Totalamount)
                 .HasPrecision(10, 2)
                 .HasColumnName("totalamount");
+            entity.Property(e => e.Discounttotal)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("discount_total");
+            entity.Property(e => e.Spendamountdiscount)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("spend_amount_discount");
+            entity.Property(e => e.Currencycode)
+                .HasMaxLength(3)
+                .HasDefaultValue("YER")
+                .HasColumnName("currency_code");
+            entity.Property(e => e.Promotionsnapshotjson)
+                .HasColumnType("jsonb")
+                .HasColumnName("promotion_snapshot_json");
             entity.Property(e => e.Trackingnumber)
                 .HasMaxLength(100)
                 .HasColumnName("trackingnumber");
@@ -346,6 +367,28 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Unitprice)
                 .HasPrecision(10, 2)
                 .HasColumnName("unitprice");
+            entity.Property(e => e.Originalunitprice)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("original_unit_price");
+            entity.Property(e => e.Discountamount)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("discount_amount");
+            entity.Property(e => e.Finalunitprice)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("final_unit_price");
+            entity.Property(e => e.Freequantity)
+                .HasDefaultValue(0)
+                .HasColumnName("free_quantity");
+            entity.Property(e => e.Appliedpromotionid).HasColumnName("applied_promotion_id");
+            entity.Property(e => e.Appliedpromotiontitle)
+                .HasMaxLength(255)
+                .HasColumnName("applied_promotion_title");
+            entity.Property(e => e.Appliedpromotionsjson)
+                .HasColumnType("jsonb")
+                .HasColumnName("applied_promotions_json");
 
             entity.HasOne(d => d.Order).WithMany(p => p.Orderitems)
                 .HasForeignKey(d => d.Orderid)
@@ -554,6 +597,10 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Whatsappnumber)
                 .HasDefaultValueSql("''::text")
                 .HasColumnName("whatsappnumber");
+            entity.Property(e => e.Currencycode)
+                .HasMaxLength(3)
+                .HasDefaultValue("YER")
+                .HasColumnName("currency_code");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -732,6 +779,21 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasPrecision(18, 2)
                 .HasDefaultValue(0m)
                 .HasColumnName("discount_total");
+            entity.Property(e => e.PromotionDiscountTotal)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("promotion_discount_total");
+            entity.Property(e => e.ManualDiscountTotal)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("manual_discount_total");
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .HasDefaultValue("YER")
+                .HasColumnName("currency_code");
+            entity.Property(e => e.PromotionSnapshotJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("promotion_snapshot_json");
             entity.Property(e => e.FinalAmount)
                 .HasPrecision(18, 2)
                 .HasDefaultValue(0m)
@@ -799,6 +861,26 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
                 .HasPrecision(18, 2)
                 .HasDefaultValue(0m)
                 .HasColumnName("unit_price");
+            entity.Property(e => e.OriginalUnitPrice)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("original_unit_price");
+            entity.Property(e => e.PromotionDiscountAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("promotion_discount_amount");
+            entity.Property(e => e.ManualDiscountAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("manual_discount_amount");
+            entity.Property(e => e.FinalUnitPrice)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("final_unit_price");
+            entity.Property(e => e.AppliedPromotionId).HasColumnName("applied_promotion_id");
+            entity.Property(e => e.AppliedPromotionTitle)
+                .HasMaxLength(255)
+                .HasColumnName("applied_promotion_title");
             entity.Property(e => e.Discount)
                 .HasPrecision(18, 2)
                 .HasDefaultValue(0m)
@@ -1035,6 +1117,82 @@ public partial class NeondbContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Health).HasMaxLength(32).HasColumnName("health");
             entity.Property(e => e.LastFailureCategory).HasMaxLength(64).HasColumnName("lastfailurecategory");
             entity.Property(e => e.UpdatedAtUtc).HasColumnType("timestamp with time zone").HasColumnName("updatedatutc");
+        });
+
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("promotions_pkey");
+
+            entity.ToTable("promotions");
+
+            entity.HasIndex(e => new { e.IsActive, e.StartDate, e.EndDate }, "idx_promotions_active_dates");
+            entity.HasIndex(e => new { e.Priority, e.CreatedAt }, "idx_promotions_priority");
+
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn().HasColumnName("id");
+            entity.Property(e => e.Title).HasMaxLength(255).HasColumnName("title");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.PromotionType).HasMaxLength(50).HasColumnName("promotion_type");
+            entity.Property(e => e.TargetType).HasMaxLength(50).HasDefaultValue("All").HasColumnName("target_type");
+            entity.Property(e => e.DiscountValue).HasPrecision(12, 2).HasColumnName("discount_value");
+            entity.Property(e => e.SpendDiscountType).HasConversion<int>().HasColumnName("spend_discount_type");
+            entity.Property(e => e.MinimumAmount).HasPrecision(12, 2).HasColumnName("minimum_amount");
+            entity.Property(e => e.BuyQuantity).HasColumnName("buy_quantity");
+            entity.Property(e => e.FreeQuantity).HasColumnName("free_quantity");
+            entity.Property(e => e.OfferPrice).HasPrecision(12, 2).HasColumnName("offer_price");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.IsActive).HasDefaultValue(true).HasColumnName("is_active");
+            entity.Property(e => e.Priority).HasDefaultValue(10).HasColumnName("priority");
+            entity.Property(e => e.CanBeCombined).HasDefaultValue(false).HasColumnName("can_be_combined");
+            entity.Property(e => e.BannerImage).HasMaxLength(1000).HasColumnName("banner_image");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        modelBuilder.Entity<PromotionProduct>(entity =>
+        {
+            entity.HasKey(e => new { e.PromotionId, e.ProductId }).HasName("pk_promotion_products");
+
+            entity.ToTable("promotion_products");
+
+            entity.HasIndex(e => e.ProductId, "idx_promotion_products_product");
+
+            entity.Property(e => e.PromotionId).HasColumnName("promotion_id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(d => d.Promotion).WithMany(p => p.PromotionProducts)
+                .HasForeignKey(d => d.PromotionId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_promotion_products_promotions");
+
+            entity.HasOne(d => d.Product).WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_promotion_products_products");
+        });
+
+        modelBuilder.Entity<PromotionCategory>(entity =>
+        {
+            entity.HasKey(e => new { e.PromotionId, e.CategoryId }).HasName("pk_promotion_categories");
+
+            entity.ToTable("promotion_categories");
+
+            entity.HasIndex(e => e.CategoryId, "idx_promotion_categories_category");
+
+            entity.Property(e => e.PromotionId).HasColumnName("promotion_id");
+            entity.Property(e => e.CategoryId).HasColumnName("category_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(d => d.Promotion).WithMany(p => p.PromotionCategories)
+                .HasForeignKey(d => d.PromotionId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_promotion_categories_promotions");
+
+            entity.HasOne(d => d.Category).WithMany()
+                .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_promotion_categories_categories");
         });
 
         OnModelCreatingPartial(modelBuilder);

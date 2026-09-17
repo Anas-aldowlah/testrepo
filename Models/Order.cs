@@ -45,6 +45,14 @@ public partial class Order
 
     public DateTime? CancelledAt { get; set; }
 
+    public decimal Discounttotal { get; set; } = 0.00m;
+
+    public decimal Spendamountdiscount { get; set; } = 0.00m;
+
+    public string Currencycode { get; set; } = "YER";
+
+    public string? Promotionsnapshotjson { get; set; }
+
     public virtual Deliveryorder? Deliveryorder { get; set; }
 
     public virtual Orderdetail? Orderdetail { get; set; }

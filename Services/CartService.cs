@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using YAGOT_2._0.Models;
 
+using YAGOT_2._0.Services.Promotions;
+
 namespace YAGOT_2._0.Services;
 
 public class CartService
@@ -11,6 +13,8 @@ public class CartService
     private readonly ILogger<CartService> _logger;
     private readonly CartLockService _cartLock;
     private readonly IInventoryService _inventoryService;
+    private readonly IPromotionEngine _promotionEngine;
+    private readonly StoreSettingsService _settingsService;
     private Cart? _readCart;
     private int? _readCartUserId;
 
@@ -22,12 +26,16 @@ public class CartService
         NeondbContext context,
         ILogger<CartService> logger,
         CartLockService cartLock,
-        IInventoryService inventoryService)
+        IInventoryService inventoryService,
+        IPromotionEngine promotionEngine,
+        StoreSettingsService settingsService)
     {
         _context = context;
         _logger = logger;
         _cartLock = cartLock;
         _inventoryService = inventoryService;
+        _promotionEngine = promotionEngine;
+        _settingsService = settingsService;
     }
 
     public async Task<Cart> GetCartAsync(int userId)
@@ -62,18 +70,58 @@ public class CartService
     {
         try
         {
-            var items = await _context.Cartitems
+            var cartItems = await _context.Cartitems
                 .AsNoTracking()
+                .Include(i => i.Product)
+                .Include(i => i.RetailPrice)
                 .Where(item => item.Cart.Userid == userId)
-                .Select(item => new CartStateSummaryItem(
-                    item.Id,
-                    item.Productid,
-                    item.RetailPriceId,
-                    item.Quantity,
-                    item.RetailPrice != null ? item.RetailPrice.Price : item.Product.Price))
                 .ToListAsync();
 
-            return CartStateSummary.Create(items, cartItemId, productId, retailPriceId);
+            var summaryItems = cartItems.Select(item => new CartStateSummaryItem(
+                item.Id,
+                item.Productid,
+                item.RetailPriceId,
+                item.Quantity,
+                item.RetailPrice != null ? item.RetailPrice.Price : item.Product.Price)).ToList();
+
+            var summary = CartStateSummary.Create(summaryItems, cartItemId, productId, retailPriceId);
+
+            if (cartItems.Count > 0)
+            {
+                var promoResult = await _promotionEngine.CalculateCartItemsDiscountAsync(cartItems);
+                summary.GrossSubtotal = promoResult.OriginalTotal;
+                summary.TotalDiscounts = promoResult.DiscountTotal;
+                summary.FinalTotal = promoResult.FinalTotal;
+                summary.Subtotal = promoResult.FinalTotal;
+                summary.CurrencyCode = promoResult.CurrencyCode;
+                summary.CurrencySymbol = promoResult.CurrencySymbol;
+                summary.FreeProducts = promoResult.FreeProducts;
+                summary.AppliedPromotions = promoResult.AppliedPromotions;
+
+                if (summary.Item != null)
+                {
+                    var linePromo = promoResult.ItemResults.FirstOrDefault(ir =>
+                        ir.ProductId == summary.Item.ProductId && ir.RetailPriceId == summary.Item.RetailPriceId);
+                    if (linePromo != null)
+                    {
+                        summary.Item = summary.Item with
+                        {
+                            OriginalUnitPrice = linePromo.UnitPrice,
+                            DiscountAmount = linePromo.DiscountAmount,
+                            FinalLineTotal = linePromo.FinalPrice,
+                            FreeQuantity = linePromo.FreeQuantity
+                        };
+                    }
+                }
+            }
+            else
+            {
+                var curCode = await _settingsService.GetCurrencyCodeAsync();
+                summary.CurrencyCode = curCode;
+                summary.CurrencySymbol = CurrencyHelper.GetSymbol(curCode);
+            }
+
+            return summary;
         }
         catch (Exception exception)
         {
@@ -356,14 +404,41 @@ public sealed record CartStateSummaryItem(
     int ProductId,
     int? RetailPriceId,
     int Quantity,
-    decimal UnitPrice);
+    decimal UnitPrice,
+    decimal OriginalUnitPrice = 0m,
+    decimal DiscountAmount = 0m,
+    decimal FinalLineTotal = 0m,
+    int FreeQuantity = 0);
 
-public sealed record CartStateSummary(
-    int TotalQuantity,
-    int UniqueItemCount,
-    decimal Subtotal,
-    CartStateSummaryItem? Item)
+public class CartStateSummary
 {
+    public int TotalQuantity { get; set; }
+    public int UniqueItemCount { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal GrossSubtotal { get; set; }
+    public decimal TotalDiscounts { get; set; }
+    public decimal SpendAmountDiscount { get; set; }
+    public decimal FinalTotal { get; set; }
+    public string CurrencyCode { get; set; } = "YER";
+    public string CurrencySymbol { get; set; } = "ر.ي";
+    public CartStateSummaryItem? Item { get; set; }
+    public List<FreeProductItem> FreeProducts { get; set; } = new();
+    public List<AppliedPromotionDetail> AppliedPromotions { get; set; } = new();
+
+    public CartStateSummary(
+        int totalQuantity,
+        int uniqueItemCount,
+        decimal subtotal,
+        CartStateSummaryItem? item)
+    {
+        TotalQuantity = totalQuantity;
+        UniqueItemCount = uniqueItemCount;
+        Subtotal = subtotal;
+        GrossSubtotal = subtotal;
+        FinalTotal = subtotal;
+        Item = item;
+    }
+
     public static CartStateSummary Create(
         IReadOnlyCollection<CartStateSummaryItem> items,
         int? cartItemId,

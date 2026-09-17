@@ -1,17 +1,17 @@
+using YAGOT_2._0.Services;
+
 namespace YAGOT_2._0.Extensions
 {
     public static class PriceFormattingExtensions
     {
-        public static string ToYaqutPrice(this decimal amount)
+        public static string ToYaqutPrice(this decimal amount, string? currencyCode = null)
         {
-            var formatted = amount.ToString("#,##0.##", System.Globalization.CultureInfo.InvariantCulture);
-            return $"{formatted} ر.س";
+            return CurrencyHelper.Format(amount, currencyCode);
         }
         
-        public static string ToYaqutPrice(this decimal? amount)
+        public static string ToYaqutPrice(this decimal? amount, string? currencyCode = null)
         {
-            if (!amount.HasValue) return "—";
-            return amount.Value.ToYaqutPrice();
+            return CurrencyHelper.Format(amount, currencyCode);
         }
 
         public static string ToYaqutAmount(this decimal amount)

@@ -12,6 +12,7 @@ using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
 using YAGOT_2._0.Services;
+using YAGOT_2._0.Services.Promotions;
 using YAGOT_2._0.Core.Capabilities;
 
 namespace YAGOT_2._0.Areas.Admin.Controllers;
@@ -26,19 +27,25 @@ public class QuickSalesController : Controller
     private readonly IDraftEditSessionService _draftEditSessions;
     private readonly ILogger<QuickSalesController> _logger;
     private readonly ICapabilityEvaluator _capabilityEvaluator;
+    private readonly IPromotionEngine? _promotionEngine;
+    private readonly StoreSettingsService? _storeSettingsService;
 
     public QuickSalesController(
         NeondbContext context,
         IInventoryService inventoryService,
         IDraftEditSessionService draftEditSessions,
         ILogger<QuickSalesController> logger,
-        ICapabilityEvaluator capabilityEvaluator)
+        ICapabilityEvaluator capabilityEvaluator,
+        IPromotionEngine? promotionEngine = null,
+        StoreSettingsService? storeSettingsService = null)
     {
         _context = context;
         _inventoryService = inventoryService;
         _draftEditSessions = draftEditSessions;
         _logger = logger;
         _capabilityEvaluator = capabilityEvaluator;
+        _promotionEngine = promotionEngine;
+        _storeSettingsService = storeSettingsService;
     }
 
     // 1. MAIN QUICK SALES DASHBOARD / STATE ROUTE
@@ -553,26 +560,71 @@ public class QuickSalesController : Controller
                     }
                 }
 
+                PromotionCalculationResult? promoResult = null;
+                if (_promotionEngine != null)
+                {
+                    var currencyCode = _storeSettingsService != null
+                        ? await _storeSettingsService.GetCurrencyCodeAsync()
+                        : CurrencyHelper.ActiveCurrencyCode;
+
+                    var promoContext = new PromotionCalculationContext
+                    {
+                        Channel = "POS",
+                        EvaluationTimeUtc = DateTimeOffset.UtcNow,
+                        BypassCache = true,
+                        CurrencyCode = currencyCode,
+                        Items = model.Items.Select(item =>
+                        {
+                            var prod = dbProducts[item.ProductId];
+                            var rp = item.RetailPriceId.HasValue ? prod.RetailPrices.FirstOrDefault(r => r.Id == item.RetailPriceId.Value) : null;
+                            return new PromotionCalculationLineItem
+                            {
+                                LineIdentifier = $"{item.ProductId}_{item.RetailPriceId ?? 0}",
+                                ProductId = item.ProductId,
+                                CategoryId = prod.Categoryid,
+                                RetailPriceId = item.RetailPriceId,
+                                RetailSizeMl = rp?.SizeMl,
+                                Quantity = item.Quantity,
+                                UnitPrice = _inventoryService.GetUnitPrice(prod, rp)
+                            };
+                        }).ToList()
+                    };
+
+                    promoResult = await _promotionEngine.CalculatePromotionsAsync(promoContext);
+                }
+
                 decimal grossSubtotal = 0m;
                 decimal lineDiscountsTotal = 0m;
+                decimal promoDiscountsTotal = 0m;
+                decimal manualDiscountsTotal = 0m;
                 var newItems = new List<SaleItem>();
                 foreach (var item in model.Items)
                 {
                     var product = dbProducts[item.ProductId];
                     var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                     var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                    decimal lineGross;
-                    decimal lineDiscount;
-                    decimal lineTotal;
-                    checked
-                    {
-                        lineGross = unitPrice * item.Quantity;
-                        lineDiscount = Math.Max(0m, item.Discount);
-                        if (lineDiscount > lineGross) lineDiscount = lineGross;
-                        lineTotal = lineGross - lineDiscount;
-                        grossSubtotal += lineGross;
-                        lineDiscountsTotal += lineDiscount;
-                    }
+
+                    var lineKey = $"{item.ProductId}_{item.RetailPriceId ?? 0}";
+                    var linePromo = promoResult?.Lines.FirstOrDefault(l => l.LineIdentifier == lineKey || (l.ProductId == item.ProductId && l.RetailPriceId == item.RetailPriceId));
+                    var promoDiscountAmount = linePromo?.TotalDiscount ?? 0.00m;
+                    var primaryPromo = linePromo?.AppliedPromotions.FirstOrDefault();
+
+                    decimal lineGross = unitPrice * item.Quantity;
+                    // Cascading: lineGross -> automatic promo discount -> manual cashier discount
+                    decimal promoReduction = Math.Min(promoDiscountAmount, lineGross);
+                    decimal remainingAfterPromo = Math.Max(0.00m, lineGross - promoReduction);
+
+                    decimal manualDiscount = Math.Max(0.00m, item.Discount);
+                    if (manualDiscount > remainingAfterPromo) manualDiscount = remainingAfterPromo;
+
+                    decimal lineTotal = Math.Max(0.00m, remainingAfterPromo - manualDiscount);
+                    decimal totalLineDiscount = promoReduction + manualDiscount;
+                    decimal finalUnitPrice = item.Quantity > 0 ? lineTotal / item.Quantity : unitPrice;
+
+                    grossSubtotal += lineGross;
+                    lineDiscountsTotal += totalLineDiscount;
+                    promoDiscountsTotal += promoReduction;
+                    manualDiscountsTotal += manualDiscount;
 
                     newItems.Add(new SaleItem
                     {
@@ -582,17 +634,31 @@ public class QuickSalesController : Controller
                         ProductName = product.Name,
                         Quantity = item.Quantity,
                         UnitPrice = unitPrice,
-                        Discount = lineDiscount,
-                        Total = lineTotal
+                        OriginalUnitPrice = unitPrice,
+                        PromotionDiscountAmount = promoReduction,
+                        ManualDiscountAmount = manualDiscount,
+                        FinalUnitPrice = finalUnitPrice,
+                        Discount = totalLineDiscount,
+                        Total = lineTotal,
+                        AppliedPromotionId = primaryPromo?.PromotionId,
+                        AppliedPromotionTitle = primaryPromo?.Title
                     });
                 }
 
-                var overallDiscount = Math.Max(0m, model.DiscountTotal);
-                var totalDiscounts = checked(lineDiscountsTotal + overallDiscount);
+                var overallManualDiscount = Math.Max(0m, model.DiscountTotal);
+                manualDiscountsTotal += overallManualDiscount;
+                var spendAmountDiscount = promoResult?.SpendAmountDiscount ?? 0.00m;
+                promoDiscountsTotal += spendAmountDiscount;
+
+                var totalDiscounts = checked(lineDiscountsTotal + overallManualDiscount + spendAmountDiscount);
                 EnsureCurrencyLimit(grossSubtotal, totalDiscounts);
 
                 sale.TotalAmount = grossSubtotal;
                 sale.DiscountTotal = totalDiscounts;
+                sale.PromotionDiscountTotal = promoDiscountsTotal;
+                sale.ManualDiscountTotal = manualDiscountsTotal;
+                sale.CurrencyCode = promoResult?.CurrencyCode ?? CurrencyHelper.ActiveCurrencyCode;
+                sale.PromotionSnapshotJson = promoResult?.PromotionSnapshotJson;
                 sale.FinalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
 
                 foreach (var item in newItems)
@@ -1050,6 +1116,39 @@ public class QuickSalesController : Controller
                         .Where(p => productIds.Contains(p.Id))
                         .ToDictionaryAsync(p => p.Id);
 
+                    PromotionCalculationResult? promoResult = null;
+                    if (_promotionEngine != null)
+                    {
+                        var currencyCode = _storeSettingsService != null
+                            ? await _storeSettingsService.GetCurrencyCodeAsync()
+                            : CurrencyHelper.ActiveCurrencyCode;
+
+                        var promoContext = new PromotionCalculationContext
+                        {
+                            Channel = "POS",
+                            EvaluationTimeUtc = DateTimeOffset.UtcNow,
+                            BypassCache = true,
+                            CurrencyCode = currencyCode,
+                            Items = persistedItems.Select(item =>
+                            {
+                                var prod = dbProducts[item.ProductId];
+                                var rp = item.RetailPriceId.HasValue ? prod.RetailPrices.FirstOrDefault(r => r.Id == item.RetailPriceId.Value) : null;
+                                return new PromotionCalculationLineItem
+                                {
+                                    LineIdentifier = $"{item.ProductId}_{item.RetailPriceId ?? 0}",
+                                    ProductId = item.ProductId,
+                                    CategoryId = prod.Categoryid,
+                                    RetailPriceId = item.RetailPriceId,
+                                    RetailSizeMl = rp?.SizeMl,
+                                    Quantity = item.Quantity,
+                                    UnitPrice = _inventoryService.GetUnitPrice(prod, rp)
+                                };
+                            }).ToList()
+                        };
+
+                        promoResult = await _promotionEngine.CalculatePromotionsAsync(promoContext);
+                    }
+
                     // Group deductions per ProductId to safely validate and deduct inventory even if product appears in multiple rows
                     var deductionGroups = new Dictionary<int, int>();
                     foreach (var item in persistedItems)
@@ -1066,8 +1165,12 @@ public class QuickSalesController : Controller
                             return Json(new CompleteSaleResponseDto { Success = false, Message = $"كمية المنتج ({product.Name}) يجب أن تكون أكبر من 0." });
                         }
 
+                        var lineKey = $"{item.ProductId}_{item.RetailPriceId ?? 0}";
+                        var linePromo = promoResult?.Lines.FirstOrDefault(l => l.LineIdentifier == lineKey || (l.ProductId == item.ProductId && l.RetailPriceId == item.RetailPriceId));
+                        var freeQty = (int)(linePromo?.FreeQuantity ?? 0);
+
                         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
-                        var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity, retailPrice?.SizeMl);
+                        var deductionAmount = _inventoryService.CalculateDeductionAmount(product, item.Quantity + freeQty, retailPrice?.SizeMl);
 
                         AddChecked(deductionGroups, product.Id, deductionAmount);
                     }
@@ -1096,6 +1199,8 @@ public class QuickSalesController : Controller
                     // Compute Trusted Prices & Totals
                     decimal grossSubtotal = 0m;
                     decimal lineDiscountsTotal = 0m;
+                    decimal promoDiscountsTotal = 0m;
+                    decimal manualDiscountsTotal = 0m;
                     var newSaleItems = new List<SaleItem>();
 
                     foreach (var item in persistedItems)
@@ -1103,18 +1208,28 @@ public class QuickSalesController : Controller
                         var product = dbProducts[item.ProductId];
                         var retailPrice = await _inventoryService.ValidateRetailPriceAsync(product, item.RetailPriceId);
                         var unitPrice = _inventoryService.GetUnitPrice(product, retailPrice);
-                        decimal lineGross;
-                        decimal lineDiscount;
-                        decimal lineTotal;
-                        checked
-                        {
-                            lineGross = unitPrice * item.Quantity;
-                            lineDiscount = Math.Max(0m, item.Discount);
-                            if (lineDiscount > lineGross) lineDiscount = lineGross;
-                            lineTotal = lineGross - lineDiscount;
-                            grossSubtotal += lineGross;
-                            lineDiscountsTotal += lineDiscount;
-                        }
+
+                        var lineKey = $"{item.ProductId}_{item.RetailPriceId ?? 0}";
+                        var linePromo = promoResult?.Lines.FirstOrDefault(l => l.LineIdentifier == lineKey || (l.ProductId == item.ProductId && l.RetailPriceId == item.RetailPriceId));
+                        var promoDiscountAmount = linePromo?.TotalDiscount ?? 0.00m;
+                        var primaryPromo = linePromo?.AppliedPromotions.FirstOrDefault();
+
+                        decimal lineGross = unitPrice * item.Quantity;
+                        // Cascading: lineGross -> automatic promo discount -> manual cashier discount
+                        decimal promoReduction = Math.Min(promoDiscountAmount, lineGross);
+                        decimal remainingAfterPromo = Math.Max(0.00m, lineGross - promoReduction);
+
+                        decimal manualDiscount = Math.Max(0m, item.Discount);
+                        if (manualDiscount > remainingAfterPromo) manualDiscount = remainingAfterPromo;
+
+                        decimal lineTotal = Math.Max(0.00m, remainingAfterPromo - manualDiscount);
+                        decimal totalLineDiscount = promoReduction + manualDiscount;
+                        decimal finalUnitPrice = item.Quantity > 0 ? lineTotal / item.Quantity : unitPrice;
+
+                        grossSubtotal += lineGross;
+                        lineDiscountsTotal += totalLineDiscount;
+                        promoDiscountsTotal += promoReduction;
+                        manualDiscountsTotal += manualDiscount;
 
                         newSaleItems.Add(new SaleItem
                         {
@@ -1124,14 +1239,24 @@ public class QuickSalesController : Controller
                             ProductName = product.Name,
                             Quantity = item.Quantity,
                             UnitPrice = unitPrice,
-                            Discount = lineDiscount,
-                            Total = lineTotal
+                            OriginalUnitPrice = unitPrice,
+                            PromotionDiscountAmount = promoReduction,
+                            ManualDiscountAmount = manualDiscount,
+                            FinalUnitPrice = finalUnitPrice,
+                            Discount = totalLineDiscount,
+                            Total = lineTotal,
+                            AppliedPromotionId = primaryPromo?.PromotionId,
+                            AppliedPromotionTitle = primaryPromo?.Title
                         });
                     }
 
                     var persistedLineDiscounts = CheckedDecimalSum(persistedItems.Select(item => Math.Max(0m, item.Discount)));
-                    var overallDiscount = Math.Max(0m, checked(sale.DiscountTotal - persistedLineDiscounts));
-                    var totalDiscounts = checked(lineDiscountsTotal + overallDiscount);
+                    var overallManualDiscount = Math.Max(0m, checked(sale.ManualDiscountTotal > 0 ? sale.ManualDiscountTotal : (sale.DiscountTotal - persistedLineDiscounts)));
+                    manualDiscountsTotal += overallManualDiscount;
+                    var spendAmountDiscount = promoResult?.SpendAmountDiscount ?? 0.00m;
+                    promoDiscountsTotal += spendAmountDiscount;
+
+                    var totalDiscounts = checked(lineDiscountsTotal + overallManualDiscount + spendAmountDiscount);
                     var finalAmount = Math.Max(0m, checked(grossSubtotal - totalDiscounts));
                     var totalPaid = CheckedDecimalSum(aggregatedPayments.Select(p => p.Amount));
                     EnsureCurrencyLimit(grossSubtotal, totalDiscounts, finalAmount, totalPaid);
@@ -1162,6 +1287,10 @@ public class QuickSalesController : Controller
                     // Complete Sale Object Status
                     sale.TotalAmount = grossSubtotal;
                     sale.DiscountTotal = totalDiscounts;
+                    sale.PromotionDiscountTotal = promoDiscountsTotal;
+                    sale.ManualDiscountTotal = manualDiscountsTotal;
+                    sale.CurrencyCode = promoResult?.CurrencyCode ?? CurrencyHelper.ActiveCurrencyCode;
+                    sale.PromotionSnapshotJson = promoResult?.PromotionSnapshotJson;
                     sale.FinalAmount = finalAmount;
                     sale.Status = "Completed";
                     sale.CompletedAt = DateTime.Now;

@@ -1,0 +1,287 @@
+@model YAGOT_2._0.Models.Admin.PromotionDetailsVM
+@{
+    ViewData["Title"] = "تفاصيل العرض الترويجي";
+    var promo = Model.Promotion;
+    string statusBadgeClass = Model.StatusKey switch
+    {
+        "upcoming" => "bg-info text-dark",
+        "expired" => "bg-danger text-white",
+        "active" => "bg-success text-white",
+        _ => "bg-secondary text-white"
+    };
+    string statusBadgeText = Model.StatusKey switch
+    {
+        "upcoming" => "قادم قريباً",
+        "expired" => "منتهي الصلاحية",
+        "active" => "نشط حالياً",
+        _ => "غير مفعل"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin/products.css" asp-append-version="true" />
+    <style nonce="@Context.Items["csp-nonce"]">
+        .details-card {
+            background: rgba(18, 26, 38, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .details-banner-img {
+            max-height: 200px;
+            width: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .detail-label {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+        .linked-thumb {
+            width: 42px;
+            height: 42px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+    </style>
+}
+
+@section Breadcrumb {
+    <span>/</span>
+    <a asp-action="Index">العروض والخصومات</a>
+    <span>/</span>
+    <span>تفاصيل العرض</span>
+}
+
+<section class="yq-products-admin">
+    <header class="yq-products-hero mb-4">
+        <div class="yq-products-hero__content">
+            <span class="yq-products-eyebrow">تفاصيل العرض الترويجي</span>
+            <h2>@promo.Title</h2>
+            <p>عرض شاملاً لمواصفات العرض، الشروط، النطاق المستهدف، والمنتجات أو التصنيفات المرتبطة.</p>
+        </div>
+        <div class="yq-products-hero__actions">
+            <a asp-action="Edit" asp-route-id="@promo.Id" class="btn btn-warning fw-bold me-2" style="border-radius: 8px; background: #e3b65b; border: none; color: #000;">
+                <i class="bi bi-pencil me-1"></i> تعديل العرض
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                <i class="bi bi-arrow-right me-1"></i> العودة للقائمة
+            </a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(promo.BannerImage))
+    {
+        <div class="details-card text-center p-3 mb-4">
+            <img src="@promo.BannerImage" alt="@promo.Title" class="details-banner-img" />
+        </div>
+    }
+
+    <!-- MAIN METADATA -->
+    <div class="details-card">
+        <h3 class="text-gold border-bottom border-secondary pb-2 mb-4 fs-5 fw-bold" style="color: #e3b65b;">
+            <i class="bi bi-info-circle me-1"></i> تفاصيل العرض الأساسية
+        </h3>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="detail-label">حالة العرض الحالية</div>
+                <div class="detail-value">
+                    <span class="badge @statusBadgeClass px-3 py-2 fs-6">
+                        @statusBadgeText
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="detail-label">نوع العرض الخصمي</div>
+                <div class="detail-value text-info">
+                    @switch (promo.PromotionType)
+                    {
+                        case "Percentage":
+                            <span>خصم نسبة مئوية (%)</span>
+                            break;
+                        case "FixedAmount":
+                            <span>خصم مبلغ ثابت (@CurrencyDisplay.Symbol)</span>
+                            break;
+                        case "BuyXGetY":
+                            <span>اشتر X واحصل على Y مجاناً</span>
+                            break;
+                        case "QuantityPrice":
+                            <span>سعر خاص عند شراء كمية</span>
+                            break;
+                        case "SpendAmount":
+                            <span>خصم عند الوصول لمبلغ محدد</span>
+                            break;
+                        default:
+                            <span>@promo.PromotionType</span>
+                            break;
+                    }
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="detail-label">النطاق المستهدف</div>
+                <div class="detail-value">
+                    <span class="badge bg-dark border border-secondary text-warning px-3 py-2">
+                        @Model.TargetSummary
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="detail-label">قيمة الخصم / العرض</div>
+                <div class="detail-value text-warning fs-4 fw-bold">
+                    @if (promo.PromotionType == "Percentage")
+                    {
+                        <span>%@promo.DiscountValue.ToString("0.##")</span>
+                    }
+                    else if (promo.PromotionType == "FixedAmount")
+                    {
+                        <span>@promo.DiscountValue.ToString("N2") @(CurrencyDisplay.Symbol)</span>
+                    }
+                    else if (promo.PromotionType == "BuyXGetY")
+                    {
+                        <span>اشتر @(promo.BuyQuantity ?? 1) واحصل على @(promo.FreeQuantity ?? 1) مجاناً</span>
+                    }
+                    else if (promo.PromotionType == "QuantityPrice")
+                    {
+                        <span>@((promo.OfferPrice ?? promo.DiscountValue).ToString("N2")) @(CurrencyDisplay.Symbol)</span>
+                    }
+                    else
+                    {
+                        <span>@promo.DiscountValue.ToString("N2")</span>
+                    }
+                </div>
+            </div>
+
+            @if (promo.MinimumAmount.HasValue && promo.MinimumAmount > 0)
+            {
+                <div class="col-md-4">
+                    <div class="detail-label">الحد الأدنى لمبلغ الشراء</div>
+                    <div class="detail-value">@promo.MinimumAmount.Value.ToString("N2") @(CurrencyDisplay.Symbol)</div>
+                </div>
+            }
+
+            <div class="col-md-4">
+                <div class="detail-label">الأولوية والتنفيذ</div>
+                <div class="detail-value">
+                    <span class="badge bg-secondary me-2">الأولوية: @promo.Priority</span>
+                    @if (promo.CanBeCombined)
+                    {
+                        <span class="badge bg-info text-dark">قابل للدمج</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-dark border border-secondary">غير قابل للدمج</span>
+                    }
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="detail-label">تاريخ ووقت البداية</div>
+                <div class="detail-value"><i class="bi bi-calendar-event text-muted me-1"></i> @Model.StartDateLocal.ToString("yyyy/MM/dd HH:mm")</div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="detail-label">تاريخ ووقت النهاية</div>
+                <div class="detail-value"><i class="bi bi-calendar-check text-muted me-1"></i> @Model.EndDateLocal.ToString("yyyy/MM/dd HH:mm")</div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(promo.Description))
+            {
+                <div class="col-12">
+                    <div class="detail-label">وصف وشروط العرض</div>
+                    <div class="detail-value p-3 rounded bg-dark border border-secondary text-light">
+                        @promo.Description
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- DIAGNOSTIC WARNING FOR EMPTY TARGETS -->
+    @if (string.Equals(promo.TargetType, "Products", StringComparison.OrdinalIgnoreCase) && (Model.LinkedProducts == null || !Model.LinkedProducts.Any()))
+    {
+        <div class="alert alert-warning border border-warning bg-warning bg-opacity-10 text-warning rounded-3 p-3 mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>تنبيه تشخيصي:</strong> هذا العرض محدد كنطاق <strong>منتجات محددة</strong>، ولكن لا توجد منتجات مرتبطة به حالياً في قاعدة البيانات. لن يتم تطبيق هذا العرض كعرض للمتجر بالكامل.
+        </div>
+    }
+    @if (string.Equals(promo.TargetType, "Categories", StringComparison.OrdinalIgnoreCase) && (Model.LinkedCategories == null || !Model.LinkedCategories.Any()))
+    {
+        <div class="alert alert-warning border border-warning bg-warning bg-opacity-10 text-warning rounded-3 p-3 mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>تنبيه تشخيصي:</strong> هذا العرض محدد كنطاق <strong>تصنيفات محددة</strong>، ولكن لا توجد تصنيفات مرتبطة به حالياً في قاعدة البيانات. لن يتم تطبيق هذا العرض كعرض للمتجر بالكامل.
+        </div>
+    }
+
+    <!-- LINKED PRODUCTS -->
+    @if (Model.LinkedProducts != null && Model.LinkedProducts.Any())
+    {
+        <div class="details-card">
+            <h3 class="text-gold border-bottom border-secondary pb-2 mb-4 fs-5 fw-bold" style="color: #e3b65b;">
+                <i class="bi bi-box-seam me-1"></i> المنتجات المستهدفة بالعرض (@Model.LinkedProducts.Count)
+            </h3>
+
+            <div class="table-responsive">
+                <table class="table text-light mb-0">
+                    <thead>
+                        <tr class="text-muted border-bottom border-secondary">
+                            <th>المنتج</th>
+                            <th>التصنيف</th>
+                            <th>السعر</th>
+                            <th>المخزون الحالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var prod in Model.LinkedProducts)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(prod.Imageurl))
+                                        {
+                                            <img src="@prod.Imageurl" alt="@prod.Name" class="linked-thumb" />
+                                        }
+                                        <span class="fw-bold">@prod.Name</span>
+                                    </div>
+                                </td>
+                                <td>@(prod.Category?.Name ?? "بدون تصنيف")</td>
+                                <td class="text-warning fw-bold">@prod.Price.ToString("N2") @(CurrencyDisplay.Symbol)</td>
+                                <td><span class="badge bg-secondary">@prod.Stockquantity</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- LINKED CATEGORIES -->
+    @if (Model.LinkedCategories != null && Model.LinkedCategories.Any())
+    {
+        <div class="details-card">
+            <h3 class="text-gold border-bottom border-secondary pb-2 mb-4 fs-5 fw-bold" style="color: #e3b65b;">
+                <i class="bi bi-tags me-1"></i> التصنيفات المستهدفة بالعرض (@Model.LinkedCategories.Count)
+            </h3>
+
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var cat in Model.LinkedCategories)
+                {
+                    <span class="badge bg-dark border border-warning text-warning p-2 fs-6">
+                        <i class="bi bi-tag-fill me-1"></i> @cat.Name
+                    </span>
+                }
+            </div>
+        </div>
+    }
+</section>
