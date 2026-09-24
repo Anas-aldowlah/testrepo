@@ -1,8 +1,24 @@
+using YAGOT_2._0.Services.Integration;
+
 namespace YAGOT_2._0.Core.Capabilities;
 
-public sealed class CapabilityEvaluator(ICapabilityCatalog catalog, ICapabilityStateProvider stateProvider)
-    : ICapabilityEvaluator
+public sealed class CapabilityEvaluator(
+    ICapabilityCatalog catalog,
+    ICapabilityStateProvider stateProvider,
+    ILocalSiteRuntimeStateProvider? siteRuntimeState = null,
+    TimeProvider? timeProvider = null) : ICapabilityEvaluator
 {
+    private bool IsSiteRestricted()
+    {
+        if (siteRuntimeState?.CurrentSnapshot is not { } snapshot)
+            return false;
+
+        var now = timeProvider?.GetUtcNow() ?? DateTimeOffset.UtcNow;
+        var isExpired = now >= snapshot.ExpiresAtUtc;
+        var isOffline = string.Equals(snapshot.Mode, "Offline", StringComparison.OrdinalIgnoreCase);
+        return isOffline || isExpired;
+    }
+
     public CapabilityEvaluationResult EvaluateModule(string moduleCode)
     {
         if (string.IsNullOrWhiteSpace(moduleCode) || !catalog.TryGetModule(moduleCode, out var module))
@@ -13,6 +29,11 @@ public sealed class CapabilityEvaluator(ICapabilityCatalog catalog, ICapabilityS
         if (module.IsCore)
         {
             return new(true, CapabilityEvaluationReason.CoreRequired, module.Code, module.Code);
+        }
+
+        if (IsSiteRestricted())
+        {
+            return new(false, CapabilityEvaluationReason.OperationallyUnavailable, module.Code, module.Code);
         }
 
         if (module.ImplementationStatus == CapabilityImplementationStatus.NotImplemented)
@@ -35,6 +56,11 @@ public sealed class CapabilityEvaluator(ICapabilityCatalog catalog, ICapabilityS
         if (feature.IsCore)
         {
             return new(true, CapabilityEvaluationReason.CoreRequired, feature.Code, feature.ModuleCode);
+        }
+
+        if (IsSiteRestricted())
+        {
+            return new(false, CapabilityEvaluationReason.OperationallyUnavailable, feature.Code, feature.ModuleCode);
         }
 
         if (feature.ImplementationStatus == CapabilityImplementationStatus.NotImplemented)
