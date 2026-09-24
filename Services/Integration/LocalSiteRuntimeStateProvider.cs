@@ -26,6 +26,17 @@ internal sealed class LocalSiteRuntimeStateProvider(
     private long _failedAt;
     private bool _stopped;
 
+    public SiteStateSnapshotV1? CurrentSnapshot
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _entry?.Result.Snapshot ?? _entry?.LastKnownSnapshot;
+            }
+        }
+    }
+
     public Task<LocalSiteStateReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
