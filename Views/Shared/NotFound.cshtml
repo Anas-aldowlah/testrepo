@@ -1,0 +1,65 @@
+@{
+    var isForbidden = ViewBag.IsFeatureForbidden as bool? == true;
+    var statusCode = ViewBag.StatusCode as int? ?? (isForbidden ? 403 : 404);
+    ViewData["Title"] = isForbidden ? "الميزة غير مفعلة" : "الصفحة أو الميزة غير متوفرة";
+}
+
+<div class="container my-5 py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="yaqut-empty glass-effect p-4 p-md-5 text-center rounded-4 shadow-sm" style="border: 1px solid rgba(212, 175, 55, 0.25);">
+                <!-- شعار المتجر -->
+                <div class="mb-4">
+                    <img src="~/images/yaqut-logo.png" alt="شعار متجر ياقوت" class="img-fluid" style="max-height: 85px; width: auto; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));" />
+                </div>
+
+                <!-- أيقونة الحالة -->
+                <div class="mb-3">
+                    @if (isForbidden)
+                    {
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill mb-2">
+                            <i class="bi bi-shield-slash-fill me-1"></i> ميزة معطلة مؤقتاً
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary text-light px-3 py-2 fs-6 rounded-pill mb-2">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i> رمز الخطأ @statusCode
+                        </span>
+                    }
+                </div>
+
+                <!-- العنوان الرئيسي -->
+                <h1 class="h3 fw-bold mb-3" style="color: var(--yq-gold, #d4af37);">
+                    @(isForbidden ? "هذه الميزة غير مفعلة حالياً" : "الصفحة أو الميزة غير متوفرة")
+                </h1>
+
+                <!-- نص التوضيح البسيط -->
+                <p class="text-muted fs-6 mb-4 leading-relaxed">
+                    @if (isForbidden)
+                    {
+                        <span>تم إيقاف هذه الميزة مؤقتاً من قبل إدارة المتجر عبر لوحة التحكم المركزية. يُرجى مراجعة لوحة التحكم لتفعيلها.</span>
+                    }
+                    else
+                    {
+                        <span>نعتذر منك، الصفحة أو الميزة التي تحاول الوصول إليها غير موجودة حالياً أو تم إيقافها مؤقتاً في إعدادات المتجر.</span>
+                    }
+                </p>
+
+                <!-- أزرار الإجراءات -->
+                <div class="d-flex flex-wrap justify-content-center gap-2 pt-2">
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-yaqut-gold px-4 py-2">
+                        <i class="bi bi-house-door-fill me-1"></i> العودة للمتجر
+                    </a>
+
+                    @if (User.IsInRole("Admin") || User.IsInRole("Developer"))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary px-4 py-2">
+                            <i class="bi bi-speedometer2 me-1"></i> لوحة التحكم
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

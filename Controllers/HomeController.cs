@@ -92,6 +92,43 @@ public class HomeController : Controller
     }
 
     [AllowAnonymous]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult NotFoundPage(int? statusCode)
+    {
+        var effectiveStatus = statusCode ?? Response.StatusCode;
+        if (effectiveStatus is not (403 or 404))
+        {
+            effectiveStatus = 404;
+        }
+        Response.StatusCode = effectiveStatus;
+
+        if (IsAjaxOrJsonRequest(Request))
+        {
+            return Json(new
+            {
+                success = false,
+                statusCode = effectiveStatus,
+                message = effectiveStatus == 403
+                    ? "هذه الميزة معطلة مؤقتاً في لوحة التحكم."
+                    : "الصفحة أو الميزة غير متوفرة."
+            });
+        }
+
+        ViewBag.StatusCode = effectiveStatus;
+        ViewBag.IsFeatureForbidden = effectiveStatus == 403;
+
+        return View("NotFound");
+    }
+
+    private static bool IsAjaxOrJsonRequest(HttpRequest request)
+    {
+        if (request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)) return true;
+        if (request.Headers["X-Requested-With"].Any(v => string.Equals(v, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))) return true;
+        if (request.Headers.Accept.Any(v => v?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)) return true;
+        return request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    [AllowAnonymous]
     [HttpGet("/loaderio-30f76365-7ae0-496b-a192-ccfe32fa6ef1.txt")]
     public IActionResult LoaderIoVerification()
     {

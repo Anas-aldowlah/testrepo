@@ -124,7 +124,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Auth";
-        options.AccessDeniedPath = "/Account/Auth";
+        options.AccessDeniedPath = "/Home/NotFoundPage?statusCode=403";
         options.Cookie.Name = "YAGOT.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
@@ -375,6 +375,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
     app.UseHttpsRedirection();
 }
+
+app.UseStatusCodePagesWithReExecute("/Home/NotFoundPage", "?statusCode={0}");
+
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
@@ -483,7 +486,7 @@ app.Use(async (context, next) =>
                 return;
             }
 
-            context.Response.Redirect("/Account/Auth");
+            context.Response.Redirect("/Home/NotFoundPage?statusCode=403");
             return;
         }
     }

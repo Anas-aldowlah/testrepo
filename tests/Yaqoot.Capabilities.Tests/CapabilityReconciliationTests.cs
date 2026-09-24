@@ -341,4 +341,26 @@ public sealed class CapabilityReconciliationTests
             return Task.FromResult(result);
         }
     }
+
+    [Theory]
+    [InlineData(404, false)]
+    [InlineData(403, true)]
+    public void NotFoundPage_RendersExpectedViewAndStatusCode(int statusCode, bool expectedIsForbidden)
+    {
+        var controller = new Yagot.Controllers.HomeController(
+            null!, null!, null!, null!, null!, null!, null!, null!)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+            }
+        };
+
+        var result = controller.NotFoundPage(statusCode) as Microsoft.AspNetCore.Mvc.ViewResult;
+
+        Assert.NotNull(result);
+        Assert.Equal("NotFound", result.ViewName);
+        Assert.Equal(statusCode, controller.Response.StatusCode);
+        Assert.Equal(expectedIsForbidden, controller.ViewBag.IsFeatureForbidden);
+    }
 }
