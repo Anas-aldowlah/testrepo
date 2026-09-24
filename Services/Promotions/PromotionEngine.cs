@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Models;
 
 namespace YAGOT_2._0.Services.Promotions
@@ -22,19 +23,22 @@ namespace YAGOT_2._0.Services.Promotions
         private readonly ILogger<PromotionEngine>? _logger;
         private readonly IInventoryService? _inventoryService;
         private readonly StoreSettingsService? _settingsService;
+        private readonly ICapabilityEvaluator? _capabilityEvaluator;
 
         public PromotionEngine(
             NeondbContext? context = null,
             IMemoryCache? cache = null,
             ILogger<PromotionEngine>? logger = null,
             IInventoryService? inventoryService = null,
-            StoreSettingsService? settingsService = null)
+            StoreSettingsService? settingsService = null,
+            ICapabilityEvaluator? capabilityEvaluator = null)
         {
             _context = context;
             _cache = cache;
             _logger = logger;
             _inventoryService = inventoryService;
             _settingsService = settingsService;
+            _capabilityEvaluator = capabilityEvaluator;
         }
 
         public void InvalidateActivePromotionsCache()
@@ -46,6 +50,11 @@ namespace YAGOT_2._0.Services.Promotions
             bool bypassCache = false,
             CancellationToken cancellationToken = default)
         {
+            if (_capabilityEvaluator != null && !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.OfferDiscountPricing))
+            {
+                return [];
+            }
+
             var utcNow = DateTimeOffset.UtcNow;
 
             if (bypassCache || _cache == null)
@@ -161,7 +170,14 @@ namespace YAGOT_2._0.Services.Promotions
                 return result;
             }
 
-            activePromotions ??= await GetActivePromotionsAsync(context.BypassCache, cancellationToken);
+            if (_capabilityEvaluator != null && !_capabilityEvaluator.IsFeatureEnabled(CapabilityFeatureCodes.OfferDiscountPricing))
+            {
+                activePromotions = [];
+            }
+            else
+            {
+                activePromotions ??= await GetActivePromotionsAsync(context.BypassCache, cancellationToken);
+            }
             decimal grossSubtotal = 0m;
             decimal totalItemDiscounts = 0m;
 

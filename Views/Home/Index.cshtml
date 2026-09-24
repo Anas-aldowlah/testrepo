@@ -9,6 +9,7 @@
     var categoryProductsEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryProductsView);
     var categoryImagesEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.CategoryImages);
     var productViewEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.ProductView);
+    var offersCustomerDisplayEnabled = CapabilityEvaluator.IsFeatureEnabled(YAGOT_2._0.Core.Capabilities.CapabilityFeatureCodes.OfferCustomerDisplay);
     var categories = categoryViewEnabled
         ? Model.Categories?.ToList() ?? new List<YAGOT_2._0.Models.Category>()
         : new List<YAGOT_2._0.Models.Category>();
@@ -169,7 +170,7 @@
         </section>
     }
 
-    @if (productViewEnabled && (promoProducts.Any() || (activeSpendPromos != null && activeSpendPromos.Any())))
+    @if (offersCustomerDisplayEnabled && productViewEnabled && (promoProducts.Any() || (activeSpendPromos != null && activeSpendPromos.Any())))
     {
         <!-- PROMOTIONS SECTION (🔥 العروض الحالية) -->
         <section class="container yq-home-section yq-home-section--promotions" aria-labelledby="promotionsTitle">

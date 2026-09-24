@@ -69,7 +69,7 @@ public sealed class CapabilityCatalog : ICapabilityCatalog
             Module(CapabilityModuleCodes.StoreManagement, "Store Management", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
             Module(CapabilityModuleCodes.Categories, "Categories", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
             Module(CapabilityModuleCodes.ProductsInventory, "Products & Inventory", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
-            Module(CapabilityModuleCodes.Offers, "Offers", CapabilityClassification.Business, CapabilityImplementationStatus.NotImplemented),
+            Module(CapabilityModuleCodes.Offers, "Offers", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
             Module(CapabilityModuleCodes.CustomerAccounts, "Customer Accounts", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
             Module(CapabilityModuleCodes.MarketingOrders, "Marketing & Orders", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented),
             Module(CapabilityModuleCodes.SalesPos, "Sales & POS", CapabilityClassification.Business, CapabilityImplementationStatus.Implemented)
@@ -83,8 +83,6 @@ public sealed class CapabilityCatalog : ICapabilityCatalog
             CapabilityClassification.Core, CapabilityImplementationStatus.Core, SupportsIndependentRuntimeDisablement: false));
         void Implemented(string code, string moduleCode, string name) => features.Add(new(code, moduleCode, name,
             CapabilityClassification.Business, CapabilityImplementationStatus.Implemented, SupportsIndependentRuntimeDisablement: false));
-        void NotImplemented(string code, string moduleCode, string name) => features.Add(new(code, moduleCode, name,
-            CapabilityClassification.Business, CapabilityImplementationStatus.NotImplemented, SupportsIndependentRuntimeDisablement: false));
 
         Core(CapabilityFeatureCodes.CoreAuthentication, "Authentication");
         Core(CapabilityFeatureCodes.CoreFileMedia, "File & Media Infrastructure");
@@ -114,12 +112,12 @@ public sealed class CapabilityCatalog : ICapabilityCatalog
         Implemented(CapabilityFeatureCodes.InventoryManagement, CapabilityModuleCodes.ProductsInventory, "Inventory Management");
         Implemented(CapabilityFeatureCodes.RetailSelling, CapabilityModuleCodes.ProductsInventory, "Retail Selling");
 
-        NotImplemented(CapabilityFeatureCodes.OfferDuration, CapabilityModuleCodes.Offers, "Offer Duration");
-        NotImplemented(CapabilityFeatureCodes.OfferManagement, CapabilityModuleCodes.Offers, "Offer Management");
-        NotImplemented(CapabilityFeatureCodes.OfferStatus, CapabilityModuleCodes.Offers, "Offer Status");
-        NotImplemented(CapabilityFeatureCodes.OfferProducts, CapabilityModuleCodes.Offers, "Offer Products");
-        NotImplemented(CapabilityFeatureCodes.OfferCustomerDisplay, CapabilityModuleCodes.Offers, "Customer Offer Display");
-        NotImplemented(CapabilityFeatureCodes.OfferDiscountPricing, CapabilityModuleCodes.Offers, "Offer Discount Pricing");
+        Implemented(CapabilityFeatureCodes.OfferDuration, CapabilityModuleCodes.Offers, "Offer Duration");
+        Implemented(CapabilityFeatureCodes.OfferManagement, CapabilityModuleCodes.Offers, "Offer Management");
+        Implemented(CapabilityFeatureCodes.OfferStatus, CapabilityModuleCodes.Offers, "Offer Status");
+        Implemented(CapabilityFeatureCodes.OfferProducts, CapabilityModuleCodes.Offers, "Offer Products");
+        Implemented(CapabilityFeatureCodes.OfferCustomerDisplay, CapabilityModuleCodes.Offers, "Customer Offer Display");
+        Implemented(CapabilityFeatureCodes.OfferDiscountPricing, CapabilityModuleCodes.Offers, "Offer Discount Pricing");
 
         Implemented(CapabilityFeatureCodes.CustomerAccountCreate, CapabilityModuleCodes.CustomerAccounts, "Create Customer Account");
         Implemented(CapabilityFeatureCodes.CustomerLogin, CapabilityModuleCodes.CustomerAccounts, "Customer Login");

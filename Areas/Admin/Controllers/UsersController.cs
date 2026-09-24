@@ -12,6 +12,7 @@ namespace Yagot.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+[RequireCapability(CapabilityFeatureCodes.StoreUserEmployeeManagement)]
 public class UsersController : Controller
 {
     private readonly NeondbContext _context;
