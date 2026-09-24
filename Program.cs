@@ -294,6 +294,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddLocalSiteRuntimeState();
 builder.Services.AddScoped<ISiteAccessDecisionService, SiteAccessDecisionService>();
 builder.Services.AddSiteStateReconciliation(builder.Configuration);
+builder.Services.AddCapabilityReconciliation(builder.Configuration);
 builder.Services.AddScoped<SiteStatusFilter>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<MigrationStateTracker>();
