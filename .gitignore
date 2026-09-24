@@ -8,3 +8,8 @@ obj/
 *.db
 *.db-shm
 *.db-wal
+# Environment variables & secrets
+.env
+.env.local
+*.env
+
