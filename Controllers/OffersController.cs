@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Services;
@@ -11,6 +12,7 @@ using YAGOT_2._0.Services.Promotions;
 namespace YAGOT_2._0.Controllers;
 
 [ServiceFilter(typeof(SiteStatusFilter))]
+[RequireCapability(CapabilityFeatureCodes.OfferCustomerDisplay)]
 public class OffersController : Controller
 {
     private readonly ProductService _productService;

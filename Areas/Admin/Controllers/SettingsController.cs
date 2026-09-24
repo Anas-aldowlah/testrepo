@@ -12,6 +12,7 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
     [Area("Admin")]
     [Authorize(Roles = "Admin,Developer")]
     [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+    [RequireCapability(CapabilityFeatureCodes.StoreSettings)]
     public class SettingsController : Controller
     {
         private readonly StoreSettingsService _settingsService;

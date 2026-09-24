@@ -100,13 +100,13 @@ public sealed class CapabilityFoundationTests
     }
 
     [Fact]
-    public void Offers_AreDefinedButNotImplemented()
+    public void Offers_AreDefinedAndImplemented()
     {
         var offers = _catalog.Features.Where(feature => feature.ModuleCode == CapabilityModuleCodes.Offers).ToArray();
         var evaluator = CreateEvaluator();
         Assert.Equal(6, offers.Length);
-        Assert.All(offers, feature => Assert.Equal(CapabilityImplementationStatus.NotImplemented, feature.ImplementationStatus));
-        Assert.All(offers, feature => Assert.Equal(CapabilityEvaluationReason.NotImplemented, evaluator.EvaluateFeature(feature.Code).Reason));
+        Assert.All(offers, feature => Assert.Equal(CapabilityImplementationStatus.Implemented, feature.ImplementationStatus));
+        Assert.All(offers, feature => Assert.Equal(CapabilityEvaluationReason.Enabled, evaluator.EvaluateFeature(feature.Code).Reason));
     }
 
     [Fact]

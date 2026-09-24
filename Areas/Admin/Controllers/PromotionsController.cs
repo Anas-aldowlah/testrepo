@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YAGOT_2._0.Core.Capabilities;
 using YAGOT_2._0.Filters;
 using YAGOT_2._0.Models;
 using YAGOT_2._0.Models.Admin;
@@ -17,6 +18,7 @@ namespace YAGOT_2._0.Areas.Admin.Controllers
     [Area("Admin")]
     [Authorize(Roles = "Admin,Developer")]
     [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+    [RequireCapability(CapabilityFeatureCodes.OfferManagement)]
     public class PromotionsController : Controller
     {
         private readonly NeondbContext _context;

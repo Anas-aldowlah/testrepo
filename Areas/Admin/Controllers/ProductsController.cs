@@ -14,6 +14,7 @@ namespace Yagot.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+[RequireCapability(CapabilityFeatureCodes.ProductView)]
 public class ProductsController : Controller
 {
     private const string DeletedProductImagePath = "/images/products/6389130_camera_interface_movie_picture_zoom_icon.png";

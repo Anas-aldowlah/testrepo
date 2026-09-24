@@ -14,6 +14,7 @@ namespace YAGOT_2._0.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+[RequireCapability(CapabilityFeatureCodes.CategoryView)]
 public class CategoriesController : Controller
 {
     private const string DefaultCategoryImageUrl = "/images/categories/category_8428362.png";

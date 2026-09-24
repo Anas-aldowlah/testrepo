@@ -98,12 +98,12 @@ public sealed class CapabilitySnapshotTests
     }
 
     [Fact]
-    public void EvaluatorKeepsCoreAndOffersAuthoritative()
+    public void EvaluatorKeepsCoreAuthoritativeAndEvaluatesOffers()
     {
         var runtime = Runtime(); var s = Create(); var m = s.Modules.Select(x => x.Code == CapabilityModuleCodes.Offers ? x with { Enabled = true } : x).ToArray(); runtime.Publish(s with { Modules = m });
         var evaluator = new CapabilityEvaluator(_catalog, runtime);
         Assert.Equal(CapabilityEvaluationReason.CoreRequired, evaluator.EvaluateModule(CapabilityModuleCodes.Core).Reason);
-        Assert.Equal(CapabilityEvaluationReason.NotImplemented, evaluator.EvaluateModule(CapabilityModuleCodes.Offers).Reason);
+        Assert.Equal(CapabilityEvaluationReason.Enabled, evaluator.EvaluateModule(CapabilityModuleCodes.Offers).Reason);
     }
 
     [Fact]

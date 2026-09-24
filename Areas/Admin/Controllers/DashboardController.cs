@@ -13,6 +13,7 @@ namespace YAGOT_2._0.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin,Developer")]
 [ServiceFilter(typeof(SiteStatusFilterAdmin))]
+[RequireCapability(CapabilityFeatureCodes.StoreDashboard)]
 public class DashboardController : Controller
 {
     private readonly NeondbContext _context;
